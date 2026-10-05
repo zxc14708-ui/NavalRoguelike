@@ -1,0 +1,65 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee8925205f16a2b47900cba0670cd113, type: 3}
+  m_Name: mod_armor
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Modules.ModuleDefinition
+  id: mod_armor
+  displayName: "\uC7A5\uAC11"
+  description: "\uC124\uCE58\uB41C \uAD6C\uC5ED\uC5D0 \uB4E4\uC5B4\uC628 \uD53C\uD574\uB97C
+    \uC904\uC778\uB2E4. \uD568\uCCB4 \uC678\uACFD \uC804\uC6A9."
+  type: 15
+  icon: {fileID: 21300000, guid: b241a26310a259d4696d0652a7265181, type: 3}
+  width: 1
+  height: 1
+  canRotate: 1
+  placement:
+    Zone: 4
+  heightClass: 1
+  maxCount: 0
+  maxHp: 80
+  rarity: 0
+  weight: 1.2
+  prefab: {fileID: 5356786309794021552, guid: 5a71b1403fdb3d84e95cee4f477f5d09, type: 3}
+  stats:
+    Range: 0
+    MinRange: 0
+    Damage: 0
+    ReloadTime: 0
+    ProjectileSpeed: 0
+    FireArcDegrees: 0
+    TurretTurnRate: 0
+    AmmoFamily: 0
+    MagazineCapacity: 0
+    AmmoPerShot: 0
+    AmmoReloadAmount: 0
+    AmmoReloadTime: 0
+    DetectionRange: 0
+    ExtraTrackedTargets: 0
+    SupportRadiusCells: 0
+    ReloadBonus: 0
+    AmmoCapacityBonus: 0
+    ResupplyBonus: 0
+    CookOffDamage: 0
+    DamageReduction: 0.25
+    HullRepairPerSecond: 0
+    ModuleRepairPerSecond: 0
+    SortieCooldown: 0
+    HelicopterSpeed: 0
+  targetEfficiency:
+    SmallSurface: 1
+    MediumSurface: 1
+    LargeSurface: 1
+    Boss: 1
+    Submarine: 1
+    Drone: 1
+    Air: 1
+    Missile: 1

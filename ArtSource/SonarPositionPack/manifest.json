@@ -1,0 +1,536 @@
+{
+  "pack": "SonarPositionPack",
+  "game_applied": false,
+  "gameplay_implemented": false,
+  "unity_tested": false,
+  "cell_size_m": 2.0,
+  "maximum_module_footprint_m": [
+    1.8,
+    1.8
+  ],
+  "maximum_height_m": 1.0,
+  "authoring_axes": {
+    "forward": "+Y",
+    "up": "+Z"
+  },
+  "export_axes": {
+    "forward": "-Z",
+    "up": "Y",
+    "apply_scalings": "All Local"
+  },
+  "palette": {
+    "MAT_IslandRock": [
+      0.33000001311302185,
+      0.3199999928474426,
+      0.30000001192092896,
+      1.0
+    ],
+    "MAT_IslandCliff": [
+      0.41999998688697815,
+      0.38999998569488525,
+      0.3400000035762787,
+      1.0
+    ],
+    "MAT_IslandSand": [
+      0.7200000286102295,
+      0.6399999856948853,
+      0.4699999988079071,
+      1.0
+    ],
+    "MAT_IslandGrass": [
+      0.2199999988079071,
+      0.36000001430511475,
+      0.17000000178813934,
+      1.0
+    ],
+    "MAT_IslandTree": [
+      0.10000000149011612,
+      0.25,
+      0.11999999731779099,
+      1.0
+    ],
+    "MAT_IslandWhite": [
+      0.8600000143051147,
+      0.8600000143051147,
+      0.8199999928474426,
+      1.0
+    ],
+    "MAT_IslandRed": [
+      0.6000000238418579,
+      0.12999999523162842,
+      0.10000000149011612,
+      1.0
+    ],
+    "MAT_IslandRust": [
+      0.3799999952316284,
+      0.20999999344348907,
+      0.11999999731779099,
+      1.0
+    ],
+    "MAT_IslandSeal": [
+      0.27000001072883606,
+      0.25,
+      0.23000000417232513,
+      1.0
+    ],
+    "ENV_WetRock": [
+      0.1599999964237213,
+      0.20000000298023224,
+      0.20000000298023224,
+      1.0
+    ],
+    "ENV_RockStrata": [
+      0.46000000834465027,
+      0.4399999976158142,
+      0.4000000059604645,
+      1.0
+    ],
+    "ENV_SandLight": [
+      0.7699999809265137,
+      0.6899999976158142,
+      0.5199999809265137,
+      1.0
+    ],
+    "ENV_Moss": [
+      0.25,
+      0.3799999952316284,
+      0.18000000715255737,
+      1.0
+    ],
+    "ENV_PineHighlight": [
+      0.20000000298023224,
+      0.36000001430511475,
+      0.20000000298023224,
+      1.0
+    ],
+    "ENV_Bark": [
+      0.23999999463558197,
+      0.18000000715255737,
+      0.11999999731779099,
+      1.0
+    ],
+    "ENV_Concrete": [
+      0.5,
+      0.5199999809265137,
+      0.47999998927116394,
+      1.0
+    ],
+    "ENV_Wood": [
+      0.41999998688697815,
+      0.3100000023841858,
+      0.20000000298023224,
+      1.0
+    ],
+    "Gunmetal": [
+      0.04500000178813934,
+      0.05999999865889549,
+      0.07500000298023224,
+      1.0
+    ],
+    "Radar Glass": [
+      0.03500000014901161,
+      0.14000000059604645,
+      0.17000000178813934,
+      1.0
+    ],
+    "Warning Yellow": [
+      0.7200000286102295,
+      0.4699999988079071,
+      0.08500000089406967,
+      1.0
+    ],
+    "ENV_Lamp": [
+      1.0,
+      0.7300000190734863,
+      0.27000001072883606,
+      1.0
+    ],
+    "ENV_RustLight": [
+      0.5199999809265137,
+      0.25999999046325684,
+      0.10999999940395355,
+      1.0
+    ],
+    "ENV_SealMuzzle": [
+      0.4399999976158142,
+      0.46000000834465027,
+      0.41999998688697815,
+      1.0
+    ],
+    "ENV_Foam": [
+      0.7699999809265137,
+      0.8700000047683716,
+      0.8500000238418579,
+      1.0
+    ],
+    "Deck Grey": [
+      0.14000000059604645,
+      0.18000000715255737,
+      0.20999999344348907,
+      1.0
+    ],
+    "Naval Blue Grey": [
+      0.30000001192092896,
+      0.3499999940395355,
+      0.4000000059604645,
+      1.0
+    ],
+    "Sensor Glass": [
+      0.03500000014901161,
+      0.14000000059604645,
+      0.17000000178813934,
+      1.0
+    ],
+    "Medical White": [
+      0.6499999761581421,
+      0.6700000166893005,
+      0.6700000166893005,
+      1.0
+    ],
+    "Emergency Red": [
+      0.6000000238418579,
+      0.12999999523162842,
+      0.10000000149011612,
+      1.0
+    ],
+    "Warning red": [
+      0.6000000238418579,
+      0.12999999523162842,
+      0.10000000149011612,
+      1.0
+    ],
+    "Missile body": [
+      0.550000011920929,
+      0.5799999833106995,
+      0.6000000238418579,
+      1.0
+    ],
+    "Sam Blue": [
+      0.10000000149011612,
+      0.28999999165534973,
+      0.46000000834465027,
+      1.0
+    ],
+    "Enemy hull grey": [
+      0.2800000011920929,
+      0.3199999928474426,
+      0.36000001430511475,
+      1.0
+    ],
+    "Stealth deck": [
+      0.11999999731779099,
+      0.1599999964237213,
+      0.1899999976158142,
+      1.0
+    ],
+    "Enemy weapon dark": [
+      0.054999999701976776,
+      0.07000000029802322,
+      0.08500000089406967,
+      1.0
+    ],
+    "Submarine green": [
+      0.09000000357627869,
+      0.12999999523162842,
+      0.1599999964237213,
+      1.0
+    ],
+    "Submarine deck": [
+      0.06499999761581421,
+      0.0949999988079071,
+      0.11500000208616257,
+      1.0
+    ],
+    "Submarine dark underside": [
+      0.03500000014901161,
+      0.05000000074505806,
+      0.06499999761581421,
+      1.0
+    ],
+    "Role CAP": [
+      0.3499999940395355,
+      1.0,
+      0.5799999833106995,
+      1.0
+    ],
+    "Role ASW": [
+      0.2199999988079071,
+      0.6800000071525574,
+      1.0,
+      1.0
+    ],
+    "Role EW": [
+      0.8299999833106995,
+      0.3700000047683716,
+      1.0,
+      1.0
+    ],
+    "Role STK": [
+      1.0,
+      0.5199999809265137,
+      0.1599999964237213,
+      1.0
+    ],
+    "Deck Marking White": [
+      0.7300000190734863,
+      0.75,
+      0.75,
+      1.0
+    ],
+    "Naval Superstructure": [
+      0.30000001192092896,
+      0.3499999940395355,
+      0.4000000059604645,
+      1.0
+    ]
+  },
+  "proposed_game_rules_not_implemented": {
+    "bow": {
+      "half_angle_degrees": 70,
+      "range_multiplier": 1.0,
+      "movement_penalty": false
+    },
+    "stern_tas": {
+      "coverage_degrees": 360,
+      "range_multiplier": 1.5,
+      "high_speed_threshold_fraction": 0.7,
+      "high_speed_radius_multiplier": 0.5,
+      "sharp_turn_penalty": "Not specified; remains a gameplay decision"
+    },
+    "inboard": {
+      "coverage_degrees": 360,
+      "range_multiplier": "Lower than current; no numeric value supplied"
+    }
+  },
+  "realism_note": "Position/range/angle/speed values are supplied game rules, not real sonar specifications. Bow/inboard above-deck appearances are readable miniature/cutaway abstractions of water-coupled equipment.",
+  "assets": [
+    {
+      "id": "MOD_Sonar_Bow",
+      "category": "sonar_module",
+      "model_file": "Models/MOD_Sonar_Bow.fbx",
+      "blend_file": "Blender/MOD_Sonar_Bow.blend",
+      "glb_file": "Models/MOD_Sonar_Bow.glb",
+      "triangles": 572,
+      "bounds": {
+        "x": [
+          -0.8700000047683716,
+          0.8700000047683716
+        ],
+        "y": [
+          -0.8600000143051147,
+          0.8600000143051147
+        ],
+        "z": [
+          0.0,
+          0.8179999589920044
+        ]
+      },
+      "budget": 900,
+      "footprint_cells": [
+        1,
+        1
+      ],
+      "features": {
+        "description": "선수 방향을 식별할 수 있는 낮은 쐐기형 케이싱과 곡면 음향창의 선수 소나 블록.",
+        "features": [
+          "전방 곡면 음향창",
+          "뒤가 높은 밀폐 쐐기형 케이싱",
+          "후방 밀폐 전자장비 덮개·케이블 글랜드",
+          "측면 정비 도어",
+          "고정식 구조·회전부 없음"
+        ],
+        "reference_urls": [
+          "https://www.kongsberg.com/what-we-do/defence-and-security/naval/ss2030/"
+        ],
+        "budget": 900,
+        "required_sockets": [
+          "SonarOrigin",
+          "ForwardMarker",
+          "AttachPoint"
+        ],
+        "gameplay_not_implemented": true,
+        "realism_note": "SS2030 등 실제 선체 소나는 360도 탐지가 가능하다. 전방 ±70도는 사용자 게임 설계이며, 모델은 수면 아래 실제 소나 돔을 갑판 위 블록으로 시각적으로 단순화한 것이다."
+      },
+      "required_sockets": [
+        "SonarOrigin",
+        "ForwardMarker",
+        "AttachPoint"
+      ],
+      "socket_hierarchy": {
+        "SonarOrigin": "MOD_Sonar_Bow_Root",
+        "ForwardMarker": "MOD_Sonar_Bow_Root",
+        "AttachPoint": "MOD_Sonar_Bow_Root"
+      }
+    },
+    {
+      "id": "MOD_Sonar_TAS",
+      "category": "sonar_module",
+      "model_file": "Models/MOD_Sonar_TAS.fbx",
+      "blend_file": "Blender/MOD_Sonar_TAS.blend",
+      "glb_file": "Models/MOD_Sonar_TAS.glb",
+      "triangles": 896,
+      "bounds": {
+        "x": [
+          -0.8799999952316284,
+          0.8799999952316284
+        ],
+        "y": [
+          -0.8650000095367432,
+          0.8600000143051147
+        ],
+        "z": [
+          0.0,
+          0.921999990940094
+        ]
+      },
+      "budget": 900,
+      "footprint_cells": [
+        1,
+        1
+      ],
+      "features": {
+        "description": "Aft-facing miniature TAS winch and braced recovery frame; separable two-ring wet-end on a fixed cradle",
+        "features": [
+          "Fixed twin bearing pedestals and coaxial drum axle",
+          "Optional transverse CableDrumPivot",
+          "Load-bearing diagonal braces and supported guide pulley",
+          "Cable outlet explicitly points sternward (-Y)",
+          "Deployable StowedTowBody; cradle remains fixed",
+          "Two stacked acoustic transmitter rings with teal faces"
+        ],
+        "footprint_m": [
+          1.8,
+          1.8
+        ],
+        "budget": 900,
+        "height_limit_m": 1.0,
+        "anchor": "floor_z_0",
+        "required_sockets": [
+          "CableDrumPivot",
+          "CableExit",
+          "TowAttachPoint",
+          "StowedTowBody",
+          "SonarOrigin",
+          "TowDeployTarget",
+          "ForwardMarker",
+          "AttachPoint"
+        ],
+        "new_optional_sockets": [
+          "CableDrumPivot",
+          "CableExit",
+          "TowAttachPoint",
+          "StowedTowBody",
+          "SonarOrigin",
+          "TowDeployTarget",
+          "ForwardMarker",
+          "AttachPoint"
+        ],
+        "forward_blender": [
+          0,
+          1,
+          0
+        ],
+        "deployment_direction_blender": [
+          0,
+          -1,
+          0
+        ],
+        "mesh_bounds_exclude_guide_socket": [
+          "TowDeployTarget"
+        ],
+        "real_equipment_basis": "Public Thales CAPTAS winch / handling rig and two-ring wet-end imagery",
+        "reference_urls": [
+          "https://www.thalesdsi.com/captas/"
+        ],
+        "reference_fidelity": "Stylized one-cell interpretation; not an exact CAPTAS replica or functional engineering design",
+        "gameplay_balance_note": "360-degree / 1.5x range / high-speed penalty are user game-design examples, not real equipment specifications",
+        "existing_runtime_socket_required": false,
+        "game_applied": false
+      },
+      "required_sockets": [
+        "CableDrumPivot",
+        "CableExit",
+        "TowAttachPoint",
+        "StowedTowBody",
+        "SonarOrigin",
+        "TowDeployTarget",
+        "ForwardMarker",
+        "AttachPoint"
+      ],
+      "socket_hierarchy": {
+        "CableDrumPivot": "MOD_Sonar_TAS_Root",
+        "CableExit": "MOD_Sonar_TAS_Root",
+        "TowAttachPoint": "MOD_Sonar_TAS_Root",
+        "StowedTowBody": "MOD_Sonar_TAS_Root",
+        "SonarOrigin": "StowedTowBody",
+        "TowDeployTarget": "MOD_Sonar_TAS_Root",
+        "ForwardMarker": "MOD_Sonar_TAS_Root",
+        "AttachPoint": "MOD_Sonar_TAS_Root"
+      }
+    },
+    {
+      "id": "MOD_Sonar_Internal",
+      "category": "sonar_module",
+      "model_file": "Models/MOD_Sonar_Internal.fbx",
+      "blend_file": "Blender/MOD_Sonar_Internal.blend",
+      "glb_file": "Models/MOD_Sonar_Internal.glb",
+      "triangles": 800,
+      "bounds": {
+        "x": [
+          -0.8799999952316284,
+          0.8799999952316284
+        ],
+        "y": [
+          -0.8799999952316284,
+          0.8799999952316284
+        ],
+        "z": [
+          0.0,
+          0.8264594674110413
+        ]
+      },
+      "budget": 900,
+      "footprint_cells": [
+        1,
+        1
+      ],
+      "features": {
+        "description": "Inboard compact sonar hull unit and acoustic-processing console",
+        "features": [
+          "Low sealed circular hull-unit crown",
+          "Protected processor cabinet",
+          "Inclined sonar scope",
+          "Connected processor harness",
+          "Cutaway-style readable inboard equipment"
+        ],
+        "budget": 900,
+        "required_sockets": [
+          "SonarOrigin",
+          "ForwardMarker",
+          "AttachPoint",
+          "OperatorPanel",
+          "TransducerAssembly"
+        ],
+        "reference_urls": [
+          "https://www.kongsberg.com/what-we-do/defence-and-security/naval/ss2030/"
+        ],
+        "reference_fidelity": "Miniature/cutaway interpretation of hull unit plus processor/operator panel; the real transducer couples to water below the hull.",
+        "gameplay_note": "The short omnidirectional range is the supplied game rule, not a published hardware specification."
+      },
+      "required_sockets": [
+        "SonarOrigin",
+        "ForwardMarker",
+        "AttachPoint",
+        "OperatorPanel",
+        "TransducerAssembly"
+      ],
+      "socket_hierarchy": {
+        "SonarOrigin": "MOD_Sonar_Internal_Root",
+        "ForwardMarker": "MOD_Sonar_Internal_Root",
+        "AttachPoint": "MOD_Sonar_Internal_Root",
+        "OperatorPanel": "MOD_Sonar_Internal_Root",
+        "TransducerAssembly": "MOD_Sonar_Internal_Root"
+      }
+    }
+  ]
+}

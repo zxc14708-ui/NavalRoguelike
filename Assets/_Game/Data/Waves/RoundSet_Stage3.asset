@@ -1,0 +1,150 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8e74e640cacfdb944acdcd26834b727a, type: 3}
+  m_Name: RoundSet_Stage3
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.RoundSet
+  rounds:
+  - Title: "\uC804\uC790\uC804 \uD574\uC5ED"
+    Duration: 60
+    SpawnRate: 0.85
+    MaxAlive: 22
+    Entries:
+    - Enemy: {fileID: 11400000, guid: 8dabd2a39a06330469069668a97bf69a, type: 2}
+      Weight: 2
+    - Enemy: {fileID: 11400000, guid: 2ba0fa5073d28f843ae020a3d8210585, type: 2}
+      Weight: 2
+    - Enemy: {fileID: 11400000, guid: 01383df700b819a49a1517ada187583a, type: 2}
+      Weight: 0.4
+    - Enemy: {fileID: 11400000, guid: b63c3f65e1b9da341921b614edb95425, type: 2}
+      Weight: 0.45
+    Boss: {fileID: 0}
+    Escort: {fileID: 0}
+    EscortCount: 0
+  - Title: "\uBB34\uC778\uC815 \uB5BC"
+    Duration: 60
+    SpawnRate: 1
+    MaxAlive: 26
+    Entries:
+    - Enemy: {fileID: 11400000, guid: 2ba0fa5073d28f843ae020a3d8210585, type: 2}
+      Weight: 4
+    - Enemy: {fileID: 11400000, guid: d9bebf0c5b7ff0a4592534e567f6b9b2, type: 2}
+      Weight: 1.2
+    - Enemy: {fileID: 11400000, guid: 51088c5d0cee5954aa389ab8bd4f9357, type: 2}
+      Weight: 1.5
+    Boss: {fileID: 0}
+    Escort: {fileID: 0}
+    EscortCount: 0
+  - Title: "\uBC29\uACF5\uB9DD"
+    Duration: 60
+    SpawnRate: 1.05
+    MaxAlive: 26
+    Entries:
+    - Enemy: {fileID: 11400000, guid: 2ba0fa5073d28f843ae020a3d8210585, type: 2}
+      Weight: 2
+    - Enemy: {fileID: 11400000, guid: 01383df700b819a49a1517ada187583a, type: 2}
+      Weight: 0.6
+    - Enemy: {fileID: 11400000, guid: 38827d58a1e413e4f8acbb52bcf7b182, type: 2}
+      Weight: 0.45
+    - Enemy: {fileID: 11400000, guid: 2f7769bf1fed85448a36b78b7eeba1b6, type: 2}
+      Weight: 0.35
+    - Enemy: {fileID: 11400000, guid: ca805cb61dec04d4885eb9ad3e70ffbe, type: 2}
+      Weight: 0.3
+    - Enemy: {fileID: 11400000, guid: 51088c5d0cee5954aa389ab8bd4f9357, type: 2}
+      Weight: 1.5
+    Boss: {fileID: 0}
+    Escort: {fileID: 0}
+    EscortCount: 0
+  - Title: "\uC7A0\uC218\uD568 \uB9E4\uBCF5"
+    Duration: 60
+    SpawnRate: 1.1
+    MaxAlive: 28
+    Entries:
+    - Enemy: {fileID: 11400000, guid: 2ba0fa5073d28f843ae020a3d8210585, type: 2}
+      Weight: 1.5
+    - Enemy: {fileID: 11400000, guid: c5fd55b40fc353e4e898848eaecdf4b2, type: 2}
+      Weight: 0.25
+    - Enemy: {fileID: 11400000, guid: 1fd40a70fc91d5949ae16c2232b33c90, type: 2}
+      Weight: 0.175
+    - Enemy: {fileID: 11400000, guid: 9f934d75931b94c4dae63d6c57334301, type: 2}
+      Weight: 0.5
+    - Enemy: {fileID: 11400000, guid: 6556519b9916a114eab6f5cc6c957457, type: 2}
+      Weight: 0.35
+    - Enemy: {fileID: 11400000, guid: b63c3f65e1b9da341921b614edb95425, type: 2}
+      Weight: 0.3
+    Boss: {fileID: 0}
+    Escort: {fileID: 0}
+    EscortCount: 0
+  - Title: "\uC81C\uACF5\uAD8C \uC7C1\uD0C8"
+    Duration: 60
+    SpawnRate: 1.35
+    MaxAlive: 34
+    Entries:
+    - Enemy: {fileID: 11400000, guid: 2ba0fa5073d28f843ae020a3d8210585, type: 2}
+      Weight: 1.5
+    - Enemy: {fileID: 11400000, guid: 51088c5d0cee5954aa389ab8bd4f9357, type: 2}
+      Weight: 3
+    - Enemy: {fileID: 11400000, guid: 95594efc9772f7341af1b4dd3c936840, type: 2}
+      Weight: 1.4
+    - Enemy: {fileID: 11400000, guid: ca805cb61dec04d4885eb9ad3e70ffbe, type: 2}
+      Weight: 0.4
+    - Enemy: {fileID: 11400000, guid: 38827d58a1e413e4f8acbb52bcf7b182, type: 2}
+      Weight: 0.4
+    Boss: {fileID: 0}
+    Escort: {fileID: 0}
+    EscortCount: 0
+  - Title: "\uCD1D\uACF5\uC138"
+    Duration: 60
+    SpawnRate: 1.45
+    MaxAlive: 38
+    Entries:
+    - Enemy: {fileID: 11400000, guid: 8dabd2a39a06330469069668a97bf69a, type: 2}
+      Weight: 2
+    - Enemy: {fileID: 11400000, guid: 2ba0fa5073d28f843ae020a3d8210585, type: 2}
+      Weight: 2
+    - Enemy: {fileID: 11400000, guid: 01383df700b819a49a1517ada187583a, type: 2}
+      Weight: 0.8
+    - Enemy: {fileID: 11400000, guid: 2f7769bf1fed85448a36b78b7eeba1b6, type: 2}
+      Weight: 0.6
+    - Enemy: {fileID: 11400000, guid: b63c3f65e1b9da341921b614edb95425, type: 2}
+      Weight: 0.4
+    - Enemy: {fileID: 11400000, guid: 38827d58a1e413e4f8acbb52bcf7b182, type: 2}
+      Weight: 0.4
+    - Enemy: {fileID: 11400000, guid: c5fd55b40fc353e4e898848eaecdf4b2, type: 2}
+      Weight: 0.2
+    - Enemy: {fileID: 11400000, guid: e9f99f81ddac4224c944bae73edc6121, type: 2}
+      Weight: 0.3
+    - Enemy: {fileID: 11400000, guid: 51088c5d0cee5954aa389ab8bd4f9357, type: 2}
+      Weight: 2.5
+    - Enemy: {fileID: 11400000, guid: 95594efc9772f7341af1b4dd3c936840, type: 2}
+      Weight: 1
+    - Enemy: {fileID: 11400000, guid: 51c9308a3280c4247b3381f1a5d90369, type: 2}
+      Weight: 0.5
+    - Enemy: {fileID: 11400000, guid: 2abf3841e6bc86d4a9bbeb16a7fb0b51, type: 2}
+      Weight: 0.4
+    Boss: {fileID: 0}
+    Escort: {fileID: 0}
+    EscortCount: 0
+  - Title: "\uD56D\uACF5\uC804\uD568"
+    Duration: 90
+    SpawnRate: 0.45
+    MaxAlive: 10
+    Entries:
+    - Enemy: {fileID: 11400000, guid: 8dabd2a39a06330469069668a97bf69a, type: 2}
+      Weight: 1
+    - Enemy: {fileID: 11400000, guid: 51088c5d0cee5954aa389ab8bd4f9357, type: 2}
+      Weight: 0.5
+    - Enemy: {fileID: 11400000, guid: d9bebf0c5b7ff0a4592534e567f6b9b2, type: 2}
+      Weight: 0.4
+    Boss: {fileID: 11400000, guid: 747b64c7106a0d5408e4d9b991133557, type: 2}
+    Escort: {fileID: 11400000, guid: 2ba0fa5073d28f843ae020a3d8210585, type: 2}
+    EscortCount: 4
+  nextStage: {fileID: 0}

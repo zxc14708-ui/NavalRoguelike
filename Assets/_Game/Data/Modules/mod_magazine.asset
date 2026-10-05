@@ -1,0 +1,70 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee8925205f16a2b47900cba0670cd113, type: 3}
+  m_Name: mod_magazine
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Modules.ModuleDefinition
+  id: mod_magazine
+  displayName: "\uD0C4\uC57D\uACE0"
+  description: "2\uCE78 \uC548\uC758 \uAE30\uAD00\uD3EC\xB776mm: \uBC1C\uC0AC \uAC04\uACA9
+    \u221225%, \uD0C4\uC57D \uC6A9\uB7C9 +50%, \uBCF4\uAE09 25% \uBE60\uB974\uAC8C.
+    \uC720\uB3C4\uB85C\uCF13\uC740 \uBC1C\uC0AC \uAC04\uACA9\uB9CC. \uC5EC\uB7EC
+    \uAC1C\uB97C \uBD99\uC5EC\uB3C4 \uAC00\uC7A5 \uC88B\uC740 \uD558\uB098\uB9CC
+    \uC801\uC6A9\uB41C\uB2E4. \uD30C\uAD34\uB418\uBA74 \uC720\uD3ED\uD574 \uBD99\uC5B4
+    \uC788\uB294 \uBAA8\uB4C8\uC5D0 \uD070 \uD53C\uD574(60, \uD55C \uCE78 \uB5A8\uC5B4\uC9C0\uBA74
+    \uC808\uBC18)\uB97C \uC900\uB2E4."
+  type: 6
+  icon: {fileID: 21300000, guid: 9533fb796c7db734ebef4e4ee8d662ea, type: 3}
+  width: 1
+  height: 1
+  canRotate: 1
+  placement:
+    Zone: 0
+  heightClass: 0
+  maxCount: 0
+  maxHp: 25
+  rarity: 0
+  weight: 1
+  prefab: {fileID: 7186713650193044172, guid: ce72910040c89a54d9110a9b9e039b66, type: 3}
+  stats:
+    Range: 0
+    MinRange: 0
+    Damage: 0
+    ReloadTime: 0
+    ProjectileSpeed: 0
+    FireArcDegrees: 0
+    TurretTurnRate: 0
+    AmmoFamily: 0
+    MagazineCapacity: 0
+    AmmoPerShot: 0
+    AmmoReloadAmount: 0
+    AmmoReloadTime: 0
+    DetectionRange: 0
+    ExtraTrackedTargets: 0
+    SupportRadiusCells: 2
+    ReloadBonus: 0.25
+    AmmoCapacityBonus: 0.5
+    ResupplyBonus: 0.25
+    CookOffDamage: 60
+    DamageReduction: 0
+    HullRepairPerSecond: 0
+    ModuleRepairPerSecond: 0
+    SortieCooldown: 0
+    HelicopterSpeed: 0
+  targetEfficiency:
+    SmallSurface: 1
+    MediumSurface: 1
+    LargeSurface: 1
+    Boss: 1
+    Submarine: 1
+    Drone: 1
+    Air: 1
+    Missile: 1

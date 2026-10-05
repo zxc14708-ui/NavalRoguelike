@@ -1,0 +1,68 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee8925205f16a2b47900cba0670cd113, type: 3}
+  m_Name: mod_gun76
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Modules.ModuleDefinition
+  id: mod_gun76
+  displayName: "76mm \uD568\uD3EC"
+  description: "\uC911\uAC70\uB9AC(6~34) \uC18D\uC0AC \uD568\uD3EC. \uC218\uC0C1\uD568\uACFC
+    \uBAB0\uB824 \uC788\uB294 \uC801\uC744 \uBA3C\uC800 \uB178\uB824 \uC9C4\uB85C\uB97C
+    \uC55E\uC9C8\uB7EC \uACE0\uD3ED\uD0C4\uC744 \uC3D8\uACE0, 2.5 \uC548\uC758 \uB2E4\uB978
+    \uC801\uC5D0\uAC8C\uB3C4 \uD30C\uD3B8 \uD53C\uD574(50%)\uB97C \uC900\uB2E4. \uC120\uD68C\uAC00
+    \uB290\uB9AC\uB2E4. \uD0C4\uC57D\uACE0 \uBCF4\uB108\uC2A4\uB97C \uBC1B\uB294\uB2E4."
+  type: 12
+  icon: {fileID: 21300000, guid: f23bd983b2773a24984a18c64bc621cf, type: 3}
+  width: 1
+  height: 1
+  canRotate: 1
+  placement:
+    Zone: 0
+  heightClass: 1
+  maxCount: 0
+  maxHp: 45
+  rarity: 1
+  weight: 1.1
+  prefab: {fileID: 1547635032223956765, guid: ba89866e857ffb54cb64a53c1b5f946b, type: 3}
+  stats:
+    Range: 34
+    MinRange: 6
+    Damage: 24
+    ReloadTime: 1.6
+    ProjectileSpeed: 85
+    FireArcDegrees: 0
+    TurretTurnRate: 90
+    AmmoFamily: 0
+    MagazineCapacity: 20
+    AmmoPerShot: 1
+    AmmoReloadAmount: 3
+    AmmoReloadTime: 6
+    DetectionRange: 0
+    ExtraTrackedTargets: 0
+    SupportRadiusCells: 0
+    ReloadBonus: 0
+    AmmoCapacityBonus: 0
+    ResupplyBonus: 0
+    CookOffDamage: 0
+    DamageReduction: 0
+    HullRepairPerSecond: 0
+    ModuleRepairPerSecond: 0
+    SortieCooldown: 0
+    HelicopterSpeed: 0
+  targetEfficiency:
+    SmallSurface: 0.8
+    MediumSurface: 1
+    LargeSurface: 0.8
+    Boss: 0.7
+    Submarine: 0.8
+    Drone: 0.6
+    Air: 0.7
+    Missile: 1

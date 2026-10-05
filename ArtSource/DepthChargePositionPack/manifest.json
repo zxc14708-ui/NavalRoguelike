@@ -1,0 +1,539 @@
+{
+  "pack": "DepthChargePositionPack",
+  "game_applied": false,
+  "gameplay_implemented": false,
+  "unity_tested": false,
+  "cell_size_m": 2.0,
+  "maximum_module_footprint_m": [
+    1.8,
+    1.8
+  ],
+  "maximum_height_m": 0.9,
+  "authoring_axes": {
+    "forward": "+Y",
+    "up": "+Z"
+  },
+  "export_axes": {
+    "forward": "-Z",
+    "up": "Y",
+    "apply_scalings": "All Local"
+  },
+  "palette": {
+    "MAT_IslandRock": [
+      0.33000001311302185,
+      0.3199999928474426,
+      0.30000001192092896,
+      1.0
+    ],
+    "MAT_IslandCliff": [
+      0.41999998688697815,
+      0.38999998569488525,
+      0.3400000035762787,
+      1.0
+    ],
+    "MAT_IslandSand": [
+      0.7200000286102295,
+      0.6399999856948853,
+      0.4699999988079071,
+      1.0
+    ],
+    "MAT_IslandGrass": [
+      0.2199999988079071,
+      0.36000001430511475,
+      0.17000000178813934,
+      1.0
+    ],
+    "MAT_IslandTree": [
+      0.10000000149011612,
+      0.25,
+      0.11999999731779099,
+      1.0
+    ],
+    "MAT_IslandWhite": [
+      0.8600000143051147,
+      0.8600000143051147,
+      0.8199999928474426,
+      1.0
+    ],
+    "MAT_IslandRed": [
+      0.6000000238418579,
+      0.12999999523162842,
+      0.10000000149011612,
+      1.0
+    ],
+    "MAT_IslandRust": [
+      0.3799999952316284,
+      0.20999999344348907,
+      0.11999999731779099,
+      1.0
+    ],
+    "MAT_IslandSeal": [
+      0.27000001072883606,
+      0.25,
+      0.23000000417232513,
+      1.0
+    ],
+    "ENV_WetRock": [
+      0.1599999964237213,
+      0.20000000298023224,
+      0.20000000298023224,
+      1.0
+    ],
+    "ENV_RockStrata": [
+      0.46000000834465027,
+      0.4399999976158142,
+      0.4000000059604645,
+      1.0
+    ],
+    "ENV_SandLight": [
+      0.7699999809265137,
+      0.6899999976158142,
+      0.5199999809265137,
+      1.0
+    ],
+    "ENV_Moss": [
+      0.25,
+      0.3799999952316284,
+      0.18000000715255737,
+      1.0
+    ],
+    "ENV_PineHighlight": [
+      0.20000000298023224,
+      0.36000001430511475,
+      0.20000000298023224,
+      1.0
+    ],
+    "ENV_Bark": [
+      0.23999999463558197,
+      0.18000000715255737,
+      0.11999999731779099,
+      1.0
+    ],
+    "ENV_Concrete": [
+      0.5,
+      0.5199999809265137,
+      0.47999998927116394,
+      1.0
+    ],
+    "ENV_Wood": [
+      0.41999998688697815,
+      0.3100000023841858,
+      0.20000000298023224,
+      1.0
+    ],
+    "Gunmetal": [
+      0.04500000178813934,
+      0.05999999865889549,
+      0.07500000298023224,
+      1.0
+    ],
+    "Radar Glass": [
+      0.03500000014901161,
+      0.14000000059604645,
+      0.17000000178813934,
+      1.0
+    ],
+    "Warning Yellow": [
+      0.7200000286102295,
+      0.4699999988079071,
+      0.08500000089406967,
+      1.0
+    ],
+    "ENV_Lamp": [
+      1.0,
+      0.7300000190734863,
+      0.27000001072883606,
+      1.0
+    ],
+    "ENV_RustLight": [
+      0.5199999809265137,
+      0.25999999046325684,
+      0.10999999940395355,
+      1.0
+    ],
+    "ENV_SealMuzzle": [
+      0.4399999976158142,
+      0.46000000834465027,
+      0.41999998688697815,
+      1.0
+    ],
+    "ENV_Foam": [
+      0.7699999809265137,
+      0.8700000047683716,
+      0.8500000238418579,
+      1.0
+    ],
+    "Deck Grey": [
+      0.14000000059604645,
+      0.18000000715255737,
+      0.20999999344348907,
+      1.0
+    ],
+    "Naval Blue Grey": [
+      0.30000001192092896,
+      0.3499999940395355,
+      0.4000000059604645,
+      1.0
+    ],
+    "Sensor Glass": [
+      0.03500000014901161,
+      0.14000000059604645,
+      0.17000000178813934,
+      1.0
+    ],
+    "Medical White": [
+      0.6499999761581421,
+      0.6700000166893005,
+      0.6700000166893005,
+      1.0
+    ],
+    "Emergency Red": [
+      0.6000000238418579,
+      0.12999999523162842,
+      0.10000000149011612,
+      1.0
+    ],
+    "Warning red": [
+      0.6000000238418579,
+      0.12999999523162842,
+      0.10000000149011612,
+      1.0
+    ],
+    "Missile body": [
+      0.550000011920929,
+      0.5799999833106995,
+      0.6000000238418579,
+      1.0
+    ],
+    "Sam Blue": [
+      0.10000000149011612,
+      0.28999999165534973,
+      0.46000000834465027,
+      1.0
+    ],
+    "Enemy hull grey": [
+      0.2800000011920929,
+      0.3199999928474426,
+      0.36000001430511475,
+      1.0
+    ],
+    "Stealth deck": [
+      0.11999999731779099,
+      0.1599999964237213,
+      0.1899999976158142,
+      1.0
+    ],
+    "Enemy weapon dark": [
+      0.054999999701976776,
+      0.07000000029802322,
+      0.08500000089406967,
+      1.0
+    ],
+    "Submarine green": [
+      0.09000000357627869,
+      0.12999999523162842,
+      0.1599999964237213,
+      1.0
+    ],
+    "Submarine deck": [
+      0.06499999761581421,
+      0.0949999988079071,
+      0.11500000208616257,
+      1.0
+    ],
+    "Submarine dark underside": [
+      0.03500000014901161,
+      0.05000000074505806,
+      0.06499999761581421,
+      1.0
+    ],
+    "Role CAP": [
+      0.3499999940395355,
+      1.0,
+      0.5799999833106995,
+      1.0
+    ],
+    "Role ASW": [
+      0.2199999988079071,
+      0.6800000071525574,
+      1.0,
+      1.0
+    ],
+    "Role EW": [
+      0.8299999833106995,
+      0.3700000047683716,
+      1.0,
+      1.0
+    ],
+    "Role STK": [
+      1.0,
+      0.5199999809265137,
+      0.1599999964237213,
+      1.0
+    ],
+    "Deck Marking White": [
+      0.7300000190734863,
+      0.75,
+      0.75,
+      1.0
+    ],
+    "Naval Superstructure": [
+      0.30000001192092896,
+      0.3499999940395355,
+      0.4000000059604645,
+      1.0
+    ]
+  },
+  "placement_rules_not_implemented": {
+    "stern_open_boundary": "MOD_DepthChargeRack",
+    "port_or_starboard_open_boundary": "MOD_DepthChargeProjector",
+    "corner_priority": "Not specified; choose stern-first or player selection during gameplay implementation",
+    "inboard_placement": "Not specified; should not silently fire through neighboring blocks"
+  },
+  "integration_note": "Distinct review-only filenames. Existing MOD_AswLauncher.fbx and Unity prefabs are untouched. Positional resolver, projectile trajectories, damage, cooldown and release animation are not implemented.",
+  "socket_direction_contract": "Blender socket local +Y indicates launch direction; convert with the same model axis mapping used by the existing Unity importer. Do not assume default Transform.forward (+Z) when the project contract is -Z forward.",
+  "realism_note": "Historical roll-off rack and K-gun visual references adapted to the current naval-grey miniature style, not exact dimensions or a claim of modern fleet adoption.",
+  "assets": [
+    {
+      "id": "MOD_DepthChargeRack",
+      "category": "depth_charge_module",
+      "model_file": "Models/MOD_DepthChargeRack.fbx",
+      "glb_file": "Models/MOD_DepthChargeRack.glb",
+      "blend_file": "Blender/MOD_DepthChargeRack.blend",
+      "triangles": 816,
+      "bounds": {
+        "x": [
+          -0.8600000143051147,
+          0.8600000143051147
+        ],
+        "y": [
+          -0.8500000238418579,
+          0.8500000238418579
+        ],
+        "z": [
+          0.0,
+          0.7813500165939331
+        ]
+      },
+      "budget": 900,
+      "footprint_cells": [
+        1,
+        1
+      ],
+      "features": {
+        "description": "Stern gravity rack: two inclined lanes, four separately parented visible barrel charges, release lever and retaining stops",
+        "design_basis": "USS SLATER preserved stern inclined gravity depth-charge racks; miniature game adaptation, not exact historical dimensions",
+        "anchor": "floor_z_0",
+        "budget": 900,
+        "required_sockets": [
+          "ForwardMarker",
+          "AttachPoint",
+          "ReleaseLever",
+          "LaunchPoint_01",
+          "LaunchPoint_02",
+          "LaunchPoint_03",
+          "LaunchPoint_04",
+          "DropPoint_01",
+          "DropPoint_02",
+          "StoredCharge_01",
+          "StoredCharge_02",
+          "StoredCharge_03",
+          "StoredCharge_04"
+        ],
+        "socket_hierarchy": {
+          "LaunchPoint_01": "MOD_DepthChargeRack_Root",
+          "LaunchPoint_02": "MOD_DepthChargeRack_Root",
+          "LaunchPoint_03": "MOD_DepthChargeRack_Root",
+          "LaunchPoint_04": "MOD_DepthChargeRack_Root"
+        },
+        "optional_sockets": [
+          "ReleaseLever"
+        ],
+        "stored_charge_centres_blender": [
+          [
+            -0.43,
+            -0.43,
+            0.50845
+          ],
+          [
+            -0.43,
+            0.31,
+            0.57135
+          ],
+          [
+            0.43,
+            -0.43,
+            0.50845
+          ],
+          [
+            0.43,
+            0.31,
+            0.57135
+          ]
+        ],
+        "stern_drop_direction_blender": [
+          0,
+          -1,
+          0
+        ],
+        "release_animation_implemented": false,
+        "gameplay_modified": false,
+        "reference_urls": [
+          "https://ussslater.org/depth-charge-racks",
+          "https://images.squarespace-cdn.com/content/v1/5f0eedcc6d27416d718eca4f/1596470933862-VJXLF4BPDCLV84RV0HO5/rack_1.jpg"
+        ],
+        "primary_reference_visual_confirmed": true,
+        "variant": "stern_drop_rack",
+        "placement_rule_not_implemented": "Rear boundary with an open stern-facing neighbor selects the gravity rack",
+        "charge_groups": [
+          "StoredCharge_01",
+          "StoredCharge_02",
+          "StoredCharge_03",
+          "StoredCharge_04"
+        ],
+        "launch_point_contract": "Local +Y is the release direction. LaunchPoint_01/02 share lane 1 exit; 03/04 share lane 2 exit. They are root-relative and remain fixed when stored charges animate.",
+        "physical_exit_count": 2,
+        "stored_charge_count": 4,
+        "launch_direction_authoring": [
+          0.0,
+          -0.9841833710670471,
+          -0.17715302109718323
+        ],
+        "drop_animation_hint": "Translate one StoredCharge group aft along its rail, then fall downward; do not move the fixed rack.",
+        "maximum_height_m": 0.9
+      },
+      "required_sockets": [
+        "ForwardMarker",
+        "AttachPoint",
+        "ReleaseLever",
+        "LaunchPoint_01",
+        "LaunchPoint_02",
+        "LaunchPoint_03",
+        "LaunchPoint_04",
+        "DropPoint_01",
+        "DropPoint_02",
+        "StoredCharge_01",
+        "StoredCharge_02",
+        "StoredCharge_03",
+        "StoredCharge_04"
+      ],
+      "socket_hierarchy": {
+        "ForwardMarker": "MOD_DepthChargeRack_Root",
+        "AttachPoint": "MOD_DepthChargeRack_Root",
+        "ReleaseLever": "MOD_DepthChargeRack_Root",
+        "LaunchPoint_01": "MOD_DepthChargeRack_Root",
+        "LaunchPoint_02": "MOD_DepthChargeRack_Root",
+        "LaunchPoint_03": "MOD_DepthChargeRack_Root",
+        "LaunchPoint_04": "MOD_DepthChargeRack_Root",
+        "DropPoint_01": "MOD_DepthChargeRack_Root",
+        "DropPoint_02": "MOD_DepthChargeRack_Root",
+        "StoredCharge_01": "MOD_DepthChargeRack_Root",
+        "StoredCharge_02": "MOD_DepthChargeRack_Root",
+        "StoredCharge_03": "MOD_DepthChargeRack_Root",
+        "StoredCharge_04": "MOD_DepthChargeRack_Root"
+      }
+    },
+    {
+      "id": "MOD_DepthChargeProjector",
+      "category": "depth_charge_module",
+      "model_file": "Models/MOD_DepthChargeProjector.fbx",
+      "glb_file": "Models/MOD_DepthChargeProjector.glb",
+      "blend_file": "Blender/MOD_DepthChargeProjector.blend",
+      "triangles": 840,
+      "bounds": {
+        "x": [
+          -0.8799999952316284,
+          0.8799999952316284
+        ],
+        "y": [
+          -0.8600000143051147,
+          0.8600000143051147
+        ],
+        "z": [
+          0.0,
+          0.8883091807365417
+        ]
+      },
+      "budget": 900,
+      "footprint_cells": [
+        1,
+        1
+      ],
+      "features": {
+        "description": "Two fixed-angle side projectors carrying separate drum-shaped depth charges",
+        "design": "Historical K-gun-inspired compact miniature: short diagonal projection barrels, load-bearing pedestals, crosswise cylindrical charges and expendable arbors",
+        "features": [
+          "Two visibly supported fixed projectors",
+          "Short barrel and breech chamber instead of missile launch tubes",
+          "Drum-shaped charges with fore/aft end plates and depth fuses",
+          "Separate LoadedCharge groups containing only expendable charge/arbor",
+          "45-degree launch outward (+X) and upward (+Z)"
+        ],
+        "reference_urls": [
+          "https://ussslater.org/kgun"
+        ],
+        "reference_fidelity": "Stylized game interpretation of historical equipment, not an exact or modern naval-equipment replica",
+        "required_sockets": [
+          "LoadedCharge_01",
+          "LoadedCharge_02",
+          "LaunchPoint_01",
+          "LaunchPoint_02",
+          "OutboardDirection",
+          "ForwardMarker",
+          "AttachPoint"
+        ],
+        "charge_groups": [
+          "LoadedCharge_01",
+          "LoadedCharge_02"
+        ],
+        "projectile_groups": [
+          "LoadedCharge_01",
+          "LoadedCharge_02"
+        ],
+        "launch_points": [
+          "LaunchPoint_01",
+          "LaunchPoint_02"
+        ],
+        "launch_direction_authoring": [
+          0.7071067690849304,
+          0.0,
+          0.7071067690849304
+        ],
+        "launch_socket_basis": "center_of_loaded_charge",
+        "projectile_long_axis_authoring": [
+          0,
+          1,
+          0
+        ],
+        "fixed_angle_degrees": 45,
+        "footprint_m": [
+          1.8,
+          1.8
+        ],
+        "height_limit_m": 0.9,
+        "anchor": "floor_z_0",
+        "budget": 900,
+        "gameplay_modified": false,
+        "game_applied": false
+      },
+      "required_sockets": [
+        "LoadedCharge_01",
+        "LoadedCharge_02",
+        "LaunchPoint_01",
+        "LaunchPoint_02",
+        "OutboardDirection",
+        "ForwardMarker",
+        "AttachPoint"
+      ],
+      "socket_hierarchy": {
+        "LoadedCharge_01": "MOD_DepthChargeProjector_Root",
+        "LoadedCharge_02": "MOD_DepthChargeProjector_Root",
+        "LaunchPoint_01": "MOD_DepthChargeProjector_Root",
+        "LaunchPoint_02": "MOD_DepthChargeProjector_Root",
+        "OutboardDirection": "MOD_DepthChargeProjector_Root",
+        "ForwardMarker": "MOD_DepthChargeProjector_Root",
+        "AttachPoint": "MOD_DepthChargeProjector_Root"
+      }
+    }
+  ]
+}

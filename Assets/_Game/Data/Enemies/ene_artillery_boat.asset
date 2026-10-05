@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b0951aedabbf14429864b73543333f0, type: 3}
+  m_Name: ene_artillery_boat
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.EnemyDefinition
+  id: ene_artillery_boat
+  displayName: "\uD3EC\uACA9 \uC9C0\uC6D0\uC815"
+  kind: 0
+  prefab: {fileID: 392771706455796705, guid: fbc0f7f89f755904b9779688fa1bea09, type: 3}
+  category: 2
+  rank: 0
+  targetValue: 3
+  maxAlive: 2
+  maxHp: 36
+  moveSpeed: 6.5
+  turnRateDegPerSec: 70
+  preferredRange: 40
+  attackDamage: 10
+  attackCooldown: 9
+  missilePrefab: {fileID: 0}
+  salvoSize: 1
+  salvoSpacing: 0.15
+  xpReward: 4
+  revealDuration: 0
+  launchedDrone: {fileID: 0}
+  launchedRecon: {fileID: 0}
+  launchedFighter: {fileID: 0}

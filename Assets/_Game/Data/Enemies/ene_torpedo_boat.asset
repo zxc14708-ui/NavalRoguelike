@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b0951aedabbf14429864b73543333f0, type: 3}
+  m_Name: ene_torpedo_boat
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.EnemyDefinition
+  id: ene_torpedo_boat
+  displayName: "\uACBD\uC5B4\uB8B0\uC815"
+  kind: 0
+  prefab: {fileID: 9215519744550091396, guid: b56f0de8d130cce4083d7462bbb6f5d5, type: 3}
+  category: 1
+  rank: 0
+  targetValue: 2
+  maxAlive: 2
+  maxHp: 26
+  moveSpeed: 10
+  turnRateDegPerSec: 110
+  preferredRange: 40
+  attackDamage: 24
+  attackCooldown: 13
+  missilePrefab: {fileID: 0}
+  salvoSize: 1
+  salvoSpacing: 0.15
+  xpReward: 3
+  revealDuration: 0
+  launchedDrone: {fileID: 0}
+  launchedRecon: {fileID: 0}
+  launchedFighter: {fileID: 0}

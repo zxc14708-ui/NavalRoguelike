@@ -1,0 +1,102 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e4875f0cd6503524699fb2e42c66ad10, type: 3}
+  m_Name: SfxLibrary
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.SfxLibrary
+  autocannonShot:
+    Clip: {fileID: 8300000, guid: 36773ba0bf46d1d4f858014f3983747b, type: 3}
+    Volume: 0.4
+    PitchJitter: 0.1
+    SpatialBlend: 1
+    MinInterval: 0.05
+    MaxVoices: 6
+  ciwsBurst:
+    Clip: {fileID: 8300000, guid: 7ddfa6a7fe251ef4086a2961809a5c65, type: 3}
+    Volume: 0.7
+    PitchJitter: 0.03
+    SpatialBlend: 1
+    MinInterval: 0
+    MaxVoices: 3
+  missileLaunch:
+    Clip: {fileID: 8300000, guid: 47e13f7449f996a4d9f80abc39915c57, type: 3}
+    Volume: 0.6
+    PitchJitter: 0.06
+    SpatialBlend: 1
+    MinInterval: 0.1
+    MaxVoices: 4
+  explosion:
+    Clip: {fileID: 8300000, guid: 683b071ab076cc841853521646817203, type: 3}
+    Volume: 0.8
+    PitchJitter: 0.1
+    SpatialBlend: 1
+    MinInterval: 0.08
+    MaxVoices: 6
+  hullImpact:
+    Clip: {fileID: 8300000, guid: 49eafbae520b65744a10cd2559416d98, type: 3}
+    Volume: 0.7
+    PitchJitter: 0.08
+    SpatialBlend: 0.5
+    MinInterval: 0.12
+    MaxVoices: 3
+  sonarPing:
+    Clip: {fileID: 8300000, guid: a24ceb7151f8631428d8a8a78557dd43, type: 3}
+    Volume: 0.6
+    PitchJitter: 0
+    SpatialBlend: 0
+    MinInterval: 2.5
+    MaxVoices: 1
+  navalGunShot:
+    Clip: {fileID: 8300000, guid: 36773ba0bf46d1d4f858014f3983747b, type: 3}
+    Volume: 0.95
+    PitchJitter: 0.04
+    SpatialBlend: 1
+    MinInterval: 0.08
+    MaxVoices: 3
+  escortGunShot:
+    Clip: {fileID: 8300000, guid: 36773ba0bf46d1d4f858014f3983747b, type: 3}
+    Volume: 0.55
+    PitchJitter: 0.08
+    SpatialBlend: 1
+    MinInterval: 0.04
+    MaxVoices: 4
+  escortMissileLaunch:
+    Clip: {fileID: 8300000, guid: 47e13f7449f996a4d9f80abc39915c57, type: 3}
+    Volume: 0.65
+    PitchJitter: 0.06
+    SpatialBlend: 1
+    MinInterval: 0.08
+    MaxVoices: 3
+  escortTorpedoLaunch:
+    Clip: {fileID: 8300000, guid: 47e13f7449f996a4d9f80abc39915c57, type: 3}
+    Volume: 0.6
+    PitchJitter: 0.05
+    SpatialBlend: 1
+    MinInterval: 0.2
+    MaxVoices: 2
+  escortJam:
+    Clip: {fileID: 8300000, guid: a24ceb7151f8631428d8a8a78557dd43, type: 3}
+    Volume: 0.45
+    PitchJitter: 0.04
+    SpatialBlend: 1
+    MinInterval: 0.3
+    MaxVoices: 2
+  missileWarning: {fileID: 8300000, guid: 6e1161a3f94ce0844a5a2c79220a0d7c, type: 3}
+  missileWarningVolume: 0.25
+  engineLoop: {fileID: 8300000, guid: 0194ce9e5dcb60d4c968f59e4fb6a677, type: 3}
+  engineVolumeIdle: 0.08
+  engineVolumeFull: 0.28
+  enginePitchIdle: 0.8
+  enginePitchFull: 1.2
+  engineFullSpeed: 10
+  engineResponse: 3
+  minDistance: 20
+  maxDistance: 90

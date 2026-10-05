@@ -1,0 +1,326 @@
+{
+  "all_passed": true,
+  "count": 2,
+  "validated_models": 2,
+  "game_applied": false,
+  "unity_tested": false,
+  "qa_method": "Independent fresh FBX import, component topology, palette, placement, launch direction and detachable charge motion",
+  "pack_checks": {
+    "exactly_two_expected_assets": true,
+    "unique_model_file_paths": true,
+    "declared_model_only": true
+  },
+  "results": [
+    {
+      "id": "MOD_DepthChargeRack",
+      "passed": true,
+      "errors": [],
+      "checks": {
+        "single_centered_identity_empty_root": true,
+        "mesh_empty_only": true,
+        "object_scales_one": true,
+        "mesh_rotations_baked": true,
+        "unique_object_names": true,
+        "unique_required_socket_names": true,
+        "required_sockets_empty_present": true,
+        "required_socket_hierarchy_matches": true,
+        "forward_marker_plus_y": true,
+        "attach_point_empty_present": true,
+        "all_components_closed_outward_positive": true,
+        "no_zero_area_faces": true,
+        "no_ngons": true,
+        "no_loose_vertices": true,
+        "triangle_count_matches_manifest": true,
+        "triangle_budget_900": true,
+        "manifest_bounds_match": true,
+        "centered_1_8m_footprint": true,
+        "floor_zero": true,
+        "height_at_most_0_9m": true,
+        "valid_mesh_material_slots": true,
+        "shared_palette_matches": true,
+        "manifest_charge_groups_present_unique": true,
+        "independent_charge_group_roots": true,
+        "fixed_structure_outside_all_charge_groups": true,
+        "StoredCharge_01_moving_mesh_children": true,
+        "StoredCharge_01_fixed_non_charge_meshes": true,
+        "StoredCharge_01_every_child_mesh_really_moves": true,
+        "StoredCharge_01_fixed_geometry_stays": true,
+        "StoredCharge_01_neutral_pose_restored": true,
+        "StoredCharge_02_moving_mesh_children": true,
+        "StoredCharge_02_fixed_non_charge_meshes": true,
+        "StoredCharge_02_every_child_mesh_really_moves": true,
+        "StoredCharge_02_fixed_geometry_stays": true,
+        "StoredCharge_02_neutral_pose_restored": true,
+        "StoredCharge_03_moving_mesh_children": true,
+        "StoredCharge_03_fixed_non_charge_meshes": true,
+        "StoredCharge_03_every_child_mesh_really_moves": true,
+        "StoredCharge_03_fixed_geometry_stays": true,
+        "StoredCharge_03_neutral_pose_restored": true,
+        "StoredCharge_04_moving_mesh_children": true,
+        "StoredCharge_04_fixed_non_charge_meshes": true,
+        "StoredCharge_04_every_child_mesh_really_moves": true,
+        "StoredCharge_04_fixed_geometry_stays": true,
+        "StoredCharge_04_neutral_pose_restored": true,
+        "launch_sockets_present_empty_root_children": true,
+        "declared_launch_direction_matches_sockets": true,
+        "rack_four_stored_charge_groups": true,
+        "rack_four_release_sockets": true,
+        "rack_release_sockets_at_stern": true,
+        "rack_release_directions_rearward_down": true,
+        "rack_optional_drop_points_stern_empty": true,
+        "rack_two_independent_physical_exits": true,
+        "rack_LaunchPoint_01_LaunchPoint_02_share_lane_exit": true,
+        "rack_LaunchPoint_03_LaunchPoint_04_share_lane_exit": true
+      },
+      "triangles": 816,
+      "budget": 900,
+      "bounds": {
+        "x": [
+          -0.8600000143051147,
+          0.8600000143051147
+        ],
+        "y": [
+          -0.8500000238418579,
+          0.8500000238418579
+        ],
+        "z": [
+          -1.3848257651716267e-07,
+          0.7813498973846436
+        ]
+      },
+      "mesh_count": 50,
+      "components": 50,
+      "nonmanifold_edges": 0,
+      "zero_area_faces": 0,
+      "ngons": 0,
+      "loose_vertices": 0,
+      "bad_components": [],
+      "topology_details": [],
+      "bad_materials": [],
+      "charge_groups": [
+        "StoredCharge_01",
+        "StoredCharge_02",
+        "StoredCharge_03",
+        "StoredCharge_04"
+      ],
+      "release_directions_authoring_axes": {
+        "LaunchPoint_01": [
+          1.638498332567906e-07,
+          -0.9841833710670471,
+          -0.17715322971343994
+        ],
+        "LaunchPoint_02": [
+          1.638498332567906e-07,
+          -0.9841833710670471,
+          -0.17715322971343994
+        ],
+        "LaunchPoint_03": [
+          1.638498332567906e-07,
+          -0.9841833710670471,
+          -0.17715322971343994
+        ],
+        "LaunchPoint_04": [
+          1.638498332567906e-07,
+          -0.9841833710670471,
+          -0.17715322971343994
+        ]
+      },
+      "socket_positions": {
+        "ForwardMarker": [
+          0.0,
+          0.75,
+          0.09999988228082657
+        ],
+        "AttachPoint": [
+          0.0,
+          6.5168266338844205e-09,
+          0.03999999910593033
+        ],
+        "ReleaseLever": [
+          0.7599999904632568,
+          -0.5699999332427979,
+          0.5200001001358032
+        ],
+        "LaunchPoint_01": [
+          -0.4300000071525574,
+          -0.7949999570846558,
+          0.4787001311779022
+        ],
+        "LaunchPoint_02": [
+          -0.4300000071525574,
+          -0.7949999570846558,
+          0.4787001311779022
+        ],
+        "LaunchPoint_03": [
+          0.4300000071525574,
+          -0.7949999570846558,
+          0.4787001311779022
+        ],
+        "LaunchPoint_04": [
+          0.4300000071525574,
+          -0.7949999570846558,
+          0.4787001311779022
+        ],
+        "DropPoint_01": [
+          -0.4300000071525574,
+          -0.7949999570846558,
+          0.4787001311779022
+        ],
+        "DropPoint_02": [
+          0.4300000071525574,
+          -0.7949999570846558,
+          0.4787001311779022
+        ],
+        "StoredCharge_01": [
+          -0.4300000071525574,
+          -0.4299999177455902,
+          0.5084500312805176
+        ],
+        "StoredCharge_02": [
+          -0.4300000071525574,
+          0.31000009179115295,
+          0.5713499188423157
+        ],
+        "StoredCharge_03": [
+          0.4300000071525574,
+          -0.4299999177455902,
+          0.5084500312805176
+        ],
+        "StoredCharge_04": [
+          0.4300000071525574,
+          0.31000009179115295,
+          0.5713499188423157
+        ]
+      }
+    },
+    {
+      "id": "MOD_DepthChargeProjector",
+      "passed": true,
+      "errors": [],
+      "checks": {
+        "single_centered_identity_empty_root": true,
+        "mesh_empty_only": true,
+        "object_scales_one": true,
+        "mesh_rotations_baked": true,
+        "unique_object_names": true,
+        "unique_required_socket_names": true,
+        "required_sockets_empty_present": true,
+        "required_socket_hierarchy_matches": true,
+        "forward_marker_plus_y": true,
+        "attach_point_empty_present": true,
+        "all_components_closed_outward_positive": true,
+        "no_zero_area_faces": true,
+        "no_ngons": true,
+        "no_loose_vertices": true,
+        "triangle_count_matches_manifest": true,
+        "triangle_budget_900": true,
+        "manifest_bounds_match": true,
+        "centered_1_8m_footprint": true,
+        "floor_zero": true,
+        "height_at_most_0_9m": true,
+        "valid_mesh_material_slots": true,
+        "shared_palette_matches": true,
+        "manifest_charge_groups_present_unique": true,
+        "independent_charge_group_roots": true,
+        "fixed_structure_outside_all_charge_groups": true,
+        "LoadedCharge_01_moving_mesh_children": true,
+        "LoadedCharge_01_fixed_non_charge_meshes": true,
+        "LoadedCharge_01_every_child_mesh_really_moves": true,
+        "LoadedCharge_01_fixed_geometry_stays": true,
+        "LoadedCharge_01_neutral_pose_restored": true,
+        "LoadedCharge_02_moving_mesh_children": true,
+        "LoadedCharge_02_fixed_non_charge_meshes": true,
+        "LoadedCharge_02_every_child_mesh_really_moves": true,
+        "LoadedCharge_02_fixed_geometry_stays": true,
+        "LoadedCharge_02_neutral_pose_restored": true,
+        "launch_sockets_present_empty_root_children": true,
+        "declared_launch_direction_matches_sockets": true,
+        "projector_loaded_charge_names": true,
+        "projector_release_direction_outboard_up": true,
+        "projector_release_sockets_outboard": true,
+        "projector_outboard_direction_plus_x": true,
+        "projector_release_sockets_match_charge_count": true,
+        "projector_LoadedCharge_01_release_at_charge_center": true,
+        "projector_LoadedCharge_02_release_at_charge_center": true
+      },
+      "triangles": 840,
+      "budget": 900,
+      "bounds": {
+        "x": [
+          -0.8799999952316284,
+          0.8799999952316284
+        ],
+        "y": [
+          -0.8600000143051147,
+          0.8600000143051147
+        ],
+        "z": [
+          -1.40111779955987e-07,
+          0.8883092403411865
+        ]
+      },
+      "mesh_count": 34,
+      "components": 34,
+      "nonmanifold_edges": 0,
+      "zero_area_faces": 0,
+      "ngons": 0,
+      "loose_vertices": 0,
+      "bad_components": [],
+      "topology_details": [],
+      "bad_materials": [],
+      "charge_groups": [
+        "LoadedCharge_01",
+        "LoadedCharge_02"
+      ],
+      "release_directions_authoring_axes": {
+        "LaunchPoint_01": [
+          0.7071067094802856,
+          5.979158856916911e-08,
+          0.70710688829422
+        ],
+        "LaunchPoint_02": [
+          0.7071067094802856,
+          5.979158856916911e-08,
+          0.70710688829422
+        ]
+      },
+      "socket_positions": {
+        "LoadedCharge_01": [
+          0.2800000011920929,
+          -0.4199998676776886,
+          0.7000000476837158
+        ],
+        "LoadedCharge_02": [
+          0.2800000011920929,
+          0.4200001060962677,
+          0.6999999284744263
+        ],
+        "LaunchPoint_01": [
+          0.2800000011920929,
+          -0.4199998676776886,
+          0.7000000476837158
+        ],
+        "LaunchPoint_02": [
+          0.2800000011920929,
+          0.4200001060962677,
+          0.6999999284744263
+        ],
+        "OutboardDirection": [
+          0.8199999928474426,
+          1.6292068139023286e-08,
+          0.10000000149011612
+        ],
+        "ForwardMarker": [
+          0.0,
+          0.75,
+          0.09999988228082657
+        ],
+        "AttachPoint": [
+          0.0,
+          6.5168266338844205e-09,
+          0.03999999910593033
+        ]
+      }
+    }
+  ]
+}

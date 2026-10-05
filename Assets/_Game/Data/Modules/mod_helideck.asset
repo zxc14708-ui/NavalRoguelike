@@ -1,0 +1,67 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee8925205f16a2b47900cba0670cd113, type: 3}
+  m_Name: mod_helideck
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Modules.ModuleDefinition
+  id: mod_helideck
+  displayName: "\uD5EC\uAE30\uB370\uD06C"
+  description: "\uC18C\uB098 \uC811\uCD09\uC774\uB098 \uC5B4\uB8B0 \uBC1C\uC0AC \uD754\uC801\uC73C\uB85C
+    \uCD9C\uACA9\uD574 \uD604\uC7A5\uC5D0\uC11C \uC7A0\uC218\uD568\uC744 \uC218\uC0C9\uD55C\uB2E4.
+    \uC7A0\uD56D \uD45C\uC801\uC5D0\uB294 \uD3ED\uB8B0, \uC218\uC0C1\uD568\uC5D0\uB294
+    \uB85C\uCF13\uC744 \uC0AC\uC6A9\uD55C\uB2E4. \uD568\uBBF8 \uC804\uC6A9."
+  type: 8
+  icon: {fileID: 21300000, guid: 5ce9b87bb6b608840ae1c66aeaa8379c, type: 3}
+  width: 1
+  height: 1
+  canRotate: 1
+  placement:
+    Zone: 2
+  heightClass: 2
+  maxCount: 0
+  maxHp: 50
+  rarity: 2
+  weight: 1.3
+  prefab: {fileID: 5944811874534747387, guid: 2007d792dd04a2443acb4fde5a887d10, type: 3}
+  stats:
+    Range: 0
+    MinRange: 0
+    Damage: 0
+    ReloadTime: 0
+    ProjectileSpeed: 0
+    FireArcDegrees: 0
+    TurretTurnRate: 0
+    AmmoFamily: 0
+    MagazineCapacity: 0
+    AmmoPerShot: 0
+    AmmoReloadAmount: 0
+    AmmoReloadTime: 0
+    DetectionRange: 0
+    ExtraTrackedTargets: 0
+    SupportRadiusCells: 0
+    ReloadBonus: 0
+    AmmoCapacityBonus: 0
+    ResupplyBonus: 0
+    CookOffDamage: 0
+    DamageReduction: 0
+    HullRepairPerSecond: 0
+    ModuleRepairPerSecond: 0
+    SortieCooldown: 12
+    HelicopterSpeed: 18
+  targetEfficiency:
+    SmallSurface: 1
+    MediumSurface: 1
+    LargeSurface: 1
+    Boss: 1
+    Submarine: 1
+    Drone: 1
+    Air: 1
+    Missile: 1

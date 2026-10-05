@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b0951aedabbf14429864b73543333f0, type: 3}
+  m_Name: ene_boss2
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.EnemyDefinition
+  id: ene_boss2
+  displayName: "\uD56D\uACF5\uC804\uD568"
+  kind: 0
+  prefab: {fileID: 3419059370766581524, guid: b9e5b35ac05067c49988c122130a8a09, type: 3}
+  category: 4
+  rank: 2
+  targetValue: 10
+  maxAlive: 0
+  maxHp: 2200
+  moveSpeed: 6
+  turnRateDegPerSec: 50
+  preferredRange: 26
+  attackDamage: 25
+  attackCooldown: 3
+  missilePrefab: {fileID: 4792404296877419749, guid: 5a04e1da22cb6eb4685de97d905d9928, type: 3}
+  salvoSize: 1
+  salvoSpacing: 0.15
+  xpReward: 0
+  revealDuration: 0
+  launchedDrone: {fileID: 11400000, guid: 51088c5d0cee5954aa389ab8bd4f9357, type: 2}
+  launchedRecon: {fileID: 11400000, guid: ca805cb61dec04d4885eb9ad3e70ffbe, type: 2}
+  launchedFighter: {fileID: 11400000, guid: 95594efc9772f7341af1b4dd3c936840, type: 2}

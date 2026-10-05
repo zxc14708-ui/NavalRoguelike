@@ -1,0 +1,607 @@
+{
+  "status": "new_models_review_only",
+  "game_applied": false,
+  "existing_assets_replaced": false,
+  "unit": "meters",
+  "nominal_hull_length_m": 9.0,
+  "runtime_tier_scale": [
+    0.6,
+    0.76,
+    0.92,
+    1.08
+  ],
+  "role_colors": {
+    "CAP": [
+      0.35,
+      1.0,
+      0.58,
+      1.0
+    ],
+    "ASW": [
+      0.22,
+      0.68,
+      1.0,
+      1.0
+    ],
+    "EW": [
+      0.83,
+      0.37,
+      1.0,
+      1.0
+    ],
+    "STK": [
+      1.0,
+      0.52,
+      0.16,
+      1.0
+    ]
+  },
+  "tri_budget": 3000,
+  "assets": [
+    {
+      "id": "ESC_CAP_T0",
+      "role": "CAP",
+      "tier": 0,
+      "role_name_ko": "방공 호위",
+      "triangles": 1476,
+      "features": {
+        "role": "CAP",
+        "tier": 0,
+        "features": [
+          "Compact forward gun",
+          "4-cell single forward VLS bank",
+          "Rotating air-search radar",
+          "Continuous bridge/service house/funnel",
+          "Stern service deck",
+          "Clear stern deck"
+        ],
+        "required_sockets": [
+          "AirSearchRadarPivot",
+          "FunnelTop",
+          "PrimaryGunElevation",
+          "PrimaryGunMuzzle",
+          "PrimaryGunPivot",
+          "RadarPivot",
+          "RolePlateBow",
+          "SupportOrigin",
+          "VLSLaunchPoint"
+        ]
+      }
+    },
+    {
+      "id": "ESC_CAP_T1",
+      "role": "CAP",
+      "tier": 1,
+      "role_name_ko": "방공 호위",
+      "triangles": 1976,
+      "features": {
+        "role": "CAP",
+        "tier": 1,
+        "features": [
+          "Compact forward gun",
+          "8-cell single forward VLS bank",
+          "Rotating air-search radar",
+          "Continuous bridge/service house/funnel",
+          "Twin elevating aft SAM canister banks",
+          "Clear stern deck"
+        ],
+        "required_sockets": [
+          "AirSearchRadarPivot",
+          "FunnelTop",
+          "PrimaryGunElevation",
+          "PrimaryGunMuzzle",
+          "PrimaryGunPivot",
+          "RadarPivot",
+          "RolePlateBow",
+          "SAMLaunchPoint_01",
+          "SAMLaunchPoint_02",
+          "SAM_ElevationPivot",
+          "SAM_TrainPivot",
+          "SupportOrigin",
+          "VLSLaunchPoint"
+        ]
+      }
+    },
+    {
+      "id": "ESC_CAP_T2",
+      "role": "CAP",
+      "tier": 2,
+      "role_name_ko": "방공 호위",
+      "triangles": 2140,
+      "features": {
+        "role": "CAP",
+        "tier": 2,
+        "features": [
+          "Compact forward gun",
+          "12-cell single forward VLS bank",
+          "Four-face integrated AESA mast",
+          "Continuous bridge/service house/funnel",
+          "Twin elevating aft SAM canister banks",
+          "Clear stern deck"
+        ],
+        "required_sockets": [
+          "FunnelTop",
+          "IntegratedAesaMast",
+          "PrimaryGunElevation",
+          "PrimaryGunMuzzle",
+          "PrimaryGunPivot",
+          "RadarPivot",
+          "RolePlateBow",
+          "SAMLaunchPoint_01",
+          "SAMLaunchPoint_02",
+          "SAM_ElevationPivot",
+          "SAM_TrainPivot",
+          "SupportOrigin",
+          "VLSLaunchPoint"
+        ]
+      }
+    },
+    {
+      "id": "ESC_CAP_T3",
+      "role": "CAP",
+      "tier": 3,
+      "role_name_ko": "방공 호위",
+      "triangles": 2612,
+      "features": {
+        "role": "CAP",
+        "tier": 3,
+        "features": [
+          "Compact forward gun",
+          "16-cell single forward VLS bank",
+          "Four-face integrated AESA mast",
+          "Continuous bridge/service house/funnel",
+          "Twin elevating aft SAM canister banks",
+          "Independent aft CIWS"
+        ],
+        "required_sockets": [
+          "CIWSBarrelCluster",
+          "CIWSElevationPivot",
+          "CIWSMuzzle",
+          "CIWSPivot",
+          "FunnelTop",
+          "IntegratedAesaMast",
+          "PrimaryGunElevation",
+          "PrimaryGunMuzzle",
+          "PrimaryGunPivot",
+          "RadarPivot",
+          "RolePlateBow",
+          "SAMLaunchPoint_01",
+          "SAMLaunchPoint_02",
+          "SAM_ElevationPivot",
+          "SAM_TrainPivot",
+          "SupportOrigin",
+          "VLSLaunchPoint"
+        ]
+      }
+    },
+    {
+      "id": "ESC_ASW_T0",
+      "role": "ASW",
+      "tier": 0,
+      "role_name_ko": "대잠 호위",
+      "triangles": 1712,
+      "features": {
+        "required_sockets": [
+          "FunnelTop",
+          "HelicopterLaunch",
+          "PrimaryGunElevation",
+          "PrimaryGunMuzzle",
+          "PrimaryGunPivot",
+          "RadarPivot",
+          "RolePlateBow",
+          "SonarOrigin",
+          "SupportOrigin",
+          "TorpedoLaunchPoint_01",
+          "TorpedoLaunchPoint_02",
+          "TorpedoMount_P",
+          "TorpedoMount_S"
+        ],
+        "features": [
+          "bow sonar fairing",
+          "outboard light-ASW torpedo banks",
+          "clear helicopter touchdown deck",
+          "compact aviation service house"
+        ],
+        "design_dimensions_m": [
+          9.0,
+          2.9
+        ],
+        "equipment_clearance": "stern winch outside helipad; hangar aft door at pad forward edge"
+      }
+    },
+    {
+      "id": "ESC_ASW_T1",
+      "role": "ASW",
+      "tier": 1,
+      "role_name_ko": "대잠 호위",
+      "triangles": 2096,
+      "features": {
+        "required_sockets": [
+          "FunnelTop",
+          "HelicopterLaunch",
+          "PrimaryGunElevation",
+          "PrimaryGunMuzzle",
+          "PrimaryGunPivot",
+          "RadarPivot",
+          "RolePlateBow",
+          "SonarOrigin",
+          "SupportOrigin",
+          "TorpedoLaunchPoint_01",
+          "TorpedoLaunchPoint_02",
+          "TorpedoMount_P",
+          "TorpedoMount_S"
+        ],
+        "features": [
+          "bow sonar fairing",
+          "outboard light-ASW torpedo banks",
+          "clear helicopter touchdown deck",
+          "sonobuoy service rack"
+        ],
+        "design_dimensions_m": [
+          9.0,
+          2.9
+        ],
+        "equipment_clearance": "stern winch outside helipad; hangar aft door at pad forward edge"
+      }
+    },
+    {
+      "id": "ESC_ASW_T2",
+      "role": "ASW",
+      "tier": 2,
+      "role_name_ko": "대잠 호위",
+      "triangles": 2688,
+      "features": {
+        "required_sockets": [
+          "FunnelTop",
+          "HelicopterLaunch",
+          "PrimaryGunElevation",
+          "PrimaryGunMuzzle",
+          "PrimaryGunPivot",
+          "RadarPivot",
+          "RolePlateBow",
+          "SonarOrigin",
+          "SonarTowPoint",
+          "SupportOrigin",
+          "TorpedoLaunchPoint_01",
+          "TorpedoLaunchPoint_02",
+          "TorpedoMount_P",
+          "TorpedoMount_S"
+        ],
+        "features": [
+          "bow sonar fairing",
+          "outboard light-ASW torpedo banks",
+          "clear helicopter touchdown deck",
+          "aft-facing helicopter hangar and port tow sonar"
+        ],
+        "design_dimensions_m": [
+          9.0,
+          2.9
+        ],
+        "equipment_clearance": "stern winch outside helipad; hangar aft door at pad forward edge"
+      }
+    },
+    {
+      "id": "ESC_ASW_T3",
+      "role": "ASW",
+      "tier": 3,
+      "role_name_ko": "대잠 호위",
+      "triangles": 2916,
+      "features": {
+        "required_sockets": [
+          "FunnelTop",
+          "HelicopterLaunch",
+          "PrimaryGunElevation",
+          "PrimaryGunMuzzle",
+          "PrimaryGunPivot",
+          "RadarPivot",
+          "RolePlateBow",
+          "SonarOrigin",
+          "SonarTowPoint",
+          "SupportOrigin",
+          "TorpedoLaunchPoint_01",
+          "TorpedoLaunchPoint_02",
+          "TorpedoMount_P",
+          "TorpedoMount_S"
+        ],
+        "features": [
+          "bow sonar fairing",
+          "outboard light-ASW torpedo banks",
+          "clear helicopter touchdown deck",
+          "upgraded hangar, acoustic data link and deck guidance"
+        ],
+        "design_dimensions_m": [
+          9.0,
+          2.9
+        ],
+        "equipment_clearance": "stern winch outside helipad; hangar aft door at pad forward edge"
+      }
+    },
+    {
+      "id": "ESC_EW_T0",
+      "role": "EW",
+      "tier": 0,
+      "role_name_ko": "전자전 호위",
+      "triangles": 1304,
+      "features": {
+        "required_sockets": [
+          "AntennaPivot",
+          "EWArrayPivot_P",
+          "EWArrayPivot_S",
+          "EWOrigin",
+          "FunnelTop",
+          "PrimaryGunElevation",
+          "PrimaryGunMuzzle",
+          "PrimaryGunPivot",
+          "RadarPivot",
+          "RolePlateBow",
+          "SupportOrigin"
+        ],
+        "features": [
+          "large electronic equipment room",
+          "wall-mounted directional jammer arrays",
+          "supported ESM mast",
+          "four-sector ESM receiver"
+        ],
+        "design_dimensions_m": [
+          9.0,
+          2.9
+        ],
+        "equipment_clearance": "every receiver and jammer backed by a mast or equipment-wall bracket"
+      }
+    },
+    {
+      "id": "ESC_EW_T1",
+      "role": "EW",
+      "tier": 1,
+      "role_name_ko": "전자전 호위",
+      "triangles": 1836,
+      "features": {
+        "required_sockets": [
+          "AntennaPivot",
+          "DecoyElevation_P",
+          "DecoyElevation_S",
+          "DecoyLaunchPoint_P",
+          "DecoyLaunchPoint_S",
+          "DecoyTrain_P",
+          "DecoyTrain_S",
+          "EWArrayPivot_P",
+          "EWArrayPivot_S",
+          "EWOrigin",
+          "FunnelTop",
+          "PrimaryGunElevation",
+          "PrimaryGunMuzzle",
+          "PrimaryGunPivot",
+          "RadarPivot",
+          "RolePlateBow",
+          "SupportOrigin"
+        ],
+        "features": [
+          "large electronic equipment room",
+          "wall-mounted directional jammer arrays",
+          "supported ESM mast",
+          "secure datalink and decoy launchers"
+        ],
+        "design_dimensions_m": [
+          9.0,
+          2.9
+        ],
+        "equipment_clearance": "every receiver and jammer backed by a mast or equipment-wall bracket"
+      }
+    },
+    {
+      "id": "ESC_EW_T2",
+      "role": "EW",
+      "tier": 2,
+      "role_name_ko": "전자전 호위",
+      "triangles": 2228,
+      "features": {
+        "required_sockets": [
+          "AntennaPivot",
+          "DecoyElevation_P",
+          "DecoyElevation_S",
+          "DecoyLaunchPoint_P",
+          "DecoyLaunchPoint_S",
+          "DecoyTrain_P",
+          "DecoyTrain_S",
+          "EWArrayPivot_P",
+          "EWArrayPivot_S",
+          "EWOrigin",
+          "FunnelTop",
+          "PrimaryGunElevation",
+          "PrimaryGunMuzzle",
+          "PrimaryGunPivot",
+          "RadarPivot",
+          "RolePlateBow",
+          "SupportOrigin"
+        ],
+        "features": [
+          "large electronic equipment room",
+          "wall-mounted directional jammer arrays",
+          "supported ESM mast",
+          "dual jammer panels per side"
+        ],
+        "design_dimensions_m": [
+          9.0,
+          2.9
+        ],
+        "equipment_clearance": "every receiver and jammer backed by a mast or equipment-wall bracket"
+      }
+    },
+    {
+      "id": "ESC_EW_T3",
+      "role": "EW",
+      "tier": 3,
+      "role_name_ko": "전자전 호위",
+      "triangles": 2372,
+      "features": {
+        "required_sockets": [
+          "AntennaPivot",
+          "DecoyElevation_P",
+          "DecoyElevation_S",
+          "DecoyLaunchPoint_P",
+          "DecoyLaunchPoint_S",
+          "DecoyTrain_P",
+          "DecoyTrain_S",
+          "EWArrayPivot_P",
+          "EWArrayPivot_S",
+          "EWOrigin",
+          "FunnelTop",
+          "PrimaryGunElevation",
+          "PrimaryGunMuzzle",
+          "PrimaryGunPivot",
+          "RadarPivot",
+          "RolePlateBow",
+          "SupportOrigin"
+        ],
+        "features": [
+          "large electronic equipment room",
+          "wall-mounted directional jammer arrays",
+          "supported ESM mast",
+          "four-face direction-finder and protected RF conduits"
+        ],
+        "design_dimensions_m": [
+          9.0,
+          2.9
+        ],
+        "equipment_clearance": "every receiver and jammer backed by a mast or equipment-wall bracket"
+      }
+    },
+    {
+      "id": "ESC_STK_T0",
+      "role": "STK",
+      "tier": 0,
+      "role_name_ko": "대함 타격",
+      "triangles": 1772,
+      "features": {
+        "required_sockets": [
+          "AftGunElevation",
+          "AftGunMuzzle",
+          "AftGunMuzzle_02",
+          "AftGunPivot",
+          "FireControlRadarPivot",
+          "FunnelTop",
+          "LaunchPoint_MissileBankPort_01",
+          "LaunchPoint_MissileBankStarboard_01",
+          "MissileBankPortPivot",
+          "MissileBankStarboardPivot",
+          "PrimaryGunElevation",
+          "PrimaryGunMuzzle",
+          "PrimaryGunMuzzle_02",
+          "PrimaryGunPivot",
+          "RadarPivot",
+          "RolePlateBow",
+          "SupportOrigin"
+        ],
+        "anti_ship_canisters": 2,
+        "guided_rocket_cells": 0,
+        "design": "PKM twin-cannon patrol silhouette"
+      }
+    },
+    {
+      "id": "ESC_STK_T1",
+      "role": "STK",
+      "tier": 1,
+      "role_name_ko": "대함 타격",
+      "triangles": 1604,
+      "features": {
+        "required_sockets": [
+          "FireControlRadarPivot",
+          "FunnelTop",
+          "LaunchPoint_MissileBankPort_01",
+          "LaunchPoint_MissileBankPort_02",
+          "LaunchPoint_MissileBankStarboard_01",
+          "LaunchPoint_MissileBankStarboard_02",
+          "MissileBankPortPivot",
+          "MissileBankStarboardPivot",
+          "PrimaryGunElevation",
+          "PrimaryGunMuzzle",
+          "PrimaryGunPivot",
+          "RadarPivot",
+          "RocketElevationPivot",
+          "RocketLaunchPoint_01",
+          "RocketLaunchPoint_02",
+          "RocketLaunchPoint_03",
+          "RocketLaunchPoint_04",
+          "RocketLaunchPoint_05",
+          "RocketLaunchPoint_06",
+          "RocketLaunchPoint_07",
+          "RocketLaunchPoint_08",
+          "RocketTrainPivot",
+          "RolePlateBow",
+          "SupportOrigin"
+        ],
+        "anti_ship_canisters": 4,
+        "guided_rocket_cells": 8,
+        "design": "PKMR enclosed bridge / aft rocket station"
+      }
+    },
+    {
+      "id": "ESC_STK_T2",
+      "role": "STK",
+      "tier": 2,
+      "role_name_ko": "대함 타격",
+      "triangles": 1832,
+      "features": {
+        "required_sockets": [
+          "AftGunElevation",
+          "AftGunMuzzle",
+          "AftGunMuzzle_02",
+          "AftGunPivot",
+          "FireControlRadarPivot",
+          "FunnelTop",
+          "LaunchPoint_MissileBankPort_01",
+          "LaunchPoint_MissileBankPort_02",
+          "LaunchPoint_MissileBankStarboard_01",
+          "LaunchPoint_MissileBankStarboard_02",
+          "MissileBankPortPivot",
+          "MissileBankStarboardPivot",
+          "PrimaryGunElevation",
+          "PrimaryGunMuzzle",
+          "PrimaryGunPivot",
+          "RadarPivot",
+          "RolePlateBow",
+          "SupportOrigin"
+        ],
+        "anti_ship_canisters": 4,
+        "guided_rocket_cells": 0,
+        "design": "PCC balanced fore-aft gunnery and four compact canisters"
+      }
+    },
+    {
+      "id": "ESC_STK_T3",
+      "role": "STK",
+      "tier": 3,
+      "role_name_ko": "대함 타격",
+      "triangles": 2000,
+      "features": {
+        "required_sockets": [
+          "AftGunElevation",
+          "AftGunMuzzle",
+          "AftGunMuzzle_02",
+          "AftGunPivot",
+          "FireControlRadarPivot",
+          "FunnelTop",
+          "LaunchPoint_MissileBankPort_01",
+          "LaunchPoint_MissileBankPort_02",
+          "LaunchPoint_MissileBankStarboard_01",
+          "LaunchPoint_MissileBankStarboard_02",
+          "MissileBankPortPivot",
+          "MissileBankStarboardPivot",
+          "PrimaryGunElevation",
+          "PrimaryGunMuzzle",
+          "PrimaryGunPivot",
+          "RWS_PMuzzle",
+          "RWS_PPivot",
+          "RWS_SMuzzle",
+          "RWS_SPivot",
+          "RadarPivot",
+          "RolePlateBow",
+          "SupportOrigin"
+        ],
+        "anti_ship_canisters": 4,
+        "guided_rocket_cells": 0,
+        "design": "Modern corvette optics and remote bridge-wing weapons"
+      }
+    }
+  ]
+}

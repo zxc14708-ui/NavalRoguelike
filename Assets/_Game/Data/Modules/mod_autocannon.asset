@@ -1,0 +1,69 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee8925205f16a2b47900cba0670cd113, type: 3}
+  m_Name: mod_autocannon
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Modules.ModuleDefinition
+  id: mod_autocannon
+  displayName: "\uAE30\uAD00\uD3EC"
+  description: "\uADFC\uAC70\uB9AC(0~22) \uC18D\uC0AC \uD654\uAE30. \uAC00\uAE4C\uC6B4
+    \uACE0\uC18D\uC815\xB7\uB4DC\uB860\xB7\uC804\uD22C\uAE30\uB97C \uBA3C\uC800 \uB178\uB824
+    \uC9E7\uC740 \uC810\uC0AC\uB97C \uB04A\uC5B4 \uC3DC\uB2E4. \uB808\uC774\uB354
+    \uC5C6\uC774\uB3C4 \uAC00\uAE4C\uC6B4 \uC801\uACFC \uAD50\uC804\uD55C\uB2E4.
+    \uBD99\uC5B4 \uC788\uB294 \uC911\uAC04\xB7\uB192\uC740 \uBE14\uB85D\uC774 \uAC00\uB9AC\uB294
+    \uBC29\uD5A5\uC73C\uB85C\uB294 \uC3D8\uC9C0 \uBABB\uD55C\uB2E4."
+  type: 1
+  icon: {fileID: 21300000, guid: b79e971a06558054b9943215956c1d27, type: 3}
+  width: 1
+  height: 1
+  canRotate: 1
+  placement:
+    Zone: 0
+  heightClass: 1
+  maxCount: 0
+  maxHp: 40
+  rarity: 0
+  weight: 1
+  prefab: {fileID: 3817805083857102153, guid: 99e1a9179d7074143acc3a4cc136197b, type: 3}
+  stats:
+    Range: 22
+    MinRange: 0
+    Damage: 2
+    ReloadTime: 0.13
+    ProjectileSpeed: 80
+    FireArcDegrees: 180
+    TurretTurnRate: 200
+    AmmoFamily: 0
+    MagazineCapacity: 200
+    AmmoPerShot: 1
+    AmmoReloadAmount: 30
+    AmmoReloadTime: 4
+    DetectionRange: 0
+    ExtraTrackedTargets: 0
+    SupportRadiusCells: 0
+    ReloadBonus: 0
+    AmmoCapacityBonus: 0
+    ResupplyBonus: 0
+    CookOffDamage: 0
+    DamageReduction: 0
+    HullRepairPerSecond: 0
+    ModuleRepairPerSecond: 0
+    SortieCooldown: 0
+    HelicopterSpeed: 0
+  targetEfficiency:
+    SmallSurface: 1
+    MediumSurface: 0.6
+    LargeSurface: 0.3
+    Boss: 0.3
+    Submarine: 0.5
+    Drone: 1
+    Air: 0.8
+    Missile: 1

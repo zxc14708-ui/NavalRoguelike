@@ -1,0 +1,450 @@
+{
+  "schema_version": 4,
+  "game_applied": false,
+  "unit": "meters",
+  "authoring_up": "+Z",
+  "fbx_forward": "-Z",
+  "fbx_up": "Y",
+  "prop_types": 5,
+  "prop_budget": 4500,
+  "island_budget": 35000,
+  "colliders_included": false,
+  "lod_group_connected": false,
+  "runtime_random_placement_connected": false,
+  "assets": [
+    {
+      "id": "ENV_Breakwater",
+      "category": "prop",
+      "features": {
+        "description": "Modular breakwater, angular armour, mooring bollards, end light",
+        "placement": "harbour / coastal water",
+        "anchor": "waterline_z_0",
+        "repeat_length_m": 12,
+        "moving_parts": [],
+        "animation_included": false
+      },
+      "triangles": 1516,
+      "bounds": {
+        "x": [
+          -2.46006441116333,
+          2.442894697189331
+        ],
+        "y": [
+          -6.3784990310668945,
+          6.0
+        ],
+        "z": [
+          -1.5799999237060547,
+          2.9200000762939453
+        ]
+      },
+      "required_sockets": [
+        "BeaconMount",
+        "LampOrigin",
+        "MooringPoint_01",
+        "MooringPoint_02",
+        "MooringPoint_03",
+        "Snap_End",
+        "Snap_Start",
+        "WaterlineOrigin"
+      ]
+    },
+    {
+      "id": "ENV_FishingBoat",
+      "category": "prop",
+      "features": {
+        "features": [
+          "7.8 m pointed hard-chine white fishing hull with full aft work deck",
+          "Sloping opaque teal wheelhouse, framed glazing and rear access door",
+          "Roof-supported civilian nav mast, scanner and radio antenna",
+          "Braced net winch with drum, motor and wound rope",
+          "Lashed net bundle, four tied tyre fenders, stern rail and mooring rope",
+          "Submerged shaft, three-blade propeller and connected rudder"
+        ],
+        "required_sockets": [
+          "WaterlineOrigin",
+          "MooringPoint_01",
+          "MooringPoint_02"
+        ],
+        "hull_length_m": 7.8,
+        "bow_axis": "+Y",
+        "anchor": "waterline_z_0",
+        "animation_included": false,
+        "placement": "Place root at water surface Z0; pointed bow faces +Y.",
+        "dimensions": [
+          2.762,
+          7.8,
+          5.225
+        ]
+      },
+      "triangles": 2466,
+      "bounds": {
+        "x": [
+          -1.377524971961975,
+          1.3775248527526855
+        ],
+        "y": [
+          -3.9000000953674316,
+          3.8999998569488525
+        ],
+        "z": [
+          -0.8300000429153442,
+          4.395000457763672
+        ]
+      },
+      "required_sockets": [
+        "MooringPoint_01",
+        "MooringPoint_02",
+        "WaterlineOrigin"
+      ]
+    },
+    {
+      "id": "ENV_FloatingPontoon",
+      "category": "prop",
+      "features": {
+        "features": [
+          "3 x 6 m timber deck with twenty separate boards and a tied steel frame",
+          "Two capped and tapered 5.7 m submerged buoyancy pontoons",
+          "Load-bearing hull saddles, longitudinal bearers and six deck joists",
+          "Six hanging rubber fenders and four deck mooring cleats",
+          "Separate gangway hinge with a braced 3 m shore access ramp and rails"
+        ],
+        "required_sockets": [
+          "WaterlineOrigin",
+          "MooringPoint_01",
+          "MooringPoint_02",
+          "GangwayHinge",
+          "ShoreConnection"
+        ],
+        "deck_dimensions_m": [
+          3.0,
+          6.0
+        ],
+        "gangway_length_m": 3.0,
+        "anchor": "waterline_z_0",
+        "animation_included": false,
+        "placement": "Root at water surface Z0; gangway extends -Y to ShoreConnection (0,-6,.84), matching a shore deck at Z.84.",
+        "dimensions": [
+          3.41,
+          9.31,
+          2.233
+        ]
+      },
+      "triangles": 1540,
+      "bounds": {
+        "x": [
+          -1.7050000429153442,
+          1.7050001621246338
+        ],
+        "y": [
+          -6.309999942779541,
+          3.0
+        ],
+        "z": [
+          -0.47000011801719666,
+          1.7624502182006836
+        ]
+      },
+      "required_sockets": [
+        "GangwayHinge",
+        "MooringPoint_01",
+        "MooringPoint_02",
+        "ShoreConnection",
+        "WaterlineOrigin"
+      ]
+    },
+    {
+      "id": "ENV_SeaRockArch",
+      "category": "prop",
+      "features": {
+        "features": [
+          "One continuous angular rock arch with a real through passage",
+          "Broad flat cliff fractures and three irregular horizontal strata bands",
+          "Asymmetric polygonal opening with about 3.5 m clearance at waterline",
+          "Wet submerged pillars and two embedded fractured seabed feet"
+        ],
+        "required_sockets": [
+          "WaterlineOrigin",
+          "PassageOrigin",
+          "PlacementOrigin"
+        ],
+        "dimensions": [
+          8.395,
+          2.76,
+          7.9
+        ],
+        "waterline_z": 0.0,
+        "foundation_bottom_z": -1.8,
+        "passage_height_above_waterline": 4.3,
+        "placement_notes": "Root Z=0 is the waterline; feet reach Z=-1.8 m."
+      },
+      "triangles": 580,
+      "bounds": {
+        "x": [
+          -4.239999771118164,
+          4.15500020980835
+        ],
+        "y": [
+          -1.3600000143051147,
+          1.399999976158142
+        ],
+        "z": [
+          -1.7999999523162842,
+          6.099999904632568
+        ]
+      },
+      "required_sockets": [
+        "PassageOrigin",
+        "PlacementOrigin",
+        "WaterlineOrigin"
+      ]
+    },
+    {
+      "id": "ENV_BeachFishingGear",
+      "category": "prop",
+      "features": {
+        "description": "Braced net-drying frame, fish crates, traps and coiled rope",
+        "placement": "dry beach / fishing harbour",
+        "anchor": "ground_z_0",
+        "moving_parts": [],
+        "animation_included": false
+      },
+      "triangles": 3128,
+      "bounds": {
+        "x": [
+          -2.009999990463257,
+          2.009999990463257
+        ],
+        "y": [
+          -1.5037764310836792,
+          1.059999942779541
+        ],
+        "z": [
+          0.0,
+          2.4049999713897705
+        ]
+      },
+      "required_sockets": [
+        "FrontAccess",
+        "GroundOrigin"
+      ]
+    },
+    {
+      "id": "ENV_Breakwater_LOD1",
+      "category": "prop",
+      "features": {
+        "description": "Modular breakwater, angular armour, mooring bollards, end light",
+        "placement": "harbour / coastal water",
+        "anchor": "waterline_z_0",
+        "repeat_length_m": 12,
+        "moving_parts": [],
+        "animation_included": false
+      },
+      "triangles": 1452,
+      "bounds": {
+        "x": [
+          -2.46006441116333,
+          2.442894697189331
+        ],
+        "y": [
+          -6.3784990310668945,
+          6.0
+        ],
+        "z": [
+          -1.5799999237060547,
+          2.9200000762939453
+        ]
+      },
+      "required_sockets": [
+        "BeaconMount",
+        "LampOrigin",
+        "MooringPoint_01",
+        "MooringPoint_02",
+        "MooringPoint_03",
+        "Snap_End",
+        "Snap_Start",
+        "WaterlineOrigin"
+      ]
+    },
+    {
+      "id": "ENV_FishingBoat_LOD1",
+      "category": "prop",
+      "features": {
+        "features": [
+          "7.8 m pointed hard-chine white fishing hull with full aft work deck",
+          "Sloping opaque teal wheelhouse, framed glazing and rear access door",
+          "Roof-supported civilian nav mast, scanner and radio antenna",
+          "Braced net winch with drum, motor and wound rope",
+          "Lashed net bundle, four tied tyre fenders, stern rail and mooring rope",
+          "Submerged shaft, three-blade propeller and connected rudder"
+        ],
+        "required_sockets": [
+          "WaterlineOrigin",
+          "MooringPoint_01",
+          "MooringPoint_02"
+        ],
+        "hull_length_m": 7.8,
+        "bow_axis": "+Y",
+        "anchor": "waterline_z_0",
+        "animation_included": false,
+        "placement": "Place root at water surface Z0; pointed bow faces +Y.",
+        "dimensions": [
+          2.762,
+          7.8,
+          5.225
+        ]
+      },
+      "triangles": 1750,
+      "bounds": {
+        "x": [
+          -1.3792476654052734,
+          1.3783228397369385
+        ],
+        "y": [
+          -3.9000000953674316,
+          3.8999998569488525
+        ],
+        "z": [
+          -0.8300000429153442,
+          4.395000457763672
+        ]
+      },
+      "required_sockets": [
+        "MooringPoint_01",
+        "MooringPoint_02",
+        "WaterlineOrigin"
+      ]
+    },
+    {
+      "id": "ENV_FloatingPontoon_LOD1",
+      "category": "prop",
+      "features": {
+        "features": [
+          "3 x 6 m timber deck with twenty separate boards and a tied steel frame",
+          "Two capped and tapered 5.7 m submerged buoyancy pontoons",
+          "Load-bearing hull saddles, longitudinal bearers and six deck joists",
+          "Six hanging rubber fenders and four deck mooring cleats",
+          "Separate gangway hinge with a braced 3 m shore access ramp and rails"
+        ],
+        "required_sockets": [
+          "WaterlineOrigin",
+          "MooringPoint_01",
+          "MooringPoint_02",
+          "GangwayHinge",
+          "ShoreConnection"
+        ],
+        "deck_dimensions_m": [
+          3.0,
+          6.0
+        ],
+        "gangway_length_m": 3.0,
+        "anchor": "waterline_z_0",
+        "animation_included": false,
+        "placement": "Root at water surface Z0; gangway extends -Y to ShoreConnection (0,-6,.84), matching a shore deck at Z.84.",
+        "dimensions": [
+          3.41,
+          9.31,
+          2.233
+        ]
+      },
+      "triangles": 1376,
+      "bounds": {
+        "x": [
+          -1.7050000429153442,
+          1.7050001621246338
+        ],
+        "y": [
+          -6.309999942779541,
+          3.0
+        ],
+        "z": [
+          -0.4491059184074402,
+          1.7624502182006836
+        ]
+      },
+      "required_sockets": [
+        "GangwayHinge",
+        "MooringPoint_01",
+        "MooringPoint_02",
+        "ShoreConnection",
+        "WaterlineOrigin"
+      ]
+    },
+    {
+      "id": "ENV_SeaRockArch_LOD1",
+      "category": "prop",
+      "features": {
+        "features": [
+          "One continuous angular rock arch with a real through passage",
+          "Broad flat cliff fractures and three irregular horizontal strata bands",
+          "Asymmetric polygonal opening with about 3.5 m clearance at waterline",
+          "Wet submerged pillars and two embedded fractured seabed feet"
+        ],
+        "required_sockets": [
+          "WaterlineOrigin",
+          "PassageOrigin",
+          "PlacementOrigin"
+        ],
+        "dimensions": [
+          8.395,
+          2.76,
+          7.9
+        ],
+        "waterline_z": 0.0,
+        "foundation_bottom_z": -1.8,
+        "passage_height_above_waterline": 4.3,
+        "placement_notes": "Root Z=0 is the waterline; feet reach Z=-1.8 m."
+      },
+      "triangles": 294,
+      "bounds": {
+        "x": [
+          -4.239999771118164,
+          4.150000095367432
+        ],
+        "y": [
+          -1.3600000143051147,
+          1.399999976158142
+        ],
+        "z": [
+          -1.7999999523162842,
+          6.019511699676514
+        ]
+      },
+      "required_sockets": [
+        "PassageOrigin",
+        "PlacementOrigin",
+        "WaterlineOrigin"
+      ]
+    },
+    {
+      "id": "ENV_BeachFishingGear_LOD1",
+      "category": "prop",
+      "features": {
+        "description": "Braced net-drying frame, fish crates, traps and coiled rope",
+        "placement": "dry beach / fishing harbour",
+        "anchor": "ground_z_0",
+        "moving_parts": [],
+        "animation_included": false
+      },
+      "triangles": 2542,
+      "bounds": {
+        "x": [
+          -2.009999990463257,
+          2.009999990463257
+        ],
+        "y": [
+          -1.50486159324646,
+          1.059999942779541
+        ],
+        "z": [
+          0.0,
+          2.4049999713897705
+        ]
+      },
+      "required_sockets": [
+        "FrontAccess",
+        "GroundOrigin"
+      ]
+    }
+  ]
+}

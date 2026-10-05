@@ -1,0 +1,391 @@
+{
+  "all_passed": true,
+  "count": 3,
+  "validated_models": 3,
+  "game_applied": false,
+  "unity_tested": false,
+  "qa_method": "Independent fresh FBX import, topology, palette, placement and X-axis drum articulation",
+  "pack_checks": {
+    "exactly_three_expected_assets": true,
+    "all_model_files_use_unique_paths": true,
+    "manifest_declares_model_only": true
+  },
+  "results": [
+    {
+      "id": "MOD_Sonar_Bow",
+      "passed": true,
+      "errors": [],
+      "checks": {
+        "single_centered_identity_empty_root": true,
+        "mesh_and_empty_only": true,
+        "all_object_scales_one": true,
+        "mesh_local_rotations_baked": true,
+        "no_duplicate_object_names": true,
+        "manifest_required_sockets_unique": true,
+        "manifest_required_sockets_empty_and_present": true,
+        "manifest_socket_hierarchy_matches": true,
+        "forward_marker_points_plus_y": true,
+        "sonar_origin_empty_present": true,
+        "closed_outward_positive_volume_all_components": true,
+        "no_zero_area_faces": true,
+        "no_ngons": true,
+        "no_loose_vertices": true,
+        "triangle_count_matches_manifest": true,
+        "triangle_budget_at_most_900": true,
+        "manifest_bounds_match": true,
+        "centered_1_8m_footprint": true,
+        "floor_z_zero": true,
+        "height_at_most_one_metre": true,
+        "all_mesh_material_slots_valid": true,
+        "shared_naval_palette_matches": true,
+        "bow_detection_origin_in_front": true
+      },
+      "triangles": 572,
+      "budget": 900,
+      "bounds": {
+        "x": [
+          -0.8700000047683716,
+          0.8700000047683716
+        ],
+        "y": [
+          -0.8600000143051147,
+          0.8600000143051147
+        ],
+        "z": [
+          -1.40111779955987e-07,
+          0.818000078201294
+        ]
+      },
+      "mesh_count": 39,
+      "components": 39,
+      "nonmanifold_edges": 0,
+      "zero_area_faces": 0,
+      "ngons": 0,
+      "loose_vertices": 0,
+      "inward_or_zero_volume_components": [],
+      "topology_details": [],
+      "bad_material_colors": [],
+      "actual_palette": {
+        "Deck Grey": [
+          0.14000000059604645,
+          0.18000000715255737,
+          0.20999999344348907,
+          1.0
+        ],
+        "Gunmetal": [
+          0.04500000178813934,
+          0.05999999865889549,
+          0.07500000298023224,
+          1.0
+        ],
+        "Sensor Glass": [
+          0.03500000014901161,
+          0.14000000059604645,
+          0.17000000178813934,
+          1.0
+        ],
+        "Medical White": [
+          0.6499999761581421,
+          0.6700000166893005,
+          0.6700000166893005,
+          1.0
+        ],
+        "Naval Blue Grey": [
+          0.30000001192092896,
+          0.3499999940395355,
+          0.4000000059604645,
+          1.0
+        ],
+        "Warning Yellow": [
+          0.7200000286102295,
+          0.4699999988079071,
+          0.08500000089406967,
+          1.0
+        ]
+      },
+      "socket_positions": {
+        "SonarOrigin": [
+          0.0,
+          0.8240000605583191,
+          0.354999840259552
+        ],
+        "ForwardMarker": [
+          0.0,
+          0.8600000739097595,
+          0.354999840259552
+        ],
+        "AttachPoint": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": "MOD_Sonar_TAS",
+      "passed": true,
+      "errors": [],
+      "checks": {
+        "single_centered_identity_empty_root": true,
+        "mesh_and_empty_only": true,
+        "all_object_scales_one": true,
+        "mesh_local_rotations_baked": true,
+        "no_duplicate_object_names": true,
+        "manifest_required_sockets_unique": true,
+        "manifest_required_sockets_empty_and_present": true,
+        "manifest_socket_hierarchy_matches": true,
+        "forward_marker_points_plus_y": true,
+        "sonar_origin_empty_present": true,
+        "closed_outward_positive_volume_all_components": true,
+        "no_zero_area_faces": true,
+        "no_ngons": true,
+        "no_loose_vertices": true,
+        "triangle_count_matches_manifest": true,
+        "triangle_budget_at_most_900": true,
+        "manifest_bounds_match": true,
+        "centered_1_8m_footprint": true,
+        "floor_z_zero": true,
+        "height_at_most_one_metre": true,
+        "all_mesh_material_slots_valid": true,
+        "shared_naval_palette_matches": true,
+        "tas_cable_exit_faces_stern": true,
+        "tas_tow_attach_point_faces_stern": true,
+        "tas_deploy_target_further_aft": true,
+        "tas_drum_neutral_local_rotation": true,
+        "tas_stowed_body_is_separate_editable_empty": true,
+        "tas_stowed_body_has_mesh_descendants": true,
+        "tas_winch_has_separate_fixed_meshes": true,
+        "drum_has_moving_mesh_children": true,
+        "drum_has_fixed_non_drum_geometry": true,
+        "drum_each_child_geometry_really_rotates": true,
+        "drum_fixed_geometry_stays": true,
+        "drum_parent_stays": true,
+        "drum_neutral_pose_roundtrip_restored": true
+      },
+      "triangles": 896,
+      "budget": 900,
+      "bounds": {
+        "x": [
+          -0.8799999952316284,
+          0.8799999952316284
+        ],
+        "y": [
+          -0.8649999499320984,
+          0.8600000143051147
+        ],
+        "z": [
+          -1.40111779955987e-07,
+          0.9220000505447388
+        ]
+      },
+      "mesh_count": 41,
+      "components": 41,
+      "nonmanifold_edges": 0,
+      "zero_area_faces": 0,
+      "ngons": 0,
+      "loose_vertices": 0,
+      "inward_or_zero_volume_components": [],
+      "topology_details": [],
+      "bad_material_colors": [],
+      "actual_palette": {
+        "Medical White": [
+          0.6499999761581421,
+          0.6700000166893005,
+          0.6700000166893005,
+          1.0
+        ],
+        "Sensor Glass": [
+          0.03500000014901161,
+          0.14000000059604645,
+          0.17000000178813934,
+          1.0
+        ],
+        "Warning Yellow": [
+          0.7200000286102295,
+          0.4699999988079071,
+          0.08500000089406967,
+          1.0
+        ],
+        "Gunmetal": [
+          0.04500000178813934,
+          0.05999999865889549,
+          0.07500000298023224,
+          1.0
+        ],
+        "Deck Grey": [
+          0.14000000059604645,
+          0.18000000715255737,
+          0.20999999344348907,
+          1.0
+        ],
+        "Naval Blue Grey": [
+          0.30000001192092896,
+          0.3499999940395355,
+          0.4000000059604645,
+          1.0
+        ]
+      },
+      "socket_positions": {
+        "CableDrumPivot": [
+          0.0,
+          0.34000009298324585,
+          0.46599993109703064
+        ],
+        "CableExit": [
+          0.0,
+          -0.8399998545646667,
+          0.7270001173019409
+        ],
+        "TowAttachPoint": [
+          0.0,
+          -0.8399998545646667,
+          0.7270001173019409
+        ],
+        "StowedTowBody": [
+          0.0,
+          -0.3499999940395355,
+          5.70222340456894e-08
+        ],
+        "SonarOrigin": [
+          0.0,
+          -0.44499993324279785,
+          0.4290000796318054
+        ],
+        "TowDeployTarget": [
+          0.0,
+          -3.0,
+          -0.6499994993209839
+        ],
+        "ForwardMarker": [
+          0.0,
+          0.7799999713897705,
+          0.11999987065792084
+        ],
+        "AttachPoint": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": "MOD_Sonar_Internal",
+      "passed": true,
+      "errors": [],
+      "checks": {
+        "single_centered_identity_empty_root": true,
+        "mesh_and_empty_only": true,
+        "all_object_scales_one": true,
+        "mesh_local_rotations_baked": true,
+        "no_duplicate_object_names": true,
+        "manifest_required_sockets_unique": true,
+        "manifest_required_sockets_empty_and_present": true,
+        "manifest_socket_hierarchy_matches": true,
+        "forward_marker_points_plus_y": true,
+        "sonar_origin_empty_present": true,
+        "closed_outward_positive_volume_all_components": true,
+        "no_zero_area_faces": true,
+        "no_ngons": true,
+        "no_loose_vertices": true,
+        "triangle_count_matches_manifest": true,
+        "triangle_budget_at_most_900": true,
+        "manifest_bounds_match": true,
+        "centered_1_8m_footprint": true,
+        "floor_z_zero": true,
+        "height_at_most_one_metre": true,
+        "all_mesh_material_slots_valid": true,
+        "shared_naval_palette_matches": true
+      },
+      "triangles": 800,
+      "budget": 900,
+      "bounds": {
+        "x": [
+          -0.8799999952316284,
+          0.8799999952316284
+        ],
+        "y": [
+          -0.8799999952316284,
+          0.8799999952316284
+        ],
+        "z": [
+          -1.4337018683363567e-07,
+          0.8264594674110413
+        ]
+      },
+      "mesh_count": 40,
+      "components": 40,
+      "nonmanifold_edges": 0,
+      "zero_area_faces": 0,
+      "ngons": 0,
+      "loose_vertices": 0,
+      "inward_or_zero_volume_components": [],
+      "topology_details": [],
+      "bad_material_colors": [],
+      "actual_palette": {
+        "Sensor Glass": [
+          0.03500000014901161,
+          0.14000000059604645,
+          0.17000000178813934,
+          1.0
+        ],
+        "Gunmetal": [
+          0.04500000178813934,
+          0.05999999865889549,
+          0.07500000298023224,
+          1.0
+        ],
+        "Naval Blue Grey": [
+          0.30000001192092896,
+          0.3499999940395355,
+          0.4000000059604645,
+          1.0
+        ],
+        "Warning Yellow": [
+          0.7200000286102295,
+          0.4699999988079071,
+          0.08500000089406967,
+          1.0
+        ],
+        "Deck Grey": [
+          0.14000000059604645,
+          0.18000000715255737,
+          0.20999999344348907,
+          1.0
+        ],
+        "Medical White": [
+          0.6499999761581421,
+          0.6700000166893005,
+          0.6700000166893005,
+          1.0
+        ]
+      },
+      "socket_positions": {
+        "SonarOrigin": [
+          0.3799999952316284,
+          -0.08999995142221451,
+          0.32499998807907104
+        ],
+        "ForwardMarker": [
+          0.0,
+          0.8399999737739563,
+          0.11999986320734024
+        ],
+        "AttachPoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "OperatorPanel": [
+          -0.41999998688697815,
+          0.16000010073184967,
+          0.6499999761581421
+        ],
+        "TransducerAssembly": [
+          0.3799999952316284,
+          -0.09000000357627869,
+          1.4662861147485273e-08
+        ]
+      }
+    }
+  ]
+}

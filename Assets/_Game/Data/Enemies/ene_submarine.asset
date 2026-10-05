@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b0951aedabbf14429864b73543333f0, type: 3}
+  m_Name: ene_submarine
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.EnemyDefinition
+  id: ene_submarine
+  displayName: "\uC7A0\uC218\uD568"
+  kind: 2
+  prefab: {fileID: 6933403412516699016, guid: c5f40246c9ca5904cb9f9ea92cf9cefd, type: 3}
+  category: 5
+  rank: 1
+  targetValue: 3
+  maxAlive: 1
+  maxHp: 70
+  moveSpeed: 5
+  turnRateDegPerSec: 80
+  preferredRange: 52
+  attackDamage: 55
+  attackCooldown: 16
+  missilePrefab: {fileID: 0}
+  salvoSize: 1
+  salvoSpacing: 0.15
+  xpReward: 10
+  revealDuration: 10
+  launchedDrone: {fileID: 0}
+  launchedRecon: {fileID: 0}
+  launchedFighter: {fileID: 0}

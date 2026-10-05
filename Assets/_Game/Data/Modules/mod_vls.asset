@@ -1,0 +1,69 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee8925205f16a2b47900cba0670cd113, type: 3}
+  m_Name: mod_vls
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Modules.ModuleDefinition
+  id: mod_vls
+  displayName: VLS
+  description: "\uC624\uB978\uCABD VLS \uCF58\uC194\uC5D0\uC11C \uBC1C\uC0AC\uAE30\uB9C8\uB2E4
+    \uB300\uD568\xB7\uB300\uACF5\xB7\uB300\uC7A0 \uD0C4\uC885\uC744 \uC120\uD0DD\uD55C\uB2E4.
+    \uC9C0\uC815\uD55C \uB2E8\uCD95\uD0A4\uB85C \uBC1C\uC0AC\uAE30\uB97C \uC804\uD658\uD55C\uB2E4.
+    \uC138 \uD0C4\uC885\uC740 8\uC140 \uD0C4\uC57D\uC744 \uACF5\uC720\uD558\uBA70
+    \uC804\uD658\uC5D0 2\uCD08\uAC00 \uAC78\uB9B0\uB2E4. \uB300\uC7A0\uD0C4\uC740
+    \uC18C\uB098 \uC811\uCD09\uC774 \uD544\uC694\uD558\uB2E4."
+  type: 3
+  icon: {fileID: 21300000, guid: 56d99938f610adc4babf9e9d756f3aa5, type: 3}
+  width: 1
+  height: 1
+  canRotate: 1
+  placement:
+    Zone: 0
+  heightClass: 1
+  maxCount: 0
+  maxHp: 45
+  rarity: 2
+  weight: 0.8
+  prefab: {fileID: 8897461264605300781, guid: 9499729c96c698e4c9408c9bc79a98d2, type: 3}
+  stats:
+    Range: 48
+    MinRange: 16
+    Damage: 60
+    ReloadTime: 1.5
+    ProjectileSpeed: 30
+    FireArcDegrees: 360
+    TurretTurnRate: 0
+    AmmoFamily: 1
+    MagazineCapacity: 8
+    AmmoPerShot: 1
+    AmmoReloadAmount: 1
+    AmmoReloadTime: 15
+    DetectionRange: 0
+    ExtraTrackedTargets: 0
+    SupportRadiusCells: 0
+    ReloadBonus: 0
+    AmmoCapacityBonus: 0
+    ResupplyBonus: 0
+    CookOffDamage: 0
+    DamageReduction: 0
+    HullRepairPerSecond: 0
+    ModuleRepairPerSecond: 0
+    SortieCooldown: 0
+    HelicopterSpeed: 0
+  targetEfficiency:
+    SmallSurface: 0.3
+    MediumSurface: 1
+    LargeSurface: 1.2
+    Boss: 1.3
+    Submarine: 0.8
+    Drone: 0
+    Air: 0
+    Missile: 0

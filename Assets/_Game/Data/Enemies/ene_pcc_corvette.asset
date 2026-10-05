@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b0951aedabbf14429864b73543333f0, type: 3}
+  m_Name: ene_pcc_corvette
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.EnemyDefinition
+  id: ene_pcc_corvette
+  displayName: "\uC5D8\uB9AC\uD2B8 \uCD08\uACC4\uD568"
+  kind: 0
+  prefab: {fileID: 9065149634303736877, guid: 599c8cea1a95d1746936e38dc1472da8, type: 3}
+  category: 2
+  rank: 1
+  targetValue: 4
+  maxAlive: 0
+  maxHp: 160
+  moveSpeed: 8
+  turnRateDegPerSec: 75
+  preferredRange: 20
+  attackDamage: 20
+  attackCooldown: 4
+  missilePrefab: {fileID: 0}
+  salvoSize: 1
+  salvoSpacing: 0.15
+  xpReward: 8
+  revealDuration: 0
+  launchedDrone: {fileID: 0}
+  launchedRecon: {fileID: 0}
+  launchedFighter: {fileID: 0}

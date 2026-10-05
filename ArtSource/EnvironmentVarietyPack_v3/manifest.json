@@ -1,0 +1,4505 @@
+{
+  "schema_version": 3,
+  "game_applied": false,
+  "unit": "meters",
+  "authoring_up": "+Z",
+  "fbx_forward": "-Z",
+  "fbx_up": "Y",
+  "island_root_zero": 0,
+  "island_sea_level_z": -0.9,
+  "existing_material_colors": {
+    "MAT_IslandRock": [
+      0.33,
+      0.32,
+      0.3,
+      1
+    ],
+    "MAT_IslandCliff": [
+      0.42,
+      0.39,
+      0.34,
+      1
+    ],
+    "MAT_IslandSand": [
+      0.72,
+      0.64,
+      0.47,
+      1
+    ],
+    "MAT_IslandGrass": [
+      0.22,
+      0.36,
+      0.17,
+      1
+    ],
+    "MAT_IslandTree": [
+      0.1,
+      0.25,
+      0.12,
+      1
+    ],
+    "MAT_IslandWhite": [
+      0.86,
+      0.86,
+      0.82,
+      1
+    ],
+    "MAT_IslandRed": [
+      0.6,
+      0.13,
+      0.1,
+      1
+    ],
+    "MAT_IslandRust": [
+      0.38,
+      0.21,
+      0.12,
+      1
+    ],
+    "MAT_IslandSeal": [
+      0.27,
+      0.25,
+      0.23,
+      1
+    ]
+  },
+  "lod_group_connected": false,
+  "island_budget": 35000,
+  "prop_budget": 4500,
+  "layout_seed": 20261002,
+  "seeded_variants": 3,
+  "base_island_types": 8,
+  "prop_types": 12,
+  "layout_rules": {
+    "radar": {
+      "primary": "ENV_RadarStation",
+      "secondary": [
+        "ENV_SupplyDepot",
+        "ENV_WatchPost"
+      ],
+      "secondary_count": 1,
+      "trees": [
+        2,
+        4
+      ],
+      "buoys": [
+        1,
+        2
+      ],
+      "jetty_chance": 0.55
+    },
+    "outpost": {
+      "primary": "ENV_WatchPost",
+      "secondary": [
+        "ENV_CoastalBunker",
+        "ENV_CoastShed"
+      ],
+      "secondary_count": 1,
+      "trees": [
+        3,
+        5
+      ],
+      "buoys": [
+        0,
+        1
+      ],
+      "jetty_chance": 0.3
+    },
+    "harbor": {
+      "primary": "ENV_SupplyDepot",
+      "secondary": [
+        "ENV_CoastShed",
+        "ENV_WatchPost"
+      ],
+      "secondary_count": 1,
+      "trees": [
+        2,
+        4
+      ],
+      "buoys": [
+        2,
+        3
+      ],
+      "jetty_chance": 1.0
+    },
+    "atoll": {
+      "primary": null,
+      "secondary": [
+        "ENV_WatchPost",
+        "ENV_CoastShed"
+      ],
+      "secondary_count": 1,
+      "trees": [
+        3,
+        6
+      ],
+      "buoys": [
+        1,
+        2
+      ],
+      "jetty_chance": 0.0
+    }
+  },
+  "assets": [
+    {
+      "id": "ENV_RockIslet",
+      "category": "island",
+      "features": {
+        "rocky": true,
+        "nominal_radius_m": 7.6,
+        "seed": 43,
+        "sea_level_z": -0.9,
+        "base_z": -3.0,
+        "collision_mesh_hint": "TerrainShell",
+        "colliders_included": false,
+        "features": "ENV_RockIslet",
+        "proposed_sockets": [
+          "ShorePoint_00",
+          "ShorePoint_01",
+          "ShorePoint_02",
+          "ShorePoint_03",
+          "ShorePoint_04",
+          "ShorePoint_05",
+          "ShorePoint_06",
+          "ShorePoint_07",
+          "ShorePoint_08",
+          "ShorePoint_09",
+          "ShorePoint_10",
+          "ShorePoint_11",
+          "HeightMarker"
+        ],
+        "layout": null,
+        "base_archetype": "ENV_RockIslet"
+      },
+      "triangles": 3358,
+      "bounds": {
+        "x": [
+          -8.662647247314453,
+          7.999028205871582
+        ],
+        "y": [
+          -9.117009162902832,
+          7.506791591644287
+        ],
+        "z": [
+          -3.0,
+          6.881162643432617
+        ]
+      },
+      "required_sockets": [
+        "ContactOrigin",
+        "Decor",
+        "HeightMarker",
+        "Seal_0",
+        "Seal_1",
+        "ShorePoint_00",
+        "ShorePoint_01",
+        "ShorePoint_02",
+        "ShorePoint_03",
+        "ShorePoint_04",
+        "ShorePoint_05",
+        "ShorePoint_06",
+        "ShorePoint_07",
+        "ShorePoint_08",
+        "ShorePoint_09",
+        "ShorePoint_10",
+        "ShorePoint_11"
+      ]
+    },
+    {
+      "id": "ENV_PineIsland",
+      "category": "island",
+      "features": {
+        "rocky": false,
+        "nominal_radius_m": 12.0,
+        "seed": 57,
+        "sea_level_z": -0.9,
+        "base_z": -3.0,
+        "collision_mesh_hint": "TerrainShell",
+        "colliders_included": false,
+        "features": "ENV_PineIsland",
+        "proposed_sockets": [
+          "ShorePoint_00",
+          "ShorePoint_01",
+          "ShorePoint_02",
+          "ShorePoint_03",
+          "ShorePoint_04",
+          "ShorePoint_05",
+          "ShorePoint_06",
+          "ShorePoint_07",
+          "ShorePoint_08",
+          "ShorePoint_09",
+          "ShorePoint_10",
+          "ShorePoint_11",
+          "HeightMarker"
+        ],
+        "layout": null,
+        "base_archetype": "ENV_PineIsland"
+      },
+      "triangles": 17930,
+      "bounds": {
+        "x": [
+          -12.916680335998535,
+          14.780989646911621
+        ],
+        "y": [
+          -12.94699764251709,
+          12.503482818603516
+        ],
+        "z": [
+          -3.0,
+          8.459270477294922
+        ]
+      },
+      "required_sockets": [
+        "CoastalPine_0",
+        "CoastalPine_1",
+        "CoastalPine_2",
+        "CoastalPine_3",
+        "CoastalPine_4",
+        "ContactOrigin",
+        "Decor",
+        "HeightMarker",
+        "ShorePoint_00",
+        "ShorePoint_01",
+        "ShorePoint_02",
+        "ShorePoint_03",
+        "ShorePoint_04",
+        "ShorePoint_05",
+        "ShorePoint_06",
+        "ShorePoint_07",
+        "ShorePoint_08",
+        "ShorePoint_09",
+        "ShorePoint_10",
+        "ShorePoint_11"
+      ]
+    },
+    {
+      "id": "ENV_LighthouseIsland",
+      "category": "island",
+      "features": {
+        "rocky": false,
+        "nominal_radius_m": 10.4,
+        "seed": 81,
+        "sea_level_z": -0.9,
+        "base_z": -3.0,
+        "collision_mesh_hint": "TerrainShell",
+        "colliders_included": false,
+        "features": "ENV_LighthouseIsland",
+        "proposed_sockets": [
+          "ShorePoint_00",
+          "ShorePoint_01",
+          "ShorePoint_02",
+          "ShorePoint_03",
+          "ShorePoint_04",
+          "ShorePoint_05",
+          "ShorePoint_06",
+          "ShorePoint_07",
+          "ShorePoint_08",
+          "ShorePoint_09",
+          "ShorePoint_10",
+          "ShorePoint_11",
+          "HeightMarker"
+        ],
+        "layout": null,
+        "base_archetype": "ENV_LighthouseIsland"
+      },
+      "triangles": 18918,
+      "bounds": {
+        "x": [
+          -12.991755485534668,
+          10.643359184265137
+        ],
+        "y": [
+          -15.719965934753418,
+          11.623129844665527
+        ],
+        "z": [
+          -3.0,
+          11.820000648498535
+        ]
+      },
+      "required_sockets": [
+        "AnemometerPivot",
+        "BeaconPivot",
+        "CoastShed",
+        "CoastalPine_0",
+        "CoastalPine_1",
+        "CoastalPine_2",
+        "ContactOrigin",
+        "Decor",
+        "EntryOrigin",
+        "GroundOrigin",
+        "HeightMarker",
+        "Jetty",
+        "LadderAccess",
+        "LampOrigin",
+        "Lighthouse",
+        "MooringPoint_01",
+        "MooringPoint_02",
+        "ShoreConnection",
+        "ShorePoint_00",
+        "ShorePoint_01",
+        "ShorePoint_02",
+        "ShorePoint_03",
+        "ShorePoint_04",
+        "ShorePoint_05",
+        "ShorePoint_06",
+        "ShorePoint_07",
+        "ShorePoint_08",
+        "ShorePoint_09",
+        "ShorePoint_10",
+        "ShorePoint_11",
+        "WindVanePivot"
+      ]
+    },
+    {
+      "id": "ENV_WreckCove",
+      "category": "island",
+      "features": {
+        "rocky": false,
+        "nominal_radius_m": 13.0,
+        "seed": 91,
+        "sea_level_z": -0.9,
+        "base_z": -3.0,
+        "collision_mesh_hint": "TerrainShell",
+        "colliders_included": false,
+        "features": "ENV_WreckCove",
+        "proposed_sockets": [
+          "ShorePoint_00",
+          "ShorePoint_01",
+          "ShorePoint_02",
+          "ShorePoint_03",
+          "ShorePoint_04",
+          "ShorePoint_05",
+          "ShorePoint_06",
+          "ShorePoint_07",
+          "ShorePoint_08",
+          "ShorePoint_09",
+          "ShorePoint_10",
+          "ShorePoint_11",
+          "HeightMarker"
+        ],
+        "layout": null,
+        "base_archetype": "ENV_WreckCove"
+      },
+      "triangles": 21406,
+      "bounds": {
+        "x": [
+          -14.517601013183594,
+          13.186326026916504
+        ],
+        "y": [
+          -15.970755577087402,
+          14.189006805419922
+        ],
+        "z": [
+          -3.0,
+          7.478698253631592
+        ]
+      },
+      "required_sockets": [
+        "BeachedWreck",
+        "CoastalPine_0",
+        "CoastalPine_1",
+        "CoastalPine_2",
+        "CoastalPine_3",
+        "CoastalPine_4",
+        "ContactOrigin",
+        "Decor",
+        "HeightMarker",
+        "ShorePoint_00",
+        "ShorePoint_01",
+        "ShorePoint_02",
+        "ShorePoint_03",
+        "ShorePoint_04",
+        "ShorePoint_05",
+        "ShorePoint_06",
+        "ShorePoint_07",
+        "ShorePoint_08",
+        "ShorePoint_09",
+        "ShorePoint_10",
+        "ShorePoint_11",
+        "WreckAnchor"
+      ]
+    },
+    {
+      "id": "ENV_RadarOutpost",
+      "category": "island",
+      "features": {
+        "rocky": false,
+        "nominal_radius_m": 14.0,
+        "seed": 113,
+        "sea_level_z": -0.9,
+        "base_z": -3.0,
+        "collision_mesh_hint": "TerrainShell",
+        "colliders_included": false,
+        "features": "ENV_RadarOutpost",
+        "proposed_sockets": [
+          "ShorePoint_00",
+          "ShorePoint_01",
+          "ShorePoint_02",
+          "ShorePoint_03",
+          "ShorePoint_04",
+          "ShorePoint_05",
+          "ShorePoint_06",
+          "ShorePoint_07",
+          "ShorePoint_08",
+          "ShorePoint_09",
+          "ShorePoint_10",
+          "ShorePoint_11",
+          "HeightMarker"
+        ],
+        "layout": {
+          "seed": 113,
+          "kind": "radar",
+          "placements": [
+            {
+              "asset": "ENV_RadarStation",
+              "position": [
+                -1.2183932994904827,
+                -0.10066968004152949,
+                2.3441487131064123
+              ],
+              "heading_radians": 1.4959441682404755,
+              "footprint_m": [
+                6.5,
+                6.5
+              ],
+              "zone": "summit",
+              "ground_height": 2.3791487131064124
+            },
+            {
+              "asset": "ENV_SupplyDepot",
+              "position": [
+                7.766986179664214,
+                0.100270624616839,
+                0.5170450891304367
+              ],
+              "heading_radians": -1.5578871941730528,
+              "footprint_m": [
+                5.5,
+                6.8
+              ],
+              "zone": "coast",
+              "ground_height": 0.5520450891304367
+            },
+            {
+              "asset": "ENV_CoastalPine",
+              "position": [
+                -4.316272067181795,
+                -7.413611837775278,
+                1.1956371906779741
+              ],
+              "heading_radians": -3.6688278643455288,
+              "footprint_m": [
+                2.8,
+                2.8
+              ],
+              "zone": "coast",
+              "ground_height": 1.230637190677974
+            },
+            {
+              "asset": "ENV_CoastalPine",
+              "position": [
+                5.028748196387914,
+                -7.836458359961379,
+                0.3048511588752877
+              ],
+              "heading_radians": -2.571065983275562,
+              "footprint_m": [
+                2.8,
+                2.8
+              ],
+              "zone": "coast",
+              "ground_height": 0.33985115887528766
+            },
+            {
+              "asset": "ENV_NavigationBuoy",
+              "position": [
+                -7.23145598552635,
+                -17.373275741798672,
+                -0.9
+              ],
+              "heading_radians": -0.8544676249281031,
+              "zone": "water"
+            },
+            {
+              "asset": "ENV_NavigationBuoy",
+              "position": [
+                0.7234527696087193,
+                -16.520275133371616,
+                -0.9
+              ],
+              "heading_radians": 0.049373707727695226,
+              "zone": "water"
+            }
+          ],
+          "pads": [
+            {
+              "x": -1.2183932994904827,
+              "y": -0.10066968004152949,
+              "z": 2.3791487131064124,
+              "heading": 1.4959441682404755,
+              "width": 7.15,
+              "length": 7.15,
+              "fade_m": 1.15
+            },
+            {
+              "x": 7.766986179664214,
+              "y": 0.100270624616839,
+              "z": 0.5520450891304367,
+              "heading": -1.5578871941730528,
+              "width": 6.15,
+              "length": 7.45,
+              "fade_m": 1.15
+            }
+          ],
+          "facility_count": 2,
+          "coordinate_space": "Blender XYZ / +Z up",
+          "terrain_fitting": true,
+          "facility_overlap_rejected": true
+        },
+        "base_archetype": "ENV_RadarOutpost"
+      },
+      "triangles": 18362,
+      "bounds": {
+        "x": [
+          -14.198934555053711,
+          15.44514274597168
+        ],
+        "y": [
+          -18.071605682373047,
+          17.41982650756836
+        ],
+        "z": [
+          -3.0,
+          10.359147071838379
+        ]
+      },
+      "required_sockets": [
+        "AnchorPoint",
+        "BeaconPivot",
+        "ContactOrigin",
+        "Decor",
+        "ENV_CoastalPine_2",
+        "ENV_CoastalPine_3",
+        "ENV_NavigationBuoy_4",
+        "ENV_NavigationBuoy_5",
+        "ENV_RadarStation_0",
+        "ENV_SupplyDepot_1",
+        "EntryOrigin",
+        "GroundOrigin",
+        "HeightMarker",
+        "LampOrigin",
+        "RadarPivot",
+        "SearchArrayHead",
+        "ShorePoint_00",
+        "ShorePoint_01",
+        "ShorePoint_02",
+        "ShorePoint_03",
+        "ShorePoint_04",
+        "ShorePoint_05",
+        "ShorePoint_06",
+        "ShorePoint_07",
+        "ShorePoint_08",
+        "ShorePoint_09",
+        "ShorePoint_10",
+        "ShorePoint_11",
+        "WaterlineOrigin"
+      ]
+    },
+    {
+      "id": "ENV_CoastalOutpost",
+      "category": "island",
+      "features": {
+        "rocky": false,
+        "nominal_radius_m": 13.0,
+        "seed": 127,
+        "sea_level_z": -0.9,
+        "base_z": -3.0,
+        "collision_mesh_hint": "TerrainShell",
+        "colliders_included": false,
+        "features": "ENV_CoastalOutpost",
+        "proposed_sockets": [
+          "ShorePoint_00",
+          "ShorePoint_01",
+          "ShorePoint_02",
+          "ShorePoint_03",
+          "ShorePoint_04",
+          "ShorePoint_05",
+          "ShorePoint_06",
+          "ShorePoint_07",
+          "ShorePoint_08",
+          "ShorePoint_09",
+          "ShorePoint_10",
+          "ShorePoint_11",
+          "HeightMarker"
+        ],
+        "layout": {
+          "seed": 127,
+          "kind": "outpost",
+          "placements": [
+            {
+              "asset": "ENV_WatchPost",
+              "position": [
+                -1.6372794543266629,
+                0.05168873893183091,
+                2.271662750959215
+              ],
+              "heading_radians": -1.5278637172167462,
+              "footprint_m": [
+                4.5,
+                5.2
+              ],
+              "zone": "summit",
+              "ground_height": 2.306662750959215
+            },
+            {
+              "asset": "ENV_CoastalBunker",
+              "position": [
+                6.637416595513829,
+                -2.6243620110450605,
+                0.3508661378096106
+              ],
+              "heading_radians": -1.9473214598731472,
+              "footprint_m": [
+                5.2,
+                5.0
+              ],
+              "zone": "coast",
+              "ground_height": 0.38586613780961065
+            },
+            {
+              "asset": "ENV_CoastalPine",
+              "position": [
+                -0.5818515030146227,
+                -5.851253055860908,
+                1.3028604269629314
+              ],
+              "heading_radians": -3.2407073105703272,
+              "footprint_m": [
+                2.8,
+                2.8
+              ],
+              "zone": "coast",
+              "ground_height": 1.3378604269629313
+            },
+            {
+              "asset": "ENV_CoastalPine",
+              "position": [
+                3.838197345494275,
+                5.574206111819861,
+                1.0365882023134685
+              ],
+              "heading_radians": -0.6030094533516639,
+              "footprint_m": [
+                2.8,
+                2.8
+              ],
+              "zone": "coast",
+              "ground_height": 1.0715882023134684
+            },
+            {
+              "asset": "ENV_CoastalPine",
+              "position": [
+                -7.162480680569924,
+                -2.3599940992454345,
+                1.2488264572190262
+              ],
+              "heading_radians": -4.394097835764658,
+              "footprint_m": [
+                2.8,
+                2.8
+              ],
+              "zone": "coast",
+              "ground_height": 1.283826457219026
+            },
+            {
+              "asset": "ENV_Jetty",
+              "position": [
+                -2.0699751344909205,
+                -10.649351924110432,
+                -0.06
+              ],
+              "heading_radians": -3.3335744209015177,
+              "zone": "shore_connection"
+            }
+          ],
+          "pads": [
+            {
+              "x": -1.6372794543266629,
+              "y": 0.05168873893183091,
+              "z": 2.306662750959215,
+              "heading": -1.5278637172167462,
+              "width": 5.15,
+              "length": 5.8500000000000005,
+              "fade_m": 1.15
+            },
+            {
+              "x": 6.637416595513829,
+              "y": -2.6243620110450605,
+              "z": 0.38586613780961065,
+              "heading": -1.9473214598731472,
+              "width": 5.8500000000000005,
+              "length": 5.65,
+              "fade_m": 1.15
+            }
+          ],
+          "facility_count": 2,
+          "coordinate_space": "Blender XYZ / +Z up",
+          "terrain_fitting": true,
+          "facility_overlap_rejected": true
+        },
+        "base_archetype": "ENV_CoastalOutpost"
+      },
+      "triangles": 19038,
+      "bounds": {
+        "x": [
+          -15.997618675231934,
+          13.640018463134766
+        ],
+        "y": [
+          -16.826759338378906,
+          14.530841827392578
+        ],
+        "z": [
+          -3.0,
+          8.271662712097168
+        ]
+      },
+      "required_sockets": [
+        "ContactOrigin",
+        "Decor",
+        "ENV_CoastalBunker_1",
+        "ENV_CoastalPine_2",
+        "ENV_CoastalPine_3",
+        "ENV_CoastalPine_4",
+        "ENV_Jetty_5",
+        "ENV_WatchPost_0",
+        "EntryOrigin",
+        "GroundOrigin",
+        "HeightMarker",
+        "LadderAccess",
+        "LampOrigin",
+        "MooringPoint_01",
+        "MooringPoint_02",
+        "SearchlightPivot",
+        "ShoreConnection",
+        "ShorePoint_00",
+        "ShorePoint_01",
+        "ShorePoint_02",
+        "ShorePoint_03",
+        "ShorePoint_04",
+        "ShorePoint_05",
+        "ShorePoint_06",
+        "ShorePoint_07",
+        "ShorePoint_08",
+        "ShorePoint_09",
+        "ShorePoint_10",
+        "ShorePoint_11"
+      ]
+    },
+    {
+      "id": "ENV_HarborIsland",
+      "category": "island",
+      "features": {
+        "rocky": false,
+        "nominal_radius_m": 15.5,
+        "seed": 139,
+        "sea_level_z": -0.9,
+        "base_z": -3.0,
+        "collision_mesh_hint": "TerrainShell",
+        "colliders_included": false,
+        "features": "ENV_HarborIsland",
+        "proposed_sockets": [
+          "ShorePoint_00",
+          "ShorePoint_01",
+          "ShorePoint_02",
+          "ShorePoint_03",
+          "ShorePoint_04",
+          "ShorePoint_05",
+          "ShorePoint_06",
+          "ShorePoint_07",
+          "ShorePoint_08",
+          "ShorePoint_09",
+          "ShorePoint_10",
+          "ShorePoint_11",
+          "HeightMarker"
+        ],
+        "layout": {
+          "seed": 139,
+          "kind": "harbor",
+          "placements": [
+            {
+              "asset": "ENV_SupplyDepot",
+              "position": [
+                -1.6020877577980837,
+                -0.6989414457400679,
+                1.9292304713129085
+              ],
+              "heading_radians": -0.054562074824105355,
+              "footprint_m": [
+                5.5,
+                6.8
+              ],
+              "zone": "summit",
+              "ground_height": 1.9642304713129084
+            },
+            {
+              "asset": "ENV_WatchPost",
+              "position": [
+                8.246115502827466,
+                4.311205460833226,
+                0.33064945134626045
+              ],
+              "heading_radians": -1.0890625526246431,
+              "footprint_m": [
+                4.5,
+                5.2
+              ],
+              "zone": "coast",
+              "ground_height": 0.3656494513462605
+            },
+            {
+              "asset": "ENV_CoastalPine",
+              "position": [
+                7.040119843159637,
+                -3.3733480039901784,
+                0.4498671079668154
+              ],
+              "heading_radians": -2.0176338563200376,
+              "footprint_m": [
+                2.8,
+                2.8
+              ],
+              "zone": "coast",
+              "ground_height": 0.48486710796681537
+            },
+            {
+              "asset": "ENV_CoastalPine",
+              "position": [
+                -1.0251008437631286,
+                -6.604462172065934,
+                1.384170271043031
+              ],
+              "heading_radians": -3.295577312952652,
+              "footprint_m": [
+                2.8,
+                2.8
+              ],
+              "zone": "coast",
+              "ground_height": 1.419170271043031
+            },
+            {
+              "asset": "ENV_Jetty",
+              "position": [
+                -0.8228793593004212,
+                -13.397802275060707,
+                -0.06
+              ],
+              "heading_radians": -3.2029345785235313,
+              "zone": "shore_connection"
+            },
+            {
+              "asset": "ENV_NavigationBuoy",
+              "position": [
+                -15.96967963187906,
+                -10.192607600071321,
+                -0.9
+              ],
+              "heading_radians": -0.6452920089867522,
+              "zone": "water"
+            },
+            {
+              "asset": "ENV_NavigationBuoy",
+              "position": [
+                4.577098332873104,
+                -14.754118515316646,
+                -0.9
+              ],
+              "heading_radians": -1.2431108899999321,
+              "zone": "water"
+            }
+          ],
+          "pads": [
+            {
+              "x": -1.6020877577980837,
+              "y": -0.6989414457400679,
+              "z": 1.9642304713129084,
+              "heading": -0.054562074824105355,
+              "width": 6.15,
+              "length": 7.45,
+              "fade_m": 1.15
+            },
+            {
+              "x": 8.246115502827466,
+              "y": 4.311205460833226,
+              "z": 0.3656494513462605,
+              "heading": -1.0890625526246431,
+              "width": 5.15,
+              "length": 5.8500000000000005,
+              "fade_m": 1.15
+            }
+          ],
+          "facility_count": 2,
+          "coordinate_space": "Blender XYZ / +Z up",
+          "terrain_fitting": true,
+          "facility_overlap_rejected": true
+        },
+        "base_archetype": "ENV_HarborIsland"
+      },
+      "triangles": 19702,
+      "bounds": {
+        "x": [
+          -17.407209396362305,
+          15.576918601989746
+        ],
+        "y": [
+          -19.47892951965332,
+          17.008817672729492
+        ],
+        "z": [
+          -3.0,
+          6.330649375915527
+        ]
+      },
+      "required_sockets": [
+        "AnchorPoint",
+        "BeaconPivot",
+        "ContactOrigin",
+        "Decor",
+        "ENV_CoastalPine_2",
+        "ENV_CoastalPine_3",
+        "ENV_Jetty_4",
+        "ENV_NavigationBuoy_5",
+        "ENV_NavigationBuoy_6",
+        "ENV_SupplyDepot_0",
+        "ENV_WatchPost_1",
+        "EntryOrigin",
+        "GroundOrigin",
+        "HeightMarker",
+        "LadderAccess",
+        "LampOrigin",
+        "MooringPoint_01",
+        "MooringPoint_02",
+        "SearchlightPivot",
+        "ShoreConnection",
+        "ShorePoint_00",
+        "ShorePoint_01",
+        "ShorePoint_02",
+        "ShorePoint_03",
+        "ShorePoint_04",
+        "ShorePoint_05",
+        "ShorePoint_06",
+        "ShorePoint_07",
+        "ShorePoint_08",
+        "ShorePoint_09",
+        "ShorePoint_10",
+        "ShorePoint_11",
+        "WaterlineOrigin"
+      ]
+    },
+    {
+      "id": "ENV_Atoll",
+      "category": "island",
+      "features": {
+        "rocky": false,
+        "nominal_radius_m": 15.0,
+        "seed": 151,
+        "sea_level_z": -0.9,
+        "base_z": -3.0,
+        "collision_mesh_hint": "TerrainShell",
+        "colliders_included": false,
+        "features": "ENV_Atoll",
+        "proposed_sockets": [
+          "ShorePoint_00",
+          "ShorePoint_01",
+          "ShorePoint_02",
+          "ShorePoint_03",
+          "ShorePoint_04",
+          "ShorePoint_05",
+          "ShorePoint_06",
+          "ShorePoint_07",
+          "ShorePoint_08",
+          "ShorePoint_09",
+          "ShorePoint_10",
+          "ShorePoint_11",
+          "HeightMarker"
+        ],
+        "layout": {
+          "seed": 151,
+          "kind": "atoll",
+          "placements": [
+            {
+              "asset": "ENV_CoastShed",
+              "position": [
+                0.9371957694106218,
+                8.526707783475585,
+                0.6495528828135467
+              ],
+              "heading_radians": -0.10947353557733486,
+              "footprint_m": [
+                3.5,
+                4.6
+              ],
+              "zone": "coast",
+              "ground_height": 0.6845528828135468
+            },
+            {
+              "asset": "ENV_CoastalPine",
+              "position": [
+                -0.040071889551042086,
+                -9.183091857557281,
+                1.8518766069039743
+              ],
+              "heading_radians": -3.1459562857773165,
+              "footprint_m": [
+                2.8,
+                2.8
+              ],
+              "zone": "coast",
+              "ground_height": 1.2364956303563979
+            },
+            {
+              "asset": "ENV_CoastalPine",
+              "position": [
+                -4.789850455984252,
+                -8.325538317504396,
+                1.7052533226075244
+              ],
+              "heading_radians": -3.6636675466705575,
+              "footprint_m": [
+                2.8,
+                2.8
+              ],
+              "zone": "coast",
+              "ground_height": 1.4770731717967842
+            },
+            {
+              "asset": "ENV_CoastalPine",
+              "position": [
+                -8.277168541550811,
+                -1.1889332952699914,
+                1.5864099802284402
+              ],
+              "heading_radians": -4.56972471460365,
+              "footprint_m": [
+                2.8,
+                2.8
+              ],
+              "zone": "coast",
+              "ground_height": 1.181426756766275
+            },
+            {
+              "asset": "ENV_NavigationBuoy",
+              "position": [
+                13.651317424972458,
+                -9.21085491050508,
+                -0.9
+              ],
+              "heading_radians": 0.788180536224405,
+              "zone": "water"
+            },
+            {
+              "asset": "ENV_NavigationBuoy",
+              "position": [
+                4.959619467829894,
+                -18.149076772785865,
+                -0.9
+              ],
+              "heading_radians": -2.794765804808168,
+              "zone": "water"
+            }
+          ],
+          "pads": [
+            {
+              "x": 0.9371957694106218,
+              "y": 8.526707783475585,
+              "z": 0.6845528828135468,
+              "heading": -0.10947353557733486,
+              "width": 4.15,
+              "length": 5.25,
+              "fade_m": 1.15
+            }
+          ],
+          "facility_count": 1,
+          "coordinate_space": "Blender XYZ / +Z up",
+          "terrain_fitting": true,
+          "facility_overlap_rejected": true
+        },
+        "base_archetype": "ENV_Atoll"
+      },
+      "triangles": 16206,
+      "bounds": {
+        "x": [
+          -16.63496971130371,
+          18.709142684936523
+        ],
+        "y": [
+          -18.846548080444336,
+          15.488391876220703
+        ],
+        "z": [
+          -3.0,
+          6.440805912017822
+        ]
+      },
+      "required_sockets": [
+        "AnchorPoint",
+        "AnemometerPivot",
+        "BeaconPivot",
+        "ContactOrigin",
+        "Decor",
+        "ENV_CoastShed_0",
+        "ENV_CoastalPine_1",
+        "ENV_CoastalPine_2",
+        "ENV_CoastalPine_3",
+        "ENV_NavigationBuoy_4",
+        "ENV_NavigationBuoy_5",
+        "EntryOrigin",
+        "GroundOrigin",
+        "HeightMarker",
+        "LampOrigin",
+        "ShorePoint_00",
+        "ShorePoint_01",
+        "ShorePoint_02",
+        "ShorePoint_03",
+        "ShorePoint_04",
+        "ShorePoint_05",
+        "ShorePoint_06",
+        "ShorePoint_07",
+        "ShorePoint_08",
+        "ShorePoint_09",
+        "ShorePoint_10",
+        "ShorePoint_11",
+        "WaterlineOrigin",
+        "WindVanePivot"
+      ]
+    },
+    {
+      "id": "ENV_Lighthouse",
+      "category": "prop",
+      "features": {
+        "features": [
+          "Tapered white tower with red band",
+          "Door and three supported steps",
+          "Corbel-supported circular gallery and two-level guardrail",
+          "Opaque teal lantern with eight structural mullions",
+          "Closed conical red roof and lightning finial"
+        ],
+        "required_sockets": [
+          "BeaconPivot",
+          "LampOrigin",
+          "EntryOrigin"
+        ],
+        "dimensions": [
+          2.6,
+          3.15,
+          8.56
+        ]
+      },
+      "triangles": 2168,
+      "bounds": {
+        "x": [
+          -1.2999999523162842,
+          1.2999999523162842
+        ],
+        "y": [
+          -1.2999999523162842,
+          1.850000023841858
+        ],
+        "z": [
+          0.0,
+          8.5600004196167
+        ]
+      },
+      "required_sockets": [
+        "BeaconPivot",
+        "EntryOrigin",
+        "LampOrigin"
+      ]
+    },
+    {
+      "id": "ENV_Jetty",
+      "category": "prop",
+      "features": {
+        "features": [
+          "3 x 6 m concrete pier with individual timber deck boards",
+          "Six piles and tied cross/longitudinal bearers down to -2 m",
+          "Twin-pin mooring bollards and suspended rubber fenders",
+          "Gated corrosion-coloured sea-access ladder",
+          "Zero-height shore connection with two shallow access steps"
+        ],
+        "required_sockets": [
+          "ShoreConnection",
+          "MooringPoint_01",
+          "MooringPoint_02",
+          "LadderAccess"
+        ],
+        "dimensions": [
+          3.44,
+          6.6,
+          3.1
+        ]
+      },
+      "triangles": 1944,
+      "bounds": {
+        "x": [
+          -1.7200000286102295,
+          1.7200000286102295
+        ],
+        "y": [
+          -0.6000001430511475,
+          6.0
+        ],
+        "z": [
+          -2.0,
+          1.0959999561309814
+        ]
+      },
+      "required_sockets": [
+        "LadderAccess",
+        "MooringPoint_01",
+        "MooringPoint_02",
+        "ShoreConnection"
+      ]
+    },
+    {
+      "id": "ENV_NavigationBuoy",
+      "category": "prop",
+      "features": {
+        "features": [
+          "1.4 m red buoy float with submerged tapered belly",
+          "Triangular three-leg beacon frame and two structural brace levels",
+          "Opaque teal lantern with mullions and closed rain cap",
+          "Anchor eye and clear waterline reference"
+        ],
+        "required_sockets": [
+          "BeaconPivot",
+          "LampOrigin",
+          "WaterlineOrigin",
+          "AnchorPoint"
+        ],
+        "dimensions": [
+          1.4,
+          1.4,
+          3.1
+        ]
+      },
+      "triangles": 980,
+      "bounds": {
+        "x": [
+          -0.699999988079071,
+          0.699999988079071
+        ],
+        "y": [
+          -0.699999988079071,
+          0.699999988079071
+        ],
+        "z": [
+          -0.6800000071525574,
+          2.4200000762939453
+        ]
+      },
+      "required_sockets": [
+        "AnchorPoint",
+        "BeaconPivot",
+        "LampOrigin",
+        "WaterlineOrigin"
+      ]
+    },
+    {
+      "id": "ENV_CoastShed",
+      "category": "prop",
+      "features": {
+        "features": [
+          "3 x 4 m grey coast-management cabin on a real foundation",
+          "Closed pitched roof, fascia, gutters and bracketed downpipes",
+          "Framed opaque windows, door, supported rainhood and three steps",
+          "Rear ventilation grille",
+          "Roof-mounted weather mast with cup anemometer and wind vane"
+        ],
+        "required_sockets": [
+          "GroundOrigin",
+          "EntryOrigin",
+          "AnemometerPivot",
+          "WindVanePivot"
+        ],
+        "dimensions": [
+          3.415,
+          5.08,
+          3.965
+        ]
+      },
+      "triangles": 900,
+      "bounds": {
+        "x": [
+          -1.7074999809265137,
+          1.7074999809265137
+        ],
+        "y": [
+          -2.174999952316284,
+          2.9049999713897705
+        ],
+        "z": [
+          0.0,
+          3.964937448501587
+        ]
+      },
+      "required_sockets": [
+        "AnemometerPivot",
+        "EntryOrigin",
+        "GroundOrigin",
+        "WindVanePivot"
+      ]
+    },
+    {
+      "id": "ENV_CoastalPine",
+      "category": "prop",
+      "features": {
+        "features": [
+          "bent continuous bark trunk",
+          "exposed supporting boughs",
+          "connected irregular lobed pine needle sprays",
+          "smooth asymmetric flattened crown mapping",
+          "whole-spray needle colour variation without triangular cap patches"
+        ],
+        "dimensions_m": [
+          3.0161,
+          1.9426,
+          4.6022
+        ]
+      },
+      "triangles": 2288,
+      "bounds": {
+        "x": [
+          -1.4135966300964355,
+          1.6025240421295166
+        ],
+        "y": [
+          -0.8501408100128174,
+          1.0924603939056396
+        ],
+        "z": [
+          0.0,
+          4.602162837982178
+        ]
+      },
+      "required_sockets": [
+        "ContactOrigin"
+      ]
+    },
+    {
+      "id": "ENV_RockCluster",
+      "category": "prop",
+      "features": {
+        "features": [
+          "four asymmetrical fractured coastal boulders",
+          "broad tilted planar slabs and unequal corner cuts",
+          "flat stable ground contacts",
+          "face-coherent rock and wet-fracture colours",
+          "flat normals preserve geological edges without melted smooth shading"
+        ],
+        "dimensions_m": [
+          3.4,
+          2.925,
+          1.94
+        ]
+      },
+      "triangles": 180,
+      "bounds": {
+        "x": [
+          -1.7300000190734863,
+          1.6700000762939453
+        ],
+        "y": [
+          -1.5600000619888306,
+          1.3650000095367432
+        ],
+        "z": [
+          0.0,
+          1.940000057220459
+        ]
+      },
+      "required_sockets": [
+        "ContactOrigin"
+      ]
+    },
+    {
+      "id": "ENV_Seal",
+      "category": "prop",
+      "features": {
+        "features": [
+          "rounded resting seal",
+          "raised curved neck and forward-facing muzzle",
+          "paired front and rear flippers",
+          "small eyes, nose and whiskers"
+        ],
+        "dimensions_m": [
+          1.1723,
+          2.1077,
+          0.8943
+        ]
+      },
+      "triangles": 1188,
+      "bounds": {
+        "x": [
+          -0.586127758026123,
+          0.586127758026123
+        ],
+        "y": [
+          -1.0809924602508545,
+          1.0267499685287476
+        ],
+        "z": [
+          0.0,
+          0.8943123817443848
+        ]
+      },
+      "required_sockets": [
+        "ContactOrigin"
+      ]
+    },
+    {
+      "id": "ENV_BeachedWreck",
+      "category": "prop",
+      "features": {
+        "features": [
+          "curved rusted hull made from sealed torn plating",
+          "open cargo hold and exposed ribs",
+          "crushed leaning bridge with supported bent mast",
+          "broken but supported railing spans",
+          "connected bow anchor chain and surviving stern propeller"
+        ],
+        "dimensions_m": [
+          2.13,
+          8.13,
+          3.2534
+        ]
+      },
+      "triangles": 2724,
+      "bounds": {
+        "x": [
+          -1.0924999713897705,
+          1.037500023841858
+        ],
+        "y": [
+          -4.130000114440918,
+          4.0
+        ],
+        "z": [
+          -0.8100000023841858,
+          2.4433586597442627
+        ]
+      },
+      "required_sockets": [
+        "ContactOrigin",
+        "WreckAnchor"
+      ]
+    },
+    {
+      "id": "ENV_RadarStation",
+      "category": "prop",
+      "features": {
+        "features": [
+          "Reinforced concrete footing and control-house entrance",
+          "Four fully supported tower legs with four-sided X bracing",
+          "Separate azimuth RadarPivot and framed phased-array head",
+          "Service ladder, console window and equipment cooling vent"
+        ],
+        "required_sockets": [
+          "GroundOrigin",
+          "EntryOrigin",
+          "RadarPivot",
+          "SearchArrayHead"
+        ],
+        "footprint_m": [
+          6,
+          6
+        ],
+        "dimensions": [
+          6,
+          6,
+          8.02
+        ]
+      },
+      "triangles": 1040,
+      "bounds": {
+        "x": [
+          -3.0,
+          3.0
+        ],
+        "y": [
+          -2.999999761581421,
+          3.0
+        ],
+        "z": [
+          0.0,
+          8.014999389648438
+        ]
+      },
+      "required_sockets": [
+        "EntryOrigin",
+        "GroundOrigin",
+        "RadarPivot",
+        "SearchArrayHead"
+      ]
+    },
+    {
+      "id": "ENV_WatchPost",
+      "category": "prop",
+      "features": {
+        "features": [
+          "Four-column elevated observation cabin with load-bearing X braces",
+          "Four-sided opaque panoramic glazing and weather canopy",
+          "Guarded access balcony with deliberate ladder gate",
+          "Separately parented roof searchlight and lamp origin"
+        ],
+        "required_sockets": [
+          "GroundOrigin",
+          "EntryOrigin",
+          "SearchlightPivot",
+          "LampOrigin"
+        ],
+        "footprint_m": [
+          4,
+          5
+        ],
+        "dimensions": [
+          4,
+          5,
+          6.0
+        ]
+      },
+      "triangles": 1156,
+      "bounds": {
+        "x": [
+          -2.0,
+          2.0
+        ],
+        "y": [
+          -2.5,
+          2.5
+        ],
+        "z": [
+          0.0,
+          6.0
+        ]
+      },
+      "required_sockets": [
+        "EntryOrigin",
+        "GroundOrigin",
+        "LampOrigin",
+        "SearchlightPivot"
+      ]
+    },
+    {
+      "id": "ENV_CoastalBunker",
+      "category": "prop",
+      "features": {
+        "features": [
+          "Low reinforced concrete bunker with sloped/battered walls",
+          "Continuous thick roof and protected three-bay observation slit",
+          "Steel access door, rain hood and armoured weather-proof vent"
+        ],
+        "required_sockets": [
+          "GroundOrigin",
+          "EntryOrigin"
+        ],
+        "footprint_m": [
+          4.8,
+          4.9
+        ],
+        "dimensions": [
+          4.8,
+          4.9,
+          2.75
+        ]
+      },
+      "triangles": 300,
+      "bounds": {
+        "x": [
+          -2.4000000953674316,
+          2.4000000953674316
+        ],
+        "y": [
+          -2.25,
+          2.424999952316284
+        ],
+        "z": [
+          0.0,
+          2.75
+        ]
+      },
+      "required_sockets": [
+        "EntryOrigin",
+        "GroundOrigin"
+      ]
+    },
+    {
+      "id": "ENV_SupplyDepot",
+      "category": "prop",
+      "features": {
+        "features": [
+          "Continuous reinforced base and closed pentagonal gable roof",
+          "Detailed roll-up shutter, personnel door and window",
+          "Roof gutters, grounded downpipes and pallet-secured supply crates"
+        ],
+        "required_sockets": [
+          "GroundOrigin",
+          "EntryOrigin"
+        ],
+        "footprint_m": [
+          5,
+          6.16
+        ],
+        "dimensions": [
+          5,
+          6.16,
+          3.58
+        ]
+      },
+      "triangles": 532,
+      "bounds": {
+        "x": [
+          -2.5,
+          2.5
+        ],
+        "y": [
+          -3.0,
+          3.072500467300415
+        ],
+        "z": [
+          0.0,
+          3.5799999237060547
+        ]
+      },
+      "required_sockets": [
+        "EntryOrigin",
+        "GroundOrigin"
+      ]
+    },
+    {
+      "id": "ENV_RadarOutpost__Seed20261002",
+      "category": "island",
+      "features": {
+        "rocky": false,
+        "nominal_radius_m": 14.0,
+        "seed": 113,
+        "sea_level_z": -0.9,
+        "base_z": -3.0,
+        "collision_mesh_hint": "TerrainShell",
+        "colliders_included": false,
+        "features": "ENV_RadarOutpost",
+        "proposed_sockets": [
+          "ShorePoint_00",
+          "ShorePoint_01",
+          "ShorePoint_02",
+          "ShorePoint_03",
+          "ShorePoint_04",
+          "ShorePoint_05",
+          "ShorePoint_06",
+          "ShorePoint_07",
+          "ShorePoint_08",
+          "ShorePoint_09",
+          "ShorePoint_10",
+          "ShorePoint_11",
+          "HeightMarker"
+        ],
+        "layout": {
+          "seed": 20261002,
+          "kind": "radar",
+          "placements": [
+            {
+              "asset": "ENV_RadarStation",
+              "position": [
+                -1.7979686563774329,
+                1.0728415852231614,
+                2.426227519276787
+              ],
+              "heading_radians": 1.5573456393315164,
+              "footprint_m": [
+                6.5,
+                6.5
+              ],
+              "zone": "summit",
+              "ground_height": 2.461227519276787
+            },
+            {
+              "asset": "ENV_SupplyDepot",
+              "position": [
+                7.381695270174914,
+                -1.1200976673955705,
+                0.541981589918261
+              ],
+              "heading_radians": -1.721387447643552,
+              "footprint_m": [
+                5.5,
+                6.8
+              ],
+              "zone": "coast",
+              "ground_height": 0.576981589918261
+            },
+            {
+              "asset": "ENV_CoastalPine",
+              "position": [
+                -2.1729823638005374,
+                -6.691581056186357,
+                1.635127041693006
+              ],
+              "heading_radians": -3.4555837406290006,
+              "footprint_m": [
+                2.8,
+                2.8
+              ],
+              "zone": "coast",
+              "ground_height": 1.6701270416930059
+            },
+            {
+              "asset": "ENV_CoastalPine",
+              "position": [
+                -2.602762223892822,
+                7.397377669301139,
+                2.357569870473523
+              ],
+              "heading_radians": 0.33832136008577507,
+              "footprint_m": [
+                2.8,
+                2.8
+              ],
+              "zone": "coast",
+              "ground_height": 2.392569870473523
+            },
+            {
+              "asset": "ENV_Jetty",
+              "position": [
+                -0.22876587604433418,
+                -11.57180960571963,
+                -0.06
+              ],
+              "heading_radians": -3.161359318313398,
+              "zone": "shore_connection"
+            },
+            {
+              "asset": "ENV_NavigationBuoy",
+              "position": [
+                -10.163679544518855,
+                -16.037302581211907,
+                -0.9
+              ],
+              "heading_radians": 1.810267701514241,
+              "zone": "water"
+            },
+            {
+              "asset": "ENV_NavigationBuoy",
+              "position": [
+                17.479217693376174,
+                -8.635044601158102,
+                -0.9
+              ],
+              "heading_radians": 2.043641050828363,
+              "zone": "water"
+            }
+          ],
+          "pads": [
+            {
+              "x": -1.7979686563774329,
+              "y": 1.0728415852231614,
+              "z": 2.461227519276787,
+              "heading": 1.5573456393315164,
+              "width": 7.15,
+              "length": 7.15,
+              "fade_m": 1.15
+            },
+            {
+              "x": 7.381695270174914,
+              "y": -1.1200976673955705,
+              "z": 0.576981589918261,
+              "heading": -1.721387447643552,
+              "width": 6.15,
+              "length": 7.45,
+              "fade_m": 1.15
+            }
+          ],
+          "facility_count": 2,
+          "coordinate_space": "Blender XYZ / +Z up",
+          "terrain_fitting": true,
+          "facility_overlap_rejected": true
+        },
+        "base_archetype": "ENV_RadarOutpost"
+      },
+      "triangles": 20306,
+      "bounds": {
+        "x": [
+          -14.198934555053711,
+          18.178316116333008
+        ],
+        "y": [
+          -17.600433349609375,
+          17.41982650756836
+        ],
+        "z": [
+          -3.0,
+          10.4412260055542
+        ]
+      },
+      "required_sockets": [
+        "AnchorPoint",
+        "BeaconPivot",
+        "ContactOrigin",
+        "Decor",
+        "ENV_CoastalPine_2",
+        "ENV_CoastalPine_3",
+        "ENV_Jetty_4",
+        "ENV_NavigationBuoy_5",
+        "ENV_NavigationBuoy_6",
+        "ENV_RadarStation_0",
+        "ENV_SupplyDepot_1",
+        "EntryOrigin",
+        "GroundOrigin",
+        "HeightMarker",
+        "LadderAccess",
+        "LampOrigin",
+        "MooringPoint_01",
+        "MooringPoint_02",
+        "RadarPivot",
+        "SearchArrayHead",
+        "ShoreConnection",
+        "ShorePoint_00",
+        "ShorePoint_01",
+        "ShorePoint_02",
+        "ShorePoint_03",
+        "ShorePoint_04",
+        "ShorePoint_05",
+        "ShorePoint_06",
+        "ShorePoint_07",
+        "ShorePoint_08",
+        "ShorePoint_09",
+        "ShorePoint_10",
+        "ShorePoint_11",
+        "WaterlineOrigin"
+      ]
+    },
+    {
+      "id": "ENV_RadarOutpost__Seed20261099",
+      "category": "island",
+      "features": {
+        "rocky": false,
+        "nominal_radius_m": 14.0,
+        "seed": 113,
+        "sea_level_z": -0.9,
+        "base_z": -3.0,
+        "collision_mesh_hint": "TerrainShell",
+        "colliders_included": false,
+        "features": "ENV_RadarOutpost",
+        "proposed_sockets": [
+          "ShorePoint_00",
+          "ShorePoint_01",
+          "ShorePoint_02",
+          "ShorePoint_03",
+          "ShorePoint_04",
+          "ShorePoint_05",
+          "ShorePoint_06",
+          "ShorePoint_07",
+          "ShorePoint_08",
+          "ShorePoint_09",
+          "ShorePoint_10",
+          "ShorePoint_11",
+          "HeightMarker"
+        ],
+        "layout": {
+          "seed": 20261099,
+          "kind": "radar",
+          "placements": [
+            {
+              "asset": "ENV_RadarStation",
+              "position": [
+                -1.53240628369191,
+                2.1316021853606597,
+                2.4900184117049906
+              ],
+              "heading_radians": 2.3777246679996393,
+              "footprint_m": [
+                6.5,
+                6.5
+              ],
+              "zone": "summit",
+              "ground_height": 2.5250184117049908
+            },
+            {
+              "asset": "ENV_WatchPost",
+              "position": [
+                7.391847473130339,
+                0.3216195390851754,
+                0.6082698404834485
+              ],
+              "heading_radians": -1.5273137176979792,
+              "footprint_m": [
+                4.5,
+                5.2
+              ],
+              "zone": "coast",
+              "ground_height": 0.6432698404834485
+            },
+            {
+              "asset": "ENV_CoastalPine",
+              "position": [
+                -4.736729692720525,
+                -5.876818941400594,
+                1.6207235331882044
+              ],
+              "heading_radians": -3.819982845071499,
+              "footprint_m": [
+                2.8,
+                2.8
+              ],
+              "zone": "coast",
+              "ground_height": 1.6557235331882043
+            },
+            {
+              "asset": "ENV_CoastalPine",
+              "position": [
+                5.78667964121571,
+                -5.518904672673943,
+                0.6648949306490387
+              ],
+              "heading_radians": -2.332513722788646,
+              "footprint_m": [
+                2.8,
+                2.8
+              ],
+              "zone": "coast",
+              "ground_height": 0.6998949306490387
+            },
+            {
+              "asset": "ENV_CoastalPine",
+              "position": [
+                0.20359476964812234,
+                -5.741469889461474,
+                1.7555767918716951
+              ],
+              "heading_radians": -3.106147114056233,
+              "footprint_m": [
+                2.8,
+                2.8
+              ],
+              "zone": "coast",
+              "ground_height": 1.790576791871695
+            },
+            {
+              "asset": "ENV_CoastalPine",
+              "position": [
+                6.287678727027478,
+                5.492328539072289,
+                0.4265433947295252
+              ],
+              "heading_radians": -0.8528128024467128,
+              "footprint_m": [
+                2.8,
+                2.8
+              ],
+              "zone": "coast",
+              "ground_height": 0.4615433947295252
+            },
+            {
+              "asset": "ENV_Jetty",
+              "position": [
+                -2.850692446906641,
+                -12.9339405161188,
+                -0.06
+              ],
+              "heading_radians": -3.3585282913084544,
+              "zone": "shore_connection"
+            },
+            {
+              "asset": "ENV_NavigationBuoy",
+              "position": [
+                -11.508406343968941,
+                -15.63842773496408,
+                -0.9
+              ],
+              "heading_radians": -1.7833549842179865,
+              "zone": "water"
+            },
+            {
+              "asset": "ENV_NavigationBuoy",
+              "position": [
+                -7.896831664962143,
+                -18.083729355069686,
+                -0.9
+              ],
+              "heading_radians": -2.4048962502723725,
+              "zone": "water"
+            }
+          ],
+          "pads": [
+            {
+              "x": -1.53240628369191,
+              "y": 2.1316021853606597,
+              "z": 2.5250184117049908,
+              "heading": 2.3777246679996393,
+              "width": 7.15,
+              "length": 7.15,
+              "fade_m": 1.15
+            },
+            {
+              "x": 7.391847473130339,
+              "y": 0.3216195390851754,
+              "z": 0.6432698404834485,
+              "heading": -1.5273137176979792,
+              "width": 5.15,
+              "length": 5.8500000000000005,
+              "fade_m": 1.15
+            }
+          ],
+          "facility_count": 2,
+          "coordinate_space": "Blender XYZ / +Z up",
+          "terrain_fitting": true,
+          "facility_overlap_rejected": true
+        },
+        "base_archetype": "ENV_RadarOutpost"
+      },
+      "triangles": 24750,
+      "bounds": {
+        "x": [
+          -14.198934555053711,
+          15.44514274597168
+        ],
+        "y": [
+          -19.117782592773438,
+          17.41982650756836
+        ],
+        "z": [
+          -3.0,
+          10.50501823425293
+        ]
+      },
+      "required_sockets": [
+        "AnchorPoint",
+        "BeaconPivot",
+        "ContactOrigin",
+        "Decor",
+        "ENV_CoastalPine_2",
+        "ENV_CoastalPine_3",
+        "ENV_CoastalPine_4",
+        "ENV_CoastalPine_5",
+        "ENV_Jetty_6",
+        "ENV_NavigationBuoy_7",
+        "ENV_NavigationBuoy_8",
+        "ENV_RadarStation_0",
+        "ENV_WatchPost_1",
+        "EntryOrigin",
+        "GroundOrigin",
+        "HeightMarker",
+        "LadderAccess",
+        "LampOrigin",
+        "MooringPoint_01",
+        "MooringPoint_02",
+        "RadarPivot",
+        "SearchArrayHead",
+        "SearchlightPivot",
+        "ShoreConnection",
+        "ShorePoint_00",
+        "ShorePoint_01",
+        "ShorePoint_02",
+        "ShorePoint_03",
+        "ShorePoint_04",
+        "ShorePoint_05",
+        "ShorePoint_06",
+        "ShorePoint_07",
+        "ShorePoint_08",
+        "ShorePoint_09",
+        "ShorePoint_10",
+        "ShorePoint_11",
+        "WaterlineOrigin"
+      ]
+    },
+    {
+      "id": "ENV_RadarOutpost__Seed20261196",
+      "category": "island",
+      "features": {
+        "rocky": false,
+        "nominal_radius_m": 14.0,
+        "seed": 113,
+        "sea_level_z": -0.9,
+        "base_z": -3.0,
+        "collision_mesh_hint": "TerrainShell",
+        "colliders_included": false,
+        "features": "ENV_RadarOutpost",
+        "proposed_sockets": [
+          "ShorePoint_00",
+          "ShorePoint_01",
+          "ShorePoint_02",
+          "ShorePoint_03",
+          "ShorePoint_04",
+          "ShorePoint_05",
+          "ShorePoint_06",
+          "ShorePoint_07",
+          "ShorePoint_08",
+          "ShorePoint_09",
+          "ShorePoint_10",
+          "ShorePoint_11",
+          "HeightMarker"
+        ],
+        "layout": {
+          "seed": 20261196,
+          "kind": "radar",
+          "placements": [
+            {
+              "asset": "ENV_RadarStation",
+              "position": [
+                -1.4848345661851508,
+                0.2404751658902872,
+                2.4137499315272666
+              ],
+              "heading_radians": -1.6398193817228923,
+              "footprint_m": [
+                6.5,
+                6.5
+              ],
+              "zone": "summit",
+              "ground_height": 2.4487499315272667
+            },
+            {
+              "asset": "ENV_SupplyDepot",
+              "position": [
+                6.904337647753099,
+                -3.7227569497995563,
+                0.5049184411889696
+              ],
+              "heading_radians": -2.0653030492277886,
+              "footprint_m": [
+                5.5,
+                6.8
+              ],
+              "zone": "coast",
+              "ground_height": 0.5399184411889696
+            },
+            {
+              "asset": "ENV_CoastalPine",
+              "position": [
+                7.91120240872061,
+                3.9354959750983967,
+                0.36853202285734
+              ],
+              "heading_radians": -1.1091838734227513,
+              "footprint_m": [
+                2.8,
+                2.8
+              ],
+              "zone": "coast",
+              "ground_height": 0.40353202285734
+            },
+            {
+              "asset": "ENV_CoastalPine",
+              "position": [
+                -5.827130249004895,
+                -5.762190830440613,
+                1.3836208362183948
+              ],
+              "heading_radians": -3.932594142538223,
+              "footprint_m": [
+                2.8,
+                2.8
+              ],
+              "zone": "coast",
+              "ground_height": 1.4186208362183947
+            },
+            {
+              "asset": "ENV_CoastalPine",
+              "position": [
+                1.308399999441191,
+                -7.7933908388159825,
+                0.5568905722659481
+              ],
+              "heading_radians": -2.9752579845071176,
+              "footprint_m": [
+                2.8,
+                2.8
+              ],
+              "zone": "coast",
+              "ground_height": 0.5918905722659481
+            },
+            {
+              "asset": "ENV_Jetty",
+              "position": [
+                1.4021437766599658,
+                -10.196246848271846,
+                -0.06
+              ],
+              "heading_radians": -3.0049341061355443,
+              "zone": "shore_connection"
+            },
+            {
+              "asset": "ENV_NavigationBuoy",
+              "position": [
+                13.75406761579837,
+                -10.777674733397886,
+                -0.9
+              ],
+              "heading_radians": 2.53161857547241,
+              "zone": "water"
+            }
+          ],
+          "pads": [
+            {
+              "x": -1.4848345661851508,
+              "y": 0.2404751658902872,
+              "z": 2.4487499315272667,
+              "heading": -1.6398193817228923,
+              "width": 7.15,
+              "length": 7.15,
+              "fade_m": 1.15
+            },
+            {
+              "x": 6.904337647753099,
+              "y": -3.7227569497995563,
+              "z": 0.5399184411889696,
+              "heading": -2.0653030492277886,
+              "width": 6.15,
+              "length": 7.45,
+              "fade_m": 1.15
+            }
+          ],
+          "facility_count": 2,
+          "coordinate_space": "Blender XYZ / +Z up",
+          "terrain_fitting": true,
+          "facility_overlap_rejected": true
+        },
+        "base_archetype": "ENV_RadarOutpost"
+      },
+      "triangles": 20534,
+      "bounds": {
+        "x": [
+          -14.198934555053711,
+          15.44514274597168
+        ],
+        "y": [
+          -16.345680236816406,
+          17.41982650756836
+        ],
+        "z": [
+          -3.0,
+          10.428750038146973
+        ]
+      },
+      "required_sockets": [
+        "AnchorPoint",
+        "BeaconPivot",
+        "ContactOrigin",
+        "Decor",
+        "ENV_CoastalPine_2",
+        "ENV_CoastalPine_3",
+        "ENV_CoastalPine_4",
+        "ENV_Jetty_5",
+        "ENV_NavigationBuoy_6",
+        "ENV_RadarStation_0",
+        "ENV_SupplyDepot_1",
+        "EntryOrigin",
+        "GroundOrigin",
+        "HeightMarker",
+        "LadderAccess",
+        "LampOrigin",
+        "MooringPoint_01",
+        "MooringPoint_02",
+        "RadarPivot",
+        "SearchArrayHead",
+        "ShoreConnection",
+        "ShorePoint_00",
+        "ShorePoint_01",
+        "ShorePoint_02",
+        "ShorePoint_03",
+        "ShorePoint_04",
+        "ShorePoint_05",
+        "ShorePoint_06",
+        "ShorePoint_07",
+        "ShorePoint_08",
+        "ShorePoint_09",
+        "ShorePoint_10",
+        "ShorePoint_11",
+        "WaterlineOrigin"
+      ]
+    },
+    {
+      "id": "ENV_RockIslet_LOD1",
+      "category": "island",
+      "features": {
+        "rocky": true,
+        "nominal_radius_m": 7.6,
+        "seed": 43,
+        "sea_level_z": -0.9,
+        "base_z": -3.0,
+        "collision_mesh_hint": "TerrainShell",
+        "colliders_included": false,
+        "features": "ENV_RockIslet",
+        "proposed_sockets": [
+          "ShorePoint_00",
+          "ShorePoint_01",
+          "ShorePoint_02",
+          "ShorePoint_03",
+          "ShorePoint_04",
+          "ShorePoint_05",
+          "ShorePoint_06",
+          "ShorePoint_07",
+          "ShorePoint_08",
+          "ShorePoint_09",
+          "ShorePoint_10",
+          "ShorePoint_11",
+          "HeightMarker"
+        ],
+        "layout": null,
+        "base_archetype": "ENV_RockIslet"
+      },
+      "triangles": 1952,
+      "bounds": {
+        "x": [
+          -8.673934936523438,
+          7.999028205871582
+        ],
+        "y": [
+          -9.12386417388916,
+          7.519404411315918
+        ],
+        "z": [
+          -3.0005784034729004,
+          6.897518157958984
+        ]
+      },
+      "required_sockets": [
+        "ContactOrigin",
+        "Decor",
+        "HeightMarker",
+        "Seal_0",
+        "Seal_1",
+        "ShorePoint_00",
+        "ShorePoint_01",
+        "ShorePoint_02",
+        "ShorePoint_03",
+        "ShorePoint_04",
+        "ShorePoint_05",
+        "ShorePoint_06",
+        "ShorePoint_07",
+        "ShorePoint_08",
+        "ShorePoint_09",
+        "ShorePoint_10",
+        "ShorePoint_11"
+      ]
+    },
+    {
+      "id": "ENV_PineIsland_LOD1",
+      "category": "island",
+      "features": {
+        "rocky": false,
+        "nominal_radius_m": 12.0,
+        "seed": 57,
+        "sea_level_z": -0.9,
+        "base_z": -3.0,
+        "collision_mesh_hint": "TerrainShell",
+        "colliders_included": false,
+        "features": "ENV_PineIsland",
+        "proposed_sockets": [
+          "ShorePoint_00",
+          "ShorePoint_01",
+          "ShorePoint_02",
+          "ShorePoint_03",
+          "ShorePoint_04",
+          "ShorePoint_05",
+          "ShorePoint_06",
+          "ShorePoint_07",
+          "ShorePoint_08",
+          "ShorePoint_09",
+          "ShorePoint_10",
+          "ShorePoint_11",
+          "HeightMarker"
+        ],
+        "layout": null,
+        "base_archetype": "ENV_PineIsland"
+      },
+      "triangles": 8902,
+      "bounds": {
+        "x": [
+          -12.916680335998535,
+          14.780989646911621
+        ],
+        "y": [
+          -12.94699764251709,
+          12.50462532043457
+        ],
+        "z": [
+          -3.000004768371582,
+          8.46084976196289
+        ]
+      },
+      "required_sockets": [
+        "CoastalPine_0",
+        "CoastalPine_1",
+        "CoastalPine_2",
+        "CoastalPine_3",
+        "CoastalPine_4",
+        "ContactOrigin",
+        "Decor",
+        "HeightMarker",
+        "ShorePoint_00",
+        "ShorePoint_01",
+        "ShorePoint_02",
+        "ShorePoint_03",
+        "ShorePoint_04",
+        "ShorePoint_05",
+        "ShorePoint_06",
+        "ShorePoint_07",
+        "ShorePoint_08",
+        "ShorePoint_09",
+        "ShorePoint_10",
+        "ShorePoint_11"
+      ]
+    },
+    {
+      "id": "ENV_LighthouseIsland_LOD1",
+      "category": "island",
+      "features": {
+        "rocky": false,
+        "nominal_radius_m": 10.4,
+        "seed": 81,
+        "sea_level_z": -0.9,
+        "base_z": -3.0,
+        "collision_mesh_hint": "TerrainShell",
+        "colliders_included": false,
+        "features": "ENV_LighthouseIsland",
+        "proposed_sockets": [
+          "ShorePoint_00",
+          "ShorePoint_01",
+          "ShorePoint_02",
+          "ShorePoint_03",
+          "ShorePoint_04",
+          "ShorePoint_05",
+          "ShorePoint_06",
+          "ShorePoint_07",
+          "ShorePoint_08",
+          "ShorePoint_09",
+          "ShorePoint_10",
+          "ShorePoint_11",
+          "HeightMarker"
+        ],
+        "layout": null,
+        "base_archetype": "ENV_LighthouseIsland"
+      },
+      "triangles": 11042,
+      "bounds": {
+        "x": [
+          -12.991755485534668,
+          10.638256072998047
+        ],
+        "y": [
+          -15.719965934753418,
+          11.623129844665527
+        ],
+        "z": [
+          -3.0000107288360596,
+          11.820000648498535
+        ]
+      },
+      "required_sockets": [
+        "AnemometerPivot",
+        "BeaconPivot",
+        "CoastShed",
+        "CoastalPine_0",
+        "CoastalPine_1",
+        "CoastalPine_2",
+        "ContactOrigin",
+        "Decor",
+        "EntryOrigin",
+        "GroundOrigin",
+        "HeightMarker",
+        "Jetty",
+        "LadderAccess",
+        "LampOrigin",
+        "Lighthouse",
+        "MooringPoint_01",
+        "MooringPoint_02",
+        "ShoreConnection",
+        "ShorePoint_00",
+        "ShorePoint_01",
+        "ShorePoint_02",
+        "ShorePoint_03",
+        "ShorePoint_04",
+        "ShorePoint_05",
+        "ShorePoint_06",
+        "ShorePoint_07",
+        "ShorePoint_08",
+        "ShorePoint_09",
+        "ShorePoint_10",
+        "ShorePoint_11",
+        "WindVanePivot"
+      ]
+    },
+    {
+      "id": "ENV_WreckCove_LOD1",
+      "category": "island",
+      "features": {
+        "rocky": false,
+        "nominal_radius_m": 13.0,
+        "seed": 91,
+        "sea_level_z": -0.9,
+        "base_z": -3.0,
+        "collision_mesh_hint": "TerrainShell",
+        "colliders_included": false,
+        "features": "ENV_WreckCove",
+        "proposed_sockets": [
+          "ShorePoint_00",
+          "ShorePoint_01",
+          "ShorePoint_02",
+          "ShorePoint_03",
+          "ShorePoint_04",
+          "ShorePoint_05",
+          "ShorePoint_06",
+          "ShorePoint_07",
+          "ShorePoint_08",
+          "ShorePoint_09",
+          "ShorePoint_10",
+          "ShorePoint_11",
+          "HeightMarker"
+        ],
+        "layout": null,
+        "base_archetype": "ENV_WreckCove"
+      },
+      "triangles": 11152,
+      "bounds": {
+        "x": [
+          -14.517601013183594,
+          13.186326026916504
+        ],
+        "y": [
+          -15.962142944335938,
+          14.189006805419922
+        ],
+        "z": [
+          -3.0000040531158447,
+          7.480059623718262
+        ]
+      },
+      "required_sockets": [
+        "BeachedWreck",
+        "CoastalPine_0",
+        "CoastalPine_1",
+        "CoastalPine_2",
+        "CoastalPine_3",
+        "CoastalPine_4",
+        "ContactOrigin",
+        "Decor",
+        "HeightMarker",
+        "ShorePoint_00",
+        "ShorePoint_01",
+        "ShorePoint_02",
+        "ShorePoint_03",
+        "ShorePoint_04",
+        "ShorePoint_05",
+        "ShorePoint_06",
+        "ShorePoint_07",
+        "ShorePoint_08",
+        "ShorePoint_09",
+        "ShorePoint_10",
+        "ShorePoint_11",
+        "WreckAnchor"
+      ]
+    },
+    {
+      "id": "ENV_RadarOutpost_LOD1",
+      "category": "island",
+      "features": {
+        "rocky": false,
+        "nominal_radius_m": 14.0,
+        "seed": 113,
+        "sea_level_z": -0.9,
+        "base_z": -3.0,
+        "collision_mesh_hint": "TerrainShell",
+        "colliders_included": false,
+        "features": "ENV_RadarOutpost",
+        "proposed_sockets": [
+          "ShorePoint_00",
+          "ShorePoint_01",
+          "ShorePoint_02",
+          "ShorePoint_03",
+          "ShorePoint_04",
+          "ShorePoint_05",
+          "ShorePoint_06",
+          "ShorePoint_07",
+          "ShorePoint_08",
+          "ShorePoint_09",
+          "ShorePoint_10",
+          "ShorePoint_11",
+          "HeightMarker"
+        ],
+        "layout": {
+          "seed": 113,
+          "kind": "radar",
+          "placements": [
+            {
+              "asset": "ENV_RadarStation",
+              "position": [
+                -1.2183932994904827,
+                -0.10066968004152949,
+                2.3441487131064123
+              ],
+              "heading_radians": 1.4959441682404755,
+              "footprint_m": [
+                6.5,
+                6.5
+              ],
+              "zone": "summit",
+              "ground_height": 2.3791487131064124
+            },
+            {
+              "asset": "ENV_SupplyDepot",
+              "position": [
+                7.766986179664214,
+                0.100270624616839,
+                0.5170450891304367
+              ],
+              "heading_radians": -1.5578871941730528,
+              "footprint_m": [
+                5.5,
+                6.8
+              ],
+              "zone": "coast",
+              "ground_height": 0.5520450891304367
+            },
+            {
+              "asset": "ENV_CoastalPine",
+              "position": [
+                -4.316272067181795,
+                -7.413611837775278,
+                1.1956371906779741
+              ],
+              "heading_radians": -3.6688278643455288,
+              "footprint_m": [
+                2.8,
+                2.8
+              ],
+              "zone": "coast",
+              "ground_height": 1.230637190677974
+            },
+            {
+              "asset": "ENV_CoastalPine",
+              "position": [
+                5.028748196387914,
+                -7.836458359961379,
+                0.3048511588752877
+              ],
+              "heading_radians": -2.571065983275562,
+              "footprint_m": [
+                2.8,
+                2.8
+              ],
+              "zone": "coast",
+              "ground_height": 0.33985115887528766
+            },
+            {
+              "asset": "ENV_NavigationBuoy",
+              "position": [
+                -7.23145598552635,
+                -17.373275741798672,
+                -0.9
+              ],
+              "heading_radians": -0.8544676249281031,
+              "zone": "water"
+            },
+            {
+              "asset": "ENV_NavigationBuoy",
+              "position": [
+                0.7234527696087193,
+                -16.520275133371616,
+                -0.9
+              ],
+              "heading_radians": 0.049373707727695226,
+              "zone": "water"
+            }
+          ],
+          "pads": [
+            {
+              "x": -1.2183932994904827,
+              "y": -0.10066968004152949,
+              "z": 2.3791487131064124,
+              "heading": 1.4959441682404755,
+              "width": 7.15,
+              "length": 7.15,
+              "fade_m": 1.15
+            },
+            {
+              "x": 7.766986179664214,
+              "y": 0.100270624616839,
+              "z": 0.5520450891304367,
+              "heading": -1.5578871941730528,
+              "width": 6.15,
+              "length": 7.45,
+              "fade_m": 1.15
+            }
+          ],
+          "facility_count": 2,
+          "coordinate_space": "Blender XYZ / +Z up",
+          "terrain_fitting": true,
+          "facility_overlap_rejected": true
+        },
+        "base_archetype": "ENV_RadarOutpost"
+      },
+      "triangles": 9686,
+      "bounds": {
+        "x": [
+          -14.198934555053711,
+          15.44514274597168
+        ],
+        "y": [
+          -18.078298568725586,
+          17.41982650756836
+        ],
+        "z": [
+          -3.0000102519989014,
+          10.359145164489746
+        ]
+      },
+      "required_sockets": [
+        "AnchorPoint",
+        "BeaconPivot",
+        "ContactOrigin",
+        "Decor",
+        "ENV_CoastalPine_2",
+        "ENV_CoastalPine_3",
+        "ENV_NavigationBuoy_4",
+        "ENV_NavigationBuoy_5",
+        "ENV_RadarStation_0",
+        "ENV_SupplyDepot_1",
+        "EntryOrigin",
+        "GroundOrigin",
+        "HeightMarker",
+        "LampOrigin",
+        "RadarPivot",
+        "SearchArrayHead",
+        "ShorePoint_00",
+        "ShorePoint_01",
+        "ShorePoint_02",
+        "ShorePoint_03",
+        "ShorePoint_04",
+        "ShorePoint_05",
+        "ShorePoint_06",
+        "ShorePoint_07",
+        "ShorePoint_08",
+        "ShorePoint_09",
+        "ShorePoint_10",
+        "ShorePoint_11",
+        "WaterlineOrigin"
+      ]
+    },
+    {
+      "id": "ENV_CoastalOutpost_LOD1",
+      "category": "island",
+      "features": {
+        "rocky": false,
+        "nominal_radius_m": 13.0,
+        "seed": 127,
+        "sea_level_z": -0.9,
+        "base_z": -3.0,
+        "collision_mesh_hint": "TerrainShell",
+        "colliders_included": false,
+        "features": "ENV_CoastalOutpost",
+        "proposed_sockets": [
+          "ShorePoint_00",
+          "ShorePoint_01",
+          "ShorePoint_02",
+          "ShorePoint_03",
+          "ShorePoint_04",
+          "ShorePoint_05",
+          "ShorePoint_06",
+          "ShorePoint_07",
+          "ShorePoint_08",
+          "ShorePoint_09",
+          "ShorePoint_10",
+          "ShorePoint_11",
+          "HeightMarker"
+        ],
+        "layout": {
+          "seed": 127,
+          "kind": "outpost",
+          "placements": [
+            {
+              "asset": "ENV_WatchPost",
+              "position": [
+                -1.6372794543266629,
+                0.05168873893183091,
+                2.271662750959215
+              ],
+              "heading_radians": -1.5278637172167462,
+              "footprint_m": [
+                4.5,
+                5.2
+              ],
+              "zone": "summit",
+              "ground_height": 2.306662750959215
+            },
+            {
+              "asset": "ENV_CoastalBunker",
+              "position": [
+                6.637416595513829,
+                -2.6243620110450605,
+                0.3508661378096106
+              ],
+              "heading_radians": -1.9473214598731472,
+              "footprint_m": [
+                5.2,
+                5.0
+              ],
+              "zone": "coast",
+              "ground_height": 0.38586613780961065
+            },
+            {
+              "asset": "ENV_CoastalPine",
+              "position": [
+                -0.5818515030146227,
+                -5.851253055860908,
+                1.3028604269629314
+              ],
+              "heading_radians": -3.2407073105703272,
+              "footprint_m": [
+                2.8,
+                2.8
+              ],
+              "zone": "coast",
+              "ground_height": 1.3378604269629313
+            },
+            {
+              "asset": "ENV_CoastalPine",
+              "position": [
+                3.838197345494275,
+                5.574206111819861,
+                1.0365882023134685
+              ],
+              "heading_radians": -0.6030094533516639,
+              "footprint_m": [
+                2.8,
+                2.8
+              ],
+              "zone": "coast",
+              "ground_height": 1.0715882023134684
+            },
+            {
+              "asset": "ENV_CoastalPine",
+              "position": [
+                -7.162480680569924,
+                -2.3599940992454345,
+                1.2488264572190262
+              ],
+              "heading_radians": -4.394097835764658,
+              "footprint_m": [
+                2.8,
+                2.8
+              ],
+              "zone": "coast",
+              "ground_height": 1.283826457219026
+            },
+            {
+              "asset": "ENV_Jetty",
+              "position": [
+                -2.0699751344909205,
+                -10.649351924110432,
+                -0.06
+              ],
+              "heading_radians": -3.3335744209015177,
+              "zone": "shore_connection"
+            }
+          ],
+          "pads": [
+            {
+              "x": -1.6372794543266629,
+              "y": 0.05168873893183091,
+              "z": 2.306662750959215,
+              "heading": -1.5278637172167462,
+              "width": 5.15,
+              "length": 5.8500000000000005,
+              "fade_m": 1.15
+            },
+            {
+              "x": 6.637416595513829,
+              "y": -2.6243620110450605,
+              "z": 0.38586613780961065,
+              "heading": -1.9473214598731472,
+              "width": 5.8500000000000005,
+              "length": 5.65,
+              "fade_m": 1.15
+            }
+          ],
+          "facility_count": 2,
+          "coordinate_space": "Blender XYZ / +Z up",
+          "terrain_fitting": true,
+          "facility_overlap_rejected": true
+        },
+        "base_archetype": "ENV_CoastalOutpost"
+      },
+      "triangles": 10874,
+      "bounds": {
+        "x": [
+          -15.997618675231934,
+          13.640018463134766
+        ],
+        "y": [
+          -16.826759338378906,
+          14.530841827392578
+        ],
+        "z": [
+          -3.0000085830688477,
+          8.271661758422852
+        ]
+      },
+      "required_sockets": [
+        "ContactOrigin",
+        "Decor",
+        "ENV_CoastalBunker_1",
+        "ENV_CoastalPine_2",
+        "ENV_CoastalPine_3",
+        "ENV_CoastalPine_4",
+        "ENV_Jetty_5",
+        "ENV_WatchPost_0",
+        "EntryOrigin",
+        "GroundOrigin",
+        "HeightMarker",
+        "LadderAccess",
+        "LampOrigin",
+        "MooringPoint_01",
+        "MooringPoint_02",
+        "SearchlightPivot",
+        "ShoreConnection",
+        "ShorePoint_00",
+        "ShorePoint_01",
+        "ShorePoint_02",
+        "ShorePoint_03",
+        "ShorePoint_04",
+        "ShorePoint_05",
+        "ShorePoint_06",
+        "ShorePoint_07",
+        "ShorePoint_08",
+        "ShorePoint_09",
+        "ShorePoint_10",
+        "ShorePoint_11"
+      ]
+    },
+    {
+      "id": "ENV_HarborIsland_LOD1",
+      "category": "island",
+      "features": {
+        "rocky": false,
+        "nominal_radius_m": 15.5,
+        "seed": 139,
+        "sea_level_z": -0.9,
+        "base_z": -3.0,
+        "collision_mesh_hint": "TerrainShell",
+        "colliders_included": false,
+        "features": "ENV_HarborIsland",
+        "proposed_sockets": [
+          "ShorePoint_00",
+          "ShorePoint_01",
+          "ShorePoint_02",
+          "ShorePoint_03",
+          "ShorePoint_04",
+          "ShorePoint_05",
+          "ShorePoint_06",
+          "ShorePoint_07",
+          "ShorePoint_08",
+          "ShorePoint_09",
+          "ShorePoint_10",
+          "ShorePoint_11",
+          "HeightMarker"
+        ],
+        "layout": {
+          "seed": 139,
+          "kind": "harbor",
+          "placements": [
+            {
+              "asset": "ENV_SupplyDepot",
+              "position": [
+                -1.6020877577980837,
+                -0.6989414457400679,
+                1.9292304713129085
+              ],
+              "heading_radians": -0.054562074824105355,
+              "footprint_m": [
+                5.5,
+                6.8
+              ],
+              "zone": "summit",
+              "ground_height": 1.9642304713129084
+            },
+            {
+              "asset": "ENV_WatchPost",
+              "position": [
+                8.246115502827466,
+                4.311205460833226,
+                0.33064945134626045
+              ],
+              "heading_radians": -1.0890625526246431,
+              "footprint_m": [
+                4.5,
+                5.2
+              ],
+              "zone": "coast",
+              "ground_height": 0.3656494513462605
+            },
+            {
+              "asset": "ENV_CoastalPine",
+              "position": [
+                7.040119843159637,
+                -3.3733480039901784,
+                0.4498671079668154
+              ],
+              "heading_radians": -2.0176338563200376,
+              "footprint_m": [
+                2.8,
+                2.8
+              ],
+              "zone": "coast",
+              "ground_height": 0.48486710796681537
+            },
+            {
+              "asset": "ENV_CoastalPine",
+              "position": [
+                -1.0251008437631286,
+                -6.604462172065934,
+                1.384170271043031
+              ],
+              "heading_radians": -3.295577312952652,
+              "footprint_m": [
+                2.8,
+                2.8
+              ],
+              "zone": "coast",
+              "ground_height": 1.419170271043031
+            },
+            {
+              "asset": "ENV_Jetty",
+              "position": [
+                -0.8228793593004212,
+                -13.397802275060707,
+                -0.06
+              ],
+              "heading_radians": -3.2029345785235313,
+              "zone": "shore_connection"
+            },
+            {
+              "asset": "ENV_NavigationBuoy",
+              "position": [
+                -15.96967963187906,
+                -10.192607600071321,
+                -0.9
+              ],
+              "heading_radians": -0.6452920089867522,
+              "zone": "water"
+            },
+            {
+              "asset": "ENV_NavigationBuoy",
+              "position": [
+                4.577098332873104,
+                -14.754118515316646,
+                -0.9
+              ],
+              "heading_radians": -1.2431108899999321,
+              "zone": "water"
+            }
+          ],
+          "pads": [
+            {
+              "x": -1.6020877577980837,
+              "y": -0.6989414457400679,
+              "z": 1.9642304713129084,
+              "heading": -0.054562074824105355,
+              "width": 6.15,
+              "length": 7.45,
+              "fade_m": 1.15
+            },
+            {
+              "x": 8.246115502827466,
+              "y": 4.311205460833226,
+              "z": 0.3656494513462605,
+              "heading": -1.0890625526246431,
+              "width": 5.15,
+              "length": 5.8500000000000005,
+              "fade_m": 1.15
+            }
+          ],
+          "facility_count": 2,
+          "coordinate_space": "Blender XYZ / +Z up",
+          "terrain_fitting": true,
+          "facility_overlap_rejected": true
+        },
+        "base_archetype": "ENV_HarborIsland"
+      },
+      "triangles": 11474,
+      "bounds": {
+        "x": [
+          -17.407209396362305,
+          15.576918601989746
+        ],
+        "y": [
+          -19.47892951965332,
+          17.008817672729492
+        ],
+        "z": [
+          -3.0000054836273193,
+          6.330649375915527
+        ]
+      },
+      "required_sockets": [
+        "AnchorPoint",
+        "BeaconPivot",
+        "ContactOrigin",
+        "Decor",
+        "ENV_CoastalPine_2",
+        "ENV_CoastalPine_3",
+        "ENV_Jetty_4",
+        "ENV_NavigationBuoy_5",
+        "ENV_NavigationBuoy_6",
+        "ENV_SupplyDepot_0",
+        "ENV_WatchPost_1",
+        "EntryOrigin",
+        "GroundOrigin",
+        "HeightMarker",
+        "LadderAccess",
+        "LampOrigin",
+        "MooringPoint_01",
+        "MooringPoint_02",
+        "SearchlightPivot",
+        "ShoreConnection",
+        "ShorePoint_00",
+        "ShorePoint_01",
+        "ShorePoint_02",
+        "ShorePoint_03",
+        "ShorePoint_04",
+        "ShorePoint_05",
+        "ShorePoint_06",
+        "ShorePoint_07",
+        "ShorePoint_08",
+        "ShorePoint_09",
+        "ShorePoint_10",
+        "ShorePoint_11",
+        "WaterlineOrigin"
+      ]
+    },
+    {
+      "id": "ENV_Atoll_LOD1",
+      "category": "island",
+      "features": {
+        "rocky": false,
+        "nominal_radius_m": 15.0,
+        "seed": 151,
+        "sea_level_z": -0.9,
+        "base_z": -3.0,
+        "collision_mesh_hint": "TerrainShell",
+        "colliders_included": false,
+        "features": "ENV_Atoll",
+        "proposed_sockets": [
+          "ShorePoint_00",
+          "ShorePoint_01",
+          "ShorePoint_02",
+          "ShorePoint_03",
+          "ShorePoint_04",
+          "ShorePoint_05",
+          "ShorePoint_06",
+          "ShorePoint_07",
+          "ShorePoint_08",
+          "ShorePoint_09",
+          "ShorePoint_10",
+          "ShorePoint_11",
+          "HeightMarker"
+        ],
+        "layout": {
+          "seed": 151,
+          "kind": "atoll",
+          "placements": [
+            {
+              "asset": "ENV_CoastShed",
+              "position": [
+                0.9371957694106218,
+                8.526707783475585,
+                0.6495528828135467
+              ],
+              "heading_radians": -0.10947353557733486,
+              "footprint_m": [
+                3.5,
+                4.6
+              ],
+              "zone": "coast",
+              "ground_height": 0.6845528828135468
+            },
+            {
+              "asset": "ENV_CoastalPine",
+              "position": [
+                -0.040071889551042086,
+                -9.183091857557281,
+                1.8518766069039743
+              ],
+              "heading_radians": -3.1459562857773165,
+              "footprint_m": [
+                2.8,
+                2.8
+              ],
+              "zone": "coast",
+              "ground_height": 1.2364956303563979
+            },
+            {
+              "asset": "ENV_CoastalPine",
+              "position": [
+                -4.789850455984252,
+                -8.325538317504396,
+                1.7052533226075244
+              ],
+              "heading_radians": -3.6636675466705575,
+              "footprint_m": [
+                2.8,
+                2.8
+              ],
+              "zone": "coast",
+              "ground_height": 1.4770731717967842
+            },
+            {
+              "asset": "ENV_CoastalPine",
+              "position": [
+                -8.277168541550811,
+                -1.1889332952699914,
+                1.5864099802284402
+              ],
+              "heading_radians": -4.56972471460365,
+              "footprint_m": [
+                2.8,
+                2.8
+              ],
+              "zone": "coast",
+              "ground_height": 1.181426756766275
+            },
+            {
+              "asset": "ENV_NavigationBuoy",
+              "position": [
+                13.651317424972458,
+                -9.21085491050508,
+                -0.9
+              ],
+              "heading_radians": 0.788180536224405,
+              "zone": "water"
+            },
+            {
+              "asset": "ENV_NavigationBuoy",
+              "position": [
+                4.959619467829894,
+                -18.149076772785865,
+                -0.9
+              ],
+              "heading_radians": -2.794765804808168,
+              "zone": "water"
+            }
+          ],
+          "pads": [
+            {
+              "x": 0.9371957694106218,
+              "y": 8.526707783475585,
+              "z": 0.6845528828135468,
+              "heading": -0.10947353557733486,
+              "width": 4.15,
+              "length": 5.25,
+              "fade_m": 1.15
+            }
+          ],
+          "facility_count": 1,
+          "coordinate_space": "Blender XYZ / +Z up",
+          "terrain_fitting": true,
+          "facility_overlap_rejected": true
+        },
+        "base_archetype": "ENV_Atoll"
+      },
+      "triangles": 8666,
+      "bounds": {
+        "x": [
+          -16.63496971130371,
+          18.709142684936523
+        ],
+        "y": [
+          -18.842304229736328,
+          15.488391876220703
+        ],
+        "z": [
+          -3.000023126602173,
+          6.439899444580078
+        ]
+      },
+      "required_sockets": [
+        "AnchorPoint",
+        "AnemometerPivot",
+        "BeaconPivot",
+        "ContactOrigin",
+        "Decor",
+        "ENV_CoastShed_0",
+        "ENV_CoastalPine_1",
+        "ENV_CoastalPine_2",
+        "ENV_CoastalPine_3",
+        "ENV_NavigationBuoy_4",
+        "ENV_NavigationBuoy_5",
+        "EntryOrigin",
+        "GroundOrigin",
+        "HeightMarker",
+        "LampOrigin",
+        "ShorePoint_00",
+        "ShorePoint_01",
+        "ShorePoint_02",
+        "ShorePoint_03",
+        "ShorePoint_04",
+        "ShorePoint_05",
+        "ShorePoint_06",
+        "ShorePoint_07",
+        "ShorePoint_08",
+        "ShorePoint_09",
+        "ShorePoint_10",
+        "ShorePoint_11",
+        "WaterlineOrigin",
+        "WindVanePivot"
+      ]
+    },
+    {
+      "id": "ENV_Lighthouse_LOD1",
+      "category": "prop",
+      "features": {
+        "features": [
+          "Tapered white tower with red band",
+          "Door and three supported steps",
+          "Corbel-supported circular gallery and two-level guardrail",
+          "Opaque teal lantern with eight structural mullions",
+          "Closed conical red roof and lightning finial"
+        ],
+        "required_sockets": [
+          "BeaconPivot",
+          "LampOrigin",
+          "EntryOrigin"
+        ],
+        "dimensions": [
+          2.6,
+          3.15,
+          8.56
+        ]
+      },
+      "triangles": 1432,
+      "bounds": {
+        "x": [
+          -1.3023236989974976,
+          1.3023236989974976
+        ],
+        "y": [
+          -1.3023236989974976,
+          1.850000023841858
+        ],
+        "z": [
+          0.0,
+          8.5600004196167
+        ]
+      },
+      "required_sockets": [
+        "BeaconPivot",
+        "EntryOrigin",
+        "LampOrigin"
+      ]
+    },
+    {
+      "id": "ENV_Jetty_LOD1",
+      "category": "prop",
+      "features": {
+        "features": [
+          "3 x 6 m concrete pier with individual timber deck boards",
+          "Six piles and tied cross/longitudinal bearers down to -2 m",
+          "Twin-pin mooring bollards and suspended rubber fenders",
+          "Gated corrosion-coloured sea-access ladder",
+          "Zero-height shore connection with two shallow access steps"
+        ],
+        "required_sockets": [
+          "ShoreConnection",
+          "MooringPoint_01",
+          "MooringPoint_02",
+          "LadderAccess"
+        ],
+        "dimensions": [
+          3.44,
+          6.6,
+          3.1
+        ]
+      },
+      "triangles": 1944,
+      "bounds": {
+        "x": [
+          -1.7200000286102295,
+          1.7200000286102295
+        ],
+        "y": [
+          -0.6000001430511475,
+          6.0
+        ],
+        "z": [
+          -2.0,
+          1.0959999561309814
+        ]
+      },
+      "required_sockets": [
+        "LadderAccess",
+        "MooringPoint_01",
+        "MooringPoint_02",
+        "ShoreConnection"
+      ]
+    },
+    {
+      "id": "ENV_NavigationBuoy_LOD1",
+      "category": "prop",
+      "features": {
+        "features": [
+          "1.4 m red buoy float with submerged tapered belly",
+          "Triangular three-leg beacon frame and two structural brace levels",
+          "Opaque teal lantern with mullions and closed rain cap",
+          "Anchor eye and clear waterline reference"
+        ],
+        "required_sockets": [
+          "BeaconPivot",
+          "LampOrigin",
+          "WaterlineOrigin",
+          "AnchorPoint"
+        ],
+        "dimensions": [
+          1.4,
+          1.4,
+          3.1
+        ]
+      },
+      "triangles": 620,
+      "bounds": {
+        "x": [
+          -0.6993757486343384,
+          0.6993757486343384
+        ],
+        "y": [
+          -0.6993757486343384,
+          0.6993757486343384
+        ],
+        "z": [
+          -0.6805699467658997,
+          2.4200000762939453
+        ]
+      },
+      "required_sockets": [
+        "AnchorPoint",
+        "BeaconPivot",
+        "LampOrigin",
+        "WaterlineOrigin"
+      ]
+    },
+    {
+      "id": "ENV_CoastShed_LOD1",
+      "category": "prop",
+      "features": {
+        "features": [
+          "3 x 4 m grey coast-management cabin on a real foundation",
+          "Closed pitched roof, fascia, gutters and bracketed downpipes",
+          "Framed opaque windows, door, supported rainhood and three steps",
+          "Rear ventilation grille",
+          "Roof-mounted weather mast with cup anemometer and wind vane"
+        ],
+        "required_sockets": [
+          "GroundOrigin",
+          "EntryOrigin",
+          "AnemometerPivot",
+          "WindVanePivot"
+        ],
+        "dimensions": [
+          3.415,
+          5.08,
+          3.965
+        ]
+      },
+      "triangles": 900,
+      "bounds": {
+        "x": [
+          -1.7074999809265137,
+          1.7074999809265137
+        ],
+        "y": [
+          -2.174999952316284,
+          2.9049999713897705
+        ],
+        "z": [
+          0.0,
+          3.964937448501587
+        ]
+      },
+      "required_sockets": [
+        "AnemometerPivot",
+        "EntryOrigin",
+        "GroundOrigin",
+        "WindVanePivot"
+      ]
+    },
+    {
+      "id": "ENV_CoastalPine_LOD1",
+      "category": "prop",
+      "features": {
+        "features": [
+          "bent continuous bark trunk",
+          "exposed supporting boughs",
+          "connected irregular lobed pine needle sprays",
+          "smooth asymmetric flattened crown mapping",
+          "whole-spray needle colour variation without triangular cap patches"
+        ],
+        "dimensions_m": [
+          3.0161,
+          1.9426,
+          4.6022
+        ]
+      },
+      "triangles": 1184,
+      "bounds": {
+        "x": [
+          -1.4018155336380005,
+          1.5973526239395142
+        ],
+        "y": [
+          -0.8447120785713196,
+          1.0802619457244873
+        ],
+        "z": [
+          9.69499014900066e-05,
+          4.605705261230469
+        ]
+      },
+      "required_sockets": [
+        "ContactOrigin"
+      ]
+    },
+    {
+      "id": "ENV_RockCluster_LOD1",
+      "category": "prop",
+      "features": {
+        "features": [
+          "four asymmetrical fractured coastal boulders",
+          "broad tilted planar slabs and unequal corner cuts",
+          "flat stable ground contacts",
+          "face-coherent rock and wet-fracture colours",
+          "flat normals preserve geological edges without melted smooth shading"
+        ],
+        "dimensions_m": [
+          3.4,
+          2.925,
+          1.94
+        ]
+      },
+      "triangles": 180,
+      "bounds": {
+        "x": [
+          -1.7300000190734863,
+          1.6700000762939453
+        ],
+        "y": [
+          -1.5600000619888306,
+          1.3650000095367432
+        ],
+        "z": [
+          0.0,
+          1.940000057220459
+        ]
+      },
+      "required_sockets": [
+        "ContactOrigin"
+      ]
+    },
+    {
+      "id": "ENV_Seal_LOD1",
+      "category": "prop",
+      "features": {
+        "features": [
+          "rounded resting seal",
+          "raised curved neck and forward-facing muzzle",
+          "paired front and rear flippers",
+          "small eyes, nose and whiskers"
+        ],
+        "dimensions_m": [
+          1.1723,
+          2.1077,
+          0.8943
+        ]
+      },
+      "triangles": 624,
+      "bounds": {
+        "x": [
+          -0.586127758026123,
+          0.5889500975608826
+        ],
+        "y": [
+          -1.0851552486419678,
+          1.0273798704147339
+        ],
+        "z": [
+          -0.00021910667419433594,
+          0.8977165222167969
+        ]
+      },
+      "required_sockets": [
+        "ContactOrigin"
+      ]
+    },
+    {
+      "id": "ENV_BeachedWreck_LOD1",
+      "category": "prop",
+      "features": {
+        "features": [
+          "curved rusted hull made from sealed torn plating",
+          "open cargo hold and exposed ribs",
+          "crushed leaning bridge with supported bent mast",
+          "broken but supported railing spans",
+          "connected bow anchor chain and surviving stern propeller"
+        ],
+        "dimensions_m": [
+          2.13,
+          8.13,
+          3.2534
+        ]
+      },
+      "triangles": 1946,
+      "bounds": {
+        "x": [
+          -1.0924999713897705,
+          1.037500023841858
+        ],
+        "y": [
+          -4.130000114440918,
+          4.007432460784912
+        ],
+        "z": [
+          -0.817282497882843,
+          2.439800977706909
+        ]
+      },
+      "required_sockets": [
+        "ContactOrigin",
+        "WreckAnchor"
+      ]
+    },
+    {
+      "id": "ENV_RadarStation_LOD1",
+      "category": "prop",
+      "features": {
+        "features": [
+          "Reinforced concrete footing and control-house entrance",
+          "Four fully supported tower legs with four-sided X bracing",
+          "Separate azimuth RadarPivot and framed phased-array head",
+          "Service ladder, console window and equipment cooling vent"
+        ],
+        "required_sockets": [
+          "GroundOrigin",
+          "EntryOrigin",
+          "RadarPivot",
+          "SearchArrayHead"
+        ],
+        "footprint_m": [
+          6,
+          6
+        ],
+        "dimensions": [
+          6,
+          6,
+          8.02
+        ]
+      },
+      "triangles": 1040,
+      "bounds": {
+        "x": [
+          -3.0,
+          3.0
+        ],
+        "y": [
+          -2.999999761581421,
+          3.0
+        ],
+        "z": [
+          0.0,
+          8.014999389648438
+        ]
+      },
+      "required_sockets": [
+        "EntryOrigin",
+        "GroundOrigin",
+        "RadarPivot",
+        "SearchArrayHead"
+      ]
+    },
+    {
+      "id": "ENV_WatchPost_LOD1",
+      "category": "prop",
+      "features": {
+        "features": [
+          "Four-column elevated observation cabin with load-bearing X braces",
+          "Four-sided opaque panoramic glazing and weather canopy",
+          "Guarded access balcony with deliberate ladder gate",
+          "Separately parented roof searchlight and lamp origin"
+        ],
+        "required_sockets": [
+          "GroundOrigin",
+          "EntryOrigin",
+          "SearchlightPivot",
+          "LampOrigin"
+        ],
+        "footprint_m": [
+          4,
+          5
+        ],
+        "dimensions": [
+          4,
+          5,
+          6.0
+        ]
+      },
+      "triangles": 1156,
+      "bounds": {
+        "x": [
+          -2.0,
+          2.0
+        ],
+        "y": [
+          -2.5,
+          2.5
+        ],
+        "z": [
+          0.0,
+          6.0
+        ]
+      },
+      "required_sockets": [
+        "EntryOrigin",
+        "GroundOrigin",
+        "LampOrigin",
+        "SearchlightPivot"
+      ]
+    },
+    {
+      "id": "ENV_CoastalBunker_LOD1",
+      "category": "prop",
+      "features": {
+        "features": [
+          "Low reinforced concrete bunker with sloped/battered walls",
+          "Continuous thick roof and protected three-bay observation slit",
+          "Steel access door, rain hood and armoured weather-proof vent"
+        ],
+        "required_sockets": [
+          "GroundOrigin",
+          "EntryOrigin"
+        ],
+        "footprint_m": [
+          4.8,
+          4.9
+        ],
+        "dimensions": [
+          4.8,
+          4.9,
+          2.75
+        ]
+      },
+      "triangles": 300,
+      "bounds": {
+        "x": [
+          -2.4000000953674316,
+          2.4000000953674316
+        ],
+        "y": [
+          -2.25,
+          2.424999952316284
+        ],
+        "z": [
+          0.0,
+          2.75
+        ]
+      },
+      "required_sockets": [
+        "EntryOrigin",
+        "GroundOrigin"
+      ]
+    },
+    {
+      "id": "ENV_SupplyDepot_LOD1",
+      "category": "prop",
+      "features": {
+        "features": [
+          "Continuous reinforced base and closed pentagonal gable roof",
+          "Detailed roll-up shutter, personnel door and window",
+          "Roof gutters, grounded downpipes and pallet-secured supply crates"
+        ],
+        "required_sockets": [
+          "GroundOrigin",
+          "EntryOrigin"
+        ],
+        "footprint_m": [
+          5,
+          6.16
+        ],
+        "dimensions": [
+          5,
+          6.16,
+          3.58
+        ]
+      },
+      "triangles": 532,
+      "bounds": {
+        "x": [
+          -2.5,
+          2.5
+        ],
+        "y": [
+          -3.0,
+          3.072500467300415
+        ],
+        "z": [
+          0.0,
+          3.5799999237060547
+        ]
+      },
+      "required_sockets": [
+        "EntryOrigin",
+        "GroundOrigin"
+      ]
+    },
+    {
+      "id": "ENV_RadarOutpost__Seed20261002_LOD1",
+      "category": "island",
+      "features": {
+        "rocky": false,
+        "nominal_radius_m": 14.0,
+        "seed": 113,
+        "sea_level_z": -0.9,
+        "base_z": -3.0,
+        "collision_mesh_hint": "TerrainShell",
+        "colliders_included": false,
+        "features": "ENV_RadarOutpost",
+        "proposed_sockets": [
+          "ShorePoint_00",
+          "ShorePoint_01",
+          "ShorePoint_02",
+          "ShorePoint_03",
+          "ShorePoint_04",
+          "ShorePoint_05",
+          "ShorePoint_06",
+          "ShorePoint_07",
+          "ShorePoint_08",
+          "ShorePoint_09",
+          "ShorePoint_10",
+          "ShorePoint_11",
+          "HeightMarker"
+        ],
+        "layout": {
+          "seed": 20261002,
+          "kind": "radar",
+          "placements": [
+            {
+              "asset": "ENV_RadarStation",
+              "position": [
+                -1.7979686563774329,
+                1.0728415852231614,
+                2.426227519276787
+              ],
+              "heading_radians": 1.5573456393315164,
+              "footprint_m": [
+                6.5,
+                6.5
+              ],
+              "zone": "summit",
+              "ground_height": 2.461227519276787
+            },
+            {
+              "asset": "ENV_SupplyDepot",
+              "position": [
+                7.381695270174914,
+                -1.1200976673955705,
+                0.541981589918261
+              ],
+              "heading_radians": -1.721387447643552,
+              "footprint_m": [
+                5.5,
+                6.8
+              ],
+              "zone": "coast",
+              "ground_height": 0.576981589918261
+            },
+            {
+              "asset": "ENV_CoastalPine",
+              "position": [
+                -2.1729823638005374,
+                -6.691581056186357,
+                1.635127041693006
+              ],
+              "heading_radians": -3.4555837406290006,
+              "footprint_m": [
+                2.8,
+                2.8
+              ],
+              "zone": "coast",
+              "ground_height": 1.6701270416930059
+            },
+            {
+              "asset": "ENV_CoastalPine",
+              "position": [
+                -2.602762223892822,
+                7.397377669301139,
+                2.357569870473523
+              ],
+              "heading_radians": 0.33832136008577507,
+              "footprint_m": [
+                2.8,
+                2.8
+              ],
+              "zone": "coast",
+              "ground_height": 2.392569870473523
+            },
+            {
+              "asset": "ENV_Jetty",
+              "position": [
+                -0.22876587604433418,
+                -11.57180960571963,
+                -0.06
+              ],
+              "heading_radians": -3.161359318313398,
+              "zone": "shore_connection"
+            },
+            {
+              "asset": "ENV_NavigationBuoy",
+              "position": [
+                -10.163679544518855,
+                -16.037302581211907,
+                -0.9
+              ],
+              "heading_radians": 1.810267701514241,
+              "zone": "water"
+            },
+            {
+              "asset": "ENV_NavigationBuoy",
+              "position": [
+                17.479217693376174,
+                -8.635044601158102,
+                -0.9
+              ],
+              "heading_radians": 2.043641050828363,
+              "zone": "water"
+            }
+          ],
+          "pads": [
+            {
+              "x": -1.7979686563774329,
+              "y": 1.0728415852231614,
+              "z": 2.461227519276787,
+              "heading": 1.5573456393315164,
+              "width": 7.15,
+              "length": 7.15,
+              "fade_m": 1.15
+            },
+            {
+              "x": 7.381695270174914,
+              "y": -1.1200976673955705,
+              "z": 0.576981589918261,
+              "heading": -1.721387447643552,
+              "width": 6.15,
+              "length": 7.45,
+              "fade_m": 1.15
+            }
+          ],
+          "facility_count": 2,
+          "coordinate_space": "Blender XYZ / +Z up",
+          "terrain_fitting": true,
+          "facility_overlap_rejected": true
+        },
+        "base_archetype": "ENV_RadarOutpost"
+      },
+      "triangles": 11630,
+      "bounds": {
+        "x": [
+          -14.198934555053711,
+          18.17552947998047
+        ],
+        "y": [
+          -17.600431442260742,
+          17.41982650756836
+        ],
+        "z": [
+          -3.0000102519989014,
+          10.441226959228516
+        ]
+      },
+      "required_sockets": [
+        "AnchorPoint",
+        "BeaconPivot",
+        "ContactOrigin",
+        "Decor",
+        "ENV_CoastalPine_2",
+        "ENV_CoastalPine_3",
+        "ENV_Jetty_4",
+        "ENV_NavigationBuoy_5",
+        "ENV_NavigationBuoy_6",
+        "ENV_RadarStation_0",
+        "ENV_SupplyDepot_1",
+        "EntryOrigin",
+        "GroundOrigin",
+        "HeightMarker",
+        "LadderAccess",
+        "LampOrigin",
+        "MooringPoint_01",
+        "MooringPoint_02",
+        "RadarPivot",
+        "SearchArrayHead",
+        "ShoreConnection",
+        "ShorePoint_00",
+        "ShorePoint_01",
+        "ShorePoint_02",
+        "ShorePoint_03",
+        "ShorePoint_04",
+        "ShorePoint_05",
+        "ShorePoint_06",
+        "ShorePoint_07",
+        "ShorePoint_08",
+        "ShorePoint_09",
+        "ShorePoint_10",
+        "ShorePoint_11",
+        "WaterlineOrigin"
+      ]
+    },
+    {
+      "id": "ENV_RadarOutpost__Seed20261099_LOD1",
+      "category": "island",
+      "features": {
+        "rocky": false,
+        "nominal_radius_m": 14.0,
+        "seed": 113,
+        "sea_level_z": -0.9,
+        "base_z": -3.0,
+        "collision_mesh_hint": "TerrainShell",
+        "colliders_included": false,
+        "features": "ENV_RadarOutpost",
+        "proposed_sockets": [
+          "ShorePoint_00",
+          "ShorePoint_01",
+          "ShorePoint_02",
+          "ShorePoint_03",
+          "ShorePoint_04",
+          "ShorePoint_05",
+          "ShorePoint_06",
+          "ShorePoint_07",
+          "ShorePoint_08",
+          "ShorePoint_09",
+          "ShorePoint_10",
+          "ShorePoint_11",
+          "HeightMarker"
+        ],
+        "layout": {
+          "seed": 20261099,
+          "kind": "radar",
+          "placements": [
+            {
+              "asset": "ENV_RadarStation",
+              "position": [
+                -1.53240628369191,
+                2.1316021853606597,
+                2.4900184117049906
+              ],
+              "heading_radians": 2.3777246679996393,
+              "footprint_m": [
+                6.5,
+                6.5
+              ],
+              "zone": "summit",
+              "ground_height": 2.5250184117049908
+            },
+            {
+              "asset": "ENV_WatchPost",
+              "position": [
+                7.391847473130339,
+                0.3216195390851754,
+                0.6082698404834485
+              ],
+              "heading_radians": -1.5273137176979792,
+              "footprint_m": [
+                4.5,
+                5.2
+              ],
+              "zone": "coast",
+              "ground_height": 0.6432698404834485
+            },
+            {
+              "asset": "ENV_CoastalPine",
+              "position": [
+                -4.736729692720525,
+                -5.876818941400594,
+                1.6207235331882044
+              ],
+              "heading_radians": -3.819982845071499,
+              "footprint_m": [
+                2.8,
+                2.8
+              ],
+              "zone": "coast",
+              "ground_height": 1.6557235331882043
+            },
+            {
+              "asset": "ENV_CoastalPine",
+              "position": [
+                5.78667964121571,
+                -5.518904672673943,
+                0.6648949306490387
+              ],
+              "heading_radians": -2.332513722788646,
+              "footprint_m": [
+                2.8,
+                2.8
+              ],
+              "zone": "coast",
+              "ground_height": 0.6998949306490387
+            },
+            {
+              "asset": "ENV_CoastalPine",
+              "position": [
+                0.20359476964812234,
+                -5.741469889461474,
+                1.7555767918716951
+              ],
+              "heading_radians": -3.106147114056233,
+              "footprint_m": [
+                2.8,
+                2.8
+              ],
+              "zone": "coast",
+              "ground_height": 1.790576791871695
+            },
+            {
+              "asset": "ENV_CoastalPine",
+              "position": [
+                6.287678727027478,
+                5.492328539072289,
+                0.4265433947295252
+              ],
+              "heading_radians": -0.8528128024467128,
+              "footprint_m": [
+                2.8,
+                2.8
+              ],
+              "zone": "coast",
+              "ground_height": 0.4615433947295252
+            },
+            {
+              "asset": "ENV_Jetty",
+              "position": [
+                -2.850692446906641,
+                -12.9339405161188,
+                -0.06
+              ],
+              "heading_radians": -3.3585282913084544,
+              "zone": "shore_connection"
+            },
+            {
+              "asset": "ENV_NavigationBuoy",
+              "position": [
+                -11.508406343968941,
+                -15.63842773496408,
+                -0.9
+              ],
+              "heading_radians": -1.7833549842179865,
+              "zone": "water"
+            },
+            {
+              "asset": "ENV_NavigationBuoy",
+              "position": [
+                -7.896831664962143,
+                -18.083729355069686,
+                -0.9
+              ],
+              "heading_radians": -2.4048962502723725,
+              "zone": "water"
+            }
+          ],
+          "pads": [
+            {
+              "x": -1.53240628369191,
+              "y": 2.1316021853606597,
+              "z": 2.5250184117049908,
+              "heading": 2.3777246679996393,
+              "width": 7.15,
+              "length": 7.15,
+              "fade_m": 1.15
+            },
+            {
+              "x": 7.391847473130339,
+              "y": 0.3216195390851754,
+              "z": 0.6432698404834485,
+              "heading": -1.5273137176979792,
+              "width": 5.15,
+              "length": 5.8500000000000005,
+              "fade_m": 1.15
+            }
+          ],
+          "facility_count": 2,
+          "coordinate_space": "Blender XYZ / +Z up",
+          "terrain_fitting": true,
+          "facility_overlap_rejected": true
+        },
+        "base_archetype": "ENV_RadarOutpost"
+      },
+      "triangles": 14314,
+      "bounds": {
+        "x": [
+          -14.198934555053711,
+          15.44514274597168
+        ],
+        "y": [
+          -19.117782592773438,
+          17.41982650756836
+        ],
+        "z": [
+          -3.0000102519989014,
+          10.50501823425293
+        ]
+      },
+      "required_sockets": [
+        "AnchorPoint",
+        "BeaconPivot",
+        "ContactOrigin",
+        "Decor",
+        "ENV_CoastalPine_2",
+        "ENV_CoastalPine_3",
+        "ENV_CoastalPine_4",
+        "ENV_CoastalPine_5",
+        "ENV_Jetty_6",
+        "ENV_NavigationBuoy_7",
+        "ENV_NavigationBuoy_8",
+        "ENV_RadarStation_0",
+        "ENV_WatchPost_1",
+        "EntryOrigin",
+        "GroundOrigin",
+        "HeightMarker",
+        "LadderAccess",
+        "LampOrigin",
+        "MooringPoint_01",
+        "MooringPoint_02",
+        "RadarPivot",
+        "SearchArrayHead",
+        "SearchlightPivot",
+        "ShoreConnection",
+        "ShorePoint_00",
+        "ShorePoint_01",
+        "ShorePoint_02",
+        "ShorePoint_03",
+        "ShorePoint_04",
+        "ShorePoint_05",
+        "ShorePoint_06",
+        "ShorePoint_07",
+        "ShorePoint_08",
+        "ShorePoint_09",
+        "ShorePoint_10",
+        "ShorePoint_11",
+        "WaterlineOrigin"
+      ]
+    },
+    {
+      "id": "ENV_RadarOutpost__Seed20261196_LOD1",
+      "category": "island",
+      "features": {
+        "rocky": false,
+        "nominal_radius_m": 14.0,
+        "seed": 113,
+        "sea_level_z": -0.9,
+        "base_z": -3.0,
+        "collision_mesh_hint": "TerrainShell",
+        "colliders_included": false,
+        "features": "ENV_RadarOutpost",
+        "proposed_sockets": [
+          "ShorePoint_00",
+          "ShorePoint_01",
+          "ShorePoint_02",
+          "ShorePoint_03",
+          "ShorePoint_04",
+          "ShorePoint_05",
+          "ShorePoint_06",
+          "ShorePoint_07",
+          "ShorePoint_08",
+          "ShorePoint_09",
+          "ShorePoint_10",
+          "ShorePoint_11",
+          "HeightMarker"
+        ],
+        "layout": {
+          "seed": 20261196,
+          "kind": "radar",
+          "placements": [
+            {
+              "asset": "ENV_RadarStation",
+              "position": [
+                -1.4848345661851508,
+                0.2404751658902872,
+                2.4137499315272666
+              ],
+              "heading_radians": -1.6398193817228923,
+              "footprint_m": [
+                6.5,
+                6.5
+              ],
+              "zone": "summit",
+              "ground_height": 2.4487499315272667
+            },
+            {
+              "asset": "ENV_SupplyDepot",
+              "position": [
+                6.904337647753099,
+                -3.7227569497995563,
+                0.5049184411889696
+              ],
+              "heading_radians": -2.0653030492277886,
+              "footprint_m": [
+                5.5,
+                6.8
+              ],
+              "zone": "coast",
+              "ground_height": 0.5399184411889696
+            },
+            {
+              "asset": "ENV_CoastalPine",
+              "position": [
+                7.91120240872061,
+                3.9354959750983967,
+                0.36853202285734
+              ],
+              "heading_radians": -1.1091838734227513,
+              "footprint_m": [
+                2.8,
+                2.8
+              ],
+              "zone": "coast",
+              "ground_height": 0.40353202285734
+            },
+            {
+              "asset": "ENV_CoastalPine",
+              "position": [
+                -5.827130249004895,
+                -5.762190830440613,
+                1.3836208362183948
+              ],
+              "heading_radians": -3.932594142538223,
+              "footprint_m": [
+                2.8,
+                2.8
+              ],
+              "zone": "coast",
+              "ground_height": 1.4186208362183947
+            },
+            {
+              "asset": "ENV_CoastalPine",
+              "position": [
+                1.308399999441191,
+                -7.7933908388159825,
+                0.5568905722659481
+              ],
+              "heading_radians": -2.9752579845071176,
+              "footprint_m": [
+                2.8,
+                2.8
+              ],
+              "zone": "coast",
+              "ground_height": 0.5918905722659481
+            },
+            {
+              "asset": "ENV_Jetty",
+              "position": [
+                1.4021437766599658,
+                -10.196246848271846,
+                -0.06
+              ],
+              "heading_radians": -3.0049341061355443,
+              "zone": "shore_connection"
+            },
+            {
+              "asset": "ENV_NavigationBuoy",
+              "position": [
+                13.75406761579837,
+                -10.777674733397886,
+                -0.9
+              ],
+              "heading_radians": 2.53161857547241,
+              "zone": "water"
+            }
+          ],
+          "pads": [
+            {
+              "x": -1.4848345661851508,
+              "y": 0.2404751658902872,
+              "z": 2.4487499315272667,
+              "heading": -1.6398193817228923,
+              "width": 7.15,
+              "length": 7.15,
+              "fade_m": 1.15
+            },
+            {
+              "x": 6.904337647753099,
+              "y": -3.7227569497995563,
+              "z": 0.5399184411889696,
+              "heading": -2.0653030492277886,
+              "width": 6.15,
+              "length": 7.45,
+              "fade_m": 1.15
+            }
+          ],
+          "facility_count": 2,
+          "coordinate_space": "Blender XYZ / +Z up",
+          "terrain_fitting": true,
+          "facility_overlap_rejected": true
+        },
+        "base_archetype": "ENV_RadarOutpost"
+      },
+      "triangles": 11754,
+      "bounds": {
+        "x": [
+          -14.198934555053711,
+          15.44514274597168
+        ],
+        "y": [
+          -16.345680236816406,
+          17.41982650756836
+        ],
+        "z": [
+          -3.0000102519989014,
+          10.428750038146973
+        ]
+      },
+      "required_sockets": [
+        "AnchorPoint",
+        "BeaconPivot",
+        "ContactOrigin",
+        "Decor",
+        "ENV_CoastalPine_2",
+        "ENV_CoastalPine_3",
+        "ENV_CoastalPine_4",
+        "ENV_Jetty_5",
+        "ENV_NavigationBuoy_6",
+        "ENV_RadarStation_0",
+        "ENV_SupplyDepot_1",
+        "EntryOrigin",
+        "GroundOrigin",
+        "HeightMarker",
+        "LadderAccess",
+        "LampOrigin",
+        "MooringPoint_01",
+        "MooringPoint_02",
+        "RadarPivot",
+        "SearchArrayHead",
+        "ShoreConnection",
+        "ShorePoint_00",
+        "ShorePoint_01",
+        "ShorePoint_02",
+        "ShorePoint_03",
+        "ShorePoint_04",
+        "ShorePoint_05",
+        "ShorePoint_06",
+        "ShorePoint_07",
+        "ShorePoint_08",
+        "ShorePoint_09",
+        "ShorePoint_10",
+        "ShorePoint_11",
+        "WaterlineOrigin"
+      ]
+    }
+  ]
+}

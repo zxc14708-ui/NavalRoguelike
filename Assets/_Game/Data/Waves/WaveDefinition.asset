@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d85078590e349284eb5ca55c33018225, type: 3}
+  m_Name: WaveDefinition
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.WaveDefinition
+  phases:
+  - StartTime: 0
+    SpawnRate: 0.55
+    MaxAlive: 16
+    Entries:
+    - Enemy: {fileID: 11400000, guid: 8dabd2a39a06330469069668a97bf69a, type: 2}
+      Weight: 1
+  - StartTime: 120
+    SpawnRate: 0.9
+    MaxAlive: 26
+    Entries:
+    - Enemy: {fileID: 11400000, guid: 8dabd2a39a06330469069668a97bf69a, type: 2}
+      Weight: 3
+    - Enemy: {fileID: 11400000, guid: 01383df700b819a49a1517ada187583a, type: 2}
+      Weight: 1
+  - StartTime: 240
+    SpawnRate: 1.6
+    MaxAlive: 45
+    Entries:
+    - Enemy: {fileID: 11400000, guid: 8dabd2a39a06330469069668a97bf69a, type: 2}
+      Weight: 3
+    - Enemy: {fileID: 11400000, guid: 01383df700b819a49a1517ada187583a, type: 2}
+      Weight: 2
+  - StartTime: 360
+    SpawnRate: 2
+    MaxAlive: 55
+    Entries:
+    - Enemy: {fileID: 11400000, guid: 8dabd2a39a06330469069668a97bf69a, type: 2}
+      Weight: 3
+    - Enemy: {fileID: 11400000, guid: 01383df700b819a49a1517ada187583a, type: 2}
+      Weight: 2
+    - Enemy: {fileID: 11400000, guid: 1fd40a70fc91d5949ae16c2232b33c90, type: 2}
+      Weight: 1
+  boss: {fileID: 11400000, guid: 41ebf897db53fd94d8d2bf2ddfe1d0d2, type: 2}
+  bossSpawnTime: 480

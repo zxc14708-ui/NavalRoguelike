@@ -1,0 +1,67 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee8925205f16a2b47900cba0670cd113, type: 3}
+  m_Name: mod_repairbay
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Modules.ModuleDefinition
+  id: mod_repairbay
+  displayName: "\uC190\uC0C1 \uD1B5\uC81C\uBC18"
+  description: "\uBC29\uC218\xB7\uC18C\uD654\uB85C \uBC1B\uB294 \uD53C\uD574\uB97C
+    10% \uC904\uC774\uACE0, \uC120\uCCB4\uC640 \uC190\uC0C1\uB41C \uBAA8\uB4C8\uC744
+    \uC11C\uC11C\uD788 \uC218\uB9AC\uD55C\uB2E4. \uD30C\uAD34\uB41C \uBAA8\uB4C8\uC740
+    \uBCF5\uAD6C\uD558\uC9C0 \uBABB\uD55C\uB2E4. \uCD5C\uB300 3\uAC1C."
+  type: 9
+  icon: {fileID: 21300000, guid: dcc140225b7b52b449f9c78620a35483, type: 3}
+  width: 1
+  height: 1
+  canRotate: 1
+  placement:
+    Zone: 0
+  heightClass: 0
+  maxCount: 3
+  maxHp: 30
+  rarity: 1
+  weight: 1.3
+  prefab: {fileID: 1149099167029820625, guid: 6bee051ab7101a842ae304c1be317137, type: 3}
+  stats:
+    Range: 0
+    MinRange: 0
+    Damage: 0
+    ReloadTime: 0
+    ProjectileSpeed: 0
+    FireArcDegrees: 0
+    TurretTurnRate: 0
+    AmmoFamily: 0
+    MagazineCapacity: 0
+    AmmoPerShot: 0
+    AmmoReloadAmount: 0
+    AmmoReloadTime: 0
+    DetectionRange: 0
+    ExtraTrackedTargets: 0
+    SupportRadiusCells: 0
+    ReloadBonus: 0
+    AmmoCapacityBonus: 0
+    ResupplyBonus: 0
+    CookOffDamage: 0
+    DamageReduction: 0.1
+    HullRepairPerSecond: 0.9
+    ModuleRepairPerSecond: 1.5
+    SortieCooldown: 0
+    HelicopterSpeed: 0
+  targetEfficiency:
+    SmallSurface: 1
+    MediumSurface: 1
+    LargeSurface: 1
+    Boss: 1
+    Submarine: 1
+    Drone: 1
+    Air: 1
+    Missile: 1

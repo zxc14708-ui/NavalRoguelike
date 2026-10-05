@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b0951aedabbf14429864b73543333f0, type: 3}
+  m_Name: ene_recon
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.EnemyDefinition
+  id: ene_recon
+  displayName: "\uC815\uCC30\uAE30"
+  kind: 4
+  prefab: {fileID: 7832185105910449008, guid: 844cbc1465e130345aed749a1c53d908, type: 3}
+  category: 7
+  rank: 0
+  targetValue: 3
+  maxAlive: 0
+  maxHp: 30
+  moveSpeed: 9
+  turnRateDegPerSec: 45
+  preferredRange: 26
+  attackDamage: 0
+  attackCooldown: 0
+  missilePrefab: {fileID: 0}
+  salvoSize: 1
+  salvoSpacing: 0.15
+  xpReward: 3
+  revealDuration: 0
+  launchedDrone: {fileID: 0}
+  launchedRecon: {fileID: 0}
+  launchedFighter: {fileID: 0}

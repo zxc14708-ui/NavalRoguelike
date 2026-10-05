@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e1c7a92b0d34f5e8a61c3d9f27b5a18, type: 3}
+  m_Name: UPG_Ciws
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Modules.ModuleUpgradeProfile
+  module: {fileID: 11400000, guid: d611b099c2efa524f95386834b010596, type: 2}
+  stages:
+  - displayName: "CIWS \uAC15\uD654 I"
+    description: "\uCD94\uC801 \uC18D\uB3C4 +20% \xB7 \uD0C4\uCC3D +20%"
+    modifier:
+      damageMultiplier: 1
+      rangeMultiplier: 1
+      cooldownMultiplier: 1
+      magazineMultiplier: 1.2
+      ammoReloadMultiplier: 1
+      turnSpeedMultiplier: 1.2
+      supplyMultiplier: 1
+      explosionDamageMultiplier: 1
+      repairMultiplier: 1
+      detectionMultiplier: 1
+    icon: {fileID: 21300000, guid: b3a9154a30bd7d14f91e1618f28c62c9, type: 3}
+  - displayName: "CIWS \uAC15\uD654 II"
+    description: "\uCD94\uC801 \uC18D\uB3C4 +35% \xB7 \uD0C4\uCC3D +40% \xB7 \uC7AC\uC7A5\uC804
+      \u221215%"
+    modifier:
+      damageMultiplier: 1
+      rangeMultiplier: 1
+      cooldownMultiplier: 1
+      magazineMultiplier: 1.4
+      ammoReloadMultiplier: 0.85
+      turnSpeedMultiplier: 1.35
+      supplyMultiplier: 1
+      explosionDamageMultiplier: 1
+      repairMultiplier: 1
+      detectionMultiplier: 1
+    icon: {fileID: 21300000, guid: 420b3e5cf579c8f4e82721421f8e06a9, type: 3}

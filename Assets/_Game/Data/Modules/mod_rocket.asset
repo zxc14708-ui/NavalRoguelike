@@ -1,0 +1,68 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee8925205f16a2b47900cba0670cd113, type: 3}
+  m_Name: mod_rocket
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Modules.ModuleDefinition
+  id: mod_rocket
+  displayName: "\uC720\uB3C4\uB85C\uCF13 \uBC1C\uC0AC\uAE30"
+  description: "\uC911\uAC70\uB9AC(10~38) 130mm \uC720\uB3C4\uB85C\uCF13. \uC5EC\uB7EC
+    \uBC1C\uC744 \uCC28\uB840\uB85C \uC3D8\uBA70 \uACE0\uC18D\uC815\uB9C8\uB2E4 \uD55C
+    \uBC1C\uC529 \uB098\uB220 \uB9DE\uD78C\uB2E4. \uD0C4\uC57D\uACE0 \uBCF4\uB108\uC2A4\uB97C
+    \uBC1B\uB294\uB2E4. \uBD99\uC740 \uC911\uAC04\xB7\uB192\uC740 \uBE14\uB85D\uC774
+    \uAC00\uB9AC\uB294 \uBC29\uD5A5\uC73C\uB85C\uB294 \uC3D8\uC9C0 \uBABB\uD55C\uB2E4."
+  type: 10
+  icon: {fileID: 21300000, guid: cf7fcb176da846540bef27fa7d44c364, type: 3}
+  width: 1
+  height: 1
+  canRotate: 1
+  placement:
+    Zone: 0
+  heightClass: 1
+  maxCount: 0
+  maxHp: 35
+  rarity: 1
+  weight: 1
+  prefab: {fileID: 1648145582455931283, guid: 23bf3f2e70b72af459619e9dcad7647d, type: 3}
+  stats:
+    Range: 38
+    MinRange: 10
+    Damage: 14
+    ReloadTime: 1
+    ProjectileSpeed: 40
+    FireArcDegrees: 360
+    TurretTurnRate: 120
+    AmmoFamily: 1
+    MagazineCapacity: 12
+    AmmoPerShot: 1
+    AmmoReloadAmount: 3
+    AmmoReloadTime: 6
+    DetectionRange: 0
+    ExtraTrackedTargets: 0
+    SupportRadiusCells: 0
+    ReloadBonus: 0
+    AmmoCapacityBonus: 0
+    ResupplyBonus: 0
+    CookOffDamage: 0
+    DamageReduction: 0
+    HullRepairPerSecond: 0
+    ModuleRepairPerSecond: 0
+    SortieCooldown: 0
+    HelicopterSpeed: 0
+  targetEfficiency:
+    SmallSurface: 1
+    MediumSurface: 0.9
+    LargeSurface: 0.6
+    Boss: 0.5
+    Submarine: 0.6
+    Drone: 0
+    Air: 0
+    Missile: 0

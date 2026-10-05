@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b0951aedabbf14429864b73543333f0, type: 3}
+  m_Name: ene_fighter
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.EnemyDefinition
+  id: ene_fighter
+  displayName: "\uC804\uD22C\uAE30"
+  kind: 4
+  prefab: {fileID: 8128136660690670041, guid: f18347e1f4435a2408788a0ae5dd34c1, type: 3}
+  category: 7
+  rank: 0
+  targetValue: 2
+  maxAlive: 0
+  maxHp: 18
+  moveSpeed: 19
+  turnRateDegPerSec: 110
+  preferredRange: 22
+  attackDamage: 12
+  attackCooldown: 0
+  missilePrefab: {fileID: 0}
+  salvoSize: 1
+  salvoSpacing: 0.15
+  xpReward: 2
+  revealDuration: 0
+  launchedDrone: {fileID: 0}
+  launchedRecon: {fileID: 0}
+  launchedFighter: {fileID: 0}

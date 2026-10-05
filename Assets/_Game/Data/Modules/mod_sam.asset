@@ -1,0 +1,68 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee8925205f16a2b47900cba0670cd113, type: 3}
+  m_Name: mod_sam
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Modules.ModuleDefinition
+  id: mod_sam
+  displayName: "\uD568\uB300\uACF5 \uBBF8\uC0AC\uC77C"
+  description: "\uC801 \uBBF8\uC0AC\uC77C\uACFC \uD56D\uACF5\uAE30\uB97C 8~42\uC5D0\uC11C
+    \uC694\uACA9\uBBF8\uC0AC\uC77C\uB85C \uACA9\uCD94\uD55C\uB2E4. \uD568\uC120\uC5D0
+    \uBA3C\uC800 \uB2FF\uC744 \uC704\uD611\uBD80\uD130 \uC3D8\uB294 \uBC29\uC5B4
+    1\uB2E8\uACC4. \uD0D0\uC9C0 \uBC94\uC704 \uBC16\uC740 \uBCFC \uC218 \uC5C6\uC73C\uB2C8
+    \uB808\uC774\uB354\uC640 \uD568\uAED8 \uC4F4\uB2E4."
+  type: 13
+  icon: {fileID: 21300000, guid: 3870b94878bc89b4c9d32459665fc2e6, type: 3}
+  width: 1
+  height: 1
+  canRotate: 1
+  placement:
+    Zone: 0
+  heightClass: 1
+  maxCount: 0
+  maxHp: 35
+  rarity: 2
+  weight: 1
+  prefab: {fileID: 1789729871876627899, guid: 5710b593204b34746ae9ca7c0d4e4a2d, type: 3}
+  stats:
+    Range: 42
+    MinRange: 8
+    Damage: 10
+    ReloadTime: 3
+    ProjectileSpeed: 48
+    FireArcDegrees: 0
+    TurretTurnRate: 0
+    AmmoFamily: 1
+    MagazineCapacity: 4
+    AmmoPerShot: 1
+    AmmoReloadAmount: 1
+    AmmoReloadTime: 10
+    DetectionRange: 0
+    ExtraTrackedTargets: 0
+    SupportRadiusCells: 0
+    ReloadBonus: 0
+    AmmoCapacityBonus: 0
+    ResupplyBonus: 0
+    CookOffDamage: 0
+    DamageReduction: 0
+    HullRepairPerSecond: 0
+    ModuleRepairPerSecond: 0
+    SortieCooldown: 0
+    HelicopterSpeed: 0
+  targetEfficiency:
+    SmallSurface: 0
+    MediumSurface: 0
+    LargeSurface: 0
+    Boss: 0
+    Submarine: 0
+    Drone: 1
+    Air: 1
+    Missile: 1
