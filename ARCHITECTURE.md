@@ -537,26 +537,55 @@ ECS 미사용, 외부 유료 플러그인 미사용.
 
 ## 4. 폴더 구조 (Scripts)
 
+2026-10-05 실제 파일과 대조해 다시 씀. 파일을 추가·삭제하면 여기도 같이 고친다.
+
 ```
-Core/         GameManager, GameState, GameEvents, PoolManager, StageDirector, AudioManager
-Dev/          CombatDevTools(F3 개발 오버레이·시나리오), CombatVerificationRunner(자동 검증) — 에디터·개발 빌드 전용
+Core/         GameManager, GameState, GameEvents, PoolManager, StageDirector(+RoundSet.nextStage로 스테이지 이어 붙임), AudioManager
+Dev/          에디터·개발 빌드 전용 — CombatDevTools(F3 개발 오버레이·시나리오·명령줄 플래그), CombatVerificationRunner(자동 검증),
+              OversizeRendererWatcher(적 근처 비정상 대형 물체 콘솔 경고)
 Progression/  ExperienceSystem
-Refit/        RefitController(레벨업 흐름), RefitDraft(카드 추첨)
-Ship/         ShipController, ShipGrid, GridCoord, ShipSystems, DamageResolver,
-              ShipInitializer, ShipHullBuilder, ActiveSkillBase(+SlotSkillBase), SkillSources, DecoySkill, JammerSkill,
-              RepairBurstSkill, SmokeSkill, FlankSkill
-Modules/      ModuleDefinition, ModuleInstance, ModuleRuntime, ModuleFactory, ModuleType(+ModuleHeight), PlacementRule
-  Runtime/    Bridge, Autocannon, NavalGun(76mm), GuidedRocket, Vls, Ciws, SamLauncher, EwSuite, AswLauncher, DecoyLauncher,
-              Radar, Sonar, Magazine, RepairBay, HelicopterDeck, DamageControlCrew, MagazineSupport
-Combat/       TargetingSystem, ITargetable(TargetRegistry), WeaponController, FireArc, Ballistics,
-              Projectile, Missile, Torpedo, DepthCharge, Decoy, IDecoySource, IHasVelocity, SmokeScreen, ArtilleryShell, ImpactMarker, TargetAllocator(+IHasHealth), CombatStats, AswHelicopter, PooledEffect, DamageInfo
-TaskForce/    TaskForceController, KillChainService, TaskForceBootstrap, TaskForceWorldFeedback, TaskForceEscortFormation
-Enemies/      EnemyController, FastAttackBoat, MissileBoat, Submarine, BossShip, HybridBattleshipBoss, EnemyFireCutout,
-              AirEnemy, KamikazeDrone, ReconAircraft, FighterJet, EnemySpawner
+Refit/        RefitController(레벨업 흐름), RefitDraft(카드 추첨), RefitCard(카드 종류·라벨)
+Ship/         ShipController, ShipGrid, GridCoord, ShipSystems, DamageResolver, ShipInitializer, ShipHullBuilder,
+              ActiveSkillBase(+SlotSkillBase), SkillSources, DecoySkill, JammerSkill, RepairBurstSkill, SmokeSkill, FlankSkill
+Modules/      ModuleDefinition, ModuleInstance, ModuleRuntime, ModuleFactory, ModuleType(+ModuleHeight), PlacementRule,
+              ModuleUpgrades, ModuleUpgradeProfile, ModuleUpgradeVisuals, ModuleVariant, ModuleVariantVisual, RunUpgrades
+  Runtime/    BridgeModule, AutocannonModule, NavalGunModule(76mm), GuidedRocketModule, VlsModule, CiwsModule, SamLauncherModule,
+              EwSuiteModule, AswLauncherModule, DecoyLauncherModule, RadarModule(+IRadarSource), SonarModule, MagazineModule,
+              MagazineSupport, RepairBayModule, HelicopterDeckModule, DamageControlCrew
+Combat/       TargetingSystem, ITargetable(TargetRegistry), TargetCategory, CombatFaction, TargetAllocator(+IHasHealth),
+              WeaponController, FireArc, Ballistics, AmmoMagazine, Projectile, Missile, Torpedo, AswTorpedo, TorpedoCountermeasures,
+              DepthCharge, AswHelicopter, Decoy, IDecoySource, IHasVelocity, SmokeScreen, ArtilleryShell, ImpactMarker,
+              EnemyJamming(적 전자전 레이더 감쇠), CombatStats, CombatLog, PooledEffect, DamageInfo
+TaskForce/    TaskForceBootstrap, TaskForceEscortFormation(슬롯 1~4·자율 기동), FleetFormation(함대원형진·단종진·자율),
+              EscortDefense, EscortTurrets, TaskForceWorldFeedback
+Enemies/      공통 — EnemyController, EnemySpawner, EnemyFireCutout, AirEnemy, SubmarineBase
+              수상 — FastAttackBoat(고속정·장갑 돌격정·무인 공격정, 전자전 코르벳·방공 프리깃 동체), MissileBoat, SuicideBoat,
+                     TorpedoBoat, ArtilleryBoat, MineLayer(+SeaMine), RepairBoat, PccCorvette(엘리트 초계함),
+                     EwJammer(전자전 코르벳 장비), MissileInterceptor(방공 프리깃 장비)
+              수중 — Submarine(어뢰·공격 잠수함), CruiseMissileSubmarine
+              항공 — KamikazeDrone, ReconAircraft, FighterJet
+              보스 — BossShip(연안 보스), ModernCorvetteBoss(스테이지 2), HybridBattleshipBoss(스테이지 3 항공전함)
 Data/         ShipConfig, BalanceConfig, ProgressionConfig, EnemyDefinition, RoundSet(스테이지 구간), StartingLoadout, SfxLibrary
-UI/           HUDView, RefitUI, ModuleCardText, ModuleStatusUI, MissileWarningUI, RadarScopeUI(+RadarSweepGraphic), ShipStatusPanelUI(+ShipDiagramGraphic), HudTextures, ResultScreenUI
-View/         QuarterViewCamera, ShipVisualSway, OceanSurface, ShipWake, 장식(DecorFx, ShipWreck, FunnelSmoke, CloudShadows, Explosions, SeaLife)
+UI/           HUDView, HudTextures, HullDangerOverlay, RefitUI, ModuleCardText, ModuleStatusUI, MissileWarningUI,
+              RadarScopeUI(+RadarSweepGraphic), ShipStatusPanelUI(+ShipDiagramGraphic), WeaponStatusPanelUI, SkillBarUI,
+              VlsModePanelUI, TaskForcePanelUI, FormationSelectorUI, CodexUI(+CodexCatalog, CodexPreview), ResultScreenUI
+View/         QuarterViewCamera, ShipVisualSway, OceanSurface, ShipWake, EliteMarker, Explosions, DecoyFx,
+              장식(DecorFx, ShipWreck, FunnelSmoke, CloudShadows, SeaLife)
+World/        Islands, IslandField, IslandBuilder(+.Art, .Decor 부분 클래스), EnvironmentArt
 ```
+
+에디터 전용(`Assets/_Game/Editor/`):
+
+```
+셋업 메뉴    NavalPrototypeSetup(Naval/… 메뉴 모음), NavalSceneBuilder(Prototype_Main 씬), NavalPrefabBuilder, NavalDataBuilder,
+             NavalUpgradeBuilder, NavalAudioBuilder, NavalEditorUtil(공용 헬퍼·레이어)
+아트         ArtModelPostprocessor, NavalEnvironmentArtBuilder, NavalEscortArtBuilder, NavalModuleVariantArtBuilder,
+             EscortNavalGreyApply, NavalIconBaker
+검증         CombatVerification(플레이어 빌드 + 자동 검증 실행), TaskForceVerification
+프로젝트     BuildSceneGuard(빌드 씬 목록 첫 칸을 Prototype_Main으로 유지)
+```
+
+씬은 `Assets/_Game/Scenes/Prototype_Main.unity` 하나. 버전 관리는 프로젝트 폴더의 git(`.gitignore`가 Library·Temp·Logs·UserSettings·IDE 생성물 제외).
 
 ---
 
@@ -617,6 +646,7 @@ View/         QuarterViewCamera, ShipVisualSway, OceanSurface, ShipWake, 장식(
 
 | 날짜 | 변경 | 이유 |
 |---|---|---|
+| 2026-10-05 | **프로젝트 정리**: git 버전 관리 시작(첫 기록 = 정리 전 상태). 빌드 씬 목록이 URP 템플릿 빈 `SampleScene`뿐이던 것을 `Prototype_Main`으로 바꾸고 `BuildSceneGuard`가 유지. 크래시 복구 씬 `Assets/_Recovery/` 4개 · `Assets/Scenes/SampleScene` · 빈 `Scripts/Build`·`Scripts/Utils` 삭제(`Settings/SampleSceneProfile`은 URP 설정이 참조해 유지). 4장 폴더 구조를 실제 파일과 대조해 다시 씀 | 사용자: 문서·코드 불일치, 불필요 파일, 버전 관리 부재 정리 |
 | 2026-10-05 | **스테이지 3 "A2/AD 해역"**: 새 적 4종(Codex Stage4EnemyRevision2 모델) — 무인 공격정(떼), 전자전 코르벳(레이더 탐지 −25%, `EwJammer`·`EnemyJamming`), 방공 프리깃(플레이어 유도탄 요격, `MissileInterceptor`), 공격 잠수함. 보스 항공전함을 현대화 이세급 v10 모델로 바꾸고 체력 2200(주포 4기 선회 — 포탑마다 쉬는 방향 기준). 7구간 웨이브, 보스 구간 집중 규칙 적용. 씬 대신 `RoundSet.nextStage`로 스테이지 2 → 3을 잇는다(`StageDirector`가 시작할 때 이어 붙임). 지휘 순양함(보스)은 스테이지 4용으로 남김. 메뉴 **Naval/Add Stage 3** | 사용자: 3스테이지 구현 |
 | 2026-10-05 | **대형 블록 · 배수량 논의 → 보류**(6장에 검토 결과 기록) | 사용자: 생각해 본 아이디어, 나중에 |
 | 2026-10-04 | **기만체 발사 연출**(`DecoyFx`): 발사 섬광·흰 연기 → 붉은 꼬리 탄이 포물선으로 솟아 공중 폭발 → 플레어 불똥이 퍼져 떨어지고 은박이 흩날림. 기만체가 실제로 그 탄 위치로 날아가 유인한다(예전: 발사기 높이에서 옆으로 흘러감) | 사용자: 실제 기만체처럼 발사하고 공중에서 플레어가 퍼지는 느낌 |
