@@ -502,6 +502,7 @@ ECS 미사용, 외부 유료 플러그인 미사용.
     2. `NavalRoguelike.exe -batchmode -screen-width 1920 -screen-height 1080 -combatVerify <출력 폴더>` (끝나면 종료: 통과 0, 규칙 실패 2)
   - 열려 있는 에디터와 같은 프로젝트는 배치 모드로 열 수 없으니 사본(Assets·Packages·ProjectSettings)에서 돌린다.
   - 사용자 경로에 한글이 있으면 플레이어 빌드의 Burst AOT 컴파일이 실패한다 — 검증용 사본에서만 `ProjectSettings/BurstAotSettings_StandaloneWindows.json`으로 Burst를 끄고 빌드했다.
+    2026-10-06 시험: 같은 사본을 영문 경로(`C:\NRtest`)에 두면 Temp 폴더가 한글 사용자 경로 그대로여도 Burst를 켠 채 빌드 성공(`lib_burst_generated.dll` 생성) → 원인은 **프로젝트 경로**. 근본 해결은 프로젝트를 영문 경로로 옮기는 것(게임 코드는 Burst를 직접 쓰지 않고 URP가 내부에서 쓴다).
 
 ---
 
@@ -541,7 +542,10 @@ ECS 미사용, 외부 유료 플러그인 미사용.
 
 ```
 Core/         GameManager, GameState, GameEvents, PoolManager, StageDirector(+RoundSet.nextStage로 스테이지 이어 붙임), AudioManager
-Dev/          에디터·개발 빌드 전용 — CombatDevTools(F3 개발 오버레이·시나리오·명령줄 플래그), CombatVerificationRunner(자동 검증),
+Dev/          에디터·개발 빌드 전용 — CombatDevTools(F3 개발 오버레이·시나리오·명령줄 플래그),
+              CombatVerificationRunner(자동 검증 — 본체: 진행 순서·기본 시나리오·공용 도구, partial 7개:
+                .Weapons 레이더·탄약·방어 / .Spec 명세 시험 / .Enemies 적별 / .TaskForce 편대·진영·진형 /
+                .Progression 개량·성장·변형 / .World 환경·섬·바다·도감 / .UI 화면·HUD·조함),
               OversizeRendererWatcher(적 근처 비정상 대형 물체 콘솔 경고)
 Progression/  ExperienceSystem
 Refit/        RefitController(레벨업 흐름), RefitDraft(카드 추첨), RefitCard(카드 종류·라벨)
@@ -566,7 +570,9 @@ Enemies/      공통 — EnemyController, EnemySpawner, EnemyFireCutout, AirEnem
               항공 — KamikazeDrone, ReconAircraft, FighterJet
               보스 — BossShip(연안 보스), ModernCorvetteBoss(스테이지 2), HybridBattleshipBoss(스테이지 3 항공전함)
 Data/         ShipConfig, BalanceConfig, ProgressionConfig, EnemyDefinition, RoundSet(스테이지 구간), StartingLoadout, SfxLibrary
-UI/           HUDView, HudTextures, HullDangerOverlay, RefitUI, ModuleCardText, ModuleStatusUI, MissileWarningUI,
+UI/           HUDView, HudTextures, HullDangerOverlay, ModuleCardText,
+              RefitUI(정비 화면 — 본체: 열기·입력 분기·카메라, partial 5개: .Cards 카드 / .Fleet 편대 슬롯·역할 /
+                .Upgrade 장비 개량 선택 / .Placement 격자 배치 / .Overlay 배지·시너지·사격각·정보), ModuleStatusUI, MissileWarningUI,
               RadarScopeUI(+RadarSweepGraphic), ShipStatusPanelUI(+ShipDiagramGraphic), WeaponStatusPanelUI, SkillBarUI,
               VlsModePanelUI, TaskForcePanelUI, FormationSelectorUI, CodexUI(+CodexCatalog, CodexPreview), ResultScreenUI
 View/         QuarterViewCamera, ShipVisualSway, OceanSurface, ShipWake, EliteMarker, Explosions, DecoyFx,
@@ -646,6 +652,7 @@ World/        Islands, IslandField, IslandBuilder(+.Art, .Decor 부분 클래스
 
 | 날짜 | 변경 | 이유 |
 |---|---|---|
+| 2026-10-06 | **큰 파일 나누기(동작 변경 없음)**: `CombatVerificationRunner`(5,119줄 → 본체 858 + 분야별 7개)와 `RefitUI`(1,797줄 → 본체 403 + 화면별 5개)를 partial 클래스로 나눔 — 멤버를 그대로 옮기기만 해서 직렬화 필드·프리팹 연결 그대로. `HUDView`(911줄)는 아직 크지 않아 그대로, 에디터 `NavalPrefabBuilder`(3,466줄)는 Codex도 다루는 파일이라 보류. Burst 한글 경로 원인 시험(프로젝트 경로가 원인) | 사용자: 코드가 큰 파일에 몰려 있음 |
 | 2026-10-05 | **프로젝트 정리**: git 버전 관리 시작(첫 기록 = 정리 전 상태). 빌드 씬 목록이 URP 템플릿 빈 `SampleScene`뿐이던 것을 `Prototype_Main`으로 바꾸고 `BuildSceneGuard`가 유지. 크래시 복구 씬 `Assets/_Recovery/` 4개 · `Assets/Scenes/SampleScene` · 빈 `Scripts/Build`·`Scripts/Utils` 삭제(`Settings/SampleSceneProfile`은 URP 설정이 참조해 유지). 4장 폴더 구조를 실제 파일과 대조해 다시 씀 | 사용자: 문서·코드 불일치, 불필요 파일, 버전 관리 부재 정리 |
 | 2026-10-05 | **스테이지 3 "A2/AD 해역"**: 새 적 4종(Codex Stage4EnemyRevision2 모델) — 무인 공격정(떼), 전자전 코르벳(레이더 탐지 −25%, `EwJammer`·`EnemyJamming`), 방공 프리깃(플레이어 유도탄 요격, `MissileInterceptor`), 공격 잠수함. 보스 항공전함을 현대화 이세급 v10 모델로 바꾸고 체력 2200(주포 4기 선회 — 포탑마다 쉬는 방향 기준). 7구간 웨이브, 보스 구간 집중 규칙 적용. 씬 대신 `RoundSet.nextStage`로 스테이지 2 → 3을 잇는다(`StageDirector`가 시작할 때 이어 붙임). 지휘 순양함(보스)은 스테이지 4용으로 남김. 메뉴 **Naval/Add Stage 3** | 사용자: 3스테이지 구현 |
 | 2026-10-05 | **대형 블록 · 배수량 논의 → 보류**(6장에 검토 결과 기록) | 사용자: 생각해 본 아이디어, 나중에 |
