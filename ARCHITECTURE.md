@@ -503,6 +503,7 @@ ECS 미사용, 외부 유료 플러그인 미사용.
   - 열려 있는 에디터와 같은 프로젝트는 배치 모드로 열 수 없으니 사본(Assets·Packages·ProjectSettings)에서 돌린다.
   - 사용자 경로에 한글이 있으면 플레이어 빌드의 Burst AOT 컴파일이 실패한다 — 검증용 사본에서만 `ProjectSettings/BurstAotSettings_StandaloneWindows.json`으로 Burst를 끄고 빌드했다.
     2026-10-06 시험: 같은 사본을 영문 경로(`C:\NRtest`)에 두면 Temp 폴더가 한글 사용자 경로 그대로여도 Burst를 켠 채 빌드 성공(`lib_burst_generated.dll` 생성) → 원인은 **프로젝트 경로**. 근본 해결은 프로젝트를 영문 경로로 옮기는 것(게임 코드는 Burst를 직접 쓰지 않고 URP가 내부에서 쓴다).
+    2026-10-07 결정: 출시용 빌드 전까지 **실제 프로젝트도 Burst AOT를 끔**(`ProjectSettings/BurstAotSettings_StandaloneWindows.json`, Windows 플레이어 빌드만 — 에디터 플레이는 그대로). 영향은 URP Forward+ 조명 분류가 일반 C#으로 돌아 폭발 섬광이 많을 때 CPU가 조금 더 드는 정도. **출시용 빌드 때: 프로젝트를 영문 경로로 옮기고 이 파일의 `EnableBurstCompilation`을 true로**(또는 파일 삭제).
 
 ---
 
@@ -652,6 +653,7 @@ World/        Islands, IslandField, IslandBuilder(+.Art, .Decor 부분 클래스
 
 | 날짜 | 변경 | 이유 |
 |---|---|---|
+| 2026-10-07 | **Burst AOT 끔**(Windows 플레이어 빌드, `BurstAotSettings_StandaloneWindows.json`) — 한글 프로젝트 경로에서 빌드가 실패하므로 출시용 빌드 전까지. 출시 때 영문 경로로 옮기고 다시 켠다 | 사용자: 지금은 끄고 출시 빌드 때 요청 |
 | 2026-10-06 | **큰 파일 나누기(동작 변경 없음)**: `CombatVerificationRunner`(5,119줄 → 본체 858 + 분야별 7개)와 `RefitUI`(1,797줄 → 본체 403 + 화면별 5개)를 partial 클래스로 나눔 — 멤버를 그대로 옮기기만 해서 직렬화 필드·프리팹 연결 그대로. `HUDView`(911줄)는 아직 크지 않아 그대로, 에디터 `NavalPrefabBuilder`(3,466줄)는 Codex도 다루는 파일이라 보류. Burst 한글 경로 원인 시험(프로젝트 경로가 원인) | 사용자: 코드가 큰 파일에 몰려 있음 |
 | 2026-10-05 | **프로젝트 정리**: git 버전 관리 시작(첫 기록 = 정리 전 상태). 빌드 씬 목록이 URP 템플릿 빈 `SampleScene`뿐이던 것을 `Prototype_Main`으로 바꾸고 `BuildSceneGuard`가 유지. 크래시 복구 씬 `Assets/_Recovery/` 4개 · `Assets/Scenes/SampleScene` · 빈 `Scripts/Build`·`Scripts/Utils` 삭제(`Settings/SampleSceneProfile`은 URP 설정이 참조해 유지). 4장 폴더 구조를 실제 파일과 대조해 다시 씀 | 사용자: 문서·코드 불일치, 불필요 파일, 버전 관리 부재 정리 |
 | 2026-10-05 | **스테이지 3 "A2/AD 해역"**: 새 적 4종(Codex Stage4EnemyRevision2 모델) — 무인 공격정(떼), 전자전 코르벳(레이더 탐지 −25%, `EwJammer`·`EnemyJamming`), 방공 프리깃(플레이어 유도탄 요격, `MissileInterceptor`), 공격 잠수함. 보스 항공전함을 현대화 이세급 v10 모델로 바꾸고 체력 2200(주포 4기 선회 — 포탑마다 쉬는 방향 기준). 7구간 웨이브, 보스 구간 집중 규칙 적용. 씬 대신 `RoundSet.nextStage`로 스테이지 2 → 3을 잇는다(`StageDirector`가 시작할 때 이어 붙임). 지휘 순양함(보스)은 스테이지 4용으로 남김. 메뉴 **Naval/Add Stage 3** | 사용자: 3스테이지 구현 |
