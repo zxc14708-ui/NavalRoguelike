@@ -17,6 +17,7 @@ namespace Game.EditorTools
             {
                 var island=scene.GetRootGameObjects().First(g=>g.name=="NavalBaseIsland");
                 clone=UnityEngine.Object.Instantiate(island); clone.name="NavalBaseMenu";
+                NavalBaseDetailBuilder.Apply(clone.transform);
                 foreach(var c in clone.GetComponentsInChildren<MonoBehaviour>(true))UnityEngine.Object.DestroyImmediate(c);
                 foreach(var c in clone.GetComponentsInChildren<Collider>(true))UnityEngine.Object.DestroyImmediate(c);
                 foreach(var c in clone.GetComponentsInChildren<Rigidbody>(true))UnityEngine.Object.DestroyImmediate(c);

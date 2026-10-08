@@ -195,6 +195,13 @@ namespace Game.EditorTools
                 s_beforeCancelLoadout = initializer.Loadout;
                 s_beforeCancelConcept = initializer.SelectedConcept;
                 s_beforeCancelModules = player.Grid.Modules.ToArray();
+                if (NavalBaseMenu.Active != null)
+                {
+                    NavalBaseMenu.Active.RenderNow();
+                    var titleCanvas = FindButton(null, "출항  /  작전 시작").GetComponentInParent<Canvas>();
+                    ShipConceptCapture.CaptureCanvas(titleCanvas.rootCanvas,
+                        Path.Combine(SessionState.GetString(OutputKey, ""), "ui_00_naval_base_title.png"));
+                }
                 OpenSelector();
                 s_cancelPhase = 1;
             }
