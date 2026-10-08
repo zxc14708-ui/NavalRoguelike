@@ -422,7 +422,14 @@ namespace Game.Dev
             foreach (var button in Object.FindObjectsByType<UnityEngine.UI.Button>(FindObjectsInactive.Include, FindObjectsSortMode.None))
                 if ((button.name == "Launch" || button.name.StartsWith("출항")) && button.interactable) { button.onClick.Invoke(); break; }
 
-            // 출항 뒤에는 전투단 편성 화면(FORCE PACKAGE)이 열린다 — 기본 편성 그대로 확정해야 전투가 시작된다
+            // 출항 뒤에는 시작 함선 선택(항구 정박지 독 또는 선체 선택 콘솔)이 열린다 — 플레이어처럼 지금 고른 함선으로 확정한다.
+            // 확정해야 시작 화면(항구 배경 포함)이 닫히고 전투가 시작된다. 예전에는 이 단계를 몰라 시작 화면이 열린 채로
+            // 검사가 돌았고, UI 캡처에서 함선 선택 콘솔이 정비 카드 위에 겹쳐 보였다(2026-10-08 수정).
+            var selector = Object.FindFirstObjectByType<Game.UI.StartingShipSelectorUI>();
+            if (selector != null)
+                typeof(Game.UI.StartingShipSelectorUI).GetMethod("Confirm", Inst)?.Invoke(selector, null);
+
+            // 예전 흐름: 전투단 편성 화면(FORCE PACKAGE) — 기본 편성 그대로 확정
             var overlay = GameObject.Find("Force package overlay");
             if (overlay != null)
                 foreach (var button in overlay.GetComponentsInChildren<UnityEngine.UI.Button>(true))
