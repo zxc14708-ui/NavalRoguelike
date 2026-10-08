@@ -1969,6 +1969,8 @@ namespace Game.EditorTools
                     stripes.Add(FindDeep(model, $"HatchWarning_{i:00}"));
                 }
                 ComputeVlsHinges(root.transform, lids, out var hingePoints, out var hingeAxes);
+                if (hingePoints != null)
+                    AddVlsHingeGeometry(root.transform, lids, hingePoints, hingeAxes);
 
                 Configure(root.GetComponent<VlsModule>(), so =>
                 {
@@ -2016,6 +2018,47 @@ namespace Game.EditorTools
                 points[i] = root.InverseTransformPoint(edge);
                 axes[i] = root.InverseTransformDirection(row);
             }
+        }
+
+        /// <summary>
+        /// Visible hinge hardware for every hatch. The shaft and two bearing blocks stay on the
+        /// launcher; the two leaves are children of the lid and follow its existing hinge animation.
+        /// Positions derive from the same pivot/bounds used by VlsModule, so art and motion agree.
+        /// </summary>
+        private static void AddVlsHingeGeometry(Transform root, List<Transform> lids, Vector3[] points, Vector3[] axes)
+        {
+            var steel = CreateMaterial("vls_hinge_steel", new Color(.13f,.17f,.2f), .65f, .38f);
+            var bearing = CreateMaterial("vls_hinge_bearing", new Color(.37f,.43f,.47f), .45f, .34f);
+            for(int i=0;i<lids.Count;i++)
+            {
+                var lid=lids[i];
+                var renderer=lid.GetComponent<Renderer>();
+                if(renderer==null) throw new System.InvalidOperationException($"VLS lid {i+1} has no renderer");
+                Vector3 axis=axes[i].normalized;
+                var b=renderer.bounds;
+                float length=2f*Vector3.Dot(b.extents,new Vector3(Mathf.Abs(axis.x),Mathf.Abs(axis.y),Mathf.Abs(axis.z)));
+                if(length<.15f || length>.8f) throw new System.InvalidOperationException($"VLS lid {i+1} hinge span {length:F3} is outside its cell");
+                Vector3 center=points[i];
+                var shaft=Primitive($"VLSHingeShaft_{i+1:00}",PrimitiveType.Cylinder,new Vector3(.062f,length*.5f,.062f),steel,root);
+                shaft.transform.localPosition=center;
+                shaft.transform.localRotation=Quaternion.FromToRotation(Vector3.up,axis);
+                for(int end=-1;end<=1;end+=2)
+                {
+                    Vector3 p=center+axis*(end*length*.44f);
+                    var cap=Primitive($"VLSHingeBearing_{i+1:00}_{(end<0?"A":"B")}",PrimitiveType.Cylinder,
+                        new Vector3(.10f,.024f,.10f),bearing,root);
+                    cap.transform.localPosition=p;
+                    cap.transform.localRotation=shaft.transform.localRotation;
+                    var foot=Primitive($"VLSHingeFoot_{i+1:00}_{(end<0?"A":"B")}",PrimitiveType.Cube,
+                        new Vector3(.11f,.095f,.12f),bearing,root);
+                    foot.transform.localPosition=p+Vector3.down*.055f;
+                    var leaf=Primitive($"VLSHingeLeaf_{i+1:00}_{(end<0?"A":"B")}",PrimitiveType.Cube,
+                        new Vector3(.075f,.025f,.11f),steel,root);
+                    leaf.transform.localPosition=p+Vector3.up*.028f;
+                    leaf.transform.SetParent(lid,true);
+                }
+            }
+            Debug.Log($"[VLS] Added {lids.Count} visible hinge shafts, bearing pairs and lid-mounted leaves.");
         }
 
         private static void SetVectors(SerializedObject so, string field, Vector3[] values)

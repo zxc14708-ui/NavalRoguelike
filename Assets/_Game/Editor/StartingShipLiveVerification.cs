@@ -207,10 +207,15 @@ namespace Game.EditorTools
                     if (concept != null && concept.StartLoadout != null)
                         choices.Add(FindButton(selector.transform, concept.Title));
                 Require(choices.Count == 4, $"Actual selector has {choices.Count} ship choices instead of four.");
-                Require(selector.GetComponentsInChildren<Button>().Length == 6,
+                Require(selector.GetComponentsInChildren<Button>().Length == (NavalBaseMenu.Active!=null?8:6),
                     "Actual selector does not have four ship choices plus back/confirm controls.");
                 var command = AssetDatabase.LoadAssetAtPath<StartingShipConcept>(
                     "Assets/_Game/Data/StartingShips/ShipConcept_Command.asset");
+                int initialIndex=selector.SelectedIndex;
+                selector.Navigate(1);
+                Require(selector.SelectedIndex==(initialIndex+1)%4,"Right navigation did not advance the berth.");
+                selector.Navigate(-1);
+                Require(selector.SelectedIndex==initialIndex,"Left navigation did not restore the berth.");
                 FindButton(selector.transform, command.Title).onClick.Invoke();
                 s_cancelPhase = 2;
             }
@@ -241,7 +246,7 @@ namespace Game.EditorTools
                 Report.Add("PASS actual Canvas selector: four ship choices; command preview renders; browsing/cancel preserve the ship; back restores launch.");
                 s_cancelPhase = 4;
             }
-            s_next = now + .20;
+            s_next = now + (NavalBaseMenu.Active!=null?2.5:.20);
         }
 
         private static void OpenSelector()
@@ -262,6 +267,15 @@ namespace Game.EditorTools
 
         private static void ValidatePreview(StartingShipSelectorUI selector, string description)
         {
+            var harbor=NavalBaseMenu.Active;
+            if(harbor!=null)
+            {
+                Require(harbor.ShipCount==4 && harbor.SelectedIndex==selector.SelectedIndex,description+": selected berth differs from UI.");
+                Require(harbor.TrafficCount>=2,description+": missing aircraft/ship traffic.");
+                harbor.RenderNow();
+                Report.Add($"PASS {description}: four moored ships, left/right navigation, aircraft and harbor traffic.");
+                return;
+            }
             var preview = selector.GetComponentInChildren<CodexPreview>();
             Require(preview != null && preview.RendererCount > 0, description + ": no native model renderers.");
             float coverage = preview.RenderAndMeasure();

@@ -471,6 +471,11 @@ namespace Game.UI
 
         public void ShowStartScreen(System.Action onLaunch)
         {
+            if(Resources.Load<GameObject>("Environment/NavalBaseMenu")!=null)
+            {
+                ShowHarborStartScreen(onLaunch);
+                return;
+            }
             _combatGroup.alpha = 0;
             _combatGroup.blocksRaycasts = false;
             var canvas = GetComponentInParent<Canvas>();
@@ -529,6 +534,31 @@ namespace Game.UI
                 ConsoleIdle, 22).onClick.AddListener(ShowCodex);
             Label(content, "Footer", "기관 전령기 · 조타 · 함 현황     |     설정에서 전투 조작키 변경 가능",
                 new Vector2(0, 17), new Vector2(1030, 28), 16, new Color(0.55f, 0.73f, 0.65f));
+        }
+
+        private void ShowHarborStartScreen(System.Action onLaunch)
+        {
+            _combatGroup.alpha=0; _combatGroup.blocksRaycasts=false;
+            var canvas=GetComponentInParent<Canvas>();
+            var menu=Panel(canvas.transform,"Fleet command / main menu",Vector2.zero,Vector2.zero,Vector2.zero,Color.clear);
+            menu.anchorMax=Vector2.one; menu.offsetMin=menu.offsetMax=Vector2.zero;
+            _menu=menu.gameObject;
+            var harbor=NavalBaseMenu.Create(menu);
+            var content=Panel(menu,"Harbor departure console",new Vector2(0,.5f),new Vector2(64,-270),new Vector2(520,540),new Color(.015f,.045f,.06f,.88f));
+            Label(content,"Header","NAVAL COMMAND  /  모항",new Vector2(28,478),new Vector2(464,30),18,ConsoleText);
+            Label(content,"Title","NAVAL\nROGUELIKE",new Vector2(26,320),new Vector2(472,142),52,Color.white);
+            Label(content,"Subtitle","함선을 선택하고 작전 해역으로 출항하세요.",new Vector2(28,267),new Vector2(462,44),20,ConsoleText);
+            var launch=MenuButton(content,"출항  /  작전 시작",new Vector2(28,182),new Vector2(464,64),ConsoleActive,25);
+            launch.onClick.AddListener(()=>
+            {
+                content.gameObject.SetActive(false);
+                var initializer=FindFirstObjectByType<Game.Ship.ShipInitializer>();
+                void Complete(){_menu.SetActive(false);_combatGroup.alpha=1;_combatGroup.blocksRaycasts=true;onLaunch?.Invoke();}
+                if(!StartingShipSelectorUI.Show(menu,_navalFont,initializer,Complete,()=>{harbor.ShowOverview();content.gameObject.SetActive(true);}))
+                    content.gameObject.SetActive(true);
+            });
+            MenuButton(content,"설정  /  조작 · 음향",new Vector2(28,110),new Vector2(464,54),ConsoleIdle,21).onClick.AddListener(ShowSettings);
+            MenuButton(content,"사전  /  무장 · 호위함 · 적",new Vector2(28,44),new Vector2(464,54),ConsoleIdle,21).onClick.AddListener(ShowCodex);
         }
 
         private Button MenuButton(Transform parent, string title, Vector2 position, Vector2 size, Color color, float fontSize)
