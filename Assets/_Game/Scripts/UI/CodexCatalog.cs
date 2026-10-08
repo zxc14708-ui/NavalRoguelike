@@ -117,6 +117,7 @@ namespace Game.UI
             ModuleType.FireControlArray => 17,
             ModuleType.MissileLogistics => 18,
             ModuleType.TorpedoTube => 8,   // 폭뢰 옆에
+            ModuleType.Howitzer => 2,      // 76mm 옆에
             _ => 20,
         };
 

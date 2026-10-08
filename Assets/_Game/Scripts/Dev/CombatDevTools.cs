@@ -75,6 +75,7 @@ namespace Game.Dev
                 runner.EnvOnly = System.Array.IndexOf(args, "-envOnly") >= 0;
                 runner.VariantOnly = System.Array.IndexOf(args, "-variantOnly") >= 0;
                 runner.TubeOnly = System.Array.IndexOf(args, "-tubeOnly") >= 0;
+                runner.HowitzerOnly = System.Array.IndexOf(args, "-howitzerOnly") >= 0;
                 runner.FormationOnly = System.Array.IndexOf(args, "-formationOnly") >= 0;
                 runner.CodexOnly = System.Array.IndexOf(args, "-codexOnly") >= 0;
                 runner.PccSoak = System.Array.IndexOf(args, "-pccSoak") >= 0;

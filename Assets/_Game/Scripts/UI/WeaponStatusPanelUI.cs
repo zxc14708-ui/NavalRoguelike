@@ -27,6 +27,7 @@ namespace Game.UI
         {
             (ModuleType.Autocannon, "기관포"),
             (ModuleType.NavalGun, "76mm"),
+            (ModuleType.Howitzer, "곡사포"),
             (ModuleType.GuidedRocket, "유도로켓"),
             (ModuleType.Vls, "VLS"),
             (ModuleType.SamLauncher, "함대공"),

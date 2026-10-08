@@ -156,7 +156,7 @@ namespace Game.Modules
         /// <summary>능력 카드·최종 수치 계산이 보는 "무장" 분류. 능동 스킬 장비(기만체·재밍)는 무장이 아니다.</summary>
         public static bool IsWeapon(ModuleType t) => t is ModuleType.Autocannon or ModuleType.NavalGun or ModuleType.Vls
             or ModuleType.GuidedRocket or ModuleType.Ciws or ModuleType.SamLauncher or ModuleType.AswLauncher
-            or ModuleType.TorpedoTube;
+            or ModuleType.TorpedoTube or ModuleType.Howitzer;
 
         /// <summary>이 종류의 무장이 받는 공격력 배율.</summary>
         public static float DamageMultiplier(ModuleType t)

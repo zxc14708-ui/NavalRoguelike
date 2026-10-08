@@ -60,6 +60,8 @@ namespace Game.Enemies
         private float _orbitSide = 1f;
 
         public float CurrentSpeed => _speed;
+        /// <summary>실제로 움직이는 속도(수평). 멈춰 둔 검증용 적(DevFrozen)은 0 — 예측 사격이 앞지르지 않게.</summary>
+        public Vector3 MoveVelocity => DevFrozen || !IsAlive ? Vector3.zero : transform.forward * _speed;
         public float CurrentHp => _hp;
 
         /// <summary>남은 체력 비율(0~1). 보스의 단계 전환에 쓴다.</summary>

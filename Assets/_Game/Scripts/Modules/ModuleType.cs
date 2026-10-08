@@ -28,6 +28,7 @@ namespace Game.Modules
         FireControlArray = 19,// 동시 추적·유도무장 사거리
         MissileLogistics = 20,// VLS·유도로켓 발사 간격·셀 보급
         TorpedoTube = 21,      // 경어뢰 발사관 — 트인 현측으로 부채꼴 3발(대잠 전용)
+        Howitzer = 22,         // 곡사포 — 상부 구조물·섬 너머로 쏘는 범위 피해(수상 전용)
     }
 
     /// <summary>
