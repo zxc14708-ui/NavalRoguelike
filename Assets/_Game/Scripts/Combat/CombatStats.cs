@@ -43,6 +43,7 @@ namespace Game.Combat
             if (n.StartsWith("MIS_PlayerSam")) return "SAM";
             if (n.StartsWith("DC_Player")) return "폭뢰";
             if (n.StartsWith("PRJ_Howitzer")) return "곡사포";
+            if (n.StartsWith("PRJ_Nobong")) return "노봉";
             return null;
         }
 

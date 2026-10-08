@@ -184,7 +184,7 @@ namespace Game.Ship
                 stats.ReloadTime *= MissileReloadMultiplier;
                 stats.AmmoReloadTime *= MissileResupplyMultiplier;
             }
-            if (type is ModuleType.Autocannon or ModuleType.NavalGun)
+            if (type is ModuleType.Autocannon or ModuleType.NavalGun or ModuleType.Nobong)
                 stats.Damage *= MovingGunDamageMultiplier;
         }
 

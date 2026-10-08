@@ -11,6 +11,7 @@ namespace Game.Combat
     ///   - 예광탄: tracerTime > 0이면 짧은 발광 꼬리를 단다(기관포·CIWS).
     ///   - 명중: impactEffect를 impactEffectScale 크기로(기관포는 작은 불꽃, 76mm는 폭발).
     ///   - 빗나감: waterEffect가 있으면 수면에 닿을 때 물기둥(76mm).
+    ///   - 근접신관(노봉 40mm 성형파편탄): proximityRadius > 0이면 적 항공기·드론 곁을 지날 때 직격하지 않아도 터진다.
     /// </summary>
     public class Projectile : MonoBehaviour, IPoolable
     {
@@ -24,6 +25,12 @@ namespace Game.Combat
         [SerializeField, Range(0f, 1f)] private float splashDamageRatio = 0.5f;
         [SerializeField] private GameObject impactEffect;
         [SerializeField] private float impactEffectScale = 1f;
+
+        [Header("Proximity Fuze (선택)")]
+        [Tooltip("0보다 크면 적 항공기·드론이 탄도에서 이 거리 안이면 공중에서 터진다(파편 반경 = splashRadius)")]
+        [SerializeField] private float proximityRadius;
+        [Tooltip("발사 뒤 이 거리까지는 근접신관이 작동하지 않는다(아군 함체 보호)")]
+        [SerializeField] private float proximityArmDistance = 3f;
 
         [Header("Feedback (선택)")]
         [Tooltip("빗나가 수면에 닿으면 띄우는 물기둥")]
@@ -50,6 +57,9 @@ namespace Game.Combat
         private float _splashMultiplier = 1f;
 
         public bool IsAlive => isActiveAndEnabled;
+
+        /// <summary>근접신관으로 공중에서 터진 횟수(검증용, 전체 합).</summary>
+        public static int ProximityBursts { get; private set; }
 
         /// <summary>쏜 쪽 진영(맞히는 레이어로 정한다). 같은 진영에는 피해를 주지 않는다. 알 수 없으면 Neutral(검사 안 함).</summary>
         public CombatFaction Owner { get; private set; }
@@ -134,6 +144,10 @@ namespace Game.Combat
                 return;
             }
 
+            if (proximityRadius > 0f && Owner == CombatFaction.Player && _traveled >= proximityArmDistance &&
+                TryProximity(transform.position, step))
+                return;
+
             Vector3 next = transform.position + transform.forward * step;
             _traveled += step;
 
@@ -155,6 +169,56 @@ namespace Game.Combat
 
             transform.position = next;
         }
+
+        /// <summary>
+        /// 이번 이동 구간에서 적 항공기·드론에 근접신관 반경 안까지 다가가면 가장 가까운 점에서 터진다.
+        /// 가장 가까운 표적에 한 발 피해 전부, 파편 반경 안의 다른 항공기에 splashDamageRatio.
+        /// </summary>
+        private bool TryProximity(Vector3 from, float step)
+        {
+            var air = TargetRegistry.HostileTo(CombatFaction.Player, TargetKind.Aircraft);
+            ITargetable best = null;
+            float bestSqr = proximityRadius * proximityRadius;
+            Vector3 burst = from;
+            Vector3 dir = transform.forward;
+            for (int i = 0; i < air.Count; i++)
+            {
+                var t = air[i];
+                if (t == null || !t.IsAlive || t.Transform == null) continue;
+                Vector3 to = t.Transform.position - from;
+                float along = Mathf.Clamp(Vector3.Dot(to, dir), 0f, step);
+                Vector3 closest = from + dir * along;
+                float sqr = (t.Transform.position - closest).sqrMagnitude;
+                if (sqr >= bestSqr) continue;
+                bestSqr = sqr;
+                best = t;
+                burst = closest;
+            }
+            if (best == null) return false;
+
+            if (best is IDamageable direct && direct.IsAlive)
+            {
+                direct.TakeDamage(new DamageInfo(_damage, burst, dir, _source, _statsKey));
+                CombatStats.RecordHit(_statsKey, burst);
+            }
+            float r2 = splashRadius * splashRadius * _splashMultiplier * _splashMultiplier;
+            for (int i = 0; i < air.Count; i++)
+            {
+                var t = air[i];
+                if (t == null || t == best || !t.IsAlive || t.Transform == null) continue;
+                if ((t.Transform.position - burst).sqrMagnitude > r2) continue;
+                if (t is IDamageable d && d.IsAlive)
+                    d.TakeDamage(new DamageInfo(_damage * splashDamageRatio, burst, dir, _source, _statsKey));
+            }
+            ProximityBursts++;
+            transform.position = burst;
+            PooledEffect.Spawn(impactEffect, burst, impactEffectScale);
+            Despawn();
+            return true;
+        }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() => ProximityBursts = 0;
 
         /// <summary>직격한 표적을 뺀 주변 표적에게 파편 피해.</summary>
         private void ApplySplash(Vector3 center, Collider direct)

@@ -24,7 +24,7 @@ namespace Game.Modules
         Repair,          // 손상 통제반 수리 효율
         Defense,         // 방어력(받는 피해 ÷ (1+보너스))
         Detection,       // 탐지 거리(레이더·소나)
-        GunDamage,       // 함포계(기관포·76mm) 공격력
+        GunDamage,       // 함포계(기관포·노봉·76mm) 공격력
         MissileDamage,   // 미사일계(VLS·유도로켓) 공격력
         AirDefenseRate,  // 방공계(CIWS·함대공) 연사력
     }
@@ -63,7 +63,7 @@ namespace Game.Modules
 
         // ------------------------------------------------------------ 카탈로그
 
-        private static readonly ModuleType[] GunTypes = { ModuleType.Autocannon, ModuleType.NavalGun };
+        private static readonly ModuleType[] GunTypes = { ModuleType.Autocannon, ModuleType.NavalGun, ModuleType.Nobong };
         private static readonly ModuleType[] MissileTypes = { ModuleType.Vls, ModuleType.GuidedRocket };
         private static readonly ModuleType[] AirDefenseTypes = { ModuleType.Ciws, ModuleType.SamLauncher };
 
@@ -80,7 +80,7 @@ namespace Game.Modules
             new() { Stat = RunStat.Defense, Name = "방어력", Scope = "함선", Effect = "받는 피해가 줄어든다", Values = new[] { 0.03f, 0.06f, 0.12f }, Weight = 0.9f, InverseDisplay = true },
             new() { Stat = RunStat.Repair, Name = "수리 효율", Scope = "손상 통제반", Effect = "선체·모듈 수리 속도가 빨라진다", Values = new[] { 0.10f, 0.20f, 0.40f }, Weight = 0.7f, RequiresAny = new[] { ModuleType.RepairBay } },
             new() { Stat = RunStat.Detection, Name = "탐지 거리", Scope = "레이더·소나", Effect = "탐지 거리가 늘어난다", Values = new[] { 0.08f, 0.16f, 0.32f }, Weight = 0.6f },
-            new() { Stat = RunStat.GunDamage, Name = "함포계 공격력", Scope = "기관포 · 76mm 함포", Effect = "포탄 무장의 한 발 피해가 크게 늘어난다", Values = new[] { 0.08f, 0.16f, 0.32f }, Weight = 0.8f, RequiresAny = GunTypes },
+            new() { Stat = RunStat.GunDamage, Name = "함포계 공격력", Scope = "기관포 · 노봉 · 76mm 함포", Effect = "포탄 무장의 한 발 피해가 크게 늘어난다", Values = new[] { 0.08f, 0.16f, 0.32f }, Weight = 0.8f, RequiresAny = GunTypes },
             new() { Stat = RunStat.MissileDamage, Name = "미사일계 공격력", Scope = "VLS · 유도로켓", Effect = "미사일 무장의 한 발 피해가 크게 늘어난다", Values = new[] { 0.08f, 0.16f, 0.32f }, Weight = 0.8f, RequiresAny = MissileTypes },
             new() { Stat = RunStat.AirDefenseRate, Name = "방공계 연사력", Scope = "CIWS · 함대공", Effect = "방공 무장의 발사 간격이 짧아진다", Values = new[] { 0.08f, 0.16f, 0.32f }, Weight = 0.7f, RequiresAny = AirDefenseTypes },
         };
@@ -156,14 +156,15 @@ namespace Game.Modules
         /// <summary>능력 카드·최종 수치 계산이 보는 "무장" 분류. 능동 스킬 장비(기만체·재밍)는 무장이 아니다.</summary>
         public static bool IsWeapon(ModuleType t) => t is ModuleType.Autocannon or ModuleType.NavalGun or ModuleType.Vls
             or ModuleType.GuidedRocket or ModuleType.Ciws or ModuleType.SamLauncher or ModuleType.AswLauncher
-            or ModuleType.TorpedoTube or ModuleType.Howitzer or ModuleType.RamBow or ModuleType.MineRail;
+            or ModuleType.TorpedoTube or ModuleType.Howitzer or ModuleType.RamBow or ModuleType.MineRail
+            or ModuleType.Nobong;
 
         /// <summary>이 종류의 무장이 받는 공격력 배율.</summary>
         public static float DamageMultiplier(ModuleType t)
         {
             if (!IsWeapon(t)) return 1f;
             float b = Get(RunStat.Damage);
-            if (t is ModuleType.Autocannon or ModuleType.NavalGun) b += Get(RunStat.GunDamage);
+            if (t is ModuleType.Autocannon or ModuleType.NavalGun or ModuleType.Nobong) b += Get(RunStat.GunDamage);
             else if (t is ModuleType.Vls or ModuleType.GuidedRocket) b += Get(RunStat.MissileDamage);
             return 1f + b;
         }

@@ -189,7 +189,8 @@ namespace Game.Refit
         public static bool IsConceptSupport(ModuleType type)
             => type is ModuleType.FleetRelay or ModuleType.TurboIntake
                 or ModuleType.FireControlArray or ModuleType.MissileLogistics
-                or ModuleType.TorpedoTube or ModuleType.Howitzer or ModuleType.RamBow or ModuleType.MineRail;   // 경어뢰 발사관·곡사포(2026-10-08)도 Resources/Modules에서 더한다
+                or ModuleType.TorpedoTube or ModuleType.Howitzer or ModuleType.RamBow or ModuleType.MineRail
+                or ModuleType.Nobong;   // 경어뢰 발사관·곡사포(2026-10-08)도 Resources/Modules에서 더한다
 
         // ------------------------------------------------------------ 장비 강화(통합 카드)
 

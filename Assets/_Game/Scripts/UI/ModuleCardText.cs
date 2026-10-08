@@ -65,6 +65,12 @@ namespace Game.UI
                     Row(sb, "발사 간격", $"{s.ReloadTime:0.0#} 초 · 착탄까지 1.4~3 초");
                     Ammo(sb, s);
                     break;
+                case ModuleType.Nobong:
+                    Row(sb, "교전 거리", $"수상 {s.MinRange:0} ~ {s.Range:0} m · 대공 {s.Range * 0.7f:0} m");
+                    Row(sb, "피해", $"{s.Damage:0.#} × 2 (쌍열) · 근접신관 파편 1.2 m");
+                    Row(sb, "발사 간격", $"{s.ReloadTime:0.0#} 초 · 4회 쏘고 0.5 초 쉼");
+                    Ammo(sb, s);
+                    break;
                 case ModuleType.RamBow:
                     Row(sb, "충돌 피해", $"{s.Damage:0} × 속력 (최고 속력 20% 이상)");
                     Row(sb, "충돌 구역", "블록 앞 2.4 m · 같은 적은 1초에 한 번");
@@ -290,7 +296,7 @@ namespace Game.UI
 
         public static string Category(ModuleType t) => t switch
         {
-            ModuleType.Autocannon or ModuleType.RamBow => "근거리 무장",
+            ModuleType.Autocannon or ModuleType.RamBow or ModuleType.Nobong => "근거리 무장",
             ModuleType.MineRail => "후방 무장",
             ModuleType.NavalGun or ModuleType.GuidedRocket or ModuleType.Howitzer => "중거리 무장",
             ModuleType.Vls => "장거리 무장",
@@ -309,7 +315,7 @@ namespace Game.UI
 
         private static string CategoryColor(ModuleType t) => t switch
         {
-            ModuleType.Autocannon or ModuleType.RamBow or ModuleType.MineRail => "#e0956a",
+            ModuleType.Autocannon or ModuleType.RamBow or ModuleType.MineRail or ModuleType.Nobong => "#e0956a",
             ModuleType.NavalGun or ModuleType.GuidedRocket or ModuleType.Howitzer => "#e0c05a",
             ModuleType.Vls => "#7fb8e0",
             ModuleType.Ciws or ModuleType.SamLauncher => "#8fd0ff",
@@ -454,6 +460,7 @@ namespace Game.UI
             ModuleType.TorpedoTube => "트인 현측으로 경어뢰 3발 부채꼴 — 중거리 대잠",
             ModuleType.Howitzer => "상부 구조물·섬 너머로 쏘는 범위 포격 — 몰린 수상함",
             ModuleType.RamBow => "맨 앞 칸 강화 함수 — 빠르게 나아가며 들이받는다",
+            ModuleType.Nobong => "40mm 쌍열 · 근접신관 공중 폭발 — 드론 떼와 고속정",
             ModuleType.MineRail => "선미에서 추격하는 적 앞에 기뢰를 떨어뜨린다",
             ModuleType.Radar => "탐지 거리와 동시 추적 수 증가",
             ModuleType.Sonar => "잠항 잠수함 탐지",

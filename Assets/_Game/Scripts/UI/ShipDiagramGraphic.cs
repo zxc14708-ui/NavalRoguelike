@@ -66,7 +66,8 @@ namespace Game.UI
 
         private static bool IsWeapon(ModuleType t) => t is ModuleType.Autocannon or ModuleType.Ciws or ModuleType.NavalGun
             or ModuleType.GuidedRocket or ModuleType.Vls or ModuleType.SamLauncher or ModuleType.AswLauncher
-            or ModuleType.TorpedoTube or ModuleType.Howitzer or ModuleType.RamBow or ModuleType.MineRail;
+            or ModuleType.TorpedoTube or ModuleType.Howitzer or ModuleType.RamBow or ModuleType.MineRail
+            or ModuleType.Nobong;
 
         protected override void OnPopulateMesh(VertexHelper vh)
         {

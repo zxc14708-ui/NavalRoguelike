@@ -84,6 +84,8 @@ namespace Game.Dev
         public bool HowitzerOnly;
         [Tooltip("충각 함수·기뢰 투하궤 검사만 돌린다(-ramMineOnly)")]
         public bool RamMineOnly;
+        [Tooltip("노봉 40mm 검사만 돌린다(-nobongOnly)")]
+        public bool NobongOnly;
         [Tooltip("편대 진형·조함 검사만 돌린다(-formationOnly)")]
         public bool FormationOnly;
         [Tooltip("메인 화면 사전·무장 팩 v8 외형 검사만 돌린다(-codexOnly)")]
@@ -175,6 +177,13 @@ namespace Game.Dev
             {
                 yield return VariantCheck();
                 SaveLog("variant");
+                Finish();
+                yield break;
+            }
+            if (NobongOnly)
+            {
+                yield return NobongCheck();
+                SaveLog("nobong");
                 Finish();
                 yield break;
             }
@@ -387,6 +396,7 @@ namespace Game.Dev
             yield return TorpedoTubeCheck();
             yield return HowitzerCheck();
             yield return RamMineCheck();
+            yield return NobongCheck();
             yield return FormationCheck();
             yield return CodexCheck();
             Finish();
