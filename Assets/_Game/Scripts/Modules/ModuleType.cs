@@ -27,6 +27,7 @@ namespace Game.Modules
         TurboIntake = 18,      // 최고속력·가속·항해 중 실탄 피해
         FireControlArray = 19,// 동시 추적·유도무장 사거리
         MissileLogistics = 20,// VLS·유도로켓 발사 간격·셀 보급
+        TorpedoTube = 21,      // 경어뢰 발사관 — 트인 현측으로 부채꼴 3발(대잠 전용)
     }
 
     /// <summary>
@@ -35,7 +36,7 @@ namespace Game.Modules
     /// </summary>
     public enum ModuleHeight
     {
-        Low,    // 탄약고, 손상통제반, 소나, 기만체, 대잠 폭뢰 — 가리지 않음
+        Low,    // 탄약고, 손상통제반, 소나, 기만체, 대잠 폭뢰, 경어뢰 발사관 — 가리지 않음
         Mid,    // 기관포, CIWS, VLS, 유도로켓 — 같은 높이 이하 무기를 가림
         High,   // 함교, 레이더, 헬기데크 — 모든 무기를 가림
     }
@@ -47,7 +48,7 @@ namespace Game.Modules
     {
         Gun,       // 기관포, 76mm, CIWS
         Missile,   // VLS, 함대공, 유도로켓
-        Asw,       // 폭뢰, 대잠 헬기
+        Asw,       // 폭뢰, 경어뢰, 대잠 헬기
     }
 
     /// <summary>드래프트 확률 가중에 쓰는 희귀도.</summary>

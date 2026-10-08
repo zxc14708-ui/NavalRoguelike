@@ -32,6 +32,7 @@ namespace Game.UI
             (ModuleType.SamLauncher, "함대공"),
             (ModuleType.Ciws, "CIWS"),
             (ModuleType.AswLauncher, "폭뢰"),
+            (ModuleType.TorpedoTube, "경어뢰"),
         };
 
         private static readonly Color Dim = new(0.62f, 0.72f, 0.76f, 0.75f);

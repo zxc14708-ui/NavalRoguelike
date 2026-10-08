@@ -188,7 +188,8 @@ namespace Game.Refit
 
         public static bool IsConceptSupport(ModuleType type)
             => type is ModuleType.FleetRelay or ModuleType.TurboIntake
-                or ModuleType.FireControlArray or ModuleType.MissileLogistics;
+                or ModuleType.FireControlArray or ModuleType.MissileLogistics
+                or ModuleType.TorpedoTube;   // 경어뢰 발사관(2026-10-08)도 Resources/Modules에서 더한다
 
         // ------------------------------------------------------------ 장비 강화(통합 카드)
 
@@ -279,6 +280,7 @@ namespace Game.Refit
                 switch (m.Definition.Type)
                 {
                     case ModuleType.AswLauncher:
+                    case ModuleType.TorpedoTube:
                     case ModuleType.HelicopterDeck: return true;
                     case ModuleType.Sonar: sonar = true; break;
                     case ModuleType.Vls: vls = true; break;

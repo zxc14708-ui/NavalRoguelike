@@ -94,8 +94,8 @@ namespace Game.UI
             return held switch
             {
                 ModuleType.HelicopterDeck => other == ModuleType.HelicopterDeck || other == ModuleType.Sonar,
-                ModuleType.Sonar => other == ModuleType.HelicopterDeck || other == ModuleType.AswLauncher,
-                ModuleType.AswLauncher => other == ModuleType.Sonar,
+                ModuleType.Sonar => other == ModuleType.HelicopterDeck || other == ModuleType.AswLauncher || other == ModuleType.TorpedoTube,
+                ModuleType.AswLauncher or ModuleType.TorpedoTube => other == ModuleType.Sonar,
                 ModuleType.Radar => other == ModuleType.SamLauncher || other == ModuleType.Ciws,
                 ModuleType.SamLauncher or ModuleType.Ciws => other == ModuleType.Radar,
                 ModuleType.EwSuite => other == ModuleType.DecoyLauncher,

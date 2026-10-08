@@ -1,0 +1,77 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee8925205f16a2b47900cba0670cd113, type: 3}
+  m_Name: mod_torpedotube
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Modules.ModuleDefinition
+  id: mod_torpedotube
+  displayName: "\uACBD\uC5B4\uB8B0 \uBC1C\uC0AC\uAD00"
+  description: "\uC18C\uB098\uB85C \uD655\uC778\uD55C \uC7A0\uC218\uD568(\uB610\uB294
+    \uC5B4\uB8B0 \uBC1C\uC0AC \uD754\uC801) \uCABD\uC73C\uB85C \uACBD\uC5B4\uB8B0
+    3\uBC1C\uC744 \uBD80\uCC44\uAF34\uB85C \uCC28\uB840\uB85C \uC3DC\uB2E4(8~45).
+    \uC5B4\uB8B0\uB294 \uC811\uCD09 \uC9C0\uC810 \uB458\uB808\uB97C \uCC3E\uB2E4\uAC00
+    \uAC00\uAE4C\uC6B4 \uC7A0\uC218\uD568\uC744 \uCD94\uC801\uD558\uBA70, \uC7A0\uD56D
+    \uC911\uC5D0\uB3C4 \uB9DE\uB294\uB2E4. \uC88C\uD604\uC774\uB098 \uC6B0\uD604\uC774
+    \uD2B8\uC778 \uC790\uB9AC\uC5D0\uB9CC \uB193\uC774\uACE0 \uD2B8\uC778 \uD604\uCE21\uC73C\uB85C\uB9CC
+    \uC3DC\uB2E4. \uB300\uC7A0 \uC804\uC6A9."
+  type: 21
+  icon: {fileID: 21300000, guid: f117ae789a9143044a71507dfb871e0a, type: 3}
+  width: 1
+  height: 1
+  canRotate: 1
+  placement:
+    Zone: 4
+  heightClass: 0
+  maxCount: 0
+  maxHp: 30
+  rarity: 1
+  weight: 1
+  prefab: {fileID: 7848336288385943850, guid: aadb06301f803604caadad54394ba4e3, type: 3}
+  stats:
+    Range: 45
+    MinRange: 8
+    Damage: 15
+    ReloadTime: 10
+    ProjectileSpeed: 0
+    FireArcDegrees: 150
+    TurretTurnRate: 0
+    AmmoFamily: 2
+    MagazineCapacity: 6
+    AmmoPerShot: 1
+    AmmoReloadAmount: 1
+    AmmoReloadTime: 9
+    DetectionRange: 0
+    ExtraTrackedTargets: 0
+    SupportRadiusCells: 0
+    ReloadBonus: 0
+    AmmoCapacityBonus: 0
+    ResupplyBonus: 0
+    CookOffDamage: 0
+    DamageReduction: 0
+    HullRepairPerSecond: 0
+    ModuleRepairPerSecond: 0
+    SortieCooldown: 0
+    HelicopterSpeed: 0
+    EscortFireRateBonus: 0
+    SpeedBonus: 0
+    AccelerationBonus: 0
+    MovingGunDamageBonus: 0
+    GuidedRangeBonus: 0
+    MissileReloadReduction: 0
+  targetEfficiency:
+    SmallSurface: 0
+    MediumSurface: 0
+    LargeSurface: 0
+    Boss: 0
+    Submarine: 1
+    Drone: 0
+    Air: 0
+    Missile: 0

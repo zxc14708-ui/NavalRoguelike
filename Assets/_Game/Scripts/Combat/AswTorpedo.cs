@@ -4,7 +4,10 @@ using Game.Enemies;
 
 namespace Game.Combat
 {
-    /// <summary>VLS 대잠탄이 마지막 접촉 지점에 투하하는 경어뢰. 입수 후 자체 센서 반경에서만 표적을 찾는다.</summary>
+    /// <summary>
+    /// 경어뢰. VLS 대잠탄이 마지막 접촉 지점에 투하하거나(Launch), 현측 발사관이 부채꼴로 쏜다(LaunchFromTube).
+    /// 입수 후 단서 지점으로 달려가 그 둘레를 돌며 찾고, 자체 센서 반경 안에 잠수함이 들어오면 추적한다.
+    /// </summary>
     public class AswTorpedo : MonoBehaviour, IPoolable
     {
         [SerializeField] private float sinkTime = 0.55f;
@@ -19,6 +22,7 @@ namespace Game.Combat
         private Vector3 _cue;
         private SubmarineBase _target;
         private float _age, _damage, _searchAngle;
+        private bool _fromTube;   // 발사관: 입수하는 동안에도 발사 방향으로 미끄러져 나간다
         private string _statsKey;
 
         private void Awake()
@@ -40,8 +44,18 @@ namespace Game.Combat
             _damage = damage;
             _age = _searchAngle = 0f;
             _target = null;
+            _fromTube = false;
             _statsKey = CombatStats.KeyFor(gameObject);
             CombatStats.RecordFire(_statsKey);
+        }
+
+        /// <summary>현측 발사관: 발사 방향을 향해 물에 들어간 뒤 단서 지점(부채꼴의 한 갈래 끝)으로 달린다.</summary>
+        public void LaunchFromTube(Vector3 muzzle, Vector3 heading, Vector3 cue, float damage)
+        {
+            Launch(muzzle, cue, damage);
+            heading.y = 0f;
+            if (heading.sqrMagnitude > 1e-4f) transform.rotation = Quaternion.LookRotation(heading.normalized, Vector3.up);
+            _fromTube = true;
         }
 
         private void Update()
@@ -54,6 +68,7 @@ namespace Game.Combat
             {
                 Vector3 p = transform.position;
                 p.y = Mathf.MoveTowards(p.y, runDepth, (Mathf.Max(0f, p.y - runDepth) + 0.2f) * dt / Mathf.Max(0.05f, sinkTime - _age));
+                if (_fromTube) p += transform.forward * (speed * 0.6f * dt);
                 transform.position = p;
                 return;
             }
@@ -115,7 +130,7 @@ namespace Game.Combat
             else gameObject.SetActive(false);
         }
 
-        public void OnSpawned() { _age = 0f; _target = null; }
+        public void OnSpawned() { _age = 0f; _target = null; _fromTube = false; }
         public void OnDespawned() { _target = null; }
     }
 }

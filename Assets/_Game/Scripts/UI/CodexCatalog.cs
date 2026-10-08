@@ -116,6 +116,7 @@ namespace Game.UI
             ModuleType.TurboIntake => 16,
             ModuleType.FireControlArray => 17,
             ModuleType.MissileLogistics => 18,
+            ModuleType.TorpedoTube => 8,   // 폭뢰 옆에
             _ => 20,
         };
 
@@ -199,6 +200,8 @@ namespace Game.UI
                 yield return ModuleVariant.DepthChargeRack;
                 yield return ModuleVariant.DepthChargeProjector;
             }
+            else if (type == ModuleType.TorpedoTube)
+                yield return ModuleVariant.TorpedoTubeSide;
         }
 
         private static string RarityName(Rarity r) => r switch

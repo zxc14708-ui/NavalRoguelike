@@ -18,6 +18,7 @@ namespace Game.Modules
         BowOnly,    // 앞쪽이 막히지 않은 자리 = 뱃머리
         SternOnly,  // 뒤쪽이 막히지 않은 자리 = 선미
         SideOrStern, // 옆이나 뒤가 막히지 않은 자리(사방이 막힌 함내는 불가) — 폭뢰(위치에 따라 투하대/발사대)
+        SideOnly,    // 좌현이나 우현이 막히지 않은 자리 — 경어뢰 발사관(트인 현측으로 쏜다)
     }
 
     [Serializable]
@@ -31,6 +32,12 @@ namespace Game.Modules
     /// <summary>PlacementRule을 실제 격자에 대해 검사한다. 규칙 추가는 여기만 고치면 된다.</summary>
     public static class PlacementRuleEvaluator
     {
+        /// <summary>
+        /// 놓은 뒤에도 이웃 블록 때문에 막힐 수 있는 규칙(폭뢰·경어뢰). 이런 블록의 트인 쪽을
+        /// 모두 막는 설치는 ShipGrid가 거부한다.
+        /// </summary>
+        public static bool NeedsOpenSide(PlacementZone zone) => zone is PlacementZone.SideOrStern or PlacementZone.SideOnly;
+
         public static bool Evaluate(PlacementRule rule, ShipGrid grid,
                                     IReadOnlyList<GridCoord> coords, out string reason)
         {
@@ -53,6 +60,11 @@ namespace Game.Modules
                 case PlacementZone.SideOrStern:
                     if (!IsOpen(grid, coords, -1, 0) && !IsOpen(grid, coords, 0, -1) && !IsOpen(grid, coords, 0, +1))
                     { reason = "옆이나 뒤가 트인 자리에만 설치 가능(사방이 막힌 자리 불가)"; return false; }
+                    return true;
+
+                case PlacementZone.SideOnly:
+                    if (!IsOpen(grid, coords, 0, -1) && !IsOpen(grid, coords, 0, +1))
+                    { reason = "좌현이나 우현이 트인 자리에만 설치 가능"; return false; }
                     return true;
 
                 default:

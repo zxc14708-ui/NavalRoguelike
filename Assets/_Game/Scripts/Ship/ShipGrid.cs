@@ -106,7 +106,7 @@ namespace Game.Ship
         }
 
         /// <summary>
-        /// 이 발자국을 놓으면 이미 놓인 "옆이나 뒤가 트여야 하는" 블록(폭뢰)이 사방이 막히는가.
+        /// 이 발자국을 놓으면 이미 놓인 "옆이나 뒤가 트여야 하는" 블록(폭뢰·경어뢰)의 트인 쪽이 모두 막히는가.
         /// 형태는 위치로 계속 다시 판정하므로, 막혀서 쓸 수 없게 되는 배치를 미리 거부한다.
         /// </summary>
         private bool EnclosesNeighbor(List<GridCoord> footprint, out string reason)
@@ -114,7 +114,7 @@ namespace Game.Ship
             reason = null;
             foreach (var m in _modules)
             {
-                if (m?.Definition == null || m.Definition.Placement.Zone != PlacementZone.SideOrStern) continue;
+                if (m?.Definition == null || !PlacementRuleEvaluator.NeedsOpenSide(m.Definition.Placement.Zone)) continue;
                 bool touches = false;
                 foreach (var c in m.OccupiedCoords)
                 {
@@ -130,7 +130,9 @@ namespace Game.Ship
                 finally { _probe.Clear(); }
                 if (!ok)
                 {
-                    reason = $"{m.Definition.DisplayName}의 옆·뒤를 모두 막음";
+                    reason = m.Definition.Placement.Zone == PlacementZone.SideOnly
+                        ? $"{m.Definition.DisplayName}의 양옆을 모두 막음"
+                        : $"{m.Definition.DisplayName}의 옆·뒤를 모두 막음";
                     return true;
                 }
             }

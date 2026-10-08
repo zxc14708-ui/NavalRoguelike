@@ -78,6 +78,8 @@ namespace Game.Dev
         public bool EnvOnly;
         [Tooltip("위치별 소나·폭뢰 형태 검사만 돌린다(-variantOnly)")]
         public bool VariantOnly;
+        [Tooltip("경어뢰 발사관 검사만 돌린다(-tubeOnly)")]
+        public bool TubeOnly;
         [Tooltip("편대 진형·조함 검사만 돌린다(-formationOnly)")]
         public bool FormationOnly;
         [Tooltip("메인 화면 사전·무장 팩 v8 외형 검사만 돌린다(-codexOnly)")]
@@ -169,6 +171,13 @@ namespace Game.Dev
             {
                 yield return VariantCheck();
                 SaveLog("variant");
+                Finish();
+                yield break;
+            }
+            if (TubeOnly)
+            {
+                yield return TorpedoTubeCheck();
+                SaveLog("tube");
                 Finish();
                 yield break;
             }
@@ -357,6 +366,7 @@ namespace Game.Dev
             yield return GrowthCheck();
             yield return EnvArtCheck();
             yield return VariantCheck();
+            yield return TorpedoTubeCheck();
             yield return FormationCheck();
             yield return CodexCheck();
             Finish();

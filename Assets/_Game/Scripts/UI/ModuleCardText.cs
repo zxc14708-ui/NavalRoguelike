@@ -59,6 +59,12 @@ namespace Game.UI
                     Row(sb, "투하 간격", $"{s.ReloadTime:0.0} 초");
                     Ammo(sb, s);
                     break;
+                case ModuleType.TorpedoTube:
+                    Row(sb, "대잠 사거리", $"{s.MinRange:0} ~ {s.Range:0} m");
+                    Row(sb, "피해", $"{s.Damage:0} × 3 (부채꼴)");
+                    Row(sb, "발사 간격", $"{s.ReloadTime:0.0} 초");
+                    Ammo(sb, s);
+                    break;
                 case ModuleType.Radar:
                     Row(sb, "탐지 거리", $"{s.DetectionRange:0} m");
                     Row(sb, "동시 추적", $"+{s.ExtraTrackedTargets}");
@@ -131,6 +137,7 @@ namespace Game.UI
                 PlacementZone.BowOnly => "뱃머리(앞이 트인 자리)만",
                 PlacementZone.SternOnly => "선미(뒤가 트인 자리)만",
                 PlacementZone.SideOrStern => "옆이나 뒤가 트인 자리(사방이 막힌 자리 불가)",
+                PlacementZone.SideOnly => "좌현이나 우현이 트인 자리",
                 _ => null,
             };
             // 자리로 형태가 바뀌는 블록(소나·폭뢰)
@@ -272,7 +279,7 @@ namespace Game.UI
             ModuleType.NavalGun or ModuleType.GuidedRocket => "중거리 무장",
             ModuleType.Vls => "장거리 무장",
             ModuleType.Ciws or ModuleType.SamLauncher => "방공",
-            ModuleType.AswLauncher or ModuleType.Sonar or ModuleType.HelicopterDeck => "대잠",
+            ModuleType.AswLauncher or ModuleType.TorpedoTube or ModuleType.Sonar or ModuleType.HelicopterDeck => "대잠",
             ModuleType.Radar => "센서",
             ModuleType.DecoyLauncher or ModuleType.EwSuite => "기만·전자전",
             ModuleType.Magazine => "보급",
@@ -290,7 +297,7 @@ namespace Game.UI
             ModuleType.NavalGun or ModuleType.GuidedRocket => "#e0c05a",
             ModuleType.Vls => "#7fb8e0",
             ModuleType.Ciws or ModuleType.SamLauncher => "#8fd0ff",
-            ModuleType.AswLauncher or ModuleType.Sonar or ModuleType.HelicopterDeck => "#68b8ff",
+            ModuleType.AswLauncher or ModuleType.TorpedoTube or ModuleType.Sonar or ModuleType.HelicopterDeck => "#68b8ff",
             ModuleType.DecoyLauncher or ModuleType.EwSuite => "#d09aff",
             ModuleType.RepairBay => "#7fd08a",
             ModuleType.FleetRelay => "#62cadc",
@@ -428,6 +435,7 @@ namespace Game.UI
             ModuleType.SamLauncher => "적 미사일·항공기를 멀리서 요격",
             ModuleType.Ciws => "최후 방어 — 미사일 우선, 다음 항공기",
             ModuleType.AswLauncher => "소나 접촉·어뢰 흔적에 폭뢰 투하",
+            ModuleType.TorpedoTube => "트인 현측으로 경어뢰 3발 부채꼴 — 중거리 대잠",
             ModuleType.Radar => "탐지 거리와 동시 추적 수 증가",
             ModuleType.Sonar => "잠항 잠수함 탐지",
             ModuleType.DecoyLauncher => "유도탄을 끌어내는 기만체와 연막",

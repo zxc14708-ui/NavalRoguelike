@@ -129,7 +129,7 @@ namespace Game.UI
             ModuleType.NavalGun or ModuleType.GuidedRocket => new Color(0.88f, 0.75f, 0.35f),
             ModuleType.Vls => new Color(0.5f, 0.72f, 0.88f),
             ModuleType.Ciws or ModuleType.SamLauncher => new Color(0.56f, 0.82f, 1f),
-            ModuleType.AswLauncher or ModuleType.Sonar or ModuleType.HelicopterDeck => new Color(0.41f, 0.72f, 1f),
+            ModuleType.AswLauncher or ModuleType.TorpedoTube or ModuleType.Sonar or ModuleType.HelicopterDeck => new Color(0.41f, 0.72f, 1f),
             ModuleType.DecoyLauncher or ModuleType.EwSuite => new Color(0.82f, 0.6f, 1f),
             ModuleType.RepairBay => new Color(0.5f, 0.82f, 0.54f),
             ModuleType.FleetRelay => new Color(0.38f, 0.79f, 0.86f),
