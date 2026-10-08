@@ -68,11 +68,23 @@ namespace Game.Ship
         public int MaxTrackedTargets { get; private set; }
         public int CommandCapacity { get; private set; }
 
+        private float _escortFireRateBonus, _speedBonus, _accelerationBonus;
+        private float _movingGunDamageBonus, _guidedRangeBonus, _missileReloadReduction;
+        private int _fireControlTracks;
+        public float EscortFireRateMultiplier => 1f + _escortFireRateBonus;
+        public float SpeedMultiplier => 1f + _speedBonus;
+        public float AccelerationMultiplier => 1f + _accelerationBonus;
+        public float GuidedWeaponRangeMultiplier => 1f + _guidedRangeBonus;
+        public float MissileReloadMultiplier => 1f - _missileReloadReduction;
+        public float MissileResupplyMultiplier => 1f - _missileReloadReduction;
+        public float MovingGunDamageMultiplier => SpeedRatio >= 0.5f ? 1f + _movingGunDamageBonus : 1f;
+
         private void OnEnable()
         {
             GameEvents.ModuleInstalled += OnModuleChanged;
             GameEvents.ModuleDestroyed += OnModuleChanged;
             GameEvents.ModuleRemoved += OnModuleChanged;
+            GameEvents.ModuleUpgraded += OnModuleChanged;
             RunUpgrades.Changed += Recalculate;   // 성장 카드(탐지 거리)
         }
 
@@ -82,6 +94,7 @@ namespace Game.Ship
             GameEvents.ModuleInstalled -= OnModuleChanged;
             GameEvents.ModuleDestroyed -= OnModuleChanged;
             GameEvents.ModuleRemoved -= OnModuleChanged;
+            GameEvents.ModuleUpgraded -= OnModuleChanged;
         }
 
         private void Start() => Recalculate();
@@ -102,12 +115,24 @@ namespace Game.Ship
             DamageReduction = 0f;
             MaxTrackedTargets = config.BaseTrackedTargets;
             CommandCapacity = config.BaseCommandCapacity;
+            _escortFireRateBonus = _speedBonus = _accelerationBonus = 0f;
+            _movingGunDamageBonus = _guidedRangeBonus = _missileReloadReduction = 0f;
+            _fireControlTracks = 0;
 
             foreach (var m in grid.Modules)
             {
                 if (m == null || !m.IsOperational) continue;
+                // 성장 카드 이벤트 구독 순서와 무관하게 최신 수치를 집계한다.
+                m.RefreshStats();
                 m.Runtime?.ContributeToShipSystems(this);
             }
+            MaxTrackedTargets += _fireControlTracks;
+
+            // 작동 중인 탄창을 새 보급 간격에 맞춘다. 탄수·보급 진행률은 유지한다.
+            // 비활성화된 무기도 갱신하여 다시 켰을 때 파괴된 지원의 보너스가 남지 않게 한다.
+            foreach (var m in grid.Modules)
+                if (m != null && m.IsOperational && m.Runtime is Game.Combat.IAmmoUser ammoUser)
+                    ammoUser.Ammo?.Reconfigure(m.Runtime.Stats);
 
             // 성장 카드: 탐지 거리(레이더·소나)
             DetectionRange *= RunUpgrades.DetectionMultiplier;
@@ -128,6 +153,40 @@ namespace Game.Ship
             if (baseRange > 0f) _sonars.Add((variant, baseRange));
         }
         public void AddTrackedTargets(int v) => MaxTrackedTargets += v;
+
+        /// <summary>동종 지원은 가장 강한 하나만 적용한다. 잘못된 데이터도 무한 연사로 이어지지 않게 제한한다.</summary>
+        public void RaiseEscortFireRateBonus(float bonus)
+            => _escortFireRateBonus = Mathf.Max(_escortFireRateBonus, Mathf.Clamp(bonus, 0f, 0.5f));
+
+        public void RaisePropulsionBonuses(float speed, float acceleration, float movingGunDamage)
+        {
+            _speedBonus = Mathf.Max(_speedBonus, Mathf.Clamp(speed, 0f, 0.5f));
+            _accelerationBonus = Mathf.Max(_accelerationBonus, Mathf.Clamp(acceleration, 0f, 1f));
+            _movingGunDamageBonus = Mathf.Max(_movingGunDamageBonus, Mathf.Clamp(movingGunDamage, 0f, 0.5f));
+        }
+
+        public void RaiseFireControl(int tracks, float guidedRange)
+        {
+            _fireControlTracks = Mathf.Max(_fireControlTracks, Mathf.Clamp(tracks, 0, 8));
+            _guidedRangeBonus = Mathf.Max(_guidedRangeBonus, Mathf.Clamp(guidedRange, 0f, 0.5f));
+        }
+
+        public void RaiseMissileLogistics(float reduction)
+            => _missileReloadReduction = Mathf.Max(_missileReloadReduction, Mathf.Clamp(reduction, 0f, 0.5f));
+
+        /// <summary>집계한 지원을 무기 스탯 복사본에만 적용한다. 사격·표적 선택·UI가 같은 값을 읽는다.</summary>
+        public void ApplyModuleBonuses(ModuleType type, ref ModuleStats stats)
+        {
+            if (type is ModuleType.Vls or ModuleType.GuidedRocket or ModuleType.SamLauncher)
+                stats.Range *= GuidedWeaponRangeMultiplier;
+            if (type is ModuleType.Vls or ModuleType.GuidedRocket)
+            {
+                stats.ReloadTime *= MissileReloadMultiplier;
+                stats.AmmoReloadTime *= MissileResupplyMultiplier;
+            }
+            if (type is ModuleType.Autocannon or ModuleType.NavalGun)
+                stats.Damage *= MovingGunDamageMultiplier;
+        }
 
         /// <summary>여러 개를 달아도 무적이 되지 않도록 상한을 둔다.</summary>
         public void AddDamageReduction(float pct01)

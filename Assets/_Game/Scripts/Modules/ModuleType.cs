@@ -23,6 +23,10 @@ namespace Game.Modules
         //     mod_armor는 8(헬기데크), mod_generator는 3(VLS)으로 잘못 저장되어 있었다 → Naval/Migrate Legacy Module Types
         Armor = 15,      // 장갑(폐지 — 손상통제반 방호 거점으로 대체)
         Generator = 16,  // 발전기(폐지)
+        FleetRelay = 17,       // 호위함 자율 능력 재사용 속도
+        TurboIntake = 18,      // 최고속력·가속·항해 중 실탄 피해
+        FireControlArray = 19,// 동시 추적·유도무장 사거리
+        MissileLogistics = 20,// VLS·유도로켓 발사 간격·셀 보급
     }
 
     /// <summary>

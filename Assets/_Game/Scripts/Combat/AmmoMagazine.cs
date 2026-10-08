@@ -71,15 +71,18 @@ namespace Game.Combat
 
         /// <summary>
         /// 블록 강화로 기본 수치가 바뀌었을 때. 가득 채우지 않고 남은 탄 비율을 유지한다(Configure와 달리 Refill하지 않음).
-        /// 재장전 중이면 그 재장전은 그대로 이어진다.
+        /// 재장전 중이면 남은 진행률을 유지하며 새 간격에 맞춰 이어진다.
         /// </summary>
         public void Reconfigure(in ModuleStats stats)
         {
+            float oldInterval = Interval;
             _baseCapacity = Mathf.Max(0, stats.MagazineCapacity);
             _perShot = Mathf.Max(1, stats.AmmoPerShot);
             _baseAmount = Mathf.Max(0, stats.AmmoReloadAmount);
             _baseInterval = Mathf.Max(0.1f, stats.AmmoReloadTime);
             ApplyBonus(_capacityMul, _resupplyMul);
+            // 간격이 달라져도 현재 보급 진행률을 유지한다. 착탈로 즉시 탄을 생성하지 않는다.
+            if (_timer > 0f) _timer *= Interval / oldInterval;
         }
 
         /// <summary>

@@ -132,6 +132,10 @@ namespace Game.UI
             ModuleType.AswLauncher or ModuleType.Sonar or ModuleType.HelicopterDeck => new Color(0.41f, 0.72f, 1f),
             ModuleType.DecoyLauncher or ModuleType.EwSuite => new Color(0.82f, 0.6f, 1f),
             ModuleType.RepairBay => new Color(0.5f, 0.82f, 0.54f),
+            ModuleType.FleetRelay => new Color(0.38f, 0.79f, 0.86f),
+            ModuleType.TurboIntake => new Color(0.88f, 0.58f, 0.42f),
+            ModuleType.FireControlArray => new Color(0.56f, 0.82f, 1f),
+            ModuleType.MissileLogistics => new Color(0.5f, 0.72f, 0.88f),
             _ => new Color(0.78f, 0.83f, 0.86f),
         };
 

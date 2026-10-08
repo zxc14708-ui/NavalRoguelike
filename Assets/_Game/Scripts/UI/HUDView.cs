@@ -518,7 +518,9 @@ namespace Game.UI
             launch.onClick.AddListener(() =>
             {
                 launch.interactable = false;
-                CompleteLaunch();
+                var initializer = FindFirstObjectByType<Game.Ship.ShipInitializer>();
+                if (!StartingShipSelectorUI.Show(_menu.transform, _navalFont, initializer,
+                    CompleteLaunch, () => launch.interactable = true)) CompleteLaunch();
             });
             MenuButton(content, "설정  /  조작 · 음향", new Vector2(0, 70), new Vector2(540, 58),
                 ConsoleIdle, 22).onClick.AddListener(ShowSettings);

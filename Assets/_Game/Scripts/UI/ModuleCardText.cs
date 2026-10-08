@@ -97,6 +97,32 @@ namespace Game.UI
                     Row(sb, "탐지 거리", $"{s.DetectionRange:0} m");
                     Row(sb, "선체 회복", $"{s.HullRepairPerSecond:0.0} /초");
                     break;
+                case ModuleType.FleetRelay:
+                    Row(sb, "편대 재사용 속도", $"+{s.EscortFireRateBonus * 100f:0}%");
+                    Row(sb, "대상", "호위함 자율 무장");
+                    Row(sb, "지휘 점수·슬롯", "증가 없음");
+                    Row(sb, "중복", "가장 강한 1개만 적용");
+                    break;
+                case ModuleType.TurboIntake:
+                    Row(sb, "최고 속력", $"+{s.SpeedBonus * 100f:0}%");
+                    Row(sb, "가속", $"+{s.AccelerationBonus * 100f:0}%");
+                    Row(sb, "항해 중 포 피해", $"+{s.MovingGunDamageBonus * 100f:0}%");
+                    Row(sb, "조건", "최고 속력의 50% 이상");
+                    Row(sb, "대상", "기관포·76mm 함포");
+                    Row(sb, "중복", "가장 강한 1개만 적용");
+                    break;
+                case ModuleType.FireControlArray:
+                    Row(sb, "동시 추적", $"+{s.ExtraTrackedTargets}");
+                    Row(sb, "유도 무장 사거리", $"+{s.GuidedRangeBonus * 100f:0}%");
+                    Row(sb, "대상", "VLS·유도로켓·함대공");
+                    Row(sb, "중복", "가장 강한 1개만 적용");
+                    break;
+                case ModuleType.MissileLogistics:
+                    Row(sb, "발사 간격", $"−{s.MissileReloadReduction * 100f:0}%");
+                    Row(sb, "셀 보급 시간", $"−{s.MissileReloadReduction * 100f:0}%");
+                    Row(sb, "대상", "VLS·유도로켓 (함대공 제외)");
+                    Row(sb, "중복", "가장 강한 1개만 적용");
+                    break;
             }
 
             Efficiency(sb, def);
@@ -251,6 +277,10 @@ namespace Game.UI
             ModuleType.DecoyLauncher or ModuleType.EwSuite => "기만·전자전",
             ModuleType.Magazine => "보급",
             ModuleType.RepairBay => "손상 통제",
+            ModuleType.FleetRelay => "편대 지원",
+            ModuleType.TurboIntake => "기관 보조",
+            ModuleType.FireControlArray => "사격 통제",
+            ModuleType.MissileLogistics => "미사일 보급",
             _ => "함체",
         };
 
@@ -263,6 +293,10 @@ namespace Game.UI
             ModuleType.AswLauncher or ModuleType.Sonar or ModuleType.HelicopterDeck => "#68b8ff",
             ModuleType.DecoyLauncher or ModuleType.EwSuite => "#d09aff",
             ModuleType.RepairBay => "#7fd08a",
+            ModuleType.FleetRelay => "#62cadc",
+            ModuleType.TurboIntake => "#e0956a",
+            ModuleType.FireControlArray => "#8fd0ff",
+            ModuleType.MissileLogistics => "#7fb8e0",
             _ => "#c8d4dc",
         };
 
@@ -401,7 +435,26 @@ namespace Game.UI
             ModuleType.Magazine => "가까운 포의 발사·보급을 빠르게 (파괴 시 유폭)",
             ModuleType.RepairBay => "선체·모듈을 서서히 수리",
             ModuleType.HelicopterDeck => "대잠 헬기 자동 출격",
+            ModuleType.FleetRelay => "편대 통신을 중계해 호위함 자율 무장을 빠르게",
+            ModuleType.TurboIntake => "기관 보조 — 빠르게 항해할 때 실탄 화력 증가",
+            ModuleType.FireControlArray => "사격 통제 — 동시 추적과 유도 무장 사거리 증가",
+            ModuleType.MissileLogistics => "미사일 발사와 셀 보급 대기 시간을 단축",
             _ => "",
         };
+
+        /// <summary>전투 중 현황판의 지원 장비 효과. 파괴되면 표시하지 않는다.</summary>
+        public static string BuildSupportStatus(ModuleInstance module)
+        {
+            if (module == null || !module.IsOperational || module.Definition == null) return "";
+            var s = module.Runtime != null ? module.Runtime.Stats : module.EffectiveStats;
+            return module.Definition.Type switch
+            {
+                ModuleType.FleetRelay => $"편대 +{s.EscortFireRateBonus * 100f:0}%",
+                ModuleType.TurboIntake => $"속력 +{s.SpeedBonus * 100f:0}%",
+                ModuleType.FireControlArray => $"추적 +{s.ExtraTrackedTargets}",
+                ModuleType.MissileLogistics => $"발사 −{s.MissileReloadReduction * 100f:0}%",
+                _ => "",
+            };
+        }
     }
 }

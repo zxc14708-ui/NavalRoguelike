@@ -254,7 +254,7 @@ namespace Game.UI
 
             _sb.Clear();
             _sb.Append("<color=#8fa4b8>모듈").Append(P(190)).Append("위치").Append(P(265)).Append("내구")
-               .Append(P(395)).Append("상태").Append(P(460)).Append("탄약</color>\n");
+               .Append(P(395)).Append("상태").Append(P(460)).Append("탄약 / 지원</color>\n");
 
             for (int i = start; i < start + count && i < _sorted.Count; i++)
             {
@@ -278,6 +278,8 @@ namespace Game.UI
 
         private static string AmmoText(ModuleInstance m)
         {
+            string support = ModuleCardText.BuildSupportStatus(m);
+            if (support.Length > 0) return $"<color=#7fd08a>{support}</color>";
             if (m.IsDestroyed || m.Runtime is not IAmmoUser user || user.Ammo == null || user.Ammo.Infinite) return "";
             var a = user.Ammo;
             string tag = a.Status switch

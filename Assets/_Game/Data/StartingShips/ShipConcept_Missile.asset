@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c095edf580e07e41bff79fd7e0dee96, type: 3}
+  m_Name: ShipConcept_Missile
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.StartingShipConcept
+  id: ship_missile
+  title: "\uBBF8\uC0AC\uC77C \uAD6C\uCD95\uD568"
+  description: "\uC704\uC0C1\uBC30\uC5F4 \uC13C\uC11C\xB7VLS. \uC0AC\uACA9\uD1B5\uC81C\uC640
+    \uBCF4\uAE09\uC73C\uB85C \uC7A5\uAC70\uB9AC \uD0C0\uACA9."
+  kind: 3
+  color: {r: 0.51, g: 0.66, b: 1, a: 1}
+  startLoadout: {fileID: 11400000, guid: 61b16fb7bfaa9324fb159facde4564b3, type: 2}
+  expandedLoadout: {fileID: 11400000, guid: 727965a377077fc4783da52c170415fe, type: 2}
+  bridgeDefinition: {fileID: 11400000, guid: 4d332b937b5542e4a9f6955ba9a5bbcf, type: 2}
+  startPreviewPrefab: {fileID: 580549841707467497, guid: cf3b65dd9b8f84045a9dbf47dd2e715a, type: 3}
+  expandedPreviewPrefab: {fileID: 3883913798977980432, guid: 08b21b7544f07b345861828d9b179aff, type: 3}
+  startSummary: "VLS \xB7 \uAE30\uAD00\uD3EC \xB7 \uC0AC\uACA9\uD1B5\uC81C \xB7 \uBBF8\uC0AC\uC77C
+    \uBCF4\uAE09\n\uCD94\uC801 +2 \xB7 \uC720\uB3C4 \uC0AC\uAC70\uB9AC +10% \xB7
+    \uBBF8\uC0AC\uC77C \uBC1C\uC0AC/\uBCF4\uAE09 \uC2DC\uAC04 -15%."
+  initialEscortCount: 0
+  hpMultiplier: 1
+  armorMultiplier: 1
+  speedMultiplier: 0.9
+  turnMultiplier: 0.9
+  projectileDamageMultiplier: 1
+  projectileRangeMultiplier: 1
+  projectileFireRateMultiplier: 1
+  missileDamageMultiplier: 1.25
+  missileRangeMultiplier: 1.2
+  missileReloadMultiplier: 1.1
+  helicopterDamageMultiplier: 1
+  helicopterCooldownMultiplier: 1
+  escortStart: 0
+  escortMax: 4
+  allowedWeapons: 01000000040000000c000000030000000a0000000d0000000b000000
+  futureBlocks:
+  - "BLK_FireControlArray \u2014 \uB2E4\uC911 \uC0AC\uACA9\uD1B5\uC81C"
+  - "BLK_MissileLogistics \u2014 VLS \uC140 \uBCF4\uAE09"
+  mechanicsImplemented: 0

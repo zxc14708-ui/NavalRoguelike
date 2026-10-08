@@ -1,0 +1,72 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee8925205f16a2b47900cba0670cd113, type: 3}
+  m_Name: mod_fleetrelay
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Modules.ModuleDefinition
+  id: mod_fleetrelay
+  displayName: "\uC804\uD22C\uB2E8 \uD1B5\uC2E0 \uC911\uACC4"
+  description: "\uD638\uC704\uD568 \uC790\uC728 \uBB34\uC7A5\uC758 \uC7AC\uC0AC\uC6A9
+    \uC18D\uB3C4\uB97C 15% \uB192\uC778\uB2E4. \uC2AC\uB86F/CP\uB97C \uCD94\uAC00\uD558\uC9C0
+    \uC54A\uB294\uB2E4."
+  type: 17
+  icon: {fileID: 21300000, guid: 09fce06b13942e343b33a48f4022a1c5, type: 3}
+  width: 1
+  height: 1
+  canRotate: 1
+  placement:
+    Zone: 0
+  heightClass: 2
+  maxCount: 1
+  maxHp: 40
+  rarity: 0
+  weight: 0.65
+  prefab: {fileID: 7775186106027197502, guid: b01ae2772b79d164b854a3a0c16b057c, type: 3}
+  stats:
+    Range: 0
+    MinRange: 0
+    Damage: 0
+    ReloadTime: 0
+    ProjectileSpeed: 0
+    FireArcDegrees: 0
+    TurretTurnRate: 0
+    AmmoFamily: 0
+    MagazineCapacity: 0
+    AmmoPerShot: 0
+    AmmoReloadAmount: 0
+    AmmoReloadTime: 0
+    DetectionRange: 0
+    ExtraTrackedTargets: 0
+    SupportRadiusCells: 0
+    ReloadBonus: 0
+    AmmoCapacityBonus: 0
+    ResupplyBonus: 0
+    CookOffDamage: 0
+    DamageReduction: 0
+    HullRepairPerSecond: 0
+    ModuleRepairPerSecond: 0
+    SortieCooldown: 0
+    HelicopterSpeed: 0
+    EscortFireRateBonus: 0.15
+    SpeedBonus: 0
+    AccelerationBonus: 0
+    MovingGunDamageBonus: 0
+    GuidedRangeBonus: 0
+    MissileReloadReduction: 0
+  targetEfficiency:
+    SmallSurface: 1
+    MediumSurface: 1
+    LargeSurface: 1
+    Boss: 1
+    Submarine: 1
+    Drone: 1
+    Air: 1
+    Missile: 1
