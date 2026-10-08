@@ -338,20 +338,13 @@ namespace Game.EditorTools
             string dir = $"{Root}/Art/Fonts";
             EnsureFolder(dir);
 
-            string ttfPath = $"{dir}/malgun.ttf";
+            // Noto Sans KR(SIL OFL 1.1, 같은 폴더의 NotoSansKR_OFL.txt) — 저장소에 함께 둔다.
+            // 예전에는 Windows의 맑은 고딕을 복사했지만 재배포할 수 없는 글꼴이라 2026-10-08에 바꿨다.
+            string ttfPath = $"{dir}/NotoSansKR-Regular.otf";
             if (!File.Exists(ttfPath))
             {
-                string system = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Fonts", "malgun.ttf");
-
-                if (!File.Exists(system))
-                {
-                    Debug.LogWarning("[Setup] 맑은 고딕을 찾지 못했습니다. UI 한글이 네모로 보일 수 있습니다.");
-                    return null;
-                }
-
-                File.Copy(system, ttfPath, true);
-                AssetDatabase.ImportAsset(ttfPath, ImportAssetOptions.ForceSynchronousImport);
+                Debug.LogWarning($"[Setup] {ttfPath}가 없습니다. UI 한글이 네모로 보일 수 있습니다.");
+                return null;
             }
 
             string assetPath = $"{dir}/KoreanFont SDF.asset";
