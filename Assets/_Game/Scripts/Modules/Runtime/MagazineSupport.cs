@@ -86,8 +86,8 @@ namespace Game.Modules.Runtime
             void Add(string value) { if (result.Length > 0) result.Append("  ·  "); result.Append(value); }
 
             if (type == ModuleType.HelicopterDeck && Has(ModuleType.HelicopterDeck)) Add("헬기 편대: 재출격 -20%");
-            if ((type == ModuleType.Sonar && (Has(ModuleType.HelicopterDeck) || Has(ModuleType.AswLauncher))) ||
-                (type == ModuleType.HelicopterDeck || type == ModuleType.AswLauncher) && Has(ModuleType.Sonar))
+            if ((type == ModuleType.Sonar && (Has(ModuleType.HelicopterDeck) || Has(ModuleType.AswLauncher) || Has(ModuleType.TorpedoTube))) ||
+                (type == ModuleType.HelicopterDeck || type == ModuleType.AswLauncher || type == ModuleType.TorpedoTube) && Has(ModuleType.Sonar))
                 Add("대잠 연계: 접촉 확정 1.2초");
             if (type == ModuleType.EwSuite && Has(ModuleType.DecoyLauncher) ||
                 type == ModuleType.DecoyLauncher && Has(ModuleType.EwSuite))

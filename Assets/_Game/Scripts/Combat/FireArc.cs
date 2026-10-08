@@ -205,7 +205,8 @@ namespace Game.Combat
 
         /// <summary>주변 블록에 따라 사격각이 바뀌는 포탑형 무기인가(선회 금지 포함). VLS는 수직 발사라 제외.</summary>
         public static bool UsesNeighborArc(ModuleType type)
-            => type == ModuleType.Autocannon || type == ModuleType.GuidedRocket || type == ModuleType.NavalGun;
+            => type == ModuleType.Autocannon || type == ModuleType.GuidedRocket || type == ModuleType.NavalGun
+               || type == ModuleType.Nobong;
 
         /// <summary>사격 금지 구역이 있는 무기인가(정비 화면 표시용). CIWS는 상부 구조물만 적용.</summary>
         public static bool HasCutout(ModuleType type) => UsesNeighborArc(type) || type == ModuleType.Ciws;
@@ -236,7 +237,7 @@ namespace Game.Combat
 
         /// <summary>막힌 면 수와 상관없이 언제든 올릴 수 있는 무기(포탑형: 기관포, 76mm).</summary>
         public static bool RaisesAnywhere(ModuleType type)
-            => type == ModuleType.Autocannon || type == ModuleType.NavalGun;
+            => type == ModuleType.Autocannon || type == ModuleType.NavalGun || type == ModuleType.Nobong;
 
         /// <summary>
         /// 승강 거치대에 올릴 수 있는가. 기관포·76mm는 언제든,

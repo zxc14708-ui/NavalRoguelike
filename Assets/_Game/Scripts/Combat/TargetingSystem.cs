@@ -149,7 +149,8 @@ namespace Game.Combat
                 foreach (var module in _grid.Modules)
                     if (module != null && module.IsOperational && module.Definition.Type == ModuleType.Sonar &&
                         (ModuleSynergy.Adjacent(_grid, module, ModuleType.HelicopterDeck) ||
-                         ModuleSynergy.Adjacent(_grid, module, ModuleType.AswLauncher)))
+                         ModuleSynergy.Adjacent(_grid, module, ModuleType.AswLauncher) ||
+                         ModuleSynergy.Adjacent(_grid, module, ModuleType.TorpedoTube)))
                     { aswGroup = true; break; }
             float acquireSeconds = (aswGroup ? 1.2f : sonarAcquireSeconds) *
                 (CombatPolicies.Doctrine == NavalDoctrine.AntiSub ? 0.7f : 1f);

@@ -78,12 +78,24 @@ namespace Game.Dev
         public bool EnvOnly;
         [Tooltip("위치별 소나·폭뢰 형태 검사만 돌린다(-variantOnly)")]
         public bool VariantOnly;
+        [Tooltip("경어뢰 발사관 검사만 돌린다(-tubeOnly)")]
+        public bool TubeOnly;
+        [Tooltip("곡사포 검사만 돌린다(-howitzerOnly)")]
+        public bool HowitzerOnly;
+        [Tooltip("충각 함수·기뢰 투하궤 검사만 돌린다(-ramMineOnly)")]
+        public bool RamMineOnly;
+        [Tooltip("노봉 40mm 검사만 돌린다(-nobongOnly)")]
+        public bool NobongOnly;
         [Tooltip("편대 진형·조함 검사만 돌린다(-formationOnly)")]
         public bool FormationOnly;
         [Tooltip("메인 화면 사전·무장 팩 v8 외형 검사만 돌린다(-codexOnly)")]
         public bool CodexOnly;
         [Tooltip("엘리트 초계함 주변 대형 물체 추적만 돌린다(-pccSoak)")]
         public bool PccSoak;
+        [Tooltip("우클릭 항로(자동 조함) 검사만 돌린다(-routeOnly)")]
+        public bool RouteOnly;
+        [Tooltip("VLS 8셀 덮개 열림 검사만 돌린다(-vlsOnly)")]
+        public bool VlsOnly;
 
         private readonly StringBuilder _report = new();
         private int _failures;
@@ -133,6 +145,20 @@ namespace Game.Dev
                 Finish();
                 yield break;
             }
+            if (VlsOnly)
+            {
+                yield return VlsHatchCheck();
+                SaveLog("vls");
+                Finish();
+                yield break;
+            }
+            if (RouteOnly)
+            {
+                yield return RouteCheck();
+                SaveLog("route");
+                Finish();
+                yield break;
+            }
             if (PccSoak)
             {
                 yield return PccSoakCheck();
@@ -151,6 +177,34 @@ namespace Game.Dev
             {
                 yield return VariantCheck();
                 SaveLog("variant");
+                Finish();
+                yield break;
+            }
+            if (NobongOnly)
+            {
+                yield return NobongCheck();
+                SaveLog("nobong");
+                Finish();
+                yield break;
+            }
+            if (RamMineOnly)
+            {
+                yield return RamMineCheck();
+                SaveLog("rammine");
+                Finish();
+                yield break;
+            }
+            if (HowitzerOnly)
+            {
+                yield return HowitzerCheck();
+                SaveLog("howitzer");
+                Finish();
+                yield break;
+            }
+            if (TubeOnly)
+            {
+                yield return TorpedoTubeCheck();
+                SaveLog("tube");
                 Finish();
                 yield break;
             }
@@ -339,6 +393,10 @@ namespace Game.Dev
             yield return GrowthCheck();
             yield return EnvArtCheck();
             yield return VariantCheck();
+            yield return TorpedoTubeCheck();
+            yield return HowitzerCheck();
+            yield return RamMineCheck();
+            yield return NobongCheck();
             yield return FormationCheck();
             yield return CodexCheck();
             Finish();
@@ -364,7 +422,14 @@ namespace Game.Dev
             foreach (var button in Object.FindObjectsByType<UnityEngine.UI.Button>(FindObjectsInactive.Include, FindObjectsSortMode.None))
                 if ((button.name == "Launch" || button.name.StartsWith("출항")) && button.interactable) { button.onClick.Invoke(); break; }
 
-            // 출항 뒤에는 전투단 편성 화면(FORCE PACKAGE)이 열린다 — 기본 편성 그대로 확정해야 전투가 시작된다
+            // 출항 뒤에는 시작 함선 선택(항구 정박지 독 또는 선체 선택 콘솔)이 열린다 — 플레이어처럼 지금 고른 함선으로 확정한다.
+            // 확정해야 시작 화면(항구 배경 포함)이 닫히고 전투가 시작된다. 예전에는 이 단계를 몰라 시작 화면이 열린 채로
+            // 검사가 돌았고, UI 캡처에서 함선 선택 콘솔이 정비 카드 위에 겹쳐 보였다(2026-10-08 수정).
+            var selector = Object.FindFirstObjectByType<Game.UI.StartingShipSelectorUI>();
+            if (selector != null)
+                typeof(Game.UI.StartingShipSelectorUI).GetMethod("Confirm", Inst)?.Invoke(selector, null);
+
+            // 예전 흐름: 전투단 편성 화면(FORCE PACKAGE) — 기본 편성 그대로 확정
             var overlay = GameObject.Find("Force package overlay");
             if (overlay != null)
                 foreach (var button in overlay.GetComponentsInChildren<UnityEngine.UI.Button>(true))

@@ -133,5 +133,19 @@ namespace Game.Modules
         [Header("Aviation (Helicopter Deck)")]
         public float SortieCooldown;
         public float HelicopterSpeed;
+
+        [Header("Fleet / Propulsion / Fire Control / Missile Logistics")]
+        [Tooltip("호위함 자율 능력 재사용 속도 보너스. 0.15 = +15%. 동종 중첩은 가장 강한 하나만.")]
+        public float EscortFireRateBonus;
+        [Tooltip("기함 최고속력 보너스. 0.1 = +10%.")]
+        public float SpeedBonus;
+        [Tooltip("기함 가속 보너스. 감속·선회에는 적용하지 않는다.")]
+        public float AccelerationBonus;
+        [Tooltip("기준 최고속력 50% 이상 항해할 때 기관포·76mm 피해 보너스.")]
+        public float MovingGunDamageBonus;
+        [Tooltip("VLS·유도로켓·SAM 최대 사거리 보너스. 탐지·최소 사거리는 그대로.")]
+        public float GuidedRangeBonus;
+        [Tooltip("VLS·유도로켓 발사 간격과 주기적 셀 보급 시간 단축. 0.15 = -15%.")]
+        public float MissileReloadReduction;
     }
 }

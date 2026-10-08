@@ -23,6 +23,15 @@ namespace Game.Modules
         //     mod_armor는 8(헬기데크), mod_generator는 3(VLS)으로 잘못 저장되어 있었다 → Naval/Migrate Legacy Module Types
         Armor = 15,      // 장갑(폐지 — 손상통제반 방호 거점으로 대체)
         Generator = 16,  // 발전기(폐지)
+        FleetRelay = 17,       // 호위함 자율 능력 재사용 속도
+        TurboIntake = 18,      // 최고속력·가속·항해 중 실탄 피해
+        FireControlArray = 19,// 동시 추적·유도무장 사거리
+        MissileLogistics = 20,// VLS·유도로켓 발사 간격·셀 보급
+        TorpedoTube = 21,      // 경어뢰 발사관 — 트인 현측으로 부채꼴 3발(대잠 전용)
+        Howitzer = 22,         // 곡사포 — 상부 구조물·섬 너머로 쏘는 범위 피해(수상 전용)
+        RamBow = 23,           // 충각 함수 — 맨 앞 칸, 나아가며 들이받음
+        MineRail = 24,         // 선미 기뢰 투하궤 — 뒤가 트인 자리, 추격하는 적 앞에 기뢰
+        Nobong = 25,           // 노봉 40mm 쌍열포 — 기관포와 76mm 사이, 근접신관 공중 폭발(드론 떼)
     }
 
     /// <summary>
@@ -31,7 +40,7 @@ namespace Game.Modules
     /// </summary>
     public enum ModuleHeight
     {
-        Low,    // 탄약고, 손상통제반, 소나, 기만체, 대잠 폭뢰 — 가리지 않음
+        Low,    // 탄약고, 손상통제반, 소나, 기만체, 대잠 폭뢰, 경어뢰 발사관 — 가리지 않음
         Mid,    // 기관포, CIWS, VLS, 유도로켓 — 같은 높이 이하 무기를 가림
         High,   // 함교, 레이더, 헬기데크 — 모든 무기를 가림
     }
@@ -43,7 +52,7 @@ namespace Game.Modules
     {
         Gun,       // 기관포, 76mm, CIWS
         Missile,   // VLS, 함대공, 유도로켓
-        Asw,       // 폭뢰, 대잠 헬기
+        Asw,       // 폭뢰, 경어뢰, 대잠 헬기
     }
 
     /// <summary>드래프트 확률 가중에 쓰는 희귀도.</summary>

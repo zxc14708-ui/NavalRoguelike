@@ -44,8 +44,8 @@ MonoBehaviour:
     AmmoFamily: 1
     MagazineCapacity: 8
     AmmoPerShot: 1
-    AmmoReloadAmount: 1
-    AmmoReloadTime: 15
+    AmmoReloadAmount: 0
+    AmmoReloadTime: 60
     DetectionRange: 0
     ExtraTrackedTargets: 0
     SupportRadiusCells: 0
@@ -58,6 +58,12 @@ MonoBehaviour:
     ModuleRepairPerSecond: 0
     SortieCooldown: 0
     HelicopterSpeed: 0
+    EscortFireRateBonus: 0
+    SpeedBonus: 0
+    AccelerationBonus: 0
+    MovingGunDamageBonus: 0
+    GuidedRangeBonus: 0
+    MissileReloadReduction: 0
   targetEfficiency:
     SmallSurface: 0.3
     MediumSurface: 1

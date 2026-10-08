@@ -227,21 +227,7 @@ namespace Game.EditorTools
             }
 
             // VLS 대함미사일: 팝업 궤적
-            r.MissilePlayer = BuildMissileProjectile("MIS_PlayerVls", LayerPlayerMissile, fxDir,
-                new MissileLook(2.1f, 0.36f, mVlsBody, mGun, mVlsBand, mFlame,
-                                trailTime: 1.6f, trailEndWidth: 7f, smokePerMeter: 6f,
-                                trailColor: new Color(0.55f, 0.55f, 0.57f)), blast, so =>
-                {
-                    Set(so, "launchPitch", 0.8f);
-                    Set(so, "profile", (int)MissileProfile.PopUp);
-                    Set(so, "speed", 30f);
-                    Set(so, "turnRateDegPerSec", 140f);
-                    Set(so, "lifeTime", 14f);
-                    Set(so, "hitRadius", 1.4f);
-                    Set(so, "damage", 30f);
-                    Set(so, "maxHp", 1f);
-                    Set(so, "isThreat", false);
-                });
+            r.MissilePlayer = BuildVlsMissile(blast, fxDir);
 
             // 적 대함미사일: 붉은 동체, 팝업 궤적
             r.MissileEnemy = BuildMissileProjectile("MIS_EnemyAsm", LayerEnemyMissile, fxDir,
@@ -1974,14 +1960,131 @@ namespace Game.EditorTools
                 if (points.Count == 0)
                     Debug.LogError("[Setup] VLS 모델에서 LaunchPoint를 찾지 못했습니다.");
 
+                // 셀 덮개 열림 연출(2026-10-08, 8셀 4×2): 덮개마다 바깥쪽 긴 변을 경첩으로 잡는다
+                var lids = new List<Transform>();
+                var stripes = new List<Transform>();
+                for (int i = 1; i <= points.Count; i++)
+                {
+                    lids.Add(FindDeep(model, $"VLSHatch_{i:00}"));
+                    stripes.Add(FindDeep(model, $"HatchWarning_{i:00}"));
+                }
+                ComputeVlsHinges(root.transform, lids, out var hingePoints, out var hingeAxes);
+                if (hingePoints != null)
+                    AddVlsHingeGeometry(root.transform, lids, hingePoints, hingeAxes);
+
                 Configure(root.GetComponent<VlsModule>(), so =>
                 {
                     Set(so, "missilePrefab", missile);
                     Set(so, "interceptorPrefab", interceptor);
                     Set(so, "aswTorpedoPrefab", charge);
                     SetArray(so, "hatches", points.ToArray());
+                    if (hingePoints != null)
+                    {
+                        SetArray(so, "hatchLids", lids.ToArray());
+                        SetArray(so, "hatchStripes", stripes.ToArray());
+                        SetVectors(so, "hingePoints", hingePoints);
+                        SetVectors(so, "hingeAxes", hingeAxes);
+                    }
                 });
             });
+        }
+
+        /// <summary>
+        /// VLS 덮개 경첩(모듈 기준). 덮개 중심이 모두 같은 거리(±0.42)에 놓인 수평축이 열 방향이고,
+        /// 경첩은 그 축으로 바깥쪽 변, 회전축은 다른 수평축(행 방향)이다. 덮개를 하나라도 못 찾으면 null(연출 없이 바로 쏜다).
+        /// </summary>
+        private static void ComputeVlsHinges(Transform root, List<Transform> lids, out Vector3[] points, out Vector3[] axes)
+        {
+            points = axes = null;
+            if (lids.Count == 0 || lids.Exists(l => l == null)) { Debug.LogWarning("[Setup] VLS 덮개(VLSHatch_xx)를 찾지 못해 열림 연출 없이 만듭니다."); return; }
+            var bounds = lids.ConvertAll(l => l.GetComponent<Renderer>().bounds);
+            Vector3 center = root.position;
+            // 수평축 둘 중 덮개 중심 거리(절댓값)가 고른 쪽 = 열 방향
+            float Spread(Vector3 axis)
+            {
+                float min = float.MaxValue, max = 0f;
+                foreach (var b in bounds) { float d = Mathf.Abs(Vector3.Dot(b.center - center, axis)); min = Mathf.Min(min, d); max = Mathf.Max(max, d); }
+                return max - min;
+            }
+            Vector3 col = Spread(Vector3.right) <= Spread(Vector3.forward) ? Vector3.right : Vector3.forward;
+            Vector3 row = col == Vector3.right ? Vector3.forward : Vector3.right;
+            points = new Vector3[lids.Count];
+            axes = new Vector3[lids.Count];
+            for (int i = 0; i < lids.Count; i++)
+            {
+                var b = bounds[i];
+                float side = Mathf.Sign(Vector3.Dot(b.center - center, col));
+                Vector3 edge = b.center + col * (side * Vector3.Dot(b.extents, col));
+                points[i] = root.InverseTransformPoint(edge);
+                axes[i] = root.InverseTransformDirection(row);
+            }
+        }
+
+        /// <summary>
+        /// Visible hinge hardware for every hatch. The shaft and two bearing blocks stay on the
+        /// launcher; the two leaves are children of the lid and follow its existing hinge animation.
+        /// Positions derive from the same pivot/bounds used by VlsModule, so art and motion agree.
+        /// </summary>
+        private static void AddVlsHingeGeometry(Transform root, List<Transform> lids, Vector3[] points, Vector3[] axes)
+        {
+            var steel = CreateMaterial("vls_hinge_steel", new Color(.13f,.17f,.2f), .65f, .38f);
+            var bearing = CreateMaterial("vls_hinge_bearing", new Color(.37f,.43f,.47f), .45f, .34f);
+            for(int i=0;i<lids.Count;i++)
+            {
+                var lid=lids[i];
+                var renderer=lid.GetComponent<Renderer>();
+                if(renderer==null) throw new System.InvalidOperationException($"VLS lid {i+1} has no renderer");
+                Vector3 axis=axes[i].normalized;
+                var b=renderer.bounds;
+                float length=2f*Vector3.Dot(b.extents,new Vector3(Mathf.Abs(axis.x),Mathf.Abs(axis.y),Mathf.Abs(axis.z)));
+                if(length<.15f || length>.8f) throw new System.InvalidOperationException($"VLS lid {i+1} hinge span {length:F3} is outside its cell");
+                Vector3 center=points[i];
+                var shaft=Primitive($"VLSHingeShaft_{i+1:00}",PrimitiveType.Cylinder,new Vector3(.062f,length*.5f,.062f),steel,root);
+                shaft.transform.localPosition=center;
+                shaft.transform.localRotation=Quaternion.FromToRotation(Vector3.up,axis);
+                for(int end=-1;end<=1;end+=2)
+                {
+                    Vector3 p=center+axis*(end*length*.44f);
+                    var cap=Primitive($"VLSHingeBearing_{i+1:00}_{(end<0?"A":"B")}",PrimitiveType.Cylinder,
+                        new Vector3(.10f,.024f,.10f),bearing,root);
+                    cap.transform.localPosition=p;
+                    cap.transform.localRotation=shaft.transform.localRotation;
+                    var foot=Primitive($"VLSHingeFoot_{i+1:00}_{(end<0?"A":"B")}",PrimitiveType.Cube,
+                        new Vector3(.11f,.095f,.12f),bearing,root);
+                    foot.transform.localPosition=p+Vector3.down*.055f;
+                    var leaf=Primitive($"VLSHingeLeaf_{i+1:00}_{(end<0?"A":"B")}",PrimitiveType.Cube,
+                        new Vector3(.075f,.025f,.11f),steel,root);
+                    leaf.transform.localPosition=p+Vector3.up*.028f;
+                    leaf.transform.SetParent(lid,true);
+                }
+            }
+            Debug.Log($"[VLS] Added {lids.Count} visible hinge shafts, bearing pairs and lid-mounted leaves.");
+        }
+
+        private static void SetVectors(SerializedObject so, string field, Vector3[] values)
+        {
+            var prop = so.FindProperty(field);
+            prop.arraySize = values.Length;
+            for (int i = 0; i < values.Length; i++) prop.GetArrayElementAtIndex(i).vector3Value = values[i];
+        }
+
+        /// <summary>
+        /// VLS만 다시 만든다(2026-10-08, 8셀 모델·덮개 열림 연출). 모델 임포트 설정을 맞추고 MOD_Vls 프리팹을 새로 저장한 뒤
+        /// mod_vls 데이터가 새 프리팹을 가리키게 한다. 다른 프리팹·씬·데이터는 건드리지 않는다.
+        /// </summary>
+        public static void RebuildVlsOnly()
+        {
+            PrepareArtMaterials("MOD_VLS", "MIS_PlayerVls");
+            var r = Load();
+            string modDir = $"{Root}/Prefabs/Modules";
+            string fxDir = $"{Root}/Prefabs/Projectiles";
+            r.MissilePlayer = BuildVlsMissile(r.FxGunFlash, fxDir) ?? r.MissilePlayer;
+            var vls = BuildArtVls(r.MissilePlayer, r.MissileSam, r.AswTorpedo, modDir);
+            if (vls == null) { Debug.LogError("[VLS] MOD_VLS 모델이 없어 다시 만들지 못했습니다."); return; }
+            var def = AssetDatabase.LoadAssetAtPath<Game.Modules.ModuleDefinition>($"{Root}/Data/Modules/mod_vls.asset");
+            if (def != null) Configure(def, so => Set(so, "prefab", vls));
+            AssetDatabase.SaveAssets();
+            Debug.Log("[VLS] 8셀 모델·덮개 열림 연출로 MOD_Vls 프리팹(+ 축소한 VLS 미사일)을 다시 만들었습니다.");
         }
 
         /// <summary>
@@ -2215,9 +2318,39 @@ namespace Game.EditorTools
         }
 
         /// <summary>미사일 외형 수치.</summary>
+        /// <summary>
+        /// VLS 대함미사일. 굵고 긴 짙은 회색 동체 + 노란 띠 + 큰 꼬리 날개, 굵고 오래 남는 회색 연기, 낮은 발사음.
+        /// 2026-10-08: VLS 셀(정사각형 0.36m)보다 굵어 보여 모델을 0.72배로 줄였다(길이 2.1 → 1.5m, 지름 0.36 → 0.26m).
+        /// </summary>
+        private static GameObject BuildVlsMissile(GameObject blast, string fxDir)
+        {
+            var mVlsBody = CreateMaterial("missile_vls_body", new Color(0.36f, 0.40f, 0.44f), 0.3f, 0.35f);
+            var mVlsBand = CreateMaterial("missile_vls_band", new Color(0.95f, 0.75f, 0.10f));
+            var mGun = CreateMaterial("gun", new Color(0.18f, 0.19f, 0.21f), 0.8f, 0.4f);
+            var mFlame = CreateMaterial("flame", new Color(1f, 0.6f, 0.2f));
+            const float scale = 0.72f;
+            return BuildMissileProjectile("MIS_PlayerVls", LayerPlayerMissile, fxDir,
+                new MissileLook(2.1f * scale, 0.36f * scale, mVlsBody, mGun, mVlsBand, mFlame,
+                                trailTime: 1.6f, trailEndWidth: 7f, smokePerMeter: 6f,
+                                trailColor: new Color(0.55f, 0.55f, 0.57f), modelScale: scale), blast, so =>
+                {
+                    Set(so, "launchPitch", 0.8f);
+                    Set(so, "profile", (int)MissileProfile.PopUp);
+                    Set(so, "speed", 30f);
+                    Set(so, "turnRateDegPerSec", 140f);
+                    Set(so, "lifeTime", 14f);
+                    Set(so, "hitRadius", 1.4f);
+                    Set(so, "damage", 30f);
+                    Set(so, "maxHp", 1f);
+                    Set(so, "isThreat", false);
+                });
+        }
+
         private readonly struct MissileLook
         {
             public readonly float Length, Diameter;
+            /// <summary>아트 모델 배율(모델 축 보정 위의 피벗에 건다). 1 = 원래 크기.</summary>
+            public readonly float ModelScale;
             public readonly Material Body, Nose, Band, Flame;
 
             /// <summary>연기 꼬리 지속 시간, 끝 폭(지름 배수), 이동 1m당 연기 뭉치 수.</summary>
@@ -2229,9 +2362,10 @@ namespace Game.EditorTools
 
             public MissileLook(float length, float diameter, Material body, Material nose, Material band, Material flame,
                                float trailTime = -1f, float trailEndWidth = 5f, float smokePerMeter = 5f,
-                               Color? trailColor = null, bool midFins = false)
+                               Color? trailColor = null, bool midFins = false, float modelScale = 1f)
             {
                 Length = length; Diameter = diameter; Body = body; Nose = nose; Band = band; Flame = flame;
+                ModelScale = modelScale;
                 TrailTime = trailTime > 0f ? trailTime : (length > 1.2f ? 0.9f : 0.6f);
                 TrailEndWidth = trailEndWidth;
                 SmokePerMeter = smokePerMeter;
@@ -2255,6 +2389,7 @@ namespace Game.EditorTools
             if (model != null)
             {
                 var art = AttachArtModel(model, root.transform);
+                art.parent.localScale = Vector3.one * look.ModelScale;   // 모델 축 보정은 건드리지 않고 피벗에 배율
                 var socket = FindDeep(art, "Exhaust");
                 if (socket != null) tailZ = root.transform.InverseTransformPoint(socket.position).z;
             }

@@ -7,6 +7,7 @@ using Game.Modules;
 using Game.Progression;
 using Game.Ship;
 using Game.TaskForce;
+using Game.Refit;
 
 namespace Game.UI
 {
@@ -80,9 +81,12 @@ namespace Game.UI
                 foreach (var e in init.Loadout.Entries)
                     if (e.Module != null && !list.Contains(e.Module)) list.Add(e.Module);
             var xp = Object.FindFirstObjectByType<ExperienceSystem>(FindObjectsInactive.Include);
-            if (xp != null && xp.Config != null)
-                foreach (var m in xp.Config.Pool)
-                    if (m != null && !list.Contains(m)) list.Add(m);
+            foreach (var m in RefitDraft.CollectInstallDefinitions(xp != null ? xp.Config : null))
+                if (!list.Contains(m)) list.Add(m);
+            foreach (var concept in StartingShipCatalog.All)
+                if (concept != null && concept.StartLoadout != null)
+                    foreach (var entry in concept.StartLoadout.Entries)
+                        if (entry.Module != null && !list.Contains(entry.Module)) list.Add(entry.Module);
             list.Sort((a, b) =>
             {
                 int c = TypeOrder(a.Type).CompareTo(TypeOrder(b.Type));
@@ -108,6 +112,15 @@ namespace Game.UI
             ModuleType.EwSuite => 12,
             ModuleType.Magazine => 13,
             ModuleType.RepairBay => 14,
+            ModuleType.FleetRelay => 15,
+            ModuleType.TurboIntake => 16,
+            ModuleType.FireControlArray => 17,
+            ModuleType.MissileLogistics => 18,
+            ModuleType.TorpedoTube => 8,   // 폭뢰 옆에
+            ModuleType.Howitzer => 2,      // 76mm 옆에
+            ModuleType.RamBow => 1,        // 근접
+            ModuleType.Nobong => 1,        // 기관포와 76mm 사이
+            ModuleType.MineRail => 8,      // 대잠·후방 장비 옆에
             _ => 20,
         };
 
@@ -191,6 +204,8 @@ namespace Game.UI
                 yield return ModuleVariant.DepthChargeRack;
                 yield return ModuleVariant.DepthChargeProjector;
             }
+            else if (type == ModuleType.TorpedoTube)
+                yield return ModuleVariant.TorpedoTubeSide;
         }
 
         private static string RarityName(Rarity r) => r switch
@@ -406,7 +421,7 @@ namespace Game.UI
             "ene_attack_submarine" => ("스테이지 3 엘리트 잠수함. 어뢰 잠수함보다 단단하고 자주 쏜다(예고 뒤 직선 어뢰).",
                 "소나 · 대잠 헬기로 찾고 폭뢰 · 대잠 호위함으로. 어뢰는 예고 동안 침로 · 속력을 바꿔 피한다."),
             "ene_boss2" => ("스테이지 3의 적 기함(현대화 이세급 항공전함). 앞은 전함, 뒤는 비행갑판. 체력에 따라 세 단계로 바뀐다: 주포 일제사격(수면의 붉은 경고 원) → 드론 편대 · 정찰기 운용 → 드론 · 전투기 편대와 대함미사일 연발. 선미 쪽은 주포가 쏘지 못하는 안전 지대.",
-                "경고 원은 조함 · 전속(Shift) · 연막(F)으로 피한다. 함재기는 대공 무기로, 미사일은 기만체 · 재밍으로. 선미 쪽으로 돌아 들어가면 주포를 피할 수 있다."),
+                "경고 원은 조함 · 전속(C) · 연막(F)으로 피한다. 함재기는 대공 무기로, 미사일은 기만체 · 재밍으로. 선미 쪽으로 돌아 들어가면 주포를 피할 수 있다."),
             _ => (def.Kind switch
             {
                 Game.Combat.TargetKind.Submarine => "잠항해 접근하는 잠수함.",

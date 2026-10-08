@@ -16,6 +16,7 @@ namespace Game.Modules
         HullSonar,            // 소나 · 그 밖(함내): 함내 소나 — 사방, 짧은 반경
         DepthChargeRack,      // 폭뢰 · 뒤가 트인 자리: 선미 투하대 — 배 바로 뒤에 많이 떨어뜨림
         DepthChargeProjector, // 폭뢰 · 옆이 트인 자리: 측면 발사대 — 트인 현측으로 던짐
+        TorpedoTubeSide,      // 경어뢰 발사관 · 형태는 하나 — 트인 현측(Sides)만 기록한다
     }
 
     /// <summary>측면 발사대가 던질 수 있는 현측.</summary>
@@ -47,7 +48,11 @@ namespace Game.Modules
         public const float RackDropBehind = 2.5f;      // 투하 지점: 블록에서 선미 쪽으로
         public const float ProjectorHalfArc = 75f;     // 측면 발사대: 현측 정횡 기준 ±75°
 
-        public static bool HasVariants(ModuleType type) => type == ModuleType.Sonar || type == ModuleType.AswLauncher;
+        public static bool HasVariants(ModuleType type) => type == ModuleType.Sonar || type == ModuleType.AswLauncher
+                                                           || type == ModuleType.TorpedoTube;
+
+        // ---- 경어뢰 발사관
+        public const float TorpedoTubeHalfArc = 75f;   // 트인 현측 정횡 기준 ±75°
 
         /// <summary>그 자리에서의 형태. 폭뢰가 사방이 막힌 자리면 None.</summary>
         public static ModuleVariant Resolve(ModuleType type, ShipGrid grid, IReadOnlyList<GridCoord> coords, out ModuleSides sides)
@@ -65,6 +70,10 @@ namespace Game.Modules
                     if (PlacementRuleEvaluator.IsOpen(grid, coords, 0, +1)) sides |= ModuleSides.Starboard;
                     if (PlacementRuleEvaluator.IsOpen(grid, coords, -1, 0)) return ModuleVariant.DepthChargeRack;
                     return sides != ModuleSides.None ? ModuleVariant.DepthChargeProjector : ModuleVariant.None;
+                case ModuleType.TorpedoTube:
+                    if (PlacementRuleEvaluator.IsOpen(grid, coords, 0, -1)) sides |= ModuleSides.Port;
+                    if (PlacementRuleEvaluator.IsOpen(grid, coords, 0, +1)) sides |= ModuleSides.Starboard;
+                    return sides != ModuleSides.None ? ModuleVariant.TorpedoTubeSide : ModuleVariant.None;
                 default:
                     return ModuleVariant.None;
             }
@@ -77,6 +86,7 @@ namespace Game.Modules
             ModuleVariant.HullSonar => "함내 소나",
             ModuleVariant.DepthChargeRack => "폭뢰 투하대",
             ModuleVariant.DepthChargeProjector => "폭뢰 발사대",
+            ModuleVariant.TorpedoTubeSide => "현측 어뢰 발사관",
             _ => "",
         };
 
@@ -88,6 +98,7 @@ namespace Game.Modules
             ModuleVariant.HullSonar => $"사방 탐지 · 반경 {HullRangeMultiplier * 100f:0}%",
             ModuleVariant.DepthChargeRack => $"배 바로 뒤에 {RackSalvo}발 투하 · 피해 {RackDamageMultiplier * 100f:0}% · 재장전 {RackReloadMultiplier * 100f:0}% — 잠수함 위를 지나가야 맞음",
             ModuleVariant.DepthChargeProjector => $"트인 현측으로 던짐(정횡 ±{ProjectorHalfArc:0}°) · 앞뒤로는 못 던짐",
+            ModuleVariant.TorpedoTubeSide => $"트인 현측(정횡 ±{TorpedoTubeHalfArc:0}°)으로 부채꼴 3발 · 앞뒤로는 못 쏨",
             _ => "",
         };
 
@@ -96,6 +107,7 @@ namespace Game.Modules
         {
             ModuleType.Sonar => "앞이 트임 → 선수 소나 · 뒤가 트임 → 예인 소나 · 그 밖 → 함내 소나",
             ModuleType.AswLauncher => "뒤가 트임 → 폭뢰 투하대 · 옆이 트임 → 폭뢰 발사대 · 사방이 막힌 자리 불가",
+            ModuleType.TorpedoTube => "좌현이나 우현이 트인 자리에만 · 트인 현측으로만 발사",
             _ => "",
         };
 

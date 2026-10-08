@@ -20,7 +20,7 @@ namespace Game.Enemies
         public override TargetKind Kind => TargetKind.Aircraft;
 
         /// <summary>요격 무기의 예측 사격용.</summary>
-        public Vector3 Velocity => _velocity;
+        public Vector3 Velocity => DevFrozen ? Vector3.zero : _velocity;   // 멈춰 둔 검증용 기체는 앞질러 겨누지 않게
 
         public override void Setup(Game.Data.EnemyDefinition def, Transform player)
         {

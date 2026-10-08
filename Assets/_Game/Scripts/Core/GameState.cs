@@ -65,8 +65,9 @@ namespace Game.Core
         private static readonly Key[] Defaults =
         {
             Key.W, Key.S, Key.A, Key.D, Key.X, Key.Q, Key.E, Key.R, Key.F,
-            Key.LeftShift, Key.V, Key.H, Key.Tab, Key.G
+            Key.C, Key.V, Key.H, Key.Tab, Key.G   // 전속: Shift → C(2026-10-07, Shift+우클릭 = 항로 경유지 추가)
         };
+        private const string FlankKeyMigration = "Naval.Control.Migrated.FlankC";
         private static readonly Key[] Bindings = new Key[Defaults.Length];
         private static readonly float[] Volumes = new float[4];
         private static bool _loaded;
@@ -80,10 +81,29 @@ namespace Game.Core
                 var saved = (Key)PlayerPrefs.GetInt(KeyPrefix + i, (int)Defaults[i]);
                 Bindings[i] = Enum.IsDefined(typeof(Key), saved) && saved != Key.None ? saved : Defaults[i];
             }
+            MigrateFlankKey();
             for (int i = 0; i < Volumes.Length; i++)
                 Volumes[i] = Mathf.Clamp01(PlayerPrefs.GetFloat(VolumePrefix + i, 1f));
             AudioListener.volume = Volumes[(int)SoundChannel.Master];
         }
+
+        /// <summary>
+        /// 한 번만: 예전 기본값(Shift)으로 저장된 전속 키를 C로 옮긴다. Shift는 항로 경유지 추가(Shift+우클릭)에 쓴다.
+        /// C를 이미 다른 조작에 쓰고 있으면 건드리지 않는다(설정 화면에서 직접 바꿀 수 있다).
+        /// </summary>
+        private static void MigrateFlankKey()
+        {
+            if (PlayerPrefs.GetInt(FlankKeyMigration, 0) == 1) return;
+            PlayerPrefs.SetInt(FlankKeyMigration, 1);
+            int flank = (int)NavalControl.Flank;
+            if (Bindings[flank] != Key.LeftShift || Array.IndexOf(Bindings, Key.C) >= 0) { PlayerPrefs.Save(); return; }
+            Bindings[flank] = Key.C;
+            PlayerPrefs.SetInt(KeyPrefix + flank, (int)Key.C);
+            PlayerPrefs.Save();
+        }
+
+        /// <summary>Shift는 항로 경유지 추가(Shift+우클릭) 수식키라 조작 키로 쓰지 않는다.</summary>
+        public static bool IsShiftKey(Key key) => key == Key.LeftShift || key == Key.RightShift;
 
         public static Key Binding(NavalControl control) { Load(); return Bindings[(int)control]; }
         public static string BindingLabel(NavalControl control) => Binding(control) switch
@@ -120,6 +140,11 @@ namespace Game.Core
                 key == Key.Digit1 || key == Key.Digit2 || key == Key.Digit3)
             {
                 message = "ESC·ENTER·1~3은 메뉴/배치 전용 키입니다.";
+                return false;
+            }
+            if (IsShiftKey(key))
+            {
+                message = "SHIFT는 항로 경유지 추가(SHIFT+우클릭) 전용 키입니다.";
                 return false;
             }
             for (int i = 0; i < Bindings.Length; i++)

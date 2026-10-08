@@ -14,7 +14,16 @@ namespace Game.Modules
         public ModuleInstance Instance { get; private set; }
         public ModuleDefinition Definition => Instance?.Definition;
         /// <summary>최종 스탯(기본값 + 블록 강화). 탄약고·시너지 보너스는 각 무기가 이 위에 배율로 곱한다.</summary>
-        public ModuleStats Stats => Instance != null ? Instance.EffectiveStats : default;
+        public ModuleStats Stats
+        {
+            get
+            {
+                var stats = Instance != null ? Instance.EffectiveStats : default;
+                // 함선 지원 보너스는 매번 복사본에만 적용한다. 원본 SO와 인스턴스 기본 스탯은 유지된다.
+                if (Definition != null && Systems != null) Systems.ApplyModuleBonuses(Definition.Type, ref stats);
+                return stats;
+            }
+        }
 
         protected ShipController Ship { get; private set; }
         protected ShipSystems Systems => Ship != null ? Ship.Systems : null;

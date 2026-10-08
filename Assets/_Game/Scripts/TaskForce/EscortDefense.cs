@@ -40,6 +40,10 @@ namespace Game.TaskForce
         private Func<int> _tier;
         private Func<Vector3> _muzzle;
         private float _gunAt, _samAt, _jamAt, _aswAt, _strikeAt;
+        private float _relayRate = 1f;
+        /// <summary>현재 기함 통신 중계가 주는 자율 능력 재사용 속도. 편대 슬롯 수는 바꾸지 않는다.</summary>
+        public float CommandRateMultiplier => GameManager.Instance != null && GameManager.Instance.Player != null &&
+            GameManager.Instance.Player.Systems != null ? GameManager.Instance.Player.Systems.EscortFireRateMultiplier : 1f;
         private EscortTurrets _turrets;
         private ITargetable _gunAimTarget;
         private float _gunAimDeadline;
@@ -71,10 +75,11 @@ namespace Game.TaskForce
             _tier = tier;
             _muzzle = muzzle;
             float now = Time.time;
-            _gunAt = now + UnityEngine.Random.Range(0f, GunInterval);
+            _relayRate = CommandRateMultiplier;
+            _gunAt = now + UnityEngine.Random.Range(0f, GunInterval) / _relayRate;
             // 합류·역할 지정 직후 곧바로 큰 타격이 나가지 않게 첫 재장전의 절반을 기다린다
-            _aswAt = now + AswReload(0) * 0.5f;
-            _strikeAt = now + StrikeReload(0) * 0.5f;
+            _aswAt = now + AswReload(0) * 0.5f / _relayRate;
+            _strikeAt = now + StrikeReload(0) * 0.5f / _relayRate;
         }
 
         /// <summary>재장전을 비운다(검증용).</summary>
@@ -85,6 +90,7 @@ namespace Game.TaskForce
             if (_ready == null || !_ready()) return;
             var gm = GameManager.Instance;
             if (gm == null || gm.State != GameState.Playing) return;
+            SyncRelayRate();
             int tier = _tier != null ? _tier() : 0;
             var role = _role != null ? _role() : EscortRole.None;
             Vector3 flagship = gm.Player != null ? gm.Player.transform.position : transform.position;
@@ -97,6 +103,21 @@ namespace Game.TaskForce
                 case EscortRole.AntiSubmarine when Time.time >= _aswAt: AswStrike(tier); break;
                 case EscortRole.SurfaceStrike when Time.time >= _strikeAt: SurfaceStrike(tier); break;
             }
+        }
+
+        private void SyncRelayRate()
+        {
+            float next = CommandRateMultiplier;
+            if (Mathf.Approximately(next, _relayRate)) return;
+            float now = Time.time;
+            float factor = _relayRate / next;
+            // 진행 중인 재사용 대기도 남은 진행률을 유지한다. 중계를 잃으면 현재 대기도 즉시 원복한다.
+            if (_gunAt > now) _gunAt = now + (_gunAt - now) * factor;
+            if (_samAt > now) _samAt = now + (_samAt - now) * factor;
+            if (_jamAt > now) _jamAt = now + (_jamAt - now) * factor;
+            if (_aswAt > now) _aswAt = now + (_aswAt - now) * factor;
+            if (_strikeAt > now) _strikeAt = now + (_strikeAt - now) * factor;
+            _relayRate = next;
         }
 
         // ------------------------------------------------------------ 함포(공통)
@@ -121,7 +142,7 @@ namespace Game.TaskForce
                 muzzle = mz;
             }
 
-            _gunAt = Time.time + GunInterval / RunUpgrades.FireRateMultiplier(ModuleType.Autocannon);
+            _gunAt = Time.time + GunInterval / (RunUpgrades.FireRateMultiplier(ModuleType.Autocannon) * _relayRate);
             float damage = GunDamageFor(tier) * (1f + RunUpgrades.Get(RunStat.Damage));
             target.TakeDamage(new DamageInfo(damage, hit, (hit - self).normalized, DamageSource.Gun, "Escort gun"));
             GunShots++;
@@ -163,7 +184,7 @@ namespace Game.TaskForce
             }
             if (pick == null) { _samAt = Time.time + 0.2f; return; }
 
-            _samAt = Time.time + SamReload(tier);
+            _samAt = Time.time + SamReload(tier) / _relayRate;
             Vector3 at = pick.transform.position;
             Vector3 from = LaunchPoint(EscortTurrets.MountKind.Sam, at, "VLSLaunchPoint");
             Tracer.Spawn(from, at, TaskForceEscortFormation.RoleColor(EscortRole.AirDefense), 0.35f, 0.16f);
@@ -189,7 +210,7 @@ namespace Game.TaskForce
             }
             if (pick == null || !pick.Jam(JamDuration(tier))) { _jamAt = Time.time + 0.2f; return; }
 
-            _jamAt = Time.time + JamReload(tier);
+            _jamAt = Time.time + JamReload(tier) / _relayRate;
             Jams++;
             Vector3 from = LaunchPoint(EscortTurrets.MountKind.Decoy, pick.transform.position, "EWOrigin");
             Tracer.Spawn(from, pick.transform.position, TaskForceEscortFormation.RoleColor(EscortRole.ElectronicWarfare), 0.45f, 0.12f);
@@ -212,7 +233,7 @@ namespace Game.TaskForce
             }
             if (pick == null) { _aswAt = Time.time + 0.5f; return; }
 
-            _aswAt = Time.time + AswReload(tier) / RunUpgrades.FireRateMultiplier(ModuleType.AswLauncher);
+            _aswAt = Time.time + AswReload(tier) / (RunUpgrades.FireRateMultiplier(ModuleType.AswLauncher) * _relayRate);
             Vector3 at = pick.transform.position;
             pick.ConfirmContact(6f + 2f * tier);
             float damage = AswDamage(tier) * RunUpgrades.DamageMultiplier(ModuleType.AswLauncher);
@@ -245,7 +266,7 @@ namespace Game.TaskForce
             }
             if (pick == null) { _strikeAt = Time.time + 0.5f; return; }
 
-            _strikeAt = Time.time + StrikeReload(tier) / RunUpgrades.FireRateMultiplier(ModuleType.Vls);
+            _strikeAt = Time.time + StrikeReload(tier) / (RunUpgrades.FireRateMultiplier(ModuleType.Vls) * _relayRate);
             Vector3 at = pick.Transform.position;
             float damage = StrikeDamage(tier) * RunUpgrades.DamageMultiplier(ModuleType.Vls);
             ((IDamageable)pick).TakeDamage(new DamageInfo(damage, at, (at - transform.position).normalized, DamageSource.Missile, "Escort strike"));

@@ -26,6 +26,27 @@ namespace Game.UI
 
         /// <summary>지금 보이는 메시 수(검증용, 0이면 모델 없음).</summary>
         public int RendererCount { get; private set; }
+        /// <summary>1 = original codex framing. Smaller values fill more of the preview panel.</summary>
+        public float FramingScale { get; set; } = 1f;
+        private bool _studioLighting;
+
+        /// <summary>Optional local lights for hull selection; restricted to the remote preview layer/stage.</summary>
+        public void EnableStudioLighting()
+        {
+            if (_studioLighting || _stage == null) return;
+            _studioLighting = true;
+            StudioLight("Preview key",new Vector3(-7,8,-9),18f);
+            StudioLight("Preview fill",new Vector3(6,4,7),12f);
+        }
+
+        private void StudioLight(string name,Vector3 position,float intensity)
+        {
+            var go = new GameObject(name); go.transform.SetParent(_stage,false);
+            go.transform.localPosition = position;
+            var light = go.AddComponent<Light>(); light.type = LightType.Point;
+            light.range = 60f; light.intensity = intensity; light.color = new Color(.82f,.92f,1f);
+            light.cullingMask = 1 << Layer; light.shadows = LightShadows.None;
+        }
 
         public static CodexPreview Create(RawImage image, GameObject emptyLabel)
         {
@@ -118,7 +139,7 @@ namespace Game.UI
             // 모델 중심을 돌림판 가운데로, 크기에 맞춰 카메라 거리
             _model.localPosition = hasBounds ? -bounds.center : Vector3.zero;
             float radius = hasBounds ? Mathf.Max(0.5f, bounds.extents.magnitude) : 1f;
-            _distance = radius / Mathf.Sin(Fov * 0.5f * Mathf.Deg2Rad) * 1.02f;
+            _distance = radius / Mathf.Sin(Fov * 0.5f * Mathf.Deg2Rad) * 1.02f * Mathf.Clamp(FramingScale,.6f,1.5f);
             if (_emptyLabel != null) _emptyLabel.SetActive(RendererCount == 0);
             Place();
         }

@@ -1,0 +1,73 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee8925205f16a2b47900cba0670cd113, type: 3}
+  m_Name: mod_bridge
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Modules.ModuleDefinition
+  id: mod_bridge_missile
+  displayName: "\uBBF8\uC0AC\uC77C \uAD6C\uCD95\uD568 \uD568\uAD50"
+  description: "3\uCE78 \uD568\uAD50 \uC544\uD2B8 \uC2DC\uC81C\uD488. \uAE30\uC874
+    \uD568\uAD50 \uAE30\uB2A5\uC744 \uC720\uC9C0\uD558\uBA70 \uD568\uAE09\uBCC4 \uC131\uB2A5
+    \uBCF4\uB108\uC2A4\uB294 StartingShipConcept \uC124\uACC4\uAC12\uC73C\uB85C\uB9CC
+    \uC800\uC7A5\uB428."
+  type: 0
+  icon: {fileID: 21300000, guid: 24eb7b9144e42214c889442b81521555, type: 3}
+  width: 3
+  height: 1
+  canRotate: 0
+  placement:
+    Zone: 0
+  heightClass: 2
+  maxCount: 1
+  maxHp: 120
+  rarity: 0
+  weight: 0
+  prefab: {fileID: 8212768885622063303, guid: c7fd6937eeaa6bc4984bc55354fe7afb, type: 3}
+  stats:
+    Range: 18
+    MinRange: 0
+    Damage: 0
+    ReloadTime: 14
+    ProjectileSpeed: 0
+    FireArcDegrees: 0
+    TurretTurnRate: 0
+    AmmoFamily: 0
+    MagazineCapacity: 0
+    AmmoPerShot: 0
+    AmmoReloadAmount: 0
+    AmmoReloadTime: 0
+    DetectionRange: 32
+    ExtraTrackedTargets: 1
+    SupportRadiusCells: 0
+    ReloadBonus: 0
+    AmmoCapacityBonus: 0
+    ResupplyBonus: 0
+    CookOffDamage: 0
+    DamageReduction: 0.05
+    HullRepairPerSecond: 0.5
+    ModuleRepairPerSecond: 0.8
+    SortieCooldown: 0
+    HelicopterSpeed: 0
+    EscortFireRateBonus: 0
+    SpeedBonus: 0
+    AccelerationBonus: 0
+    MovingGunDamageBonus: 0
+    GuidedRangeBonus: 0
+    MissileReloadReduction: 0
+  targetEfficiency:
+    SmallSurface: 1
+    MediumSurface: 1
+    LargeSurface: 1
+    Boss: 1
+    Submarine: 1
+    Drone: 1
+    Air: 1
+    Missile: 1

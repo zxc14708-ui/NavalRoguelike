@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c095edf580e07e41bff79fd7e0dee96, type: 3}
+  m_Name: ShipConcept_Patrol
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.StartingShipConcept
+  id: ship_patrol
+  title: "\uBC94\uC6A9 \uCD08\uACC4\uD568"
+  description: "\uADE0\uD615 \uC7A1\uD78C \uC13C\uC11C\xB7\uD568\uD3EC\xB7\uB300\uC7A0
+    \uD655\uC7A5."
+  kind: 0
+  color: {r: 0.16, g: 0.72, b: 0.84, a: 1}
+  startLoadout: {fileID: 11400000, guid: e98fde61d6e808648a7f9ffa50cf3909, type: 2}
+  expandedLoadout: {fileID: 11400000, guid: cef5eb5e808f63248801a75f95a1fdec, type: 2}
+  bridgeDefinition: {fileID: 11400000, guid: bb14cfe432429e344a7666d750230b4f, type: 2}
+  startPreviewPrefab: {fileID: 3373953720031195588, guid: 76fc9af86a61c0943b7d0a9ae2209290, type: 3}
+  expandedPreviewPrefab: {fileID: 1411816147567084773, guid: ad58420e6e8080e4da68835792321c19, type: 3}
+  startSummary: "\uAE30\uAD00\uD3EC \xB7 CIWS \xB7 \uB808\uC774\uB354\n\uC791\uC740
+    \uBC94\uC6A9 \uAE30\uBCF8\uD615. \uD0D0\uC9C0\uC640 \uADFC\uAC70\uB9AC \uBC29\uC5B4\uB97C
+    \uAC16\uCD94\uACE0 \uCE74\uB4DC\uB85C \uD655\uC7A5."
+  initialEscortCount: 0
+  hpMultiplier: 1
+  armorMultiplier: 1
+  speedMultiplier: 1
+  turnMultiplier: 1
+  projectileDamageMultiplier: 1
+  projectileRangeMultiplier: 1
+  projectileFireRateMultiplier: 1
+  missileDamageMultiplier: 1
+  missileRangeMultiplier: 1
+  missileReloadMultiplier: 1
+  helicopterDamageMultiplier: 1
+  helicopterCooldownMultiplier: 1
+  escortStart: 0
+  escortMax: 4
+  allowedWeapons: 01000000040000000c000000030000000a0000000d0000000b000000
+  futureBlocks: []
+  mechanicsImplemented: 0

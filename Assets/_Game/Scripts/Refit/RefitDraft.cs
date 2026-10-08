@@ -149,7 +149,8 @@ namespace Game.Refit
         private void BuildInstallPool(HashSet<ModuleDefinition> used)
         {
             _installPool.Clear();
-            foreach (var def in config.Pool)
+            var definitions = CollectInstallDefinitions(config);
+            foreach (var def in definitions)
             {
                 if (def == null || used.Contains(def)) continue;
                 if (grid != null && !grid.HasAnyValidPlacement(def)) continue;
@@ -157,13 +158,39 @@ namespace Game.Refit
             }
             if (_installPool.Count > 0) return;
 
-            foreach (var def in config.Pool)
+            foreach (var def in definitions)
             {
                 if (def == null || used.Contains(def)) continue;
                 if (def.MaxCount > 0 && grid != null && grid.CountOf(def) >= def.MaxCount) continue;
                 _installPool.Add(def);
             }
         }
+
+        /// <summary>
+        /// 설치 카드와 장비 사전이 함께 읽는 블록 목록.
+        /// 새 지원 블록은 Resources/Modules에서 더하므로 기존 ProgressionConfig를 다시 만들지 않아도 된다.
+        /// 가중치 0인 함교·전시 전용 블록은 설치 카드에 나오지 않는다.
+        /// </summary>
+        public static List<ModuleDefinition> CollectInstallDefinitions(ProgressionConfig progression)
+        {
+            var definitions = new List<ModuleDefinition>();
+            void Add(ModuleDefinition def)
+            {
+                if (def != null && def.Weight > 0f && !definitions.Contains(def)) definitions.Add(def);
+            }
+
+            if (progression != null)
+                foreach (var def in progression.Pool) Add(def);
+            foreach (var def in Resources.LoadAll<ModuleDefinition>("Modules"))
+                if (def != null && IsConceptSupport(def.Type)) Add(def);
+            return definitions;
+        }
+
+        public static bool IsConceptSupport(ModuleType type)
+            => type is ModuleType.FleetRelay or ModuleType.TurboIntake
+                or ModuleType.FireControlArray or ModuleType.MissileLogistics
+                or ModuleType.TorpedoTube or ModuleType.Howitzer or ModuleType.RamBow or ModuleType.MineRail
+                or ModuleType.Nobong;   // 경어뢰 발사관·곡사포(2026-10-08)도 Resources/Modules에서 더한다
 
         // ------------------------------------------------------------ 장비 강화(통합 카드)
 
@@ -254,6 +281,7 @@ namespace Game.Refit
                 switch (m.Definition.Type)
                 {
                     case ModuleType.AswLauncher:
+                    case ModuleType.TorpedoTube:
                     case ModuleType.HelicopterDeck: return true;
                     case ModuleType.Sonar: sonar = true; break;
                     case ModuleType.Vls: vls = true; break;

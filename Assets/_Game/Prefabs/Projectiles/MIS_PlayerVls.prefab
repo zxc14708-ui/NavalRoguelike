@@ -27,8 +27,8 @@ Transform:
   m_GameObject: {fileID: 1388958034005485967}
   serializedVersion: 2
   m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 0, y: 0, z: -0.21}
-  m_LocalScale: {x: 0.36, y: 0.84, z: 0.36}
+  m_LocalPosition: {x: 0, y: 0, z: -0.1512}
+  m_LocalScale: {x: 0.2592, y: 0.6048, z: 0.2592}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 3472813815319519342}
@@ -117,8 +117,8 @@ Transform:
   m_GameObject: {fileID: 3460745816555595220}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -0.84}
-  m_LocalScale: {x: 1.008, y: 0.0432, z: 0.378}
+  m_LocalPosition: {x: 0, y: 0, z: -0.6048}
+  m_LocalScale: {x: 0.72576, y: 0.031104, z: 0.27216}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 3472813815319519342}
@@ -240,8 +240,8 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.36
-  m_Height: 2.1
+  m_Radius: 0.3
+  m_Height: 1.512
   m_Direction: 2
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!54 &5676385808577566084
@@ -330,8 +330,8 @@ Transform:
   m_GameObject: {fileID: 4788538400377879052}
   serializedVersion: 2
   m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 0, y: 0, z: 0.25199997}
-  m_LocalScale: {x: 0.3816, y: 0.06299999, z: 0.3816}
+  m_LocalPosition: {x: 0, y: 0, z: 0.18144}
+  m_LocalScale: {x: 0.274752, y: 0.04536, z: 0.274752}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 3472813815319519342}
@@ -420,8 +420,8 @@ Transform:
   m_GameObject: {fileID: 5148310766280783458}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0.63}
-  m_LocalScale: {x: 0.36, y: 0.36, z: 0.84}
+  m_LocalPosition: {x: 0, y: 0, z: 0.45360002}
+  m_LocalScale: {x: 0.2592, y: 0.2592, z: 0.6048}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 3472813815319519342}
@@ -509,7 +509,7 @@ Transform:
   m_GameObject: {fileID: 5394086759954584546}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -1.2179999}
+  m_LocalPosition: {x: 0, y: 0, z: -0.87696}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -575,17 +575,17 @@ TrailRenderer:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 0.43200004
+        value: 0.31104
         inSlope: 0
-        outSlope: 2.0879998
+        outSlope: 1.50336
         tangentMode: 0
         weightedMode: 0
         inWeight: 0
         outWeight: 0
       - serializedVersion: 3
         time: 1
-        value: 2.52
-        inSlope: 2.0879998
+        value: 1.8144001
+        inSlope: 1.50336
         outSlope: 0
         tangentMode: 0
         weightedMode: 0
@@ -662,8 +662,8 @@ Transform:
   m_GameObject: {fileID: 6685219174387176445}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -0.84}
-  m_LocalScale: {x: 0.0432, y: 1.008, z: 0.378}
+  m_LocalPosition: {x: 0, y: 0, z: -0.6048}
+  m_LocalScale: {x: 0.031104, y: 0.72576, z: 0.27216}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 3472813815319519342}
@@ -752,8 +752,8 @@ Transform:
   m_GameObject: {fileID: 7327877498406361715}
   serializedVersion: 2
   m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 0, y: 0, z: -1.155}
-  m_LocalScale: {x: 0.21600002, y: 0.147, z: 0.21600002}
+  m_LocalPosition: {x: 0, y: 0, z: -0.8316}
+  m_LocalScale: {x: 0.15552, y: 0.10584, z: 0.15552}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 3472813815319519342}
@@ -1102,8 +1102,8 @@ ParticleSystem:
     startSize:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 1.44
-      minScalar: 0.90000004
+      scalar: 1.0368
+      minScalar: 0.648
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -1566,7 +1566,7 @@ ParticleSystem:
     sphericalDirectionAmount: 0
     randomPositionAmount: 0
     radius:
-      value: 0.10800001
+      value: 0.07776
       mode: 0
       spread: 0
       speed:

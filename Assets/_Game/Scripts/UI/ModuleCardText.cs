@@ -59,6 +59,33 @@ namespace Game.UI
                     Row(sb, "투하 간격", $"{s.ReloadTime:0.0} 초");
                     Ammo(sb, s);
                     break;
+                case ModuleType.Howitzer:
+                    Row(sb, "교전 거리", $"{s.MinRange:0} ~ {s.Range:0} m");
+                    Row(sb, "피해", $"{s.Damage:0.#} · 착탄 반경 4 m (가장자리 50%)");
+                    Row(sb, "발사 간격", $"{s.ReloadTime:0.0#} 초 · 착탄까지 1.4~3 초");
+                    Ammo(sb, s);
+                    break;
+                case ModuleType.Nobong:
+                    Row(sb, "교전 거리", $"수상 {s.MinRange:0} ~ {s.Range:0} m · 대공 {s.Range * 0.7f:0} m");
+                    Row(sb, "피해", $"{s.Damage:0.#} × 2 (쌍열) · 근접신관 파편 1.2 m");
+                    Row(sb, "발사 간격", $"{s.ReloadTime:0.0#} 초 · 4회 쏘고 0.5 초 쉼");
+                    Ammo(sb, s);
+                    break;
+                case ModuleType.RamBow:
+                    Row(sb, "충돌 피해", $"{s.Damage:0} × 속력 (최고 속력 20% 이상)");
+                    Row(sb, "충돌 구역", "블록 앞 2.4 m · 같은 적은 1초에 한 번");
+                    break;
+                case ModuleType.MineRail:
+                    Row(sb, "기뢰 피해", $"{s.Damage:0} · 폭발 반경 3 m (가장자리 50%)");
+                    Row(sb, "투하", $"뒤쪽 30 m 안 추격하는 적 · {s.ReloadTime:0.#} 초 간격 · 35 초 뒤 가라앉음");
+                    Ammo(sb, s);
+                    break;
+                case ModuleType.TorpedoTube:
+                    Row(sb, "대잠 사거리", $"{s.MinRange:0} ~ {s.Range:0} m");
+                    Row(sb, "피해", $"{s.Damage:0} × 3 (부채꼴)");
+                    Row(sb, "발사 간격", $"{s.ReloadTime:0.0} 초");
+                    Ammo(sb, s);
+                    break;
                 case ModuleType.Radar:
                     Row(sb, "탐지 거리", $"{s.DetectionRange:0} m");
                     Row(sb, "동시 추적", $"+{s.ExtraTrackedTargets}");
@@ -97,6 +124,32 @@ namespace Game.UI
                     Row(sb, "탐지 거리", $"{s.DetectionRange:0} m");
                     Row(sb, "선체 회복", $"{s.HullRepairPerSecond:0.0} /초");
                     break;
+                case ModuleType.FleetRelay:
+                    Row(sb, "편대 재사용 속도", $"+{s.EscortFireRateBonus * 100f:0}%");
+                    Row(sb, "대상", "호위함 자율 무장");
+                    Row(sb, "지휘 점수·슬롯", "증가 없음");
+                    Row(sb, "중복", "가장 강한 1개만 적용");
+                    break;
+                case ModuleType.TurboIntake:
+                    Row(sb, "최고 속력", $"+{s.SpeedBonus * 100f:0}%");
+                    Row(sb, "가속", $"+{s.AccelerationBonus * 100f:0}%");
+                    Row(sb, "항해 중 포 피해", $"+{s.MovingGunDamageBonus * 100f:0}%");
+                    Row(sb, "조건", "최고 속력의 50% 이상");
+                    Row(sb, "대상", "기관포·76mm 함포");
+                    Row(sb, "중복", "가장 강한 1개만 적용");
+                    break;
+                case ModuleType.FireControlArray:
+                    Row(sb, "동시 추적", $"+{s.ExtraTrackedTargets}");
+                    Row(sb, "유도 무장 사거리", $"+{s.GuidedRangeBonus * 100f:0}%");
+                    Row(sb, "대상", "VLS·유도로켓·함대공");
+                    Row(sb, "중복", "가장 강한 1개만 적용");
+                    break;
+                case ModuleType.MissileLogistics:
+                    Row(sb, "발사 간격", $"−{s.MissileReloadReduction * 100f:0}%");
+                    Row(sb, "셀 보급 시간", $"−{s.MissileReloadReduction * 100f:0}%");
+                    Row(sb, "대상", "VLS·유도로켓 (함대공 제외)");
+                    Row(sb, "중복", "가장 강한 1개만 적용");
+                    break;
             }
 
             Efficiency(sb, def);
@@ -105,6 +158,7 @@ namespace Game.UI
                 PlacementZone.BowOnly => "뱃머리(앞이 트인 자리)만",
                 PlacementZone.SternOnly => "선미(뒤가 트인 자리)만",
                 PlacementZone.SideOrStern => "옆이나 뒤가 트인 자리(사방이 막힌 자리 불가)",
+                PlacementZone.SideOnly => "좌현이나 우현이 트인 자리",
                 _ => null,
             };
             // 자리로 형태가 바뀌는 블록(소나·폭뢰)
@@ -242,27 +296,36 @@ namespace Game.UI
 
         public static string Category(ModuleType t) => t switch
         {
-            ModuleType.Autocannon => "근거리 무장",
-            ModuleType.NavalGun or ModuleType.GuidedRocket => "중거리 무장",
+            ModuleType.Autocannon or ModuleType.RamBow or ModuleType.Nobong => "근거리 무장",
+            ModuleType.MineRail => "후방 무장",
+            ModuleType.NavalGun or ModuleType.GuidedRocket or ModuleType.Howitzer => "중거리 무장",
             ModuleType.Vls => "장거리 무장",
             ModuleType.Ciws or ModuleType.SamLauncher => "방공",
-            ModuleType.AswLauncher or ModuleType.Sonar or ModuleType.HelicopterDeck => "대잠",
+            ModuleType.AswLauncher or ModuleType.TorpedoTube or ModuleType.Sonar or ModuleType.HelicopterDeck => "대잠",
             ModuleType.Radar => "센서",
             ModuleType.DecoyLauncher or ModuleType.EwSuite => "기만·전자전",
             ModuleType.Magazine => "보급",
             ModuleType.RepairBay => "손상 통제",
+            ModuleType.FleetRelay => "편대 지원",
+            ModuleType.TurboIntake => "기관 보조",
+            ModuleType.FireControlArray => "사격 통제",
+            ModuleType.MissileLogistics => "미사일 보급",
             _ => "함체",
         };
 
         private static string CategoryColor(ModuleType t) => t switch
         {
-            ModuleType.Autocannon => "#e0956a",
-            ModuleType.NavalGun or ModuleType.GuidedRocket => "#e0c05a",
+            ModuleType.Autocannon or ModuleType.RamBow or ModuleType.MineRail or ModuleType.Nobong => "#e0956a",
+            ModuleType.NavalGun or ModuleType.GuidedRocket or ModuleType.Howitzer => "#e0c05a",
             ModuleType.Vls => "#7fb8e0",
             ModuleType.Ciws or ModuleType.SamLauncher => "#8fd0ff",
-            ModuleType.AswLauncher or ModuleType.Sonar or ModuleType.HelicopterDeck => "#68b8ff",
+            ModuleType.AswLauncher or ModuleType.TorpedoTube or ModuleType.Sonar or ModuleType.HelicopterDeck => "#68b8ff",
             ModuleType.DecoyLauncher or ModuleType.EwSuite => "#d09aff",
             ModuleType.RepairBay => "#7fd08a",
+            ModuleType.FleetRelay => "#62cadc",
+            ModuleType.TurboIntake => "#e0956a",
+            ModuleType.FireControlArray => "#8fd0ff",
+            ModuleType.MissileLogistics => "#7fb8e0",
             _ => "#c8d4dc",
         };
 
@@ -394,6 +457,11 @@ namespace Game.UI
             ModuleType.SamLauncher => "적 미사일·항공기를 멀리서 요격",
             ModuleType.Ciws => "최후 방어 — 미사일 우선, 다음 항공기",
             ModuleType.AswLauncher => "소나 접촉·어뢰 흔적에 폭뢰 투하",
+            ModuleType.TorpedoTube => "트인 현측으로 경어뢰 3발 부채꼴 — 중거리 대잠",
+            ModuleType.Howitzer => "상부 구조물·섬 너머로 쏘는 범위 포격 — 몰린 수상함",
+            ModuleType.RamBow => "맨 앞 칸 강화 함수 — 빠르게 나아가며 들이받는다",
+            ModuleType.Nobong => "40mm 쌍열 · 근접신관 공중 폭발 — 드론 떼와 고속정",
+            ModuleType.MineRail => "선미에서 추격하는 적 앞에 기뢰를 떨어뜨린다",
             ModuleType.Radar => "탐지 거리와 동시 추적 수 증가",
             ModuleType.Sonar => "잠항 잠수함 탐지",
             ModuleType.DecoyLauncher => "유도탄을 끌어내는 기만체와 연막",
@@ -401,7 +469,26 @@ namespace Game.UI
             ModuleType.Magazine => "가까운 포의 발사·보급을 빠르게 (파괴 시 유폭)",
             ModuleType.RepairBay => "선체·모듈을 서서히 수리",
             ModuleType.HelicopterDeck => "대잠 헬기 자동 출격",
+            ModuleType.FleetRelay => "편대 통신을 중계해 호위함 자율 무장을 빠르게",
+            ModuleType.TurboIntake => "기관 보조 — 빠르게 항해할 때 실탄 화력 증가",
+            ModuleType.FireControlArray => "사격 통제 — 동시 추적과 유도 무장 사거리 증가",
+            ModuleType.MissileLogistics => "미사일 발사와 셀 보급 대기 시간을 단축",
             _ => "",
         };
+
+        /// <summary>전투 중 현황판의 지원 장비 효과. 파괴되면 표시하지 않는다.</summary>
+        public static string BuildSupportStatus(ModuleInstance module)
+        {
+            if (module == null || !module.IsOperational || module.Definition == null) return "";
+            var s = module.Runtime != null ? module.Runtime.Stats : module.EffectiveStats;
+            return module.Definition.Type switch
+            {
+                ModuleType.FleetRelay => $"편대 +{s.EscortFireRateBonus * 100f:0}%",
+                ModuleType.TurboIntake => $"속력 +{s.SpeedBonus * 100f:0}%",
+                ModuleType.FireControlArray => $"추적 +{s.ExtraTrackedTargets}",
+                ModuleType.MissileLogistics => $"발사 −{s.MissileReloadReduction * 100f:0}%",
+                _ => "",
+            };
+        }
     }
 }
