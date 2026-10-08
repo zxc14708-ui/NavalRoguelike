@@ -156,10 +156,10 @@ namespace Game.EditorTools
                 {
                     Set(so, "stats.Range", 48f);
                     Set(so, "stats.Damage", 60f);
-                    Set(so, "stats.ReloadTime", 1.5f);   // 발사 간격. 지속 화력은 셀 장전(15초)이 정한다
+                    Set(so, "stats.ReloadTime", 1.5f);   // 발사 간격. 지속 화력은 전량 재장전(60초)이 정한다
                     Set(so, "stats.MinRange", 16f);
                     Set(so, "stats.ProjectileSpeed", 30f);
-                    Ammo(so, AmmoFamily.Missile, 8, 1, 15f);   // 8셀, 15초마다 1셀 장전
+                    Ammo(so, AmmoFamily.Missile, 8, 0, 60f);   // 8셀을 1번부터 차례로 다 쏘면 60초 전량 재장전(2026-10-08, 예전: 15초마다 1셀)
                     Efficiency(so, 0.3f, 1f, 1.2f, 1.3f, 0.8f, 0f, 0f, 0f);
                     Set(so, "stats.FireArcDegrees", 360f);
                 });

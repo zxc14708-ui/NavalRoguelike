@@ -281,6 +281,116 @@ namespace Game.Dev
             _report.AppendLine($"- 탄약 {label}: {sb}");
         }
 
+        // ------------------------------------------------------------ VLS 덮개 열림(8셀)
+
+        /// <summary>
+        /// VLS 8셀(2026-10-08): 셀이 8개인지, 쏠 때 덮개가 먼저 다 열리고 그 뒤에 미사일이 나가는지,
+        /// 1번 셀부터 8번까지 차례로 쏘는지, 8발을 다 쓰면 전량 재장전하고 다시 1번부터 쏘는지,
+        /// 덮개가 원래 자리로 정확히 닫히는지 본다. 열린 순간을 가까이서 찍는다.
+        /// </summary>
+        private IEnumerator VlsHatchCheck()
+        {
+            _report.AppendLine("\n## VLS 8셀 덮개·순서·재장전");
+            if (GameManager.Instance.State != GameState.Playing) GameManager.Instance.SetState(GameState.Playing);
+            Time.timeScale = TimeScale;
+            CombatDevTools.ClearBattlefield();
+            int placed = ResetLoadout(M("mod_radar"), M("mod_vls"));
+            yield return new WaitForSeconds(0.5f);
+            var vls = GameManager.Instance.Player.GetComponentInChildren<VlsModule>();
+            if (vls == null) { Fail($"VLS를 설치하지 못함(설치 {placed}개)"); yield break; }
+            vls.Ammo.Refill();
+            // 셀이 적을 때 대형만 노리는 규칙 때문에 미사일정에 마지막 셀을 아끼지 않게(이 검사는 순서·재장전만 본다)
+            Put(vls, "targetRule", VlsModule.TargetRule.AnyTarget);
+
+            var lids = PrivateField<Transform[]>(vls, "hatchLids");
+            var points = PrivateField<Transform[]>(vls, "hatches");
+            int cells = points != null ? points.Length : 0;
+            _report.AppendLine($"- 셀(발사점) {cells}개 · 덮개 {(lids != null ? lids.Length : 0)}개 · 탄약 {vls.Ammo.Capacity}셀 · " +
+                               $"보급 방식 {(vls.Ammo.IsFullReloadMode ? "전량 재장전" : "조금씩")} {vls.Ammo.Interval:0.#}초 · 열림 연출 {Yes(vls.HasHatchAnimation)}");
+            if (cells != 8 || lids == null || lids.Length != 8 || !vls.HasHatchAnimation) { Fail("VLS가 8셀·덮개 연출이 아님"); yield break; }
+            if (!vls.Ammo.IsFullReloadMode) Fail("VLS가 전량 재장전 방식이 아님");
+            var closedPos = new Vector3[8];
+            var closedRot = new Quaternion[8];
+            for (int i = 0; i < 8; i++) { closedPos[i] = vls.transform.InverseTransformPoint(lids[i].position); closedRot[i] = Quaternion.Inverse(vls.transform.rotation) * lids[i].rotation; }
+
+            // 시작 화면 구성이 바뀌어 출항 절차를 못 거쳤으면 스포너가 함선을 모른다 — 직접 알려 준다
+            if (EnemySpawner.Instance != null && Get<Transform>(EnemySpawner.Instance, "_player") == null)
+                Put(EnemySpawner.Instance, "_player", GameManager.Instance.Player.transform);
+            List<EnemyController> SpawnTargets()
+            {
+                var list = CombatDevTools.SpawnRing("ene_missileboat", 12, 36f);
+                foreach (var e in list) e.DevFrozen = true;
+                return list;
+            }
+            var boats = SpawnTargets();
+
+            float start = Time.time, firstOpen = -1f, firstLaunch = -1f, maxOpen = 0f, maxLift = 0f;
+            int maxOpenCount = 0, shots = 0, seen = 0;
+            var order = new List<int>();
+            while (Time.time - start < 40f && vls.LaunchCount < 8)
+            {
+                if (firstOpen < 0f && vls.OpenHatchCount > 0) firstOpen = Time.time - start;
+                if (firstLaunch < 0f && vls.LaunchCount > 0) firstLaunch = Time.time - start;
+                if (vls.LaunchCount > seen) { seen = vls.LaunchCount; order.Add(vls.LastCell + 1); }
+                maxOpen = Mathf.Max(maxOpen, vls.MaxHatchOpen);
+                maxOpenCount = Mathf.Max(maxOpenCount, vls.OpenHatchCount);
+                for (int i = 0; i < 8; i++)
+                    maxLift = Mathf.Max(maxLift, vls.transform.InverseTransformPoint(lids[i].position).y - closedPos[i].y);
+                if (shots < 2 && vls.LaunchCount > shots && vls.MaxHatchOpen > 0.99f)
+                {
+                    shots++;
+                    yield return CloseShot($"vls_hatch_{shots}", vls.transform, 7f);
+                }
+                if (boats.FindAll(e => e != null && e.IsAlive).Count < 3) boats = SpawnTargets();
+                yield return null;
+            }
+            if (vls.LaunchCount > seen) order.Add(vls.LastCell + 1);
+            _report.AppendLine($"- 처음 덮개 열림 {firstOpen:0.00}초 → 첫 발사 {firstLaunch:0.00}초(덮개가 열린 뒤 {(firstLaunch - firstOpen):0.00}초)");
+            _report.AppendLine($"- 덮개 최대 열림 {maxOpen:0.00} · 동시에 열린 셀 최대 {maxOpenCount}개 · 덮개 중심이 들린 높이 최대 {maxLift:0.00} m");
+            _report.AppendLine($"- 발사 셀 순서: {string.Join(" → ", order)}");
+            if (firstOpen < 0f || firstLaunch < 0f) Fail("덮개가 열리지 않았거나 미사일이 나가지 않음");
+            else if (firstLaunch - firstOpen < 0.12f) Fail("덮개가 다 열리기 전에 미사일이 나감");
+            if (maxOpen < 0.99f || maxLift < 0.1f) Fail("덮개가 충분히 열리지 않음");
+            bool inOrder = order.Count == 8;
+            for (int i = 0; inOrder && i < 8; i++) inOrder = order[i] == i + 1;
+            if (!inOrder) Fail("1번부터 8번 셀까지 차례로 쏘지 않음");
+
+            // 전량 재장전 → 다시 1번 셀부터
+            yield return null;
+            _report.AppendLine($"- 8발 뒤: 남은 셀 {vls.Ammo.Current}/{vls.Ammo.Capacity} · 재장전 중 {Yes(vls.Ammo.IsReloading)} · 남은 시간 {vls.Ammo.SecondsToNext:0.#}초");
+            if (!vls.Ammo.IsReloading) Fail("8발을 다 쓴 뒤 재장전에 들어가지 않음");
+            float reloadStart = Time.time;
+            int during = vls.LaunchCount;
+            while (vls.Ammo.IsReloading && Time.time - reloadStart < 90f)
+            {
+                if (boats.FindAll(e => e != null && e.IsAlive).Count < 3) boats = SpawnTargets();
+                yield return null;
+            }
+            float reloadTook = Time.time - reloadStart;
+            bool firedWhileReloading = vls.LaunchCount != during;
+            float waitStart = Time.time;
+            while (vls.LaunchCount == during && Time.time - waitStart < 10f)
+            {
+                if (boats.FindAll(e => e != null && e.IsAlive).Count < 3) boats = SpawnTargets();
+                yield return null;
+            }
+            _report.AppendLine($"- 재장전 {reloadTook:0.#}초(재장전 중 발사 {Yes(firedWhileReloading)}) → 다음 발사 셀 {vls.LastCell + 1}번 · 셀 {vls.Ammo.Current + (vls.LaunchCount > during ? 1 : 0)}/{vls.Ammo.Capacity}에서 시작");
+            if (firedWhileReloading) Fail("재장전 중에 발사함");
+            if (vls.LaunchCount == during || vls.LastCell != 0) Fail("재장전 뒤 1번 셀부터 다시 쏘지 않음");
+
+            CombatDevTools.ClearBattlefield();
+            yield return new WaitForSeconds(2.5f);
+            float worstPos = 0f, worstRot = 0f;
+            for (int i = 0; i < 8; i++)
+            {
+                worstPos = Mathf.Max(worstPos, Vector3.Distance(vls.transform.InverseTransformPoint(lids[i].position), closedPos[i]));
+                worstRot = Mathf.Max(worstRot, Quaternion.Angle(Quaternion.Inverse(vls.transform.rotation) * lids[i].rotation, closedRot[i]));
+            }
+            _report.AppendLine($"- 다 쏜 뒤: 열린 셀 {vls.OpenHatchCount}개 · 덮개 원위치 오차 {worstPos * 1000f:0.0} mm / {worstRot:0.00}°");
+            if (vls.OpenHatchCount != 0 || worstPos > 0.002f || worstRot > 0.2f) Fail("덮개가 원래 자리로 닫히지 않음");
+            yield return CloseShot("vls_hatch_closed", vls.transform, 7f);
+        }
+
         /// <summary>
         /// 탄약 검사(1차): 모든 무기가 탄약 데이터를 읽었는지, 쏘면 줄고 보급되는지,
         /// VLS가 셀 수 + 보급량보다 더 쏘지 않는지, CIWS가 비면 재장전하는지 본다. UI 포함 스크린샷.

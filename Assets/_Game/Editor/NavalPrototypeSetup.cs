@@ -171,6 +171,12 @@ namespace Game.EditorTools
                       $"방공 프리깃 {O(prefabs.AaFrigate)} · 공격 잠수함 {O(prefabs.AttackSubmarine)} · RoundSet_Stage3 {O(stage3)} · 구간 {(stage3 != null ? stage3.Count : 0)}");
         }
 
+        [MenuItem("Naval/Art/Rebuild VLS (8 cells)", priority = 41)]
+        public static void RebuildVls()
+        {
+            NavalPrefabBuilder.RebuildVlsOnly();
+        }
+
         [MenuItem("Naval/Refresh Art Prefabs", priority = 1)]
         public static void RefreshArtPrefabs()
         {

@@ -84,6 +84,10 @@ namespace Game.Dev
         public bool CodexOnly;
         [Tooltip("엘리트 초계함 주변 대형 물체 추적만 돌린다(-pccSoak)")]
         public bool PccSoak;
+        [Tooltip("우클릭 항로(자동 조함) 검사만 돌린다(-routeOnly)")]
+        public bool RouteOnly;
+        [Tooltip("VLS 8셀 덮개 열림 검사만 돌린다(-vlsOnly)")]
+        public bool VlsOnly;
 
         private readonly StringBuilder _report = new();
         private int _failures;
@@ -130,6 +134,20 @@ namespace Game.Dev
             {
                 yield return FormationCheck();
                 SaveLog("formation");
+                Finish();
+                yield break;
+            }
+            if (VlsOnly)
+            {
+                yield return VlsHatchCheck();
+                SaveLog("vls");
+                Finish();
+                yield break;
+            }
+            if (RouteOnly)
+            {
+                yield return RouteCheck();
+                SaveLog("route");
                 Finish();
                 yield break;
             }

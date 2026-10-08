@@ -9,7 +9,7 @@ namespace Game.Ship
     /// <summary>
     /// 플레이어 함선의 이동/선회와 Hull HP를 담당한다.
     /// 무기, 모듈, 탐지 로직은 전혀 알지 못한다.
-    /// 함체가 자라면 콜라이더를 다시 만든다. 속력과 선회는 모듈 수와 무관하게 ShipConfig 값 그대로다.
+    /// 함체가 자라면 콜라이더를 다시 만든다. 모듈 수로 느려지지 않으며 추진 지원만 속력·가속을 보강한다.
     /// </summary>
     [RequireComponent(typeof(Rigidbody))]
     public class ShipController : MonoBehaviour, IDamageable, ITargetable
@@ -104,8 +104,20 @@ namespace Game.Ship
 
         /// <summary>개발·검증용: 타 입력을 대신 넣는다(null이면 해제).</summary>
         [System.NonSerialized] public float? DevRudderOverride;
-        /// <summary>기준 최고속력(성장 카드 "최고 속력" 반영).</summary>
-        public float BaseMaxSpeed => (config != null ? config.BaseMaxSpeed : 1f) * Game.Modules.RunUpgrades.SpeedMultiplier;
+
+        /// <summary>
+        /// 자동 조함(우클릭 항로, <see cref="ShipAutopilot"/>)이 원하는 타각(-1 좌 ~ 1 우, null이면 해제).
+        /// 손으로 조타할 때처럼 타각이 서서히 돌아가므로 배의 움직임은 수동 조함과 같다. 수동 조타 입력이 언제나 우선한다.
+        /// </summary>
+        [System.NonSerialized] public float? AutoRudder;
+
+        /// <summary>플레이어가 조함 키(전령기·조타·타 중앙, 게임패드 스틱)를 눌렀다 — 자동 조함이 해제에 쓴다.</summary>
+        public event System.Action ManualHelm;
+
+        public ShipConfig Config => config;
+        /// <summary>기준 최고속력(성장 카드와 추진 지원 반영, 일시 전속 배율 제외).</summary>
+        public float BaseMaxSpeed => (config != null ? config.BaseMaxSpeed : 1f) * Game.Modules.RunUpgrades.SpeedMultiplier
+            * (systems != null ? systems.SpeedMultiplier : 1f);
         public float ReverseSpeedRatio => config != null ? config.ReverseSpeedRatio : 0.5f;
 
         /// <summary>마지막으로 선체가 피해를 받은 시각. 손상 통제가 교전 중 수리를 줄이는 데 쓴다.</summary>
@@ -211,6 +223,7 @@ namespace Game.Ship
         private void Start()
         {
             Game.View.ShipWake.Ensure(gameObject);   // 지나간 자리의 물살·뱃머리 물보라
+            ShipAutopilot.Ensure(this);              // 우클릭 항로(자동 조함)
             Game.View.FunnelSmoke.Ensure(gameObject, () => Mathf.Abs(ThrottleInput));   // 연돌 연기(기관 명령만큼)
             GameEvents.RaiseHullHpChanged(HullHp, HullMaxHp);
             RebuildCollider();
@@ -223,6 +236,9 @@ namespace Game.Ship
 
             // W/S(또는 스틱 위아래)는 누를 때마다 전령기를 한 칸씩 옮긴다. 떼도 출력은 유지된다.
             bool up = _moveInput.y > 0.5f, down = _moveInput.y < -0.5f;
+            if ((up && !_gearUpHeld) || (down && !_gearDownHeld) || Mathf.Abs(_moveInput.x) > 0.2f ||
+                GameSettings.Pressed(NavalControl.CenterRudder))
+                ManualHelm?.Invoke();
             if (up && !_gearUpHeld) ShiftEngineOrder(+1);
             if (down && !_gearDownHeld) ShiftEngineOrder(-1);
             _gearUpHeld = up;
@@ -258,44 +274,13 @@ namespace Game.Ship
             if (config == null || !IsAlive) return;
 
             float dt = Time.fixedDeltaTime;
-            float maxSpeed = BaseMaxSpeed;
-            float turnRate = config.BaseTurnRateDegPerSec;
-            float accelBoost = 1f;
-            if (IsFlanking)
-            {
-                maxSpeed *= _flankMultiplier;
-                turnRate *= 1.25f;
-                accelBoost = _flankMultiplier * 1.5f;
-            }
 
             // 배는 입력 방향으로 곧장 가지 않는다.
             //   W/S = 기관 전령기(단계, 떼도 유지), A/D = 조타(타각이 서서히 돌아감), 이동은 언제나 선수 방향.
             //   선회율은 타각을 따라 늦게 붙고, 타를 풀어도 한동안 계속 돈다. 크게 돌면 속력을 잃는다.
             float throttle = OrderedThrottle;
             UpdateRudder(dt);
-
-            // --- 기관: 전령기 출력까지 가감속. 후진은 전진보다 느리다. 선회 중에는 속력을 조금 잃는다.
-            float maxReverse = maxSpeed * config.ReverseSpeedRatio;
-            float targetSpeed = throttle >= 0f ? throttle * maxSpeed : throttle * maxReverse;
-            targetSpeed *= 1f - config.TurnSpeedLoss * Mathf.Clamp01(Mathf.Abs(_yawRate) / Mathf.Max(1f, turnRate));
-            bool speedingUp = Mathf.Abs(targetSpeed) > Mathf.Abs(_currentSpeed) && Mathf.Sign(targetSpeed) == Mathf.Sign(_currentSpeed == 0f ? targetSpeed : _currentSpeed);
-            float accel = speedingUp ? config.Acceleration * accelBoost : config.Deceleration;
-            _currentSpeed = Mathf.MoveTowards(_currentSpeed, targetSpeed, accel * dt);
-
-            // --- 타: 물이 흐를 때만 듣는다. 정지 상태에서는 제자리 선회가 되지 않는다.
-            float fullEffectSpeed = maxSpeed * config.RudderFullEffectSpeedRatio;
-            float effectiveness = fullEffectSpeed > 0.01f
-                ? Mathf.Clamp01(Mathf.Abs(_currentSpeed) / fullEffectSpeed)
-                : 0f;
-            effectiveness = Mathf.Max(effectiveness, config.MinRudderEffect);
-
-            // 후진 중에는 선미가 먼저 돌아가므로 타 효과가 반대로 나타난다
-            float direction = _currentSpeed < -0.01f ? -1f : 1f;
-            float targetYaw = _rudder * turnRate * effectiveness * direction;
-
-            // 선회율은 타각을 곧바로 따르지 않는다(선체 관성)
-            float response = 1f - Mathf.Exp(-dt / Mathf.Max(0.01f, config.TurnResponseTime));
-            _yawRate = Mathf.Lerp(_yawRate, targetYaw, response);
+            StepHelm(throttle, _rudder, ref _currentSpeed, ref _yawRate, dt);
             if (Mathf.Abs(_yawRate) > 0.001f)
                 _rb.MoveRotation(_rb.rotation * Quaternion.Euler(0f, _yawRate * dt, 0f));
 
@@ -325,6 +310,49 @@ namespace Game.Ship
         }
 
         /// <summary>
+        /// 한 스텝의 속력·선회율 변화. 실제 이동(FixedUpdate)과 자동 조함의 예상 항로 계산이 같은 식을 쓴다.
+        /// </summary>
+        public void StepHelm(float throttle, float rudder, ref float speed, ref float yawRate, float dt)
+        {
+            if (config == null) return;
+            float maxSpeed = BaseMaxSpeed;
+            float turnRate = config.BaseTurnRateDegPerSec;
+            float accelBoost = 1f;
+            if (IsFlanking)
+            {
+                maxSpeed *= _flankMultiplier;
+                turnRate *= 1.25f;
+                accelBoost = _flankMultiplier * 1.5f;
+            }
+
+            // --- 기관: 전령기 출력까지 가감속. 후진은 전진보다 느리다. 선회 중에는 속력을 조금 잃는다.
+            float maxReverse = maxSpeed * config.ReverseSpeedRatio;
+            float targetSpeed = throttle >= 0f ? throttle * maxSpeed : throttle * maxReverse;
+            targetSpeed *= 1f - config.TurnSpeedLoss * Mathf.Clamp01(Mathf.Abs(yawRate) / Mathf.Max(1f, turnRate));
+            bool speedingUp = Mathf.Abs(targetSpeed) > Mathf.Abs(speed) && Mathf.Sign(targetSpeed) == Mathf.Sign(speed == 0f ? targetSpeed : speed);
+            float accel = speedingUp ? config.Acceleration * accelBoost * (systems != null ? systems.AccelerationMultiplier : 1f) : config.Deceleration;
+            speed = Mathf.MoveTowards(speed, targetSpeed, accel * dt);
+
+            // --- 타: 물이 흐를 때만 듣는다. 정지 상태에서는 제자리 선회가 되지 않는다.
+            float fullEffectSpeed = maxSpeed * config.RudderFullEffectSpeedRatio;
+            float effectiveness = fullEffectSpeed > 0.01f
+                ? Mathf.Clamp01(Mathf.Abs(speed) / fullEffectSpeed)
+                : 0f;
+            effectiveness = Mathf.Max(effectiveness, config.MinRudderEffect);
+
+            // 후진 중에는 선미가 먼저 돌아가므로 타 효과가 반대로 나타난다
+            float direction = speed < -0.01f ? -1f : 1f;
+            float targetYaw = rudder * turnRate * effectiveness * direction;
+
+            // 선회율은 타각을 곧바로 따르지 않는다(선체 관성)
+            float response = 1f - Mathf.Exp(-dt / Mathf.Max(0.01f, config.TurnResponseTime));
+            yawRate = Mathf.Lerp(yawRate, targetYaw, response);
+        }
+
+        /// <summary>타각이 이 시간(dt) 동안 움직일 수 있는 양(-1~1 기준).</summary>
+        public float RudderStep(float dt) => config != null ? dt / Mathf.Max(0.05f, config.RudderShiftTime) : 0f;
+
+        /// <summary>
         /// A/D를 누르는 동안 타각이 최대 타각 쪽으로 서서히 돌아간다(중앙 → 최대 rudderShiftTime초).
         /// 떼면 설정에 따라 그 자리에 남거나 중앙으로 돌아간다. X는 중앙.
         /// </summary>
@@ -340,6 +368,8 @@ namespace Game.Ship
             float helm = _moveInput.x;
             if (Mathf.Abs(helm) > 0.2f)
                 _rudder = Mathf.MoveTowards(_rudder, Mathf.Sign(helm), step * Mathf.Abs(helm));
+            else if (AutoRudder.HasValue)
+                _rudder = Mathf.MoveTowards(_rudder, Mathf.Clamp(AutoRudder.Value, -1f, 1f), step);
             else if (!config.RudderHoldsPosition)
                 _rudder = Mathf.MoveTowards(_rudder, 0f, step);
         }

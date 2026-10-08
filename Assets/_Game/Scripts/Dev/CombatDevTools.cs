@@ -77,6 +77,8 @@ namespace Game.Dev
                 runner.FormationOnly = System.Array.IndexOf(args, "-formationOnly") >= 0;
                 runner.CodexOnly = System.Array.IndexOf(args, "-codexOnly") >= 0;
                 runner.PccSoak = System.Array.IndexOf(args, "-pccSoak") >= 0;
+                runner.RouteOnly = System.Array.IndexOf(args, "-routeOnly") >= 0;
+                runner.VlsOnly = System.Array.IndexOf(args, "-vlsOnly") >= 0;
                 break;
             }
         }
