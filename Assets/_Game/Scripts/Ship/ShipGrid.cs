@@ -114,7 +114,7 @@ namespace Game.Ship
             reason = null;
             foreach (var m in _modules)
             {
-                if (m?.Definition == null || !PlacementRuleEvaluator.NeedsOpenSide(m.Definition.Placement.Zone)) continue;
+                if (m?.Definition == null || !PlacementRuleEvaluator.NeedsOpenSide(m.Definition)) continue;
                 bool touches = false;
                 foreach (var c in m.OccupiedCoords)
                 {
@@ -130,9 +130,13 @@ namespace Game.Ship
                 finally { _probe.Clear(); }
                 if (!ok)
                 {
-                    reason = m.Definition.Placement.Zone == PlacementZone.SideOnly
-                        ? $"{m.Definition.DisplayName}의 양옆을 모두 막음"
-                        : $"{m.Definition.DisplayName}의 옆·뒤를 모두 막음";
+                    reason = m.Definition.Placement.Zone switch
+                    {
+                        PlacementZone.SideOnly => $"{m.Definition.DisplayName}의 양옆을 모두 막음",
+                        PlacementZone.BowOnly => $"{m.Definition.DisplayName}의 앞을 막음",
+                        PlacementZone.SternOnly => $"{m.Definition.DisplayName}의 뒤를 막음",
+                        _ => $"{m.Definition.DisplayName}의 옆·뒤를 모두 막음",
+                    };
                     return true;
                 }
             }

@@ -29,6 +29,8 @@ namespace Game.Modules
         MissileLogistics = 20,// VLS·유도로켓 발사 간격·셀 보급
         TorpedoTube = 21,      // 경어뢰 발사관 — 트인 현측으로 부채꼴 3발(대잠 전용)
         Howitzer = 22,         // 곡사포 — 상부 구조물·섬 너머로 쏘는 범위 피해(수상 전용)
+        RamBow = 23,           // 충각 함수 — 맨 앞 칸, 나아가며 들이받음
+        MineRail = 24,         // 선미 기뢰 투하궤 — 뒤가 트인 자리, 추격하는 적 앞에 기뢰
     }
 
     /// <summary>

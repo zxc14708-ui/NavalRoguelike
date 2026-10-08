@@ -34,6 +34,7 @@ namespace Game.UI
             (ModuleType.Ciws, "CIWS"),
             (ModuleType.AswLauncher, "폭뢰"),
             (ModuleType.TorpedoTube, "경어뢰"),
+            (ModuleType.MineRail, "기뢰"),
         };
 
         private static readonly Color Dim = new(0.62f, 0.72f, 0.76f, 0.75f);

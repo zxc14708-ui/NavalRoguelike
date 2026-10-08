@@ -38,6 +38,12 @@ namespace Game.Modules
         /// </summary>
         public static bool NeedsOpenSide(PlacementZone zone) => zone is PlacementZone.SideOrStern or PlacementZone.SideOnly;
 
+        /// <summary>
+        /// 위 규칙 + 앞·뒤가 트여 있어야 작동하는 블록(충각 함수·기뢰 투하궤). 헬기데크(선미만)는 예전처럼 뒤를 막아도 된다.
+        /// </summary>
+        public static bool NeedsOpenSide(ModuleDefinition def) => def != null &&
+            (NeedsOpenSide(def.Placement.Zone) || def.Type is ModuleType.RamBow or ModuleType.MineRail);
+
         public static bool Evaluate(PlacementRule rule, ShipGrid grid,
                                     IReadOnlyList<GridCoord> coords, out string reason)
         {

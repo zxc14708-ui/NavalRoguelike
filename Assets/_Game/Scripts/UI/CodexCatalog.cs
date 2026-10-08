@@ -118,6 +118,8 @@ namespace Game.UI
             ModuleType.MissileLogistics => 18,
             ModuleType.TorpedoTube => 8,   // 폭뢰 옆에
             ModuleType.Howitzer => 2,      // 76mm 옆에
+            ModuleType.RamBow => 1,        // 근접
+            ModuleType.MineRail => 8,      // 대잠·후방 장비 옆에
             _ => 20,
         };
 

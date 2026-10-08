@@ -65,6 +65,15 @@ namespace Game.UI
                     Row(sb, "발사 간격", $"{s.ReloadTime:0.0#} 초 · 착탄까지 1.4~3 초");
                     Ammo(sb, s);
                     break;
+                case ModuleType.RamBow:
+                    Row(sb, "충돌 피해", $"{s.Damage:0} × 속력 (최고 속력 20% 이상)");
+                    Row(sb, "충돌 구역", "블록 앞 2.4 m · 같은 적은 1초에 한 번");
+                    break;
+                case ModuleType.MineRail:
+                    Row(sb, "기뢰 피해", $"{s.Damage:0} · 폭발 반경 3 m (가장자리 50%)");
+                    Row(sb, "투하", $"뒤쪽 30 m 안 추격하는 적 · {s.ReloadTime:0.#} 초 간격 · 35 초 뒤 가라앉음");
+                    Ammo(sb, s);
+                    break;
                 case ModuleType.TorpedoTube:
                     Row(sb, "대잠 사거리", $"{s.MinRange:0} ~ {s.Range:0} m");
                     Row(sb, "피해", $"{s.Damage:0} × 3 (부채꼴)");
@@ -281,7 +290,8 @@ namespace Game.UI
 
         public static string Category(ModuleType t) => t switch
         {
-            ModuleType.Autocannon => "근거리 무장",
+            ModuleType.Autocannon or ModuleType.RamBow => "근거리 무장",
+            ModuleType.MineRail => "후방 무장",
             ModuleType.NavalGun or ModuleType.GuidedRocket or ModuleType.Howitzer => "중거리 무장",
             ModuleType.Vls => "장거리 무장",
             ModuleType.Ciws or ModuleType.SamLauncher => "방공",
@@ -299,7 +309,7 @@ namespace Game.UI
 
         private static string CategoryColor(ModuleType t) => t switch
         {
-            ModuleType.Autocannon => "#e0956a",
+            ModuleType.Autocannon or ModuleType.RamBow or ModuleType.MineRail => "#e0956a",
             ModuleType.NavalGun or ModuleType.GuidedRocket or ModuleType.Howitzer => "#e0c05a",
             ModuleType.Vls => "#7fb8e0",
             ModuleType.Ciws or ModuleType.SamLauncher => "#8fd0ff",
@@ -443,6 +453,8 @@ namespace Game.UI
             ModuleType.AswLauncher => "소나 접촉·어뢰 흔적에 폭뢰 투하",
             ModuleType.TorpedoTube => "트인 현측으로 경어뢰 3발 부채꼴 — 중거리 대잠",
             ModuleType.Howitzer => "상부 구조물·섬 너머로 쏘는 범위 포격 — 몰린 수상함",
+            ModuleType.RamBow => "맨 앞 칸 강화 함수 — 빠르게 나아가며 들이받는다",
+            ModuleType.MineRail => "선미에서 추격하는 적 앞에 기뢰를 떨어뜨린다",
             ModuleType.Radar => "탐지 거리와 동시 추적 수 증가",
             ModuleType.Sonar => "잠항 잠수함 탐지",
             ModuleType.DecoyLauncher => "유도탄을 끌어내는 기만체와 연막",

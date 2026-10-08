@@ -125,7 +125,7 @@ namespace Game.UI
 
         private static Color CategoryAccent(ModuleType t) => t switch
         {
-            ModuleType.Autocannon => new Color(0.88f, 0.58f, 0.42f),
+            ModuleType.Autocannon or ModuleType.RamBow or ModuleType.MineRail => new Color(0.88f, 0.58f, 0.42f),
             ModuleType.NavalGun or ModuleType.GuidedRocket or ModuleType.Howitzer => new Color(0.88f, 0.75f, 0.35f),
             ModuleType.Vls => new Color(0.5f, 0.72f, 0.88f),
             ModuleType.Ciws or ModuleType.SamLauncher => new Color(0.56f, 0.82f, 1f),
