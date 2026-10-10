@@ -26,7 +26,7 @@ namespace Game.Ship
                 return;
             }
 
-            var coord = grid.WorldToNearestCoord(info.HitPoint);
+            var coord = HitCell(info.HitPoint);
             var target = grid.Get(coord);
             float amount = info.Amount * RunUpgrades.IncomingDamageMultiplier;   // 성장 카드: 방어력
             bool wasDestroyed = target != null && target.IsDestroyed;
@@ -56,6 +56,34 @@ namespace Game.Ship
                                    : wasDestroyed ? $"{target.Definition.DisplayName}(이미 파괴)"
                                    : $"{target.Definition.DisplayName} {amount - toHull:0.#}{(target.IsDestroyed ? " → 파괴" : "")}") +
                                   $" · 선체 {toHull:0.#}");
+        }
+
+        /// <summary>
+        /// 맞은 칸(2026-10-09). 피격 판정 상자는 블록 격자 경계를 감싸는 직사각형이라 맞은 지점은 늘 바깥 표면에 있고,
+        /// 미사일·자폭 보트·드론은 표면 밖에서 터진다. 가장 가까운 칸을 반올림만 하면 가장자리 블록 대신 바깥 빈 칸
+        /// (또는 모양이 들쭉날쭉한 함체의 빈 칸)이 잡혀 피해가 전부 선체로 갔다 — 블록 내구와 손상 통제 배치가 의미를 잃었다.
+        /// 반올림한 칸이 비어 있으면 맞은 지점에서 가장 가까운 블록 칸(칸 사각형까지 거리)을 쓴다 — 피해가 함선에 닿았으면
+        /// 늘 어떤 블록이 받는다(판정 상자의 블록 없는 모서리에 맞아도). 파괴된 블록 칸에 맞으면 예전처럼 선체가 다 받는다.
+        /// </summary>
+        public GridCoord HitCell(Vector3 hitPoint)
+        {
+            var coord = grid.WorldToNearestCoord(hitPoint);
+            if (grid.Get(coord) != null) return coord;
+
+            var local = grid.transform.InverseTransformPoint(hitPoint);
+            float half = grid.CellSize * 0.5f;
+            float best = float.MaxValue;
+            foreach (var c in grid.OccupiedCells)
+            {
+                var p = grid.CoordToLocal(c);
+                float dx = Mathf.Max(0f, Mathf.Abs(local.x - p.x) - half);
+                float dz = Mathf.Max(0f, Mathf.Abs(local.z - p.z) - half);
+                float d = dx * dx + dz * dz;
+                if (d >= best) continue;
+                best = d;
+                coord = c;
+            }
+            return coord;
         }
 
         /// <summary>
