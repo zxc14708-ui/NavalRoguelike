@@ -96,6 +96,8 @@ namespace Game.Dev
         public bool RouteOnly;
         [Tooltip("VLS 8셀 덮개 열림 검사만 돌린다(-vlsOnly)")]
         public bool VlsOnly;
+        [Tooltip("피격 칸 판정(블록 내구) 검사만 돌린다(-blockHitOnly)")]
+        public bool BlockHitOnly;
 
         private readonly StringBuilder _report = new();
         private int _failures;
@@ -142,6 +144,13 @@ namespace Game.Dev
             {
                 yield return FormationCheck();
                 SaveLog("formation");
+                Finish();
+                yield break;
+            }
+            if (BlockHitOnly)
+            {
+                yield return BlockHitCheck();
+                SaveLog("blockhit");
                 Finish();
                 yield break;
             }
