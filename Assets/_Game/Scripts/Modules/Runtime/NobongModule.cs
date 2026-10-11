@@ -40,6 +40,7 @@ namespace Game.Modules.Runtime
         private float _pause, _lastShotTime = -999f;
         private int _burst, _salvoCount, _barrel;
         private MuzzleBurstVfx _muzzleVfx;
+        private Transform _muzzleA, _muzzleB;   // 좌우 포구(있으면)
 
         public AmmoMagazine Ammo => _ammo;
         public bool IsEngaged => Time.time - _lastShotTime < 0.6f;
@@ -104,7 +105,13 @@ namespace Game.Modules.Runtime
             Vector3 side = Vector3.Cross(Vector3.up, dir).normalized;
             Vector3 d = Quaternion.AngleAxis(Random.Range(-spreadDegrees, spreadDegrees), Vector3.up) *
                         Quaternion.AngleAxis(Random.Range(-spreadDegrees, spreadDegrees) * 0.5f, side) * dir;
+            // 강화 모델(Codex v22)에 좌우 포구(Muzzle_01·02)가 있으면 그 포구에서, 없으면 가운데 포구에서 좌우로 띄운다
             Vector3 from = muzzle.position + side * (barrelOffset * barrel);
+            if (_muzzleA != null && _muzzleB != null && _muzzleA.gameObject.activeInHierarchy)
+            {
+                bool aRight = Vector3.Dot(_muzzleA.position - _muzzleB.position, side) > 0f;
+                from = (barrel > 0) == aRight ? _muzzleA.position : _muzzleB.position;
+            }
             var go = PoolManager.Instance?.Spawn(projectilePrefab, from, Quaternion.LookRotation(d));
             go?.GetComponent<Projectile>()?.Launch(d, Stats.ProjectileSpeed, damage, DamageSource.Gun);
             LastBarrel = barrel;
@@ -121,6 +128,8 @@ namespace Game.Modules.Runtime
             var turret = FindVisualPart(visualRoot, "TurretPivot");
             var elevation = FindVisualPart(visualRoot, "ElevationPivot");
             var muzzle = FindVisualPart(visualRoot, "Muzzle");
+            _muzzleA = FindVisualPart(visualRoot, "Muzzle_01");
+            _muzzleB = FindVisualPart(visualRoot, "Muzzle_02");
             if (turret != null && elevation != null && muzzle != null)
                 weapon.BindArtTransforms(turret, elevation, muzzle);
             else

@@ -40,7 +40,13 @@ namespace Game.EditorTools
             Debug.Log("[Weapon Pack Upgrades] 노봉·곡사포·경어뢰 발사관·충각 함수 강화 외형·데이터·아이콘 적용 완료.");
         }
 
-        private static void ApplyNobong() => Apply<NobongModule>("MOD_Nobong", "Nobong", (c, v) => Configure(c, so =>
+        // 2026-10-11: Codex 노봉 v22 모델(Art/Models/Nobong)이 있으면 그것을 쓴다(NavalPlayerAviationArt). 없으면 예전 시안 외형.
+        private static void ApplyNobong()
+        {
+            if (!NavalPlayerAviationArt.ApplyNobongV22()) ApplyNobongConcept();
+        }
+
+        private static void ApplyNobongConcept() => Apply<NobongModule>("MOD_Nobong", "Nobong", (c, v) => Configure(c, so =>
         {
             Set(so, "weapon.turret", Need(v, "TurretPivot"));
             Set(so, "weapon.elevationPivot", Need(v, "ElevationPivot"));

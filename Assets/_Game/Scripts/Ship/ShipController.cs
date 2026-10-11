@@ -128,6 +128,7 @@ namespace Game.Ship
         private const float GroundingDamageSpeed = 3f;
         private const float GroundingDamagePerSpeed = 1.5f;
         private float _lastGrounding = -999f;
+        private float _lastBoundaryWarning = -999f;
 
         /// <summary>지금 섬에 닿아 있는가(좌초).</summary>
         public bool IsAground { get; private set; }
@@ -309,6 +310,17 @@ namespace Game.Ship
                 IsAground = true;
             }
             else IsAground = false;
+
+            // 좁은 수로(점검 K04): 양안 너머로는 나갈 수 없다(보이지 않는 경계 — 기슭 콜라이더 사이로 새어 나가도 막는다)
+            if (Game.World.SeaRegion.ClampToChannel(ref next, -2f))
+            {
+                _currentSpeed *= 0.5f;
+                if (Time.time - _lastBoundaryWarning > 6f)
+                {
+                    _lastBoundaryWarning = Time.time;
+                    GameEvents.RaiseBanner("수로 경계 — 양안 너머로는 나갈 수 없습니다");
+                }
+            }
 
             _rb.MovePosition(next);
             GameEvents.RaiseSpeedChanged(_currentSpeed);

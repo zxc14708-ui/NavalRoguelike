@@ -1038,6 +1038,7 @@ namespace Game.TaskForce
                 if (_hullCollider != null && _hullCollider.enabled &&
                     Game.World.Islands.ResolveOverlap(_hullCollider, ref next, rot, out _))
                     _speed *= 0.6f;
+                if (Game.World.SeaRegion.ClampToChannel(ref next, -2f)) _speed *= 0.6f;   // 좁은 수로 경계(점검 K04)
                 transform.SetPositionAndRotation(next, rot);
             }
 

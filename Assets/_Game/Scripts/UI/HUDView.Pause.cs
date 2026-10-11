@@ -181,7 +181,8 @@ namespace Game.UI
             if (_pauseInfo == null) return;
             var gm = GameManager.Instance;
             float t = gm != null ? gm.ElapsedTime : 0f;
-            _pauseInfo.text = $"스테이지 {_stage} · 구간 {_phase}/{_phaseCount} · 작전 {(int)t / 60}:{(int)t % 60:00} · 격침 {(gm != null ? gm.TotalKills : 0)}" +
+            string sea = Game.World.SeaRegion.Active ? $" · {Game.World.SeaRegion.CurrentProfile.Name}" : "";
+            _pauseInfo.text = $"스테이지 {_stage}{sea} · 구간 {_phase}/{_phaseCount} · 작전 {(int)t / 60}:{(int)t % 60:00} · 격침 {(gm != null ? gm.TotalKills : 0)}" +
                               $"\n<size=80%><color=#9fb3c0>시드 {RunSeed.Current} · {Diagnostics.Version}</color></size>";
         }
 

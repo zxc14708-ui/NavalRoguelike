@@ -47,6 +47,10 @@ namespace Game.Combat
         [SerializeField] private float idleReturnDelay = 8f;
         [SerializeField] private float searchInterval = 0.35f;
         private float _weaponTimer, _idleTimer, _searchTimer, _orbitAngle;
+        private float _damageScale = 1f;   // 모함 강화 단계의 무장 피해 배율(헬기데크 강화, 2026-10-11)
+        // 로터 회전축(로터 자기 좌표). 모델마다 로터 노드의 축이 달라(Codex v24는 위가 Y가 아님) 기체의 위·오른쪽을 로터 좌표로 바꿔 둔다
+        private Vector3 _rotorAxis = Vector3.up, _tailAxis = Vector3.right;
+        private bool _axesReady;
 
         [Header("Weapons")]
         [Tooltip("수상함 공격용 유도로켓")]
@@ -72,9 +76,10 @@ namespace Game.Combat
 
         /// <summary>헬기데크(함선 블록 또는 대잠 호위함, IHelicopterBase)가 출격시킬 때 호출한다.</summary>
         public void Sortie(Transform home, ITargetable target,
-                           IHelicopterBase deck = null, Vector3 searchPoint = default)
+                           IHelicopterBase deck = null, Vector3 searchPoint = default, float damageScale = 1f)
         {
             _home = home;
+            _damageScale = Mathf.Max(0.1f, damageScale);
             _target = target;
             _searchPoint = searchPoint;
             _deck = deck;
@@ -212,7 +217,7 @@ namespace Game.Combat
                 if (go != null && go.TryGetComponent<DepthCharge>(out var charge))
                 {
                     var point = _target is Game.Enemies.SubmarineBase sub ? sub.LastKnownPosition : _target.Transform.position;
-                    charge.Launch(from, point, attackDamage);
+                    charge.Launch(from, point, AttackDamage);
                     return;
                 }
             }
@@ -223,7 +228,7 @@ namespace Game.Combat
                 var go = PoolManager.Instance?.Spawn(rocketPrefab, from, rot);
                 if (go != null && go.TryGetComponent<Missile>(out var rocket))
                 {
-                    rocket.Launch(_target.Transform, attackDamage);
+                    rocket.Launch(_target.Transform, AttackDamage);
                     return;
                 }
             }
@@ -234,16 +239,31 @@ namespace Game.Combat
             if (_target is IDamageable d && d.IsAlive)
             {
                 var source = _target.Kind == TargetKind.Submarine ? DamageSource.Torpedo : DamageSource.Missile;
-                d.TakeDamage(new DamageInfo(attackDamage, _target.Transform.position, Vector3.down, source));
+                d.TakeDamage(new DamageInfo(AttackDamage, _target.Transform.position, Vector3.down, source));
             }
         }
+
+        /// <summary>한 번 공격의 피해(모함 강화 배율 포함).</summary>
+        public float AttackDamage => attackDamage * _damageScale;
 
         /// <summary>로터가 돌아야 헬기로 보인다.</summary>
         private void SpinRotors(float dt)
         {
-            if (rotor != null) rotor.Rotate(Vector3.up, rotorRpm * 6f * dt, Space.Self);
-            if (tailRotor != null) tailRotor.Rotate(Vector3.right, rotorRpm * 8f * dt, Space.Self);
+            EnsureRotorAxes();
+            if (rotor != null) rotor.Rotate(_rotorAxis, rotorRpm * 6f * dt, Space.Self);
+            if (tailRotor != null) tailRotor.Rotate(_tailAxis, rotorRpm * 8f * dt, Space.Self);
         }
+
+        private void EnsureRotorAxes()
+        {
+            if (_axesReady) return;
+            _axesReady = true;
+            if (rotor != null) _rotorAxis = rotor.InverseTransformDirection(transform.up).normalized;
+            if (tailRotor != null) _tailAxis = tailRotor.InverseTransformDirection(transform.right).normalized;
+        }
+
+        /// <summary>검증용: 메인 로터가 도는 축(월드). 기체가 수평이면 위를 향해야 한다.</summary>
+        public Vector3 RotorAxisWorld { get { EnsureRotorAxes(); return rotor != null ? rotor.TransformDirection(_rotorAxis) : Vector3.zero; } }
 
         private bool TargetValid() => _deck != null && _deck.IsTargetInRange(_target) &&
             (_target is not Game.Enemies.SubmarineBase sub || sub.IsContactConfirmed || sub.IsRevealed);

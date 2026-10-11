@@ -99,6 +99,8 @@ namespace Game.Modules
             s.Damage *= M(m.damageMultiplier);
             s.Range *= M(m.rangeMultiplier);
             s.ReloadTime *= M(m.cooldownMultiplier);
+            s.SortieCooldown *= M(m.cooldownMultiplier);   // 헬기데크 출격 간격(다른 블록은 0)
+            s.HelicopterSpeed *= M(m.speedMultiplier);
             s.MagazineCapacity = ScaleCapacity(s.MagazineCapacity, M(m.magazineMultiplier), s.AmmoPerShot);
             s.AmmoReloadTime *= M(m.ammoReloadMultiplier);
             s.TurretTurnRate *= M(m.turnSpeedMultiplier);

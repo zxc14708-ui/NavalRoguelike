@@ -314,6 +314,7 @@ namespace Game.Enemies
             if (Kind != TargetKind.Aircraft && _ownHull != null &&
                 Game.World.Islands.ResolveOverlap(_ownHull, ref next, transform.rotation, out _))
                 _speed *= 0.5f;
+            if (Kind != TargetKind.Aircraft && Game.World.SeaRegion.ClampToChannel(ref next, -2f)) _speed *= 0.5f;   // 좁은 수로 경계(점검 K04)
             transform.position = next;
         }
 

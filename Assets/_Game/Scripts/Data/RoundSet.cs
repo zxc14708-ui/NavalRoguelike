@@ -74,6 +74,25 @@ namespace Game.Data
             return last;
         }
 
+        /// <summary>가중치에 배율(해역별 적 구성, 점검 K04)을 곱해 뽑는다. 원본 가중치는 바꾸지 않는다.</summary>
+        public static EnemyDefinition PickWeighted(in Round round, System.Func<EnemyDefinition, bool> allowed, System.Func<EnemyDefinition, float> scale)
+        {
+            if (round.Entries == null || round.Entries.Count == 0) return null;
+            float total = 0f;
+            foreach (var e in round.Entries) if (e.Enemy != null && allowed(e.Enemy)) total += Mathf.Max(0f, e.Weight * scale(e.Enemy));
+            if (total <= 0f) return PickWeighted(round, allowed);
+            float roll = UnityEngine.Random.value * total;
+            EnemyDefinition last = null;
+            foreach (var e in round.Entries)
+            {
+                if (e.Enemy == null || !allowed(e.Enemy)) continue;
+                last = e.Enemy;
+                roll -= Mathf.Max(0f, e.Weight * scale(e.Enemy));
+                if (roll <= 0f) return e.Enemy;
+            }
+            return last;
+        }
+
         public static EnemyDefinition PickWeighted(in Round round)
         {
             if (round.Entries == null || round.Entries.Count == 0) return null;

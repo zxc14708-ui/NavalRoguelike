@@ -150,7 +150,7 @@ namespace Game.Refit
         private RefitCard DrawInstall(HashSet<ModuleDefinition> used)
         {
             BuildInstallPool(used);
-            var def = PickWeighted(_installPool, d => Mathf.Max(0.01f, d.Weight));
+            var def = PickWeighted(_installPool, d => Mathf.Max(0.01f, d.Weight * Game.World.SeaRegion.CardWeight(d.Id)));   // 해역별 가중치(점검 K04)
             return def != null ? RefitCard.Install(def) : null;
         }
 

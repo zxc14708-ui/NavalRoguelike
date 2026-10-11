@@ -135,6 +135,7 @@ namespace Game.Core
                 {
                     // 첫 출격 훈련(점검 U03): 스테이지를 시작하지 않고 훈련 안내가 단계마다 적을 낸다
                     _training = true;
+                    Game.World.SeaRegion.Leave();
                     RunSeed.Begin();
                     GameManager.Instance.SetState(GameState.Playing);
                     Game.UI.TrainingDirector.Begin(hud.GetComponentInParent<Canvas>().rootCanvas.transform, hud.Font);
@@ -155,6 +156,8 @@ namespace Game.Core
         {
             _stageTransitioning = false;
             _stageIndex = stageIndex;
+            // 해역(점검 K04): 스테이지마다 군도 → 좁은 수로 → 개방해역. 수로는 지금 함선 위치·침로가 물길이 된다
+            if (player != null) Game.World.SeaRegion.Enter(Game.World.SeaRegion.ForStage(StageNumber), player.position, player.forward);
             _elapsed = 0f;
             _totalDuration = 0f;
             foreach (var p in Phases.Rounds) _totalDuration += Mathf.Max(5f, p.Duration);
@@ -189,6 +192,7 @@ namespace Game.Core
             spawner?.SetPhase(phase, player);
 
             string title = string.IsNullOrEmpty(phase.Title) ? $"구간 {index + 1}" : phase.Title;
+            if (Game.World.SeaRegion.Active) title = $"{Game.World.SeaRegion.CurrentProfile.Name} · {title}";   // 해역 이름(점검 K04)
             GameEvents.RaisePhaseStarted(StageNumber, index + 1, phases.Count, title);
         }
 

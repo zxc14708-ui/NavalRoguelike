@@ -114,6 +114,10 @@ namespace Game.Dev
         public bool BundleCOnly;
         [Tooltip("점검 D 묶음 검사만 돌린다(-bundleDOnly): 배포 기본·사운드·기록/도전 과제·선택 임무")]
         public bool BundleDOnly;
+        [Tooltip("Codex 시안 적용 검사만 돌린다(-aviationOnly): 헬기데크·헬기 T1~T3·노봉 v22")]
+        public bool AviationOnly;
+        [Tooltip("해역 차별화 검사만 돌린다(-seaOnly): 해역별 섬·레이더·적 구성·카드·물색, 좁은 수로 경계, 해안포대")]
+        public bool SeaOnly;
 
         private readonly StringBuilder _report = new();
         private int _failures;
@@ -181,6 +185,20 @@ namespace Game.Dev
             {
                 yield return EscortArmsCheck();
                 SaveLog("escortarms");
+                Finish();
+                yield break;
+            }
+            if (SeaOnly)
+            {
+                yield return SeaCheck();
+                SaveLog("sea");
+                Finish();
+                yield break;
+            }
+            if (AviationOnly)
+            {
+                yield return AviationCheck();
+                SaveLog("aviation");
                 Finish();
                 yield break;
             }
@@ -499,6 +517,9 @@ namespace Game.Dev
         {
             LaunchFromStartScreen();
             foreach (var d in Object.FindObjectsByType<StageDirector>(FindObjectsSortMode.None)) d.enabled = false;
+            // 검사 환경은 해역 효과 없이(점검 K04 이전과 같은 섬·레이더) — 해역 검사(-seaOnly)는 스스로 해역에 들어간다
+            Game.World.SeaRegion.Leave();
+            Game.Enemies.CoastalBatteryField.Disabled = true;
             foreach (var x in Object.FindObjectsByType<ExperienceSystem>(FindObjectsSortMode.None)) x.enabled = false;
             // 호위함 자체 무장은 끈다: 기함 단독 검사(자폭 보트 충돌·정지 물보라 등)에 끼어들지 않게. 호위함 검사가 필요할 때 켠다.
             foreach (var e in Object.FindObjectsByType<Game.TaskForce.EscortDefense>(FindObjectsSortMode.None)) e.enabled = false;

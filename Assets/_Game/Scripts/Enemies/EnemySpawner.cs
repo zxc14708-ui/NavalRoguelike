@@ -25,6 +25,9 @@ namespace Game.Enemies
         private float _accumulator;
 
         private readonly List<EnemyController> _alive = new();
+        /// <summary>고정 적(해안포대, 점검 K04): 웨이브 동시 수에 세지 않지만 스테이지 전환 때 함께 치운다.</summary>
+        private readonly List<EnemyController> _fixed = new();
+        public IReadOnlyList<EnemyController> Fixed => _fixed;
 
         private void Awake() => Instance = this;
 
@@ -63,7 +66,7 @@ namespace Game.Enemies
             while (_accumulator >= 1f && _alive.Count < _round.MaxAlive)
             {
                 _accumulator -= 1f;
-                Spawn(RoundSet.PickWeighted(_round, UnderAliveCap));
+                Spawn(RoundSet.PickWeighted(_round, UnderAliveCap, d => Game.World.SeaRegion.EnemyWeight(d.Id)));   // 해역별 구성(점검 K04)
             }
         }
 
@@ -104,8 +107,9 @@ namespace Game.Enemies
                 float angle = Random.value * Mathf.PI * 2f;
                 float r = spawnRadius + Random.Range(-spawnRadiusJitter, spawnRadiusJitter);
                 p = _player.position + new Vector3(Mathf.Cos(angle) * r, 0f, Mathf.Sin(angle) * r);
-                if (Game.World.Islands.IsClear(p, 9f)) return p;   // 섬 위에 나오지 않게
+                if (Game.World.Islands.IsClear(p, 9f) && Game.World.SeaRegion.InWater(p, 10f)) return p;   // 섬·기슭 위나 수로 밖에 나오지 않게
             }
+            Game.World.SeaRegion.ClampToChannel(ref p, 12f);
             return p;
         }
 
@@ -129,6 +133,18 @@ namespace Game.Enemies
             return enemy;
         }
 
+        /// <summary>고정 적(해안포대)을 그 자리에 둔다. 동시 최대 수에 세지 않는다.</summary>
+        public EnemyController SpawnFixed(EnemyDefinition def, Vector3 position, Quaternion rotation)
+        {
+            if (def == null || def.Prefab == null || _player == null) return null;
+            var go = PoolManager.Instance?.Spawn(def.Prefab, position, rotation);
+            if (go == null || !go.TryGetComponent<EnemyController>(out var enemy)) return null;
+            enemy.Setup(def, _player);
+            enemy.transform.SetPositionAndRotation(position, rotation);
+            _fixed.Add(enemy);
+            return enemy;
+        }
+
         /// <summary>스테이지 전환: 남은 적을 보상 없이 모두 치우고 스폰을 멈춘다(다음 SetPhase까지).</summary>
         public void ClearAll()
         {
@@ -138,9 +154,12 @@ namespace Game.Enemies
             foreach (var enemy in snapshot)
                 if (enemy != null && enemy.isActiveAndEnabled) enemy.RemoveWithoutReward();
             _alive.Clear();
+            foreach (var enemy in _fixed.ToArray())
+                if (enemy != null && enemy.isActiveAndEnabled) enemy.RemoveWithoutReward();
+            _fixed.Clear();
         }
 
         /// <summary>적이 격침되거나 회수될 때 호출한다.</summary>
-        public void NotifyEnemyRemoved(EnemyController enemy) => _alive.Remove(enemy);
+        public void NotifyEnemyRemoved(EnemyController enemy) { _alive.Remove(enemy); _fixed.Remove(enemy); }
     }
 }

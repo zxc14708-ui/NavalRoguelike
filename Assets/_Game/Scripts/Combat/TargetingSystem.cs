@@ -54,7 +54,7 @@ namespace Game.Combat
 
         /// <summary>현재 레이더 탐지거리(개발용 표시). 적 전자전 방해 중이면 줄어든다(육안 거리 아래로는 안 줄어듦).</summary>
         public float RadarRange => systems != null
-            ? Mathf.Max((systems.DetectionRange + Mathf.Max(0f, ExternalDetectionRangeBonus)) * EnemyJamming.RadarMultiplier, visualRange)
+            ? Mathf.Max((systems.DetectionRange + Mathf.Max(0f, ExternalDetectionRangeBonus)) * EnemyJamming.RadarMultiplier * Game.World.SeaRegion.RadarMultiplier, visualRange)
             : visualRange;
         public float VisualRange => visualRange;
         public float PingRemaining => Mathf.Max(0f, _nextPingTime - Time.time);
@@ -122,7 +122,8 @@ namespace Game.Combat
             }
 
             // 적 전자전 방해(스테이지 3 전자전 코르벳): 레이더만 줄고 육안 거리는 그대로
-            float radarRange = Mathf.Max((systems.DetectionRange + Mathf.Max(0f, ExternalDetectionRangeBonus)) * EnemyJamming.RadarMultiplier, visualRange);
+            // 해역(점검 K04): 군도 −20% · 수로 −10% · 개방해역 +15%
+            float radarRange = Mathf.Max((systems.DetectionRange + Mathf.Max(0f, ExternalDetectionRangeBonus)) * EnemyJamming.RadarMultiplier * Game.World.SeaRegion.RadarMultiplier, visualRange);
             float sonarRange = systems.SonarRange;
             int maxTracked = Mathf.Max(1, systems.MaxTrackedTargets + Mathf.Max(0, ExternalTrackedTargetsBonus));
             Vector3 self = transform.position;

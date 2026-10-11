@@ -94,6 +94,8 @@ namespace Game.Dev
                 runner.BundleBOnly = System.Array.IndexOf(args, "-bundleBOnly") >= 0;
                 runner.BundleCOnly = System.Array.IndexOf(args, "-bundleCOnly") >= 0;
                 runner.BundleDOnly = System.Array.IndexOf(args, "-bundleDOnly") >= 0;
+                runner.AviationOnly = System.Array.IndexOf(args, "-aviationOnly") >= 0;
+                runner.SeaOnly = System.Array.IndexOf(args, "-seaOnly") >= 0;
                 break;
             }
         }

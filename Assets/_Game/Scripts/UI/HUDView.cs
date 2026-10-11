@@ -208,6 +208,7 @@ namespace Game.UI
             IdentityMarkersUI.Create(transform);   // 적아 식별 표식(다른 HUD 패널 밑)
             BossBarUI.Create(transform, _navalFont);   // 보스 막대(단계·다음 공격·대응)
             AchievementTracker.Create(transform);       // 출격 기록·도전 과제(점검 K06)
+            SeaRegionCardUI.Create(transform, _navalFont);   // 해역 안내 카드(점검 K04)
             _combatGroup = gameObject.GetComponent<CanvasGroup>();
             if (_combatGroup == null) _combatGroup = gameObject.AddComponent<CanvasGroup>();
 
@@ -887,11 +888,14 @@ namespace Game.UI
 
             var content = Panel(overlay, "Route briefing", new Vector2(0.5f, 0.5f),
                 new Vector2(-400f, -180f), new Vector2(800f, 360f), Color.clear);
-            Label(content, "Eyebrow", $"STAGE {nextStage}  /  항로 결정", new Vector2(12, 304), new Vector2(770, 36), 21, Cyan);
+            var nextSea = Game.World.SeaRegion.For(Game.World.SeaRegion.ForStage(nextStage));
+            Label(content, "Eyebrow", $"STAGE {nextStage}  /  항로 결정  ·  다음 해역: {nextSea.Name}", new Vector2(12, 304), new Vector2(770, 36), 21, Cyan);
             Label(content, "Title", "다음 해역으로 향할 항로를 선택하세요", new Vector2(12, 235), new Vector2(770, 62), 32, Color.white);
             bool mission = onMission != null;
-            Label(content, "Hint", mission ? "선택 결과는 다음 스테이지에만 적용됩니다.  1 / 2 / 3 키로도 선택 가능"
-                : "선택 결과는 다음 스테이지에만 적용됩니다.  1 / 2 키로도 선택 가능", new Vector2(12, 200), new Vector2(770, 30), 17, new Color(0.67f, 0.78f, 0.83f));
+            // 다음 해역 안내(점검 K04). 결과는 다음 스테이지에만 적용, 키로도 고를 수 있다
+            var hint = Label(content, "Hint", $"<color=#e0c05a>{nextSea.Title}</color>  {nextSea.Tactics}  <color=#7f939e>({(mission ? "1 / 2 / 3" : "1 / 2")} 키로도 선택)</color>",
+                new Vector2(12, mission ? 184 : 180), new Vector2(770, 48), 15, new Color(0.67f, 0.78f, 0.83f));
+            hint.textWrappingMode = TextWrappingModes.Normal;
             if (!mission)
             {
                 RouteButton(content, "Supply route", new Vector2(12, 42), new Vector2(378, 130),

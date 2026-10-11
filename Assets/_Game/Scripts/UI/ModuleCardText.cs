@@ -238,6 +238,19 @@ namespace Game.UI
             // 곡사포: 한 번에 쏘는 포탄 수(강화의 핵심이라 맨 앞)
             var howitzer = def.Prefab != null ? def.Prefab.GetComponent<Game.Modules.Runtime.HowitzerModule>() : null;
             if (howitzer != null) Line("한 번에", howitzer.ShellsAt(fromLevel), howitzer.ShellsAt(toLevel), "0", "발");
+            // 헬기데크(2026-10-11): 출격 간격 · 헬기 무장 피해 · 수색 반경(배율은 데크가 헬기에 넘긴다)
+            if (def.Type == ModuleType.HelicopterDeck)
+            {
+                float Mod(int level, System.Func<ModuleStatModifier, float> pick)
+                {
+                    var stage = level > 0 ? ModuleUpgrades.ProfileFor(def)?.GetStage(level) : null;
+                    float v = stage != null ? pick(stage.Modifier) : 1f;
+                    return v > 0f ? v : 1f;
+                }
+                Line("출격 간격", a.SortieCooldown, b.SortieCooldown, "0.#", "초");
+                Line("헬기 피해", 100f * Mod(fromLevel, m => m.damageMultiplier), 100f * Mod(toLevel, m => m.damageMultiplier), "0", "%");
+                Line("수색 반경", 100f * Mod(fromLevel, m => m.rangeMultiplier), 100f * Mod(toLevel, m => m.rangeMultiplier), "0", "%");
+            }
             Line("피해", a.Damage, b.Damage, "0.##");
             Line("내구", def.MaxHp * ModuleUpgrades.MaxHpMultiplier(def, fromLevel), def.MaxHp * ModuleUpgrades.MaxHpMultiplier(def, toLevel), "0");
             if (def.Type == ModuleType.RamBow)

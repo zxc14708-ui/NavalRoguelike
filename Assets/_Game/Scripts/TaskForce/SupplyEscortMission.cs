@@ -4,6 +4,7 @@ using UnityEngine.UI;
 using Game.Combat;
 using Game.Core;
 using Game.View;
+using Game.World;
 
 namespace Game.TaskForce
 {
@@ -299,6 +300,8 @@ namespace Game.TaskForce
                 var rot = Quaternion.Euler(0f, _heading, 0f);
                 Vector3 p = transform.position + rot * Vector3.forward * (_speed * dt);
                 p.y = 0f;
+                if (_hull != null && Islands.ResolveOverlap(_hull, ref p, rot, out _)) _speed *= 0.6f;
+                if (SeaRegion.ClampToChannel(ref p, -2f)) _speed *= 0.6f;
                 transform.SetPositionAndRotation(p, rot);
             }
 

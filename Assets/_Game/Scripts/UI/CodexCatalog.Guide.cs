@@ -284,7 +284,20 @@ namespace Game.UI
             sb.AppendLine($"<color={Muted}>보스를 격침하면 보상 카드 → 다음 해역으로 갈 항로를 고른다.</color>").AppendLine();
             Row(sb, "<b>보급 항로</b>", "선체 40 수리 · 적 편성 기본");
             Row(sb, "<b>위험 항로</b>", "적 등장·동시 수 +25% · 격침 경험치 +25%");
+            Row(sb, "<b>임무 항로</b>", $"보급선 {Game.TaskForce.SupplyEscortMission.Duration:0}초 호위 — 성공: 선체 완전 수리 · 다시 뽑기 +1 · 정비 1회 / 실패: 보상 없음");
             yield return Term("term_route", "항로 선택", "진행", CodexRole.Support, sb.ToString().TrimEnd());
+
+            // 해역 차별화(점검 K04): 스테이지마다 해역이 정해져 있다
+            sb.Clear();
+            sb.AppendLine($"<color={Muted}>스테이지마다 바다가 다르다 — 섬·레이더·적 구성·정비 카드가 해역에 따라 바뀐다.</color>").AppendLine();
+            foreach (var kind in new[] { Game.World.SeaKind.Archipelago, Game.World.SeaKind.Strait, Game.World.SeaKind.Open })
+            {
+                var sea = Game.World.SeaRegion.For(kind);
+                Row(sb, $"<b>{sea.Title}</b>", sea.Tactics);
+            }
+            Row(sb, "<b>해안포대</b>", "섬·기슭 물가에 박힌 고정 포대. 45m 안에 곡사포 2발(떨어질 자리가 보인다), 체력 110. 곡사포·76mm로 먼저 부수거나 섬 뒤로 피한다. 격침한 자리에는 다시 서지 않는다.");
+            Row(sb, "<b>좁은 수로</b>", $"물길 폭 {Game.World.SeaRegion.ChannelHalfWidth * 2f:0}m. 양안 너머로는 나갈 수 없다 — 회피 공간이 좁으니 대잠 수단과 곡사포를 챙긴다.");
+            yield return Term("term_sea", "해역 · 해안포대", "진행", CodexRole.Surface | CodexRole.Sub | CodexRole.Air, sb.ToString().TrimEnd());
 
             sb.Clear();
             sb.AppendLine($"<color={Muted}>바깥에서 안쪽으로 겹겹이 막는다. 한 가지로 모든 위협을 막을 수는 없다.</color>").AppendLine();
