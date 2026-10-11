@@ -55,6 +55,15 @@ namespace Game.Progression
             AddXp(whole);
         }
 
+        /// <summary>저장 불러오기: 레벨·경험치를 그대로 맞춘다(레벨업 정비는 열지 않는다).</summary>
+        public void Restore(int level, int xp)
+        {
+            Level = Mathf.Max(1, level);
+            Xp = Mathf.Clamp(xp, 0, Mathf.Max(0, XpToNext - 1));
+            _pendingLevelUps = 0;
+            RaiseChanged();
+        }
+
         public void AddXp(int amount)
         {
             if (amount <= 0) return;

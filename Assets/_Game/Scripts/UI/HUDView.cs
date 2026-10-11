@@ -17,7 +17,7 @@ namespace Game.UI
     ///     스킬 줄(그림 아이콘: 준비·재장전·장비 없음)
     ///     [레이더] [기어·체력(함 현황)] [무장 장탄] — 같은 높이로 나란히
     /// </summary>
-    public class HUDView : MonoBehaviour
+    public partial class HUDView : MonoBehaviour
     {
         [Header("Hull / Speed")]
         [SerializeField] private Slider hullBar;
@@ -81,6 +81,7 @@ namespace Game.UI
             GameEvents.SkillStatusChanged += OnSkillStatus;
             GameEvents.ReconChanged += OnReconChanged;
             GameEvents.BossPhaseChanged += ShowBanner;
+            GameEvents.BannerRequested += ShowBanner;
         }
 
         private void OnDisable()
@@ -98,6 +99,7 @@ namespace Game.UI
             GameEvents.JamStatusChanged -= OnJamStatus;
             GameEvents.SkillStatusChanged -= OnSkillStatus;
             GameEvents.ReconChanged -= OnReconChanged;
+            GameEvents.BannerRequested -= ShowBanner;
             GameEvents.BossPhaseChanged -= ShowBanner;
         }
 
@@ -115,7 +117,7 @@ namespace Game.UI
         }
 
         // 스킬 줄 칸 순서
-        private const int DecoySlot = 0, JamSlot = 1, RepairSlot = 2, SmokeSlot = 3, FlankSlot = 4;
+        private const int DecoySlot = 0, JamSlot = 1, RepairSlot = 2, SmokeSlot = 3, FlankSlot = 4, SignatureSlot = 5;
 
         private void OnSkillStatus(ActiveSkillId id, int ready, int total, float next01)
         {
@@ -124,6 +126,12 @@ namespace Game.UI
                 case ActiveSkillId.Repair: ShowSkill(RepairSlot, ready, total, next01); break;
                 case ActiveSkillId.Smoke: ShowSkill(SmokeSlot, ready, total, next01); break;
                 case ActiveSkillId.Flank: ShowSkill(FlankSlot, ready, total, next01); break;
+                case ActiveSkillId.Signature:
+                    // 고유 스킬: 고른 함정에 따라 그림이 바뀐다
+                    if (_skillBar != null && Game.Ship.SignatureSkill.Active != null)
+                        _skillBar.SetIcon(SignatureSlot, HudTextures.SkillIconSprite(Game.Ship.SignatureSkill.Active.Icon));
+                    ShowSkill(SignatureSlot, ready, total, next01);
+                    break;
             }
         }
 
@@ -161,14 +169,16 @@ namespace Game.UI
         private CanvasGroup _combatGroup;
         private GameObject _menu;
         private CodexUI _codex;
+        private RecordsUI _records;
         private GameObject _settingsOverlay;
         private RectTransform _settingsPage;
         private TMP_Text _settingsMessage;
-        private Image _controlsTabImage, _audioTabImage;
+        private Image _controlsTabImage, _audioTabImage, _displayTabImage, _graphicsTabImage, _aboutTabImage;
         private NavalControl? _pendingBinding;
         private int _settingsTab;
         private GameObject _routeChoice;
         private System.Action<bool> _onRouteChosen;
+        private System.Action _onMissionChosen;
         private GameObject _doctrineChoice;
         private System.Action<NavalDoctrine> _onDoctrineChosen;
         private TMP_Text _doctrineLabel;
@@ -191,14 +201,13 @@ namespace Game.UI
             _navalFont = hullText != null ? hullText.font : TMP_Settings.defaultFontAsset;
             foreach (Transform child in transform) child.gameObject.SetActive(false);
             var scaler = GetComponentInParent<CanvasScaler>();
-            if (scaler != null)
-            {
-                scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-                scaler.referenceResolution = new Vector2(1920, 1080);
-                scaler.matchWidthOrHeight = 0f;
-            }
+            // 1920×1080 기준 · UI 크기 설정 · 화면 비율이 달라도 잘리지 않게(Expand) — DisplaySettings
+            DisplaySettings.ApplyUiScale(scaler);
             var background = GetComponent<Image>();
             if (background != null) background.raycastTarget = false;
+            IdentityMarkersUI.Create(transform);   // 적아 식별 표식(다른 HUD 패널 밑)
+            BossBarUI.Create(transform, _navalFont);   // 보스 막대(단계·다음 공격·대응)
+            AchievementTracker.Create(transform);       // 출격 기록·도전 과제(점검 K06)
             _combatGroup = gameObject.GetComponent<CanvasGroup>();
             if (_combatGroup == null) _combatGroup = gameObject.AddComponent<CanvasGroup>();
 
@@ -246,12 +255,14 @@ namespace Game.UI
                 (HudTextures.SkillIcon.Repair, GameSettings.BindingLabel(NavalControl.Repair)),
                 (HudTextures.SkillIcon.Smoke, GameSettings.BindingLabel(NavalControl.Smoke)),
                 (HudTextures.SkillIcon.Flank, GameSettings.BindingLabel(NavalControl.Flank)),
+                (HudTextures.SkillIcon.Charge, GameSettings.BindingLabel(NavalControl.Signature)),   // 고유 스킬(함정마다 그림이 바뀜)
             });
             decoyButton = _skillBar.ButtonAt(DecoySlot);
             jamButton = _skillBar.ButtonAt(JamSlot);
             repairButton = _skillBar.ButtonAt(RepairSlot);
             smokeButton = _skillBar.ButtonAt(SmokeSlot);
             flankButton = _skillBar.ButtonAt(FlankSlot);
+            _skillBar.ButtonAt(SignatureSlot)?.onClick.AddListener(() => GameEvents.RaiseSkillRequested(ActiveSkillId.Signature));
 
             var level = Panel(cluster, "Level bar", Vector2.zero, new Vector2(left, skillY + skillHeight + 6f), new Vector2(clusterWidth, levelHeight), Navy);
             levelText = Label(level, "Level", "Lv 1", new Vector2(12, 3), new Vector2(70, 20), 15, Gold);
@@ -299,8 +310,15 @@ namespace Game.UI
                     if (m != null && !m.IsDestroyed && m.Runtime is Game.Modules.Runtime.VlsModule) { hasVls = true; break; }
 
             float y = 76f;   // 위쪽 지원 알림(토스트) 아래부터
+            // 콘솔 접기(2026-10-11 점검 U04): 오른쪽 열(VLS·헬기·교리·편대)을 한 줄 단추로 접어 전투 화면을 넓힌다
+            EnsureConsoleToggle();
+            bool collapsed = RightColumnCollapsed;
+            _consoleToggle.anchoredPosition = new Vector2(-14f - _consoleToggle.sizeDelta.x, -y - _consoleToggle.sizeDelta.y);
+            _consoleToggleLabel.text = collapsed ? "콘솔 펼치기  ▼" : "콘솔 접기  ▲";
+            y += _consoleToggle.sizeDelta.y + 6f;
             void Stack(RectTransform panel, bool visible, bool topRightPivot)
             {
+                visible &= !collapsed;
                 if (panel == null) return;
                 if (panel.gameObject.activeSelf != visible) panel.gameObject.SetActive(visible);
                 if (!visible) return;
@@ -312,7 +330,38 @@ namespace Game.UI
             Stack(_helicopterPanel, _helicopterDecks.Count > 0, false);
             Stack(_doctrinePanel, CombatPolicies.Doctrine != NavalDoctrine.None, false);
             var taskForce = TaskForcePanelUI.VisiblePanel;
-            if (taskForce != null) taskForce.anchoredPosition = new Vector2(-14f, -y);
+            if (taskForce != null)
+            {
+                taskForce.anchoredPosition = new Vector2(-14f, -y);
+                var group = taskForce.GetComponent<CanvasGroup>() ?? taskForce.gameObject.AddComponent<CanvasGroup>();
+                group.alpha = collapsed ? 0f : 1f;
+                group.blocksRaycasts = !collapsed;
+            }
+        }
+
+        private const string CollapsePref = "Naval.Hud.RightCollapsed";
+        private RectTransform _consoleToggle;
+        private TMP_Text _consoleToggleLabel;
+
+        /// <summary>오른쪽 콘솔 열을 접었는가(PlayerPrefs에 남는다).</summary>
+        public bool RightColumnCollapsed
+        {
+            get => PlayerPrefs.GetInt(CollapsePref, 0) == 1;
+            set { PlayerPrefs.SetInt(CollapsePref, value ? 1 : 0); LayoutRightColumn(); }
+        }
+
+        private void EnsureConsoleToggle()
+        {
+            if (_consoleToggle != null) return;
+            _consoleToggle = Panel(transform, "Console toggle", Vector2.one, Vector2.zero, new Vector2(150f, 26f), ConsoleBackground);
+            var image = _consoleToggle.GetComponent<Image>();
+            image.raycastTarget = true;
+            var button = _consoleToggle.gameObject.AddComponent<Button>();
+            button.targetGraphic = image;
+            button.transition = Selectable.Transition.None;
+            button.onClick.AddListener(() => RightColumnCollapsed = !RightColumnCollapsed);
+            _consoleToggleLabel = Label(_consoleToggle, "Label", "", Vector2.zero, new Vector2(150f, 26f), 13, ConsoleText);
+            _consoleToggleLabel.alignment = TextAlignmentOptions.Center;
         }
 
         private void RefreshPolicyLabels()
@@ -469,11 +518,16 @@ namespace Game.UI
             return slider;
         }
 
-        public void ShowStartScreen(System.Action onLaunch)
+        /// <summary>HUD 글꼴(훈련 안내 등 다른 화면이 빌려 쓴다).</summary>
+        public TMP_FontAsset Font => _navalFont;
+
+        /// <summary>시작 화면. onTraining이 있으면 항구 화면에 [훈련] 버튼(첫 출격 훈련, 점검 U03).</summary>
+        public void ShowStartScreen(System.Action onLaunch, System.Action onTraining = null, System.Action<RunSave.Data> onResume = null)
         {
+            if (TryQuickLaunch(onLaunch)) return;
             if(Resources.Load<GameObject>("Environment/NavalBaseMenu")!=null)
             {
-                ShowHarborStartScreen(onLaunch);
+                ShowHarborStartScreen(onLaunch, onTraining, onResume);
                 return;
             }
             _combatGroup.alpha = 0;
@@ -536,7 +590,7 @@ namespace Game.UI
                 new Vector2(0, 17), new Vector2(1030, 28), 16, new Color(0.55f, 0.73f, 0.65f));
         }
 
-        private void ShowHarborStartScreen(System.Action onLaunch)
+        private void ShowHarborStartScreen(System.Action onLaunch, System.Action onTraining = null, System.Action<RunSave.Data> onResume = null)
         {
             _combatGroup.alpha=0; _combatGroup.blocksRaycasts=false;
             var canvas=GetComponentInParent<Canvas>();
@@ -545,10 +599,38 @@ namespace Game.UI
             _menu=menu.gameObject;
             var harbor=NavalBaseMenu.Create(menu);
             var content=Panel(menu,"Harbor departure console",new Vector2(0,.5f),new Vector2(64,-270),new Vector2(520,540),new Color(.015f,.045f,.06f,.88f));
-            Label(content,"Header","NAVAL COMMAND  /  모항",new Vector2(28,478),new Vector2(464,30),18,ConsoleText);
+            // 칭호(점검 K06): 고른 칭호가 있으면 머리줄에 단다
+            string captainTitle=PlayerProfile.Title;
+            Label(content,"Header",captainTitle!=null?$"NAVAL COMMAND  /  모항   ·   「{captainTitle}」":"NAVAL COMMAND  /  모항",new Vector2(28,478),new Vector2(464,30),18,captainTitle!=null?Gold:ConsoleText);
             Label(content,"Title","NAVAL\nROGUELIKE",new Vector2(26,320),new Vector2(472,142),52,Color.white);
             Label(content,"Subtitle","함선을 선택하고 작전 해역으로 출항하세요.",new Vector2(28,267),new Vector2(462,44),20,ConsoleText);
-            var launch=MenuButton(content,"출항  /  작전 시작",new Vector2(28,182),new Vector2(464,64),ConsoleActive,25);
+            // 이어하기(점검 O01): 스테이지 경계 저장이 있으면 콘솔 위에 따로 띄운다. 새로 출항하면 그 기록은 지워진다.
+            if(onResume!=null && RunSave.TryLoad(out var saved))
+            {
+                var resumePanel=Panel(menu,"Resume console",new Vector2(0,.5f),new Vector2(64,282),new Vector2(520,118),new Color(.03f,.09f,.06f,.92f));
+                Label(resumePanel,"Header","이어하기  /  RESUME",new Vector2(20,84),new Vector2(480,26),17,ConsoleText);
+                Label(resumePanel,"Saved",RunSave.Describe(saved),new Vector2(20,60),new Vector2(480,24),16,Color.white);
+                var resume=MenuButton(resumePanel,"이어하기  /  저장된 스테이지 처음부터",new Vector2(20,10),new Vector2(480,44),new Color(.55f,.42f,.12f,1f),19);
+                resume.name="Resume run";
+                resume.onClick.AddListener(()=>
+                {
+                    var initializer=FindFirstObjectByType<Game.Ship.ShipInitializer>();
+                    var concept=Game.Data.StartingShipCatalog.Find(saved.concept);
+                    if(initializer!=null&&concept!=null&&!initializer.TrySelect(concept,out string reason)) Debug.LogWarning($"[HUD] 이어하기 함정 선택 실패: {reason}");
+                    if(initializer!=null) initializer.LockForLaunch();
+                    _menu.SetActive(false);_combatGroup.alpha=1;_combatGroup.blocksRaycasts=true;
+                    onResume(saved);
+                });
+                Label(content,"Resume note","새로 출항하면 이어하기 기록이 지워집니다.",new Vector2(28,252),new Vector2(462,20),14,new Color(1f,.75f,.5f));
+            }
+            if(RunSave.LastProblem!=null)
+            {
+                var problem=Panel(menu,"Save problem",new Vector2(0,.5f),new Vector2(64,282),new Vector2(520,40),new Color(.12f,.04f,.03f,.9f));
+                Label(problem,"Text",RunSave.LastProblem,new Vector2(16,8),new Vector2(490,24),15,new Color(1f,.65f,.5f));
+                RunSave.ClearProblem();
+            }
+            bool dangerStart=PlayerProfile.DangerStart;
+            var launch=MenuButton(content,dangerStart?"출항  /  고난도 출항":"출항  /  작전 시작",new Vector2(28,200),new Vector2(464,52),dangerStart?new Color(.55f,.2f,.12f,1f):ConsoleActive,24);
             launch.onClick.AddListener(()=>
             {
                 content.gameObject.SetActive(false);
@@ -557,8 +639,27 @@ namespace Game.UI
                 if(!StartingShipSelectorUI.Show(menu,_navalFont,initializer,Complete,()=>{harbor.ShowOverview();content.gameObject.SetActive(true);}))
                     content.gameObject.SetActive(true);
             });
-            MenuButton(content,"설정  /  조작 · 음향",new Vector2(28,110),new Vector2(464,54),ConsoleIdle,21).onClick.AddListener(ShowSettings);
-            MenuButton(content,"사전  /  무장 · 호위함 · 적",new Vector2(28,44),new Vector2(464,54),ConsoleIdle,21).onClick.AddListener(ShowCodex);
+            if(onTraining!=null)
+            {
+                // 첫 출격 훈련: 처음 온 사람에게는 눈에 띄게 권한다
+                bool first=!TrainingDirector.Done;
+                var training=MenuButton(content,first?"훈련  /  첫 출격 (권장 · 3~5분)":"훈련  /  첫 출격 다시 하기",new Vector2(28,150),new Vector2(464,42),first?new Color(.55f,.42f,.12f,1f):ConsoleIdle,first?20:18);
+                training.name="Training start";
+                training.onClick.AddListener(()=>
+                {
+                    var initializer=FindFirstObjectByType<Game.Ship.ShipInitializer>();
+                    var patrol=Game.Data.StartingShipCatalog.Get(Game.Data.StartShipKind.Patrol);
+                    if(initializer!=null&&patrol!=null&&!initializer.TrySelect(patrol,out string reason)) Debug.LogWarning($"[HUD] 훈련 함정 선택 실패: {reason}");
+                    if(initializer!=null) initializer.LockForLaunch();
+                    _menu.SetActive(false);_combatGroup.alpha=1;_combatGroup.blocksRaycasts=true;
+                    onTraining();
+                });
+            }
+            MenuButton(content,"설정  /  조작 · 음향",new Vector2(28,104),new Vector2(464,42),ConsoleIdle,19).onClick.AddListener(ShowSettings);
+            MenuButton(content,"사전  /  무장 · 호위함 · 적",new Vector2(28,58),new Vector2(464,42),ConsoleIdle,19).onClick.AddListener(ShowCodex);
+            var records=MenuButton(content,"기록  /  출격 기록 · 도전 과제",new Vector2(28,12),new Vector2(464,42),ConsoleIdle,19);
+            records.name="Records open";
+            records.onClick.AddListener(ShowRecords);
         }
 
         private Button MenuButton(Transform parent, string title, Vector2 position, Vector2 size, Color color, float fontSize)
@@ -570,24 +671,37 @@ namespace Game.UI
             label.alignment = TextAlignmentOptions.Center;
             var button = rect.gameObject.AddComponent<Button>();
             button.targetGraphic = image;
+            button.onClick.AddListener(() => UiSound.Play(UiSound.Cue.Select));   // 메뉴 선택음(점검 O06)
             return button;
         }
 
         private void ShowCodex()
         {
-            if (_codex == null) _codex = CodexUI.Create(_menu.transform, _navalFont);
+            if (_codex == null) _codex = CodexUI.Create(OverlayParent, _navalFont);
+            else _codex.transform.SetParent(OverlayParent, false);
             _codex.Show();
+        }
+
+        /// <summary>출격 기록·도전 과제 화면(점검 K06).</summary>
+        private void ShowRecords()
+        {
+            if (_records == null) _records = RecordsUI.Create(OverlayParent, _navalFont);
+            else _records.transform.SetParent(OverlayParent, false);
+            _records.Show();
         }
 
         private void ShowSettings()
         {
+            var parent = OverlayParent;
             if (_settingsOverlay != null)
             {
+                _settingsOverlay.transform.SetParent(parent, false);
+                _settingsOverlay.transform.SetAsLastSibling();
                 _settingsOverlay.SetActive(true);
                 ShowSettingsTab(_settingsTab);
                 return;
             }
-            var overlay = Panel(_menu.transform, "Settings overlay", Vector2.zero, Vector2.zero,
+            var overlay = Panel(parent, "Settings overlay", Vector2.zero, Vector2.zero,
                 Vector2.zero, new Color(0.005f, 0.025f, 0.03f, 0.97f));
             overlay.anchorMax = Vector2.one;
             overlay.offsetMin = overlay.offsetMax = Vector2.zero;
@@ -601,10 +715,19 @@ namespace Game.UI
             Label(content, "Title", "작전 설정", new Vector2(26, 518), new Vector2(420, 51), 35, Color.white);
             var controls = MenuButton(content, "조작키", new Vector2(26, 468), new Vector2(146, 42), ConsoleIdle, 19);
             var audio = MenuButton(content, "음향", new Vector2(181, 468), new Vector2(146, 42), ConsoleIdle, 19);
+            var display = MenuButton(content, "화면", new Vector2(336, 468), new Vector2(146, 42), ConsoleIdle, 19);
+            var graphics = MenuButton(content, "그래픽", new Vector2(491, 468), new Vector2(146, 42), ConsoleIdle, 19);
+            var about = MenuButton(content, "정보", new Vector2(646, 468), new Vector2(146, 42), ConsoleIdle, 19);
+            _aboutTabImage = about.GetComponent<Image>();
+            about.onClick.AddListener(() => ShowSettingsTab(4));
+            _graphicsTabImage = graphics.GetComponent<Image>();
+            graphics.onClick.AddListener(() => ShowSettingsTab(3));
             _controlsTabImage = controls.GetComponent<Image>();
             _audioTabImage = audio.GetComponent<Image>();
+            _displayTabImage = display.GetComponent<Image>();
             controls.onClick.AddListener(() => ShowSettingsTab(0));
             audio.onClick.AddListener(() => ShowSettingsTab(1));
+            display.onClick.AddListener(() => ShowSettingsTab(2));
             _settingsMessage = Label(content, "Status", "변경 사항은 자동 저장됩니다.",
                 new Vector2(26, 15), new Vector2(725, 30), 15, ConsoleText);
             MenuButton(content, "메뉴로", new Vector2(820, 11), new Vector2(154, 42),
@@ -625,41 +748,55 @@ namespace Game.UI
             _pendingBinding = null;
             if (_controlsTabImage != null) _controlsTabImage.color = tab == 0 ? ConsoleActive : ConsoleIdle;
             if (_audioTabImage != null) _audioTabImage.color = tab == 1 ? ConsoleActive : ConsoleIdle;
+            if (_displayTabImage != null) _displayTabImage.color = tab == 2 ? ConsoleActive : ConsoleIdle;
+            if (_graphicsTabImage != null) _graphicsTabImage.color = tab == 3 ? ConsoleActive : ConsoleIdle;
+            if (_aboutTabImage != null) _aboutTabImage.color = tab == 4 ? ConsoleActive : ConsoleIdle;
             if (_settingsPage != null)
             {
                 _settingsPage.gameObject.SetActive(false);
                 Destroy(_settingsPage.gameObject);
             }
             var content = _settingsMessage.transform.parent;
-            _settingsPage = Panel(content, tab == 0 ? "Controls page" : "Audio page", Vector2.zero,
+            _settingsPage = Panel(content, tab == 0 ? "Controls page" : tab == 1 ? "Audio page" : tab == 2 ? "Display page" : tab == 3 ? "Graphics page" : "About page", Vector2.zero,
                 new Vector2(26, 59), new Vector2(948, 395), new Color(0.012f, 0.065f, 0.05f, 0.85f));
             if (tab == 0) BuildControlsSettings(_settingsPage);
-            else BuildAudioSettings(_settingsPage);
+            else if (tab == 1) BuildAudioSettings(_settingsPage);
+            else if (tab == 2) BuildDisplaySettings(_settingsPage);
+            else if (tab == 3) BuildGraphicsSettings(_settingsPage);
+            else BuildAboutPage(_settingsPage);
             _settingsMessage.text = tab == 0
                 ? "키를 누른 뒤 새 키를 입력하세요. ESC로 취소 · 정비 배치키는 고정입니다."
-                : "음량은 즉시 적용되며 자동 저장됩니다.";
+                : tab == 1 ? "음량은 즉시 적용되며 자동 저장됩니다."
+                : tab == 2 ? DisplayMessage()
+                : tab == 3 ? "위협·피격 표시(미사일·어뢰·경고·폭발 섬광)는 줄이지 않습니다. 값은 즉시 적용·저장됩니다."
+                : "오류를 알려 줄 때 [진단 내보내기] 파일을 함께 보내 주세요(계정 이름은 지워집니다).";
         }
+
+        /// <summary>설정의 조작키 목록과 일시정지 화면의 조작 안내가 같이 쓴다.</summary>
+        private static readonly (NavalControl action, string title)[] ControlTitles =
+        {
+            (NavalControl.ThrottleUp, "기관 전령기 +"), (NavalControl.ThrottleDown, "기관 전령기 -"),
+            (NavalControl.RudderLeft, "좌현 조타"), (NavalControl.RudderRight, "우현 조타"),
+            (NavalControl.CenterRudder, "타 중앙"), (NavalControl.Decoy, "기만체"),
+            (NavalControl.Jam, "재밍"), (NavalControl.Repair, "응급 수리"),
+            (NavalControl.Smoke, "연막"), (NavalControl.Flank, "전속"),
+            (NavalControl.VlsSelector, "VLS 발사기 전환"),
+            (NavalControl.HelicopterSelector, "헬기 정책 전환"),
+            (NavalControl.ShipStatus, "함 현황"), (NavalControl.Formation, "편대 진형 전환"),
+            (NavalControl.Signature, "함정 고유 스킬")
+        };
 
         private void BuildControlsSettings(Transform page)
         {
-            var controls = new (NavalControl action, string title)[]
-            {
-                (NavalControl.ThrottleUp, "기관 전령기 +"), (NavalControl.ThrottleDown, "기관 전령기 -"),
-                (NavalControl.RudderLeft, "좌현 조타"), (NavalControl.RudderRight, "우현 조타"),
-                (NavalControl.CenterRudder, "타 중앙"), (NavalControl.Decoy, "기만체"),
-                (NavalControl.Jam, "재밍"), (NavalControl.Repair, "응급 수리"),
-                (NavalControl.Smoke, "연막"), (NavalControl.Flank, "전속"),
-                (NavalControl.VlsSelector, "VLS 발사기 전환"),
-                (NavalControl.HelicopterSelector, "헬기 정책 전환"),
-                (NavalControl.ShipStatus, "함 현황"), (NavalControl.Formation, "편대 진형 전환")
-            };
+            var controls = ControlTitles;
             for (int i = 0; i < controls.Length; i++)
             {
-                int column = i / 7, row = i % 7;
-                float x = 14 + column * 466, y = 339 - row * 48;
+                // 두 열: 왼쪽 8줄, 오른쪽 7줄(오른쪽 아래는 '기본 키 복원' 자리)
+                int column = i < 8 ? 0 : 1, row = i < 8 ? i : i - 8;
+                float x = 14 + column * 466, y = 345 - row * 44;
                 var line = Panel(page, controls[i].title, Vector2.zero, new Vector2(x, y),
-                    new Vector2(452, 41), ConsoleIdle);
-                Label(line, "Action", controls[i].title, new Vector2(12, 8),
+                    new Vector2(452, 38), ConsoleIdle);
+                Label(line, "Action", controls[i].title, new Vector2(12, 6),
                     new Vector2(292, 27), 17, Color.white);
                 var action = controls[i].action;
                 var key = MenuButton(line, GameSettings.BindingLabel(action), new Vector2(312, 4),
@@ -685,11 +822,12 @@ namespace Game.UI
         {
             Label(page, "Audio header", "음향 채널  /  AUDIO MIX", new Vector2(25, 335),
                 new Vector2(600, 32), 22, ConsoleText);
-            AddVolumeSlider(page, SoundChannel.Master, "전체 음량", 270);
-            AddVolumeSlider(page, SoundChannel.Effects, "무장·전투 효과음", 205);
-            AddVolumeSlider(page, SoundChannel.Engine, "함선 기관음", 140);
-            AddVolumeSlider(page, SoundChannel.Warning, "미사일 경보음", 75);
-            Label(page, "Audio hint", "기관음과 경보음은 별도 조절됩니다. 전체 음량은 모든 채널에 적용됩니다.",
+            AddVolumeSlider(page, SoundChannel.Master, "전체 음량", 280);
+            AddVolumeSlider(page, SoundChannel.Effects, "무장·전투 효과음", 226);
+            AddVolumeSlider(page, SoundChannel.Engine, "함선 기관음", 172);
+            AddVolumeSlider(page, SoundChannel.Warning, "미사일 경보음", 118);
+            AddVolumeSlider(page, SoundChannel.Ui, "메뉴·알림음", 64);
+            Label(page, "Audio hint", "경보가 울리는 동안 전투 효과음은 줄어듭니다. 전체 음량은 모든 채널에 적용됩니다.",
                 new Vector2(25, 15), new Vector2(890, 26), 15, ConsoleText);
         }
 
@@ -729,13 +867,15 @@ namespace Game.UI
             _skillBar.SetKeyLabel(RepairSlot, GameSettings.BindingLabel(NavalControl.Repair));
             _skillBar.SetKeyLabel(SmokeSlot, GameSettings.BindingLabel(NavalControl.Smoke));
             _skillBar.SetKeyLabel(FlankSlot, GameSettings.BindingLabel(NavalControl.Flank));
+            _skillBar.SetKeyLabel(SignatureSlot, GameSettings.BindingLabel(NavalControl.Signature));
         }
 
         /// <summary>보스 격침 후 다음 해역에 진입하기 전에 한 번만 여는 항로 선택.</summary>
-        public void ShowRouteChoice(int nextStage, float repairAmount, System.Action<bool> onChosen)
+        public void ShowRouteChoice(int nextStage, float repairAmount, System.Action<bool> onChosen, System.Action onMission = null)
         {
             if (_routeChoice != null) return;
             _onRouteChosen = onChosen;
+            _onMissionChosen = onMission;
             var canvas = GetComponentInParent<Canvas>();
             if (canvas == null) { ChooseRoute(false); return; }
             var overlay = Panel(canvas.transform, "Route choice", Vector2.zero, Vector2.zero, Vector2.zero,
@@ -749,28 +889,62 @@ namespace Game.UI
                 new Vector2(-400f, -180f), new Vector2(800f, 360f), Color.clear);
             Label(content, "Eyebrow", $"STAGE {nextStage}  /  항로 결정", new Vector2(12, 304), new Vector2(770, 36), 21, Cyan);
             Label(content, "Title", "다음 해역으로 향할 항로를 선택하세요", new Vector2(12, 235), new Vector2(770, 62), 32, Color.white);
-            Label(content, "Hint", "선택 결과는 다음 스테이지에만 적용됩니다.  1 / 2 키로도 선택 가능", new Vector2(12, 200), new Vector2(770, 30), 17, new Color(0.67f, 0.78f, 0.83f));
-            RouteButton(content, "Supply route", new Vector2(12, 42),
-                "[1] 보급 항로", $"선체 {repairAmount:0} 수리 · 적 편성 기본", new Color(0.10f, 0.29f, 0.34f), false);
-            RouteButton(content, "Danger route", new Vector2(410, 42),
-                "[2] 위험 항로", "적 등장·동시 수 +25% · 격침 XP +25%", new Color(0.34f, 0.17f, 0.15f), true);
+            bool mission = onMission != null;
+            Label(content, "Hint", mission ? "선택 결과는 다음 스테이지에만 적용됩니다.  1 / 2 / 3 키로도 선택 가능"
+                : "선택 결과는 다음 스테이지에만 적용됩니다.  1 / 2 키로도 선택 가능", new Vector2(12, 200), new Vector2(770, 30), 17, new Color(0.67f, 0.78f, 0.83f));
+            if (!mission)
+            {
+                RouteButton(content, "Supply route", new Vector2(12, 42), new Vector2(378, 130),
+                    "[1] 보급 항로", $"선체 {repairAmount:0} 수리 · 적 편성 기본", new Color(0.10f, 0.29f, 0.34f), () => ChooseRoute(false));
+                RouteButton(content, "Danger route", new Vector2(410, 42), new Vector2(378, 130),
+                    "[2] 위험 항로", "적 등장·동시 수 +25% · 격침 XP +25%", new Color(0.34f, 0.17f, 0.15f), () => ChooseRoute(true));
+                return;
+            }
+            // 선택 임무(점검 K03): 세 칸
+            var size = new Vector2(250, 150);
+            RouteButton(content, "Supply route", new Vector2(12, 30), size,
+                "[1] 보급 항로", $"선체 {repairAmount:0} 수리 · 적 편성 기본", new Color(0.10f, 0.29f, 0.34f), () => ChooseRoute(false));
+            RouteButton(content, "Danger route", new Vector2(275, 30), size,
+                "[2] 위험 항로", "적 등장·동시 수 +25% · 격침 XP +25%", new Color(0.34f, 0.17f, 0.15f), () => ChooseRoute(true));
+            RouteButton(content, "Mission route", new Vector2(538, 30), size,
+                "[3] 임무 항로", $"보급선 {Game.TaskForce.SupplyEscortMission.Duration:0}초 호위 — 성공: 완전 수리 · 다시 뽑기 +1 · 정비 1회 / 실패: 보상 없음",
+                new Color(0.30f, 0.25f, 0.08f), ChooseMission);
         }
 
-        private void RouteButton(Transform parent, string name, Vector2 position, string title, string detail, Color color, bool danger)
+        private void RouteButton(Transform parent, string name, Vector2 position, Vector2 size, string title, string detail, Color color, System.Action onClick)
         {
-            var panel = Panel(parent, name, Vector2.zero, position, new Vector2(378, 130), color);
+            var panel = Panel(parent, name, Vector2.zero, position, size, color);
             var image = panel.GetComponent<Image>();
             image.raycastTarget = true;
-            Label(panel, "Title", title, new Vector2(18, 78), new Vector2(340, 38), 25, Color.white);
-            var description = Label(panel, "Effect", detail, new Vector2(18, 20), new Vector2(342, 48), 18, Gold);
+            bool narrow = size.x < 300f;
+            Label(panel, "Title", title, new Vector2(18, size.y - 52), new Vector2(size.x - 36, 38), narrow ? 23 : 25, Color.white);
+            var description = Label(panel, "Effect", detail, new Vector2(18, 14), new Vector2(size.x - 36, size.y - 72), narrow ? 16 : 18, Gold);
             description.textWrappingMode = TextWrappingModes.Normal;
+            description.alignment = TextAlignmentOptions.TopLeft;
             var button = panel.gameObject.AddComponent<Button>();
             button.targetGraphic = image;
-            button.onClick.AddListener(() => ChooseRoute(danger));
+            button.onClick.AddListener(() => onClick());
+        }
+
+        /// <summary>[3] 임무 항로(보급선 호위, 점검 K03).</summary>
+        private void ChooseMission()
+        {
+            var callback = _onMissionChosen;
+            if (callback == null) return;
+            UiSound.Play(UiSound.Cue.Confirm);
+            if (_routeChoice != null)
+            {
+                Destroy(_routeChoice);
+                _routeChoice = null;
+            }
+            _onRouteChosen = null;
+            _onMissionChosen = null;
+            callback();
         }
 
         private void ChooseRoute(bool danger)
         {
+            UiSound.Play(UiSound.Cue.Confirm);
             if (_routeChoice != null)
             {
                 Destroy(_routeChoice);
@@ -778,6 +952,7 @@ namespace Game.UI
             }
             var callback = _onRouteChosen;
             _onRouteChosen = null;
+            _onMissionChosen = null;
             callback?.Invoke(danger);
         }
 
@@ -819,6 +994,7 @@ namespace Game.UI
 
         private void ChooseDoctrine(NavalDoctrine doctrine)
         {
+            UiSound.Play(UiSound.Cue.Doctrine);
             if (_doctrineChoice != null)
             {
                 _doctrineChoice.SetActive(false);
@@ -832,6 +1008,8 @@ namespace Game.UI
 
         private void Update()
         {
+            UpdatePause();
+            UpdateDisplayRevert();
             if (_settingsOverlay != null && _settingsOverlay.activeSelf && Keyboard.current != null)
             {
                 if (_pendingBinding.HasValue)
@@ -871,6 +1049,7 @@ namespace Game.UI
             {
                 if (Keyboard.current.digit1Key.wasPressedThisFrame) ChooseRoute(false);
                 else if (Keyboard.current.digit2Key.wasPressedThisFrame) ChooseRoute(true);
+                else if (Keyboard.current.digit3Key.wasPressedThisFrame && _onMissionChosen != null) ChooseMission();
             }
             var gm = GameManager.Instance;
             if (gm == null || _combatGroup == null) return;

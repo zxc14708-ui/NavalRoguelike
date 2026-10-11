@@ -164,7 +164,9 @@ namespace Game.Core
             src.transform.position = position;
             src.clip = entry.Clip;
             src.spatialBlend = entry.SpatialBlend;
-            src.volume = entry.Volume * volumeScale * masterVolume * GameSettings.Volume(SoundChannel.Effects);
+            // 미사일 경보가 울리는 동안 다른 효과음은 줄여 경보가 연사음에 묻히지 않게(점검 O06)
+            float duck = _warning != null && _warning.isPlaying ? 0.55f : 1f;
+            src.volume = entry.Volume * volumeScale * masterVolume * GameSettings.Volume(SoundChannel.Effects) * duck;
             src.pitch = pitchScale * (1f + Random.Range(-entry.PitchJitter, entry.PitchJitter));
             src.Play();
 

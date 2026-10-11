@@ -56,6 +56,9 @@ namespace Game.Combat
         }
 
         public void SetFireArc(FireArc arc) => _arc = arc;
+
+        /// <summary>고각 한도(도). 높은 곳에서 가까운 적을 내려다 쏘는 무기(함교 지붕 기관총)가 더 숙인다.</summary>
+        public void SetElevationLimits(float min, float max) { minElevation = min; maxElevation = max; }
         public bool IsReady => _cooldown <= 0f;
 
         /// <summary>탄약고 근접 보너스 등 외부 요인을 반영한다. 1.0 = 보정 없음.</summary>

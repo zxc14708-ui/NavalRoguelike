@@ -1323,6 +1323,13 @@ namespace Game.EditorTools
                     {
                         var lamp = Primitive("TorpedoLamp", PrimitiveType.Sphere, Vector3.one * 0.18f, lampMat, t.parent);
                         lamp.transform.position = t.position + Vector3.up * 0.24f;
+                        // Imported socket parents can carry FBX unit conversion scale.
+                        // Keep the warning lamp 18 cm in world space, not parent space.
+                        var parentScale = t.parent.lossyScale;
+                        lamp.transform.localScale = new Vector3(
+                            0.18f / Mathf.Max(Mathf.Abs(parentScale.x), 0.0001f),
+                            0.18f / Mathf.Max(Mathf.Abs(parentScale.y), 0.0001f),
+                            0.18f / Mathf.Max(Mathf.Abs(parentScale.z), 0.0001f));
                         lamps.Add(lamp.GetComponent<Renderer>());
                     }
 

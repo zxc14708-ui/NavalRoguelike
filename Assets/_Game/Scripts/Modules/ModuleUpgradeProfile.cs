@@ -67,6 +67,7 @@ namespace Game.Modules
     ///   ammoReload → 탄약 보급·전량 재장전 시간(AmmoReloadTime) · turnSpeed → 포탑 선회·추적
     ///   supply → 탄약고 지원량(발사 간격 단축·용량·보급 보너스 자체) · explosionDamage → 유폭 피해
     ///   repair → 수리량 · detection → 탐지 거리
+    ///   maxHp → 블록 최대 내구(강화하면 늘어난 만큼 바로 채운다) · selfDamage → 들이받을 때 반동 피해(충각)
     /// </summary>
     [Serializable]
     public class ModuleStatModifier
@@ -81,5 +82,7 @@ namespace Game.Modules
         public float explosionDamageMultiplier = 1f;
         public float repairMultiplier = 1f;
         public float detectionMultiplier = 1f;
+        public float maxHpMultiplier = 1f;
+        public float selfDamageMultiplier = 1f;
     }
 }

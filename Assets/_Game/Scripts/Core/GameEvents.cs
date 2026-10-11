@@ -5,7 +5,7 @@ using Game.Modules;
 namespace Game.Core
 {
     /// <summary>공용 스킬 이벤트로 통신하는 액티브 스킬(기만체·재밍은 전용 이벤트를 쓴다).</summary>
-    public enum ActiveSkillId { Repair, Smoke, Flank }
+    public enum ActiveSkillId { Repair, Smoke, Flank, Signature }   // Signature: 함정 고유 스킬(2026-10-11, 뒤에만 덧붙임)
 
     /// <summary>
     /// 시스템 간 느슨한 결합을 위한 전역 이벤트 허브.
@@ -62,6 +62,10 @@ namespace Game.Core
         public static void RaiseBossPhaseChanged(string message) => BossPhaseChanged?.Invoke(message);
 
         public static void RaiseSkillRequested(ActiveSkillId id) => SkillRequested?.Invoke(id);
+
+        /// <summary>화면 위 안내 띠(2026-10-11 — 고유 스킬 발동 안내 등).</summary>
+        public static event Action<string> BannerRequested;
+        public static void RaiseBanner(string message) => BannerRequested?.Invoke(message);
         public static void RaiseSkillStatusChanged(ActiveSkillId id, int ready, int total, float next01)
             => SkillStatusChanged?.Invoke(id, ready, total, next01);
         public static void RaiseReconChanged(int count) => ReconChanged?.Invoke(count);

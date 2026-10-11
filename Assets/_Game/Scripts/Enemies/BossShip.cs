@@ -9,8 +9,14 @@ using Game.View;
 namespace Game.Enemies
 {
     /// <summary>1스테이지 연안 경비정: 원거리 미사일, 근거리 함수/함미 함포.</summary>
-    public class BossShip : EnemyController
+    public class BossShip : EnemyController, IBossTelegraph
     {
+        // ---- 보스 학습(점검 K05): 원거리면 미사일 일제사격, 가까우면 함포. 손상 단계는 연출(75·50·25%).
+        public string PhaseName => _closeCombat ? "근거리 — 함포 2문" : "원거리 — 미사일 일제사격";
+        public float[] PhaseThresholds => s_thresholds;
+        private static readonly float[] s_thresholds = { 0.75f, 0.5f, 0.25f };
+        public (string name, float seconds) NextAttack => _closeCombat ? ("함포", Mathf.Max(0f, _gunTimer)) : ("미사일 일제사격", Mathf.Max(0f, _salvoTimer));
+
         [Header("Missiles")]
         [SerializeField] private Transform[] launchPoints;
         [SerializeField, Min(1)] private int salvoCount = 4;

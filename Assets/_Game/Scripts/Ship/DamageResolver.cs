@@ -28,7 +28,7 @@ namespace Game.Ship
 
             var coord = HitCell(info.HitPoint);
             var target = grid.Get(coord);
-            float amount = info.Amount * RunUpgrades.IncomingDamageMultiplier;   // 성장 카드: 방어력
+            float amount = info.Amount * RunUpgrades.IncomingDamageMultiplier * ship.IncomingDamageScale;   // 성장 카드: 방어력 · 고유 스킬(돌격 기동)
             bool wasDestroyed = target != null && target.IsDestroyed;
 
             // 1) 손상 통제반이 함선 전체 피해를 먼저 줄인다
@@ -119,7 +119,7 @@ namespace Game.Ship
                 kv.Key.TakeDamage(protectedDamage);   // 탄약고라면 여기서 연쇄 유폭
                 if (kv.Key.IsDestroyed) destroyed++;
             }
-            ship?.ApplyHullDamage(damage * hullShare * (ModuleSynergy.ProtectedByRepair(grid, origin) ? 0.75f : 1f));
+            ship?.ApplyHullDamage(damage * hullShare * (ModuleSynergy.ProtectedByRepair(grid, origin) ? 0.75f : 1f), "탄약고 유폭");
             return (damaged, destroyed);
         }
     }

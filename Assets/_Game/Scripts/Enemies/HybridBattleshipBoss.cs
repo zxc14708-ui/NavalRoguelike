@@ -21,8 +21,27 @@ namespace Game.Enemies
     /// 플레이어가 선미 쪽 사각으로 파고들면 주포를 피할 수 있고, 보스는 선회해 현측을 돌린다.
     /// 3단계에서는 드론 편대와 번갈아 전투기 편대를 띄운다.
     /// </summary>
-    public class HybridBattleshipBoss : EnemyController
+    public class HybridBattleshipBoss : EnemyController, IBossTelegraph
     {
+        // ---- 보스 학습(점검 K05): 체력에 따라 전함 → 항모 → 총력전.
+        public string PhaseName => _phase switch
+        {
+            0 => "전함 — 주포 일제사격(착탄 원)",
+            1 => "항모 — 드론 편대 · 정찰기",
+            _ => "총력전 — 미사일 일제사격 · 전투기",
+        };
+        public float[] PhaseThresholds => new[] { carrierPhaseAt, finalPhaseAt };
+        public (string name, float seconds) NextAttack
+        {
+            get
+            {
+                (string, float) best = ("주포 일제사격", Mathf.Max(0f, _salvoTimer));
+                if (_phase >= 1 && _droneTimer < best.Item2) best = (_phase >= 2 && _waveCount % 2 == 1 ? "전투기 발진" : "드론 발진", Mathf.Max(0f, _droneTimer));
+                if (_phase >= 2 && _missileTimer < best.Item2) best = ("미사일 일제사격", Mathf.Max(0f, _missileTimer));
+                return best;
+            }
+        }
+
         [Header("Phase")]
         [SerializeField, Range(0f, 1f)] private float carrierPhaseAt = 0.7f;
         [SerializeField, Range(0f, 1f)] private float finalPhaseAt = 0.4f;

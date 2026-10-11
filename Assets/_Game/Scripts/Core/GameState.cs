@@ -52,10 +52,11 @@ namespace Game.Core
     {
         ThrottleUp, ThrottleDown, RudderLeft, RudderRight, CenterRudder,
         Decoy, Jam, Repair, Smoke, Flank, VlsSelector, HelicopterSelector, ShipStatus,
-        Formation   // 편대 진형 전환(2026-10-03, 뒤에만 덧붙임)
+        Formation,  // 편대 진형 전환(2026-10-03, 뒤에만 덧붙임)
+        Signature   // 함정 고유 스킬(2026-10-11, 뒤에만 덧붙임)
     }
 
-    public enum SoundChannel { Master, Effects, Engine, Warning }
+    public enum SoundChannel { Master, Effects, Engine, Warning, Ui }   // Ui: 메뉴·알림음(2026-10-11 점검 O06, 맨 뒤에 덧붙임)
 
     /// <summary>플레이어 로컬 설정. 전투 조작과 음량을 PlayerPrefs에 저장한다.</summary>
     public static class GameSettings
@@ -65,11 +66,12 @@ namespace Game.Core
         private static readonly Key[] Defaults =
         {
             Key.W, Key.S, Key.A, Key.D, Key.X, Key.Q, Key.E, Key.R, Key.F,
-            Key.C, Key.V, Key.H, Key.Tab, Key.G   // 전속: Shift → C(2026-10-07, Shift+우클릭 = 항로 경유지 추가)
+            Key.C, Key.V, Key.H, Key.Tab, Key.G,  // 전속: Shift → C(2026-10-07, Shift+우클릭 = 항로 경유지 추가)
+            Key.T                                  // 함정 고유 스킬(2026-10-11)
         };
         private const string FlankKeyMigration = "Naval.Control.Migrated.FlankC";
         private static readonly Key[] Bindings = new Key[Defaults.Length];
-        private static readonly float[] Volumes = new float[4];
+        private static readonly float[] Volumes = new float[Enum.GetValues(typeof(SoundChannel)).Length];
         private static bool _loaded;
 
         private static void Load()

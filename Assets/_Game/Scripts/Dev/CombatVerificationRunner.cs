@@ -98,6 +98,22 @@ namespace Game.Dev
         public bool VlsOnly;
         [Tooltip("피격 칸 판정(블록 내구) 검사만 돌린다(-blockHitOnly)")]
         public bool BlockHitOnly;
+        [Tooltip("노봉·곡사포·경어뢰·충각 강화 검사만 돌린다(-weaponPackOnly)")]
+        public bool WeaponPackOnly;
+        [Tooltip("시작 화면 비행장(전투기 경로·계단 현상) 검사만 돌린다(-harborAAOnly)")]
+        public bool HarborAAOnly;
+        [Tooltip("시작 무장·손상통제·함정 고유 스킬 검사만 돌린다(-signatureOnly)")]
+        public bool SignatureOnly;
+        [Tooltip("호위함 실제 무장·v17 모델 검사만 돌린다(-escortArmsOnly)")]
+        public bool EscortArmsOnly;
+        [Tooltip("일시정지·결과 화면·재출격 흐름 검사만 돌린다(-runFlowOnly). 씬을 다시 여므로 검증기가 씬 전환을 넘어 살아남는다")]
+        public bool RunFlowOnly;
+        [Tooltip("점검 B 묶음 검사만 돌린다(-bundleBOnly): 사전·무장 패널·대잠 카드·화면 설정·적아 표식·위협 묶음·첫 출격 훈련")]
+        public bool BundleBOnly;
+        [Tooltip("점검 C 묶음 검사만 돌린다(-bundleCOnly): 다시 뽑기·빌드 안내·항구/효과 품질·보스 막대·저장/이어하기·결과 분석. 씬을 다시 연다")]
+        public bool BundleCOnly;
+        [Tooltip("점검 D 묶음 검사만 돌린다(-bundleDOnly): 배포 기본·사운드·기록/도전 과제·선택 임무")]
+        public bool BundleDOnly;
 
         private readonly StringBuilder _report = new();
         private int _failures;
@@ -110,6 +126,20 @@ namespace Game.Dev
             _report.AppendLine($"- 실행: {System.DateTime.Now:yyyy-MM-dd HH:mm:ss}, 시간 배속 {TimeScale}");
 
             yield return new WaitForSecondsRealtime(1.5f);   // StageDirector.Start·ShipInitializer 대기
+
+            if (BundleCOnly)
+            {
+                yield return BundleCCheck();
+                Finish();
+                yield break;
+            }
+            if (RunFlowOnly)
+            {
+                // 실제 게임 흐름 그대로(스테이지·스포너·경험치 켠 채) 검사한다 — 검사 환경(PrepareSandbox)을 쓰지 않는다
+                yield return RunFlowCheck();
+                Finish();
+                yield break;
+            }
 
             PrepareSandbox();
             // 배치 모드 플레이어는 창 해상도가 제각각이라 측정·스크린샷은 16:9 기준으로 고정한다
@@ -144,6 +174,46 @@ namespace Game.Dev
             {
                 yield return FormationCheck();
                 SaveLog("formation");
+                Finish();
+                yield break;
+            }
+            if (EscortArmsOnly)
+            {
+                yield return EscortArmsCheck();
+                SaveLog("escortarms");
+                Finish();
+                yield break;
+            }
+            if (BundleDOnly)
+            {
+                yield return BundleDCheck();
+                Finish();
+                yield break;
+            }
+            if (BundleBOnly)
+            {
+                yield return BundleBCheck();
+                Finish();
+                yield break;
+            }
+            if (SignatureOnly)
+            {
+                yield return SignatureCheck();
+                SaveLog("signature");
+                Finish();
+                yield break;
+            }
+            if (HarborAAOnly)
+            {
+                yield return HarborAACheck();
+                SaveLog("harboraa");
+                Finish();
+                yield break;
+            }
+            if (WeaponPackOnly)
+            {
+                yield return WeaponPackCheck();
+                SaveLog("weaponpack");
                 Finish();
                 yield break;
             }
@@ -427,6 +497,27 @@ namespace Game.Dev
 
         private static void PrepareSandbox()
         {
+            LaunchFromStartScreen();
+            foreach (var d in Object.FindObjectsByType<StageDirector>(FindObjectsSortMode.None)) d.enabled = false;
+            foreach (var x in Object.FindObjectsByType<ExperienceSystem>(FindObjectsSortMode.None)) x.enabled = false;
+            // 호위함 자체 무장은 끈다: 기함 단독 검사(자폭 보트 충돌·정지 물보라 등)에 끼어들지 않게. 호위함 검사가 필요할 때 켠다.
+            foreach (var e in Object.FindObjectsByType<Game.TaskForce.EscortDefense>(FindObjectsSortMode.None)) e.enabled = false;
+            if (EnemySpawner.Instance != null) EnemySpawner.Instance.enabled = false;
+            CombatDevTools.ClearBattlefield();
+
+            var ship = GameManager.Instance != null ? GameManager.Instance.Player : null;
+            if (ship != null)
+            {
+                var prop = typeof(ShipController).GetProperty(nameof(ShipController.HullMaxHp));
+                prop?.GetSetMethod(true)?.Invoke(ship, new object[] { 100000f });
+                prop = typeof(ShipController).GetProperty(nameof(ShipController.HullHp));
+                prop?.GetSetMethod(true)?.Invoke(ship, new object[] { 100000f });
+            }
+        }
+
+        /// <summary>시작 화면의 출항 버튼 → 시작 함정 확정까지(플레이어와 같은 절차).</summary>
+        private static void LaunchFromStartScreen()
+        {
             // 시작 화면이 있으면 출항 버튼을 눌러 전투 상태로 들어간다(스포너가 함선을 알게 된다)
             foreach (var button in Object.FindObjectsByType<UnityEngine.UI.Button>(FindObjectsInactive.Include, FindObjectsSortMode.None))
                 if ((button.name == "Launch" || button.name.StartsWith("출항")) && button.interactable) { button.onClick.Invoke(); break; }
@@ -445,22 +536,6 @@ namespace Game.Dev
                     if (button.name == "Confirm" && button.interactable) { button.onClick.Invoke(); break; }
             if (GameManager.Instance != null && GameManager.Instance.State != GameState.Playing)
                 Debug.LogWarning($"[CombatVerification] 출항 절차 뒤에도 전투 상태가 아님: {GameManager.Instance.State}");
-
-            foreach (var d in Object.FindObjectsByType<StageDirector>(FindObjectsSortMode.None)) d.enabled = false;
-            foreach (var x in Object.FindObjectsByType<ExperienceSystem>(FindObjectsSortMode.None)) x.enabled = false;
-            // 호위함 자체 무장은 끈다: 기함 단독 검사(자폭 보트 충돌·정지 물보라 등)에 끼어들지 않게. 호위함 검사가 필요할 때 켠다.
-            foreach (var e in Object.FindObjectsByType<Game.TaskForce.EscortDefense>(FindObjectsSortMode.None)) e.enabled = false;
-            if (EnemySpawner.Instance != null) EnemySpawner.Instance.enabled = false;
-            CombatDevTools.ClearBattlefield();
-
-            var ship = GameManager.Instance != null ? GameManager.Instance.Player : null;
-            if (ship != null)
-            {
-                var prop = typeof(ShipController).GetProperty(nameof(ShipController.HullMaxHp));
-                prop?.GetSetMethod(true)?.Invoke(ship, new object[] { 100000f });
-                prop = typeof(ShipController).GetProperty(nameof(ShipController.HullHp));
-                prop?.GetSetMethod(true)?.Invoke(ship, new object[] { 100000f });
-            }
         }
 
         /// <summary>검증 중 모듈이 파괴되어 다음 시나리오에 영향을 주지 않도록 계속 채운다.</summary>

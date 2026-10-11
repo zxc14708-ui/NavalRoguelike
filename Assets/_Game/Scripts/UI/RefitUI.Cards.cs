@@ -13,9 +13,50 @@ using Game.TaskForce;
 
 namespace Game.UI
 {
-    /// <summary>정비 화면 — 보상 카드 3장 화면(카드 배치·꾸밈·선택, 성장 카드 적용).</summary>
+    /// <summary>
+    /// 정비 화면 — 보상 카드 3장 화면(카드 배치·꾸밈·선택, 성장 카드 적용).
+    /// 2026-10-11 점검: 제목 아래 지금 함선의 역할 구성·빠진 역할, 카드마다 함선 변화 한 줄(K01, BuildGuide),
+    /// 아래쪽 [다시 뽑기 R] — 한 판 3회, 보스 격침마다 1회 회복(K02, RefitDraft.RerollsLeft).
+    /// </summary>
     public partial class RefitUI
     {
+        private System.Func<List<RefitCard>> _reroll;
+        private TMP_Text _rerollLabel, _summaryText;
+        private Image _rerollImage;
+        private RectTransform _rerollButton;
+
+        /// <summary>카드를 다시 뽑는 방법(RefitController가 Open 전에 준다). 없으면 버튼을 숨긴다.</summary>
+        public void SetReroll(System.Func<List<RefitCard>> reroll) => _reroll = reroll;
+
+        /// <summary>다시 뽑기: 남은 횟수를 쓰고 카드 3장을 새로 뽑는다(지금과 똑같은 구성이면 두 번까지 다시).</summary>
+        public bool TryReroll()
+        {
+            if (!_choosing || _reroll == null || RefitDraft.RerollsLeft <= 0) { Game.Core.UiSound.Play(Game.Core.UiSound.Cue.Fail); return false; }
+            if (!RefitDraft.TryUseReroll()) return false;
+            Game.Core.UiSound.Play(Game.Core.UiSound.Cue.Reroll);
+            List<RefitCard> next = null;
+            for (int attempt = 0; attempt < 3; attempt++)
+            {
+                next = _reroll();
+                if (!SameCards(next)) break;
+            }
+            _cards.Clear();
+            if (next != null) _cards.AddRange(next);
+            ShowCards();
+            return true;
+        }
+
+        private bool SameCards(List<RefitCard> other)
+        {
+            if (other == null || other.Count != _cards.Count) return false;
+            for (int i = 0; i < other.Count; i++)
+                if (other[i].Kind != _cards[i].Kind || other[i].Module != _cards[i].Module || other[i].Stat != _cards[i].Stat) return false;
+            return true;
+        }
+
+        public int CardCount => _cards.Count;
+        public string CardSummary => _summaryText != null ? _summaryText.text : "";
+        public string CardStatsText(int i) => cardStats != null && i < cardStats.Length && cardStats[i] != null ? cardStats[i].text : "";
         private static readonly Color CardColor = new(0.085f, 0.115f, 0.15f, 1f);
         private static readonly Color FrameColor = new(0.05f, 0.075f, 0.1f, 1f);
 
@@ -54,7 +95,12 @@ namespace Game.UI
                         name.text = $"<color=#e0c05a>[{i + 1}]</color> {gdef.Name}  <color=#{hex}><size=80%>{RunUpgrades.TierName(card.Tier)}</size></color>";
                     SetCardDecor(i, tc, ModuleCardText.BuildGrowthTag(gdef, card.Tier, card.BossReward), ModuleCardText.BuildGrowthIconLabel(gdef, card.Tier));
                     if (icon != null) { icon.sprite = null; icon.enabled = false; }
-                    if (stats != null) stats.text = ModuleCardText.BuildGrowthStats(gdef, card.Tier);
+                    if (stats != null)
+                    {
+                        stats.text = ModuleCardText.BuildGrowthStats(gdef, card.Tier);
+                        string impact = BuildGuide.GrowthImpact(card.Stat, grid);
+                        if (impact != null) stats.text = impact + "\n" + stats.text;
+                    }
                     continue;
                 }
 
@@ -89,7 +135,15 @@ namespace Game.UI
                     icon.color = Color.white;
                     icon.enabled = def.Icon != null;
                 }
-                if (stats != null) stats.text = ModuleCardText.BuildStats(def);
+                if (stats != null)
+                {
+                    stats.text = ModuleCardText.BuildStats(def);
+                    string impact = BuildGuide.InstallImpact(def, grid);
+                    if (impact != null) stats.text = impact + "\n" + stats.text;
+                    // 지금은 놓을 자리가 없는 블록(대잠 보장 카드 등) — 고르기 전에 알린다(2026-10-11 점검 B04)
+                    if (grid != null && !grid.HasAnyValidPlacement(def))
+                        stats.text += "\n<color=#e0956a>지금은 놓을 자리가 없음 — 배치 화면에서 다른 블록을 옮기거나 철거해 자리를 만드세요</color>";
+                }
             }
         }
 
@@ -105,6 +159,32 @@ namespace Game.UI
                 title.text = _bossReward ? "보스 격침 — 보상 선택" : _openLevel > 0 ? $"레벨 {_openLevel} — 보상 선택" : "보상 선택";
                 title.rectTransform.anchoredPosition = new Vector2(0f, -56f);
             }
+            var font = title != null ? title.font : null;
+
+            // 지금 함선의 역할 구성(K01)
+            if (_summaryText == null)
+            {
+                var holder = UiRect("Ship roles", cardPanel.transform, new Vector2(0.5f, 1f), new Vector2(1200f, 30f), Color.clear);
+                holder.anchoredPosition = new Vector2(0f, -128f);   // 제목(-56) 아래, 카드 위
+                _summaryText = UiText(holder, font, Vector2.zero, new Vector2(1200f, 30f), 20);
+            }
+            _summaryText.text = BuildGuide.Summary(grid);
+
+            // 다시 뽑기(K02)
+            if (_rerollButton == null)
+            {
+                _rerollButton = UiRect("Reroll", cardPanel.transform, new Vector2(0.5f, 0.07f), new Vector2(380f, 48f), new Color(0.08f, 0.2f, 0.26f, 1f));
+                _rerollImage = _rerollButton.GetComponent<Image>();
+                _rerollImage.raycastTarget = true;
+                var button = _rerollButton.gameObject.AddComponent<Button>();
+                button.targetGraphic = _rerollImage;
+                button.onClick.AddListener(() => TryReroll());
+                _rerollLabel = UiText(_rerollButton, font, Vector2.zero, new Vector2(380f, 48f), 20);
+            }
+            _rerollButton.gameObject.SetActive(_reroll != null);
+            int left = RefitDraft.RerollsLeft;
+            _rerollLabel.text = left > 0 ? $"<color=#e0c05a>[R]</color> 카드 다시 뽑기 · 남은 {left}회" : "다시 뽑기 없음 · 보스를 격침하면 1회 회복";
+            _rerollImage.color = left > 0 ? new Color(0.08f, 0.2f, 0.26f, 1f) : new Color(0.06f, 0.08f, 0.1f, 1f);
         }
 
         private int _openLevel;
@@ -266,6 +346,7 @@ namespace Game.UI
             if (!_choosing || index < 0 || index >= _cards.Count) return;
 
             var card = _cards[index];
+            Game.Core.UiSound.Play(Game.Core.UiSound.Cue.Confirm);
             _upgradeResult = null;
             _growthResult = null;
             _fleetResult = null;
@@ -328,6 +409,7 @@ namespace Game.UI
                 if (kb.digit1Key.wasPressedThisFrame) ChooseCard(0);
                 if (kb.digit2Key.wasPressedThisFrame) ChooseCard(1);
                 if (kb.digit3Key.wasPressedThisFrame) ChooseCard(2);
+                if (kb.rKey.wasPressedThisFrame) { TryReroll(); return; }
             }
 
             var mouse = Mouse.current;

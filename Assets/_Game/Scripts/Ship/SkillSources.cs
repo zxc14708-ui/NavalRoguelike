@@ -12,7 +12,7 @@ namespace Game.Ship
         void DeploySmoke();
     }
 
-    /// <summary>응급 수리 [R]. 손상 통제반이 선체와 모듈을 한 번에 크게 고친다.</summary>
+    /// <summary>응급 수리 [R]. 함교가 선체와 모듈을 한 번에 크게 고친다(횟수제 — 손상통제반마다 +1회, 스테이지를 깨면 가득).</summary>
     public interface IRepairBurstSource
     {
         bool BurstReady { get; }

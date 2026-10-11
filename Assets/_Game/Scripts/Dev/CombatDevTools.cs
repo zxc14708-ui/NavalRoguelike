@@ -42,7 +42,9 @@ namespace Game.Dev
             if (Instance != null || Object.FindFirstObjectByType<ShipController>() == null) return;
             new GameObject("CombatDevTools").AddComponent<CombatDevTools>();
 
-            // 개발 빌드를 "-combatVerify <폴더>"로 실행하면 자동 전투 검증을 돌리고 끝나면 종료한다
+            // 개발 빌드를 "-combatVerify <폴더>"로 실행하면 자동 전투 검증을 돌리고 끝나면 종료한다.
+            // 재출격(RunRestart)으로 씬을 다시 열 때도 이 함수가 다시 불린다 — 검증은 처음 연 씬에서만 만든다.
+            if (RunRestart.InProgress || RunRestart.Restarts > 0) return;
             var args = System.Environment.GetCommandLineArgs();
             for (int i = 0; i < args.Length - 1; i++)
             {
@@ -84,6 +86,14 @@ namespace Game.Dev
                 runner.RouteOnly = System.Array.IndexOf(args, "-routeOnly") >= 0;
                 runner.VlsOnly = System.Array.IndexOf(args, "-vlsOnly") >= 0;
                 runner.BlockHitOnly = System.Array.IndexOf(args, "-blockHitOnly") >= 0;
+                runner.WeaponPackOnly = System.Array.IndexOf(args, "-weaponPackOnly") >= 0;
+                runner.HarborAAOnly = System.Array.IndexOf(args, "-harborAAOnly") >= 0;
+                runner.SignatureOnly = System.Array.IndexOf(args, "-signatureOnly") >= 0;
+                runner.EscortArmsOnly = System.Array.IndexOf(args, "-escortArmsOnly") >= 0;
+                runner.RunFlowOnly = System.Array.IndexOf(args, "-runFlowOnly") >= 0;
+                runner.BundleBOnly = System.Array.IndexOf(args, "-bundleBOnly") >= 0;
+                runner.BundleCOnly = System.Array.IndexOf(args, "-bundleCOnly") >= 0;
+                runner.BundleDOnly = System.Array.IndexOf(args, "-bundleDOnly") >= 0;
                 break;
             }
         }

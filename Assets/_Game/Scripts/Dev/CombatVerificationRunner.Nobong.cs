@@ -47,7 +47,7 @@ namespace Game.Dev
             if (def == null || droneDef == null || boatDef == null || jetDef == null)
             { Fail($"시험 데이터 없음(노봉 {def != null} · 드론 {droneDef != null} · 고속정 {boatDef != null} · 전투기 {jetDef != null})"); yield break; }
             bool inPool = Game.Refit.RefitDraft.CollectInstallDefinitions(null).Contains(def);
-            _report.AppendLine($"- 데이터: {def.DisplayName} · 수상 {def.Stats.MinRange:0}~{def.Stats.Range:0} · 피해 {def.Stats.Damage}×2 · 간격 {def.Stats.ReloadTime}초 · 탄 {def.Stats.MagazineCapacity} · 설치 카드 목록 {Yes(inPool)}");
+            _report.AppendLine($"- 데이터: {def.DisplayName} · 수상 {def.Stats.MinRange:0}~{def.Stats.Range:0} · 피해 {def.Stats.Damage}(좌우 교대 한 발씩) · 한 쌍 간격 {def.Stats.ReloadTime}초 · 탄 {def.Stats.MagazineCapacity} · 설치 카드 목록 {Yes(inPool)}");
             if (!inPool) Fail("노봉이 설치 카드 목록에 없음");
 
             // 좌현 끝 줄 바깥 칸(좌현 쪽은 바다라 막히지 않는다)
@@ -130,7 +130,7 @@ namespace Game.Dev
             int s3 = 0;
             yield return Engage(Frozen(jetDef, origin + port * 24f + Vector3.up * 8f), 2f, (s, _, __, ___) => s3 = s);
 
-            _report.AppendLine($"- 좌현 16 m 드론 3기 → {s1}회(×2발) · 근접신관 폭발 {b1} · 피해 입은 드론 {h1}기 · 피해 합 {l1:0} / 드론 옆 2 m로 빗나가는 탄 → 근접신관 폭발 {nearBursts} · 피해 {nearLoss:0.#} / 25 m 고속정 → {s2}회 · 피해 {l2:0} / 24 m 전투기(대공 사거리 밖) → {s3}회");
+            _report.AppendLine($"- 좌현 16 m 드론 3기 → {s1}발 · 근접신관 폭발 {b1} · 피해 입은 드론 {h1}기 · 피해 합 {l1:0} / 드론 옆 2 m로 빗나가는 탄 → 근접신관 폭발 {nearBursts} · 피해 {nearLoss:0.#} / 25 m 고속정 → {s2}회 · 피해 {l2:0} / 24 m 전투기(대공 사거리 밖) → {s3}회");
             if (s1 < 1) Fail("드론에 쏘지 않음");
             if (h1 < 2) Fail("드론 무리 여러 기에 피해를 주지 않음(직격 + 파편)");
             if (nearBursts < 1 || nearLoss <= 0f) Fail("드론 곁을 빗나가는 탄이 근접신관으로 터지지 않음");

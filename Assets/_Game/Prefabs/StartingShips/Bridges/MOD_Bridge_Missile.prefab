@@ -3870,6 +3870,23 @@ MonoBehaviour:
     repairRadiusCells: 3
     underFireWindow: 3
     underFireHullRepairRatio: 0.25
+  baseHullCap: 0.5
+  maxRepairBays: 3
+  speedPerRepairBay: 0.5
+  burstHull: 30
+  burstModuleRatio: 0.4
+  burstGap: 4
+  burstEffect: {fileID: 8714572127348294894, guid: 79160fcca44e1a34492e1d1967db0ea2, type: 3}
+  machineGun:
+    projectile: {fileID: 5405680146125724480, guid: bbabe70bdae22cc4793d503d4eb0bae2, type: 3}
+    range: 18
+    damage: 1
+    interval: 0.15
+    burstRounds: 5
+    burstPause: 0.5
+    projectileSpeed: 75
+    turnRate: 220
+    spreadDegrees: 1.6
   radarAntenna: {fileID: 7043291357777876400}
   antennaRpm: 20
   flankDuration: 5

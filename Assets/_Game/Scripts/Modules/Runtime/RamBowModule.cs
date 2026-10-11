@@ -12,6 +12,7 @@ namespace Game.Modules.Runtime
     ///   - 피해 = Damage × (minSpeedFactor ~ 1, 지금 속력 / 기준 최고 속력) × 분류별 효율 — 전속(C)과 잘 맞는다.
     ///   - 자폭 보트는 함체 1.3m에서 터지기 전에 충돌 구역(앞쪽 rammingReach)에서 먼저 받혀 격침된다 → 함선 피해 없음.
     ///   - 같은 적은 hitInterval초에 한 번만. 큰 배(대형·보스)를 받으면 충각도 반동 피해(selfDamageRatio)를 입는다.
+    ///   - 강화(2026-10-11, UPG_RamBow): I 피해 +25%·내구 +30%, II 피해 +50%·내구 +50%·반동 피해 25% → 10%.
     /// 앞에 다른 블록이 붙으면(뱃머리가 아니면) 작동하지 않는다(그런 설치는 ShipGrid가 거부한다).
     /// </summary>
     public class RamBowModule : ModuleRuntime
@@ -25,14 +26,18 @@ namespace Game.Modules.Runtime
         [SerializeField] private float minSpeedFactor = 0.4f;
         [SerializeField] private float hitInterval = 1f;
         [Tooltip("대형·보스를 받을 때 충각이 입는 피해 비율(준 피해 대비)")]
-        [SerializeField] private float selfDamageRatio = 0.25f;
+        [SerializeField] private float selfDamageRatio = BaseSelfDamageRatio;
         [SerializeField] private GameObject impactEffect;
 
         private const float CellHalf = 1f;   // 격자 한 칸 2m
+        /// <summary>기본 반동 피해 비율(카드 표시용 기준값).</summary>
+        public const float BaseSelfDamageRatio = 0.25f;
         private readonly Dictionary<ITargetable, float> _lastHit = new();
         private readonly List<ITargetable> _scratch = new();
 
         public int Rams { get; private set; }
+        /// <summary>반동 피해 비율. 강화 II 완충기가 줄인다(25% → 10%).</summary>
+        public float SelfDamageRatio => selfDamageRatio * (Instance != null ? ModuleUpgrades.SelfDamageMultiplier(Definition, Instance.UpgradeLevel) : 1f);
         public float LastRamDamage { get; private set; }
 
         private Vector3 ShipForward
@@ -94,7 +99,7 @@ namespace Game.Modules.Runtime
 
             var cat = TargetInfo.Category(e);
             if ((cat == TargetCategory.LargeSurface || cat == TargetCategory.Boss) && Instance != null)
-                Instance.TakeDamage(damage * selfDamageRatio);
+                Instance.TakeDamage(damage * SelfDamageRatio);
 
             PooledEffect.Spawn(impactEffect, face + ShipForward * 0.6f);
             Game.View.Explosions.Spawn(face + ShipForward * 0.6f + Vector3.up * 0.5f, 0.9f, Game.View.Explosions.Kind.Charge);

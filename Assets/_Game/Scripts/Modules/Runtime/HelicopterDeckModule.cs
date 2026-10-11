@@ -11,7 +11,7 @@ namespace Game.Modules.Runtime
     /// 소나가 없어도 헬기 자체가 수색을 나간다 — 목표 상공에 도달하면 그 자리에서
     /// 잠수함을 드러낸다. 소나가 있으면 이미 드러난 목표로 곧장 가므로 훨씬 빠르다.
     /// </summary>
-    public class HelicopterDeckModule : ModuleRuntime
+    public class HelicopterDeckModule : ModuleRuntime, Game.Combat.IHelicopterBase
     {
         [SerializeField] private GameObject helicopterPrefab;
         [SerializeField] private Transform landingSpot;
@@ -36,6 +36,7 @@ namespace Game.Modules.Runtime
         public float SearchPersistence => (_pairedDeck ? 12f : 8f) +
             (Policy == HelicopterPolicy.AntiSubPatrol ? 4f : 0f);
         public bool CanOperate => isActiveAndEnabled && Instance != null && Instance.IsOperational;
+        public float HelicopterSpeed => Stats.HelicopterSpeed;
         public bool SortieActive => _sortieActive;
         public float CooldownRemaining => Mathf.Max(0f, _cooldown);
 

@@ -23,6 +23,12 @@ namespace Game.EditorTools
         private const string DefPath = Root + "/Resources/Modules/mod_nobong.asset";
         private const string SmokePath = Root + "/Prefabs/VFX/FX_MuzzleSmoke.prefab";
 
+        /// <summary>설치 카드·사전 설명(2026-10-11: 좌우 번갈아 한 발씩).</summary>
+        public const string Description =
+            "국산 40mm 쌍열 함포. 수상 0~28, 대공 20 — 기관포보다 멀리, 76mm보다 빠르게 쏜다. " +
+            "좌우 포신이 번갈아 한 발씩 쏘고(8발 쏘고 잠깐 쉼), 근접신관 파편탄이라 드론·항공기 곁을 지나기만 해도 공중에서 터져 주변 1.2 안에 파편 피해를 준다. " +
+            "드론·항공기를 먼저 노린다. 자체 센서가 없어 레이더가 잡은 표적만 쏜다. 붙은 블록·상부 구조물 방향으로는 쏘지 못한다. 탄약고 보너스를 받는다.";
+
         [MenuItem("Naval/Add Nobong 40mm", priority = 3)]
         public static void Build()
         {
@@ -39,6 +45,7 @@ namespace Game.EditorTools
                 Configure(def, so => Set(so, "icon", icon));
                 EditorUtility.SetDirty(def);
             }
+            NavalWeaponUpgradeVisuals.ReapplyAfterRebuild("mod_nobong");   // 그레이박스로 다시 만들어도 Codex 강화 외형(Visual_Level1~3)을 다시 넣는다
             AssetDatabase.SaveAssets();
             Debug.Log($"[Nobong] 노봉 40mm 쌍열포 블록을 만들었습니다: {PrefabPath}, {DefPath}, {ShellPath}");
         }
@@ -138,10 +145,7 @@ namespace Game.EditorTools
             {
                 Set(so, "id", "mod_nobong");
                 Set(so, "displayName", "노봉 40mm 쌍열포");
-                Set(so, "description",
-                    "국산 40mm 쌍열 함포. 수상 0~28, 대공 20 — 기관포보다 멀리, 76mm보다 빠르게 쏜다. " +
-                    "두 포신이 함께 쏘고(4회 쏘고 잠깐 쉼), 근접신관 파편탄이라 드론·항공기 곁을 지나기만 해도 공중에서 터져 주변 1.2 안에 파편 피해를 준다. " +
-                    "드론·항공기를 먼저 노린다. 자체 센서가 없어 레이더가 잡은 표적만 쏜다. 붙은 블록·상부 구조물 방향으로는 쏘지 못한다. 탄약고 보너스를 받는다.");
+                Set(so, "description", Description);
                 Set(so, "type", (int)ModuleType.Nobong);
                 Set(so, "width", 1);
                 Set(so, "height", 1);
@@ -156,14 +160,14 @@ namespace Game.EditorTools
 
                 Set(so, "stats.Range", 28f);
                 Set(so, "stats.MinRange", 0f);
-                Set(so, "stats.Damage", 3.5f);           // 한 발(쌍열이라 한 번에 두 발)
-                Set(so, "stats.ReloadTime", 0.45f);
+                Set(so, "stats.Damage", 3.5f);           // 한 발
+                Set(so, "stats.ReloadTime", 0.45f);      // 좌우 한 쌍 간격 — 한 발씩 0.225초마다
                 Set(so, "stats.ProjectileSpeed", 85f);
                 Set(so, "stats.TurretTurnRate", 150f);
                 Set(so, "stats.FireArcDegrees", 360f);
                 Set(so, "stats.AmmoFamily", (int)AmmoFamily.Gun);
-                Set(so, "stats.MagazineCapacity", 96);   // 96발 = 48회
-                Set(so, "stats.AmmoPerShot", 2);
+                Set(so, "stats.MagazineCapacity", 96);
+                Set(so, "stats.AmmoPerShot", 1);         // 좌우 번갈아 한 발씩(2026-10-11)
                 Set(so, "stats.AmmoReloadAmount", 12);
                 Set(so, "stats.AmmoReloadTime", 4f);
 

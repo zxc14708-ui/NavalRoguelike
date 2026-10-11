@@ -103,6 +103,9 @@ namespace Game.Combat
 
         // 개발용 통계
         private string _statsKey;
+
+        /// <summary>결과 분석·통계에서 쓰는 무장 이름. 같은 탄을 쓰는 호위함·함교 기관총·항공대는 발사 뒤 따로 이름을 붙인다(RunReport).</summary>
+        public string StatsKey { get => _statsKey; set => _statsKey = value; }
         private float _screenEnteredAt = -1f;
 
         // --- ITargetable

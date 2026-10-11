@@ -173,6 +173,7 @@ namespace Game.UI
 
             if (root != null) root.SetActive(true);
             if (titleText != null) titleText.text = bossReward ? "보스 격침 보상 — 배치 · 강화" : $"레벨 {level} 정비 — 배치 · 강화";
+            Game.Core.UiSound.Play(Game.Core.UiSound.Cue.LevelUp);
             if (shipCamera != null) shipCamera.enabled = true;
 
             EnsureHighlight();
@@ -183,6 +184,7 @@ namespace Game.UI
 
         public void Close()
         {
+            _reroll = null;
             _choosing = false;
             _upgradePicking = false;
             _rolePicking = false;

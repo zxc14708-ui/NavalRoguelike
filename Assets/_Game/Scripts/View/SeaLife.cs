@@ -101,8 +101,18 @@ namespace Game.View
                 if (m != null) Destroy(m);
         }
 
+        private bool _hidden;
+
         private void Update()
         {
+            // 장식 효과 낮음: 갈매기·돌고래·고래를 숨긴다(Game.Core.DisplaySettings.EffectsQuality)
+            bool hide = Game.Core.DisplaySettings.EffectsQuality >= 2;
+            if (hide != _hidden)
+            {
+                _hidden = hide;
+                foreach (Transform child in transform) child.gameObject.SetActive(!hide);
+            }
+            if (hide) return;
             var player = GameManager.Instance != null ? GameManager.Instance.Player : null;
             if (player == null) return;
             float dt = Time.deltaTime;

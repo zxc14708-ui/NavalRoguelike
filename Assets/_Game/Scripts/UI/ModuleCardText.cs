@@ -110,11 +110,11 @@ namespace Game.UI
                     Row(sb, "지원 거리", $"{s.SupportRadiusCells}칸 (기관포·76mm)");
                     Row(sb, $"<color={Warn}>유폭</color>", $"<color={Warn}>{s.CookOffDamage:0}</color>");
                     break;
-                case ModuleType.RepairBay:
+                case ModuleType.RepairBay:   // 2026-10-11: 선체 회복·응급 수리는 함교가 — 이 블록은 함교를 키운다
+                    Row(sb, "선체 자동 회복", $"<color={Good}>상한 +17%p · 속도 +50%</color>");
+                    Row(sb, "<color=" + Key + ">[R]</color> 응급 수리", $"<color={Good}>+1회</color>");
+                    Row(sb, "모듈 수리", $"{s.ModuleRepairPerSecond:0.0} /초 (3칸)");
                     Row(sb, "피해 감소", $"{s.DamageReduction * 100f:0}%");
-                    Row(sb, "선체 회복", $"{s.HullRepairPerSecond:0.0} /초");
-                    Row(sb, "모듈 수리", $"{s.ModuleRepairPerSecond:0.0} /초");
-                    Row(sb, "<color=" + Key + ">[R]</color> 응급 수리", "재장전 35 초");
                     break;
                 case ModuleType.HelicopterDeck:
                     Row(sb, "출격 간격", $"{s.SortieCooldown:0} 초");
@@ -122,7 +122,8 @@ namespace Game.UI
                     break;
                 case ModuleType.Bridge:
                     Row(sb, "탐지 거리", $"{s.DetectionRange:0} m");
-                    Row(sb, "선체 회복", $"{s.HullRepairPerSecond:0.0} /초");
+                    Row(sb, "선체 회복", $"{s.HullRepairPerSecond:0.0} /초 (50%까지)");
+                    Row(sb, "<color=" + Key + ">[R]</color> 응급 수리", "1회 · 스테이지마다 다시");
                     break;
                 case ModuleType.FleetRelay:
                     Row(sb, "편대 재사용 속도", $"+{s.EscortFireRateBonus * 100f:0}%");
@@ -234,7 +235,14 @@ namespace Game.UI
                 sb.Append($"{label}{(aligned ? ValueColumn : " ")}{x.ToString(fmt)}{unit} → <color={Good}>{y.ToString(fmt)}{unit}</color>");
                 lines++;
             }
+            // 곡사포: 한 번에 쏘는 포탄 수(강화의 핵심이라 맨 앞)
+            var howitzer = def.Prefab != null ? def.Prefab.GetComponent<Game.Modules.Runtime.HowitzerModule>() : null;
+            if (howitzer != null) Line("한 번에", howitzer.ShellsAt(fromLevel), howitzer.ShellsAt(toLevel), "0", "발");
             Line("피해", a.Damage, b.Damage, "0.##");
+            Line("내구", def.MaxHp * ModuleUpgrades.MaxHpMultiplier(def, fromLevel), def.MaxHp * ModuleUpgrades.MaxHpMultiplier(def, toLevel), "0");
+            if (def.Type == ModuleType.RamBow)
+                Line("반동 피해", Game.Modules.Runtime.RamBowModule.BaseSelfDamageRatio * 100f * ModuleUpgrades.SelfDamageMultiplier(def, fromLevel),
+                     Game.Modules.Runtime.RamBowModule.BaseSelfDamageRatio * 100f * ModuleUpgrades.SelfDamageMultiplier(def, toLevel), "0", "%");
             Line("탄창", a.MagazineCapacity, b.MagazineCapacity, "0");
             Line("발사 간격", a.ReloadTime, b.ReloadTime, "0.###", "초");
             Line("선회", a.TurretTurnRate, b.TurretTurnRate, "0", "°/초");

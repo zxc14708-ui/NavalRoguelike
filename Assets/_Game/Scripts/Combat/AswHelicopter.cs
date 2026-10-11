@@ -8,6 +8,22 @@ namespace Game.Combat
     /// 함재 헬기. 반복 교전하며 표적 소멸 시 재탐색하고, 적이 없을 때만 귀함한다.
     /// 첫 프로토타입에서는 비행 물리를 쓰지 않고 단순 보간으로 움직인다.
     /// </summary>
+    /// <summary>대잠 헬기의 모함(함선 헬기갑판 블록·대잠 호위함, 2026-10-11 호위함 실제 무장).</summary>
+    public interface IHelicopterBase
+    {
+        bool CanOperate { get; }
+        HelicopterPolicy Policy { get; }
+        float SearchPersistence { get; }
+        /// <summary>0 이하면 헬기 기본 속력.</summary>
+        float HelicopterSpeed { get; }
+        bool IsTargetInRange(ITargetable target);
+        Vector3 PatrolPoint();
+        ITargetable FindTarget();
+        ITargetable FindTargetFromHelicopter(Vector3 position);
+        bool TryGetSearchCue(out Vector3 cue);
+        void OnHelicopterReturned();
+    }
+
     public class AswHelicopter : MonoBehaviour, IPoolable
     {
         private static readonly HashSet<AswHelicopter> ActiveSorties = new();
@@ -52,11 +68,11 @@ namespace Game.Combat
         private HelicopterPolicy _lastPolicy;
 
         /// <summary>돌아갈 격납고. 착함하면 다시 갑판에 세워준다.</summary>
-        private Game.Modules.Runtime.HelicopterDeckModule _deck;
+        private IHelicopterBase _deck;
 
-        /// <summary>헬기데크가 출격시킬 때 호출한다.</summary>
+        /// <summary>헬기데크(함선 블록 또는 대잠 호위함, IHelicopterBase)가 출격시킬 때 호출한다.</summary>
         public void Sortie(Transform home, ITargetable target,
-                           Game.Modules.Runtime.HelicopterDeckModule deck = null, Vector3 searchPoint = default)
+                           IHelicopterBase deck = null, Vector3 searchPoint = default)
         {
             _home = home;
             _target = target;
@@ -68,15 +84,15 @@ namespace Game.Combat
             _weaponTimer = 0f;
             _idleTimer = 0f;
             _searchTimer = 0f;
-            if (deck != null && deck.Stats.HelicopterSpeed > 0f)
-                speed = deck.Stats.HelicopterSpeed;
+            if (deck != null && deck.HelicopterSpeed > 0f)
+                speed = deck.HelicopterSpeed;
         }
 
         private void Update()
         {
             float dt = Time.deltaTime;
             if (dt <= 0f) return;
-            if (_home == null || _deck == null || !_deck.CanOperate)
+            if (_home == null || !IsAlive(_deck) || !_deck.CanOperate)
             {
                 Despawn();
                 return;
@@ -257,10 +273,13 @@ namespace Game.Combat
             MoveTowards(center + offset, dt);
         }
 
+        /// <summary>파괴된 MonoBehaviour는 인터페이스로 들고 있으면 null로 보이지 않는다.</summary>
+        private static bool IsAlive(IHelicopterBase deck) => deck is Object o ? o != null : deck != null;
+
         private void Despawn()
         {
             // 착함 보고. 갑판에 다시 헬기가 서고 쿨다운이 시작된다.
-            if (_deck != null) _deck.OnHelicopterReturned();
+            if (IsAlive(_deck)) _deck.OnHelicopterReturned();
             _deck = null;
 
             if (PoolManager.Instance != null) PoolManager.Instance.Despawn(gameObject);

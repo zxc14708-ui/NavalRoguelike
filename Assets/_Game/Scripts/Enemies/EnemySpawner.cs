@@ -113,6 +113,9 @@ namespace Game.Enemies
         /// 보스가 띄우는 함재기처럼 정해진 자리·방향으로 적을 내보낸다. 동시 최대 수 제한을 받지 않지만
         /// 살아 있는 적 목록에는 들어가 스테이지 전환 때 함께 치워진다.
         /// </summary>
+        /// <summary>구간 없이 기함만 알려 준다(첫 출격 훈련 — 자동 생성 없이 SpawnAt으로만 낸다).</summary>
+        public void SetPlayer(Transform player) => _player = player;
+
         public EnemyController SpawnAt(EnemyDefinition def, Vector3 position, Quaternion rotation)
         {
             if (def == null || def.Prefab == null || _player == null) return null;

@@ -27,6 +27,7 @@ namespace Game.Dev
         /// </summary>
         private IEnumerator EscortCheck()
         {
+            Game.Modules.Runtime.BridgeMachineGun.DevHoldFire = true;   // 2026-10-11 함교 기관총: 표적 선택 검사의 적을 먼저 격침하지 않게
             _report.AppendLine("\n## 편대(카드 · 생존성 · 자율 능력)");
             var ship = GameManager.Instance.Player;
             var formation = Object.FindFirstObjectByType<Game.TaskForce.TaskForceEscortFormation>();
@@ -341,6 +342,14 @@ namespace Game.Dev
             t0 = Time.time;
             while (Time.time - t0 < 3f && (aswDef.AswStrikes == asw0 || stkDef.SurfaceStrikes == stk0)) yield return null;
             yield return new WaitForSeconds(0.4f);
+            // 실제 무장(2026-10-11): 경어뢰·대함 미사일이 날아가 맞을 때까지 기다린다
+            if (aswDef.UsesRealWeapons)
+            {
+                float w0 = Time.time;
+                while (Time.time - w0 < 8f && ((sub != null && sub.IsAlive && subHp0 - sub.CurrentHp < Game.TaskForce.EscortDefense.AswDamage(0) - 0.5f) ||
+                                               (valuable != null && valuable.IsAlive && pccHp0 - valuable.CurrentHp < Game.TaskForce.EscortDefense.StrikeDamage(0) * 0.5f - 0.5f)))
+                    yield return null;
+            }
             float subLoss = sub != null ? subHp0 - sub.CurrentHp : 0f;
             float pccLoss = valuable != null ? pccHp0 - valuable.CurrentHp : 0f;
             float cheapLoss = cheap != null ? cheapHp0 - cheap.CurrentHp : 0f;
@@ -349,7 +358,9 @@ namespace Game.Dev
             yield return ScreenShot("fleet_7_abilities");
             _report.AppendLine($"- 대잠 자동 타격: {aswDef.AswStrikes - asw0}회 · 잠항 중 잠수함 {Yes(hiddenAtStart)} · 피해 {subLoss:0}(기대 {Game.TaskForce.EscortDefense.AswDamage(0):0}) · 접촉 확정 {Yes(contact)} / 대함 타격: {stkDef.SurfaceStrikes - stk0}회 · 초계함(엘리트) 피해 {pccLoss:0}(기대 {Game.TaskForce.EscortDefense.StrikeDamage(0):0}) · 가까운 고속정 피해 {cheapLoss:0} · 전술 리그 {rigs1 - rigs0}개");
             if (aswDef.AswStrikes - asw0 < 1 || subLoss < Game.TaskForce.EscortDefense.AswDamage(0) - 0.5f || !contact) Fail("대잠 호위함이 잠항 잠수함을 자동 타격하지 않음");
-            if (stkDef.SurfaceStrikes - stk0 < 1 || pccLoss < Game.TaskForce.EscortDefense.StrikeDamage(0) - 0.5f || cheapLoss > 0f) Fail("미사일 호위함이 가치 높은 표적을 먼저 타격하지 않음");
+            // 실제 무장이면 대함 미사일 한 발 = 피해의 절반(발사관마다 한 발) — 첫 발이 맞았는지만 본다
+            float pccWant = stkDef.UsesRealWeapons ? Game.TaskForce.EscortDefense.StrikeDamage(0) * 0.5f : Game.TaskForce.EscortDefense.StrikeDamage(0);
+            if (stkDef.SurfaceStrikes - stk0 < 1 || pccLoss < pccWant - 0.5f || cheapLoss > 0f) Fail("미사일 호위함이 가치 높은 표적을 먼저 타격하지 않음");
             if (rigs1 - rigs0 < 2) Fail("자율 능력 발동 때 Codex 전술 리그가 펼쳐지지 않음");
 
             // 11) 포탑 회전 · 레이더 회전 · 발사음(Redesign 모델의 가동부)
@@ -553,6 +564,7 @@ namespace Game.Dev
 
         private IEnumerator FormationCheck()
         {
+            Game.Modules.Runtime.BridgeMachineGun.DevHoldFire = true;
             _report.AppendLine("\n## 편대 진형·조함");
             var ship = GameManager.Instance.Player;
             var formation = Object.FindFirstObjectByType<Game.TaskForce.TaskForceEscortFormation>();
@@ -720,7 +732,8 @@ namespace Game.Dev
                 {
                     var esc = formation.GetEscort(i);
                     var lp = ship.transform.InverseTransformPoint(esc.transform.position);
-                    maxDist = Mathf.Max(maxDist, new Vector2(lp.x, lp.z - (ext.x + ext.y) * 0.5f).magnitude);
+                    // 다른 진형에서 바꾼 직후(3초)는 들어오는 중이라 빼고 잰다(단종진 맨 뒤는 52m 뒤에서 출발)
+                    if (k >= 6) maxDist = Mathf.Max(maxDist, new Vector2(lp.x, lp.z - (ext.x + ext.y) * 0.5f).magnitude);
                     float along = Mathf.Clamp(lp.z, ext.y, ext.x);
                     clearance = Mathf.Min(clearance, new Vector2(lp.x, lp.z - along).magnitude - ext.z);
                     if (k >= 6 && cam != null)
@@ -747,6 +760,9 @@ namespace Game.Dev
             if (spawner == null || fastDef == null) { _report.AppendLine("- 자율 교전: 스포너·고속정 데이터가 없어 건너뜀"); yield break; }
             Vector3 spot = ship.transform.position + ship.transform.forward * 18f + ship.transform.right * 22f; spot.y = 0f;
             var foe = spawner.SpawnAt(fastDef, spot, Quaternion.LookRotation(-ship.transform.right));
+            // 실제 무장(2026-10-11)은 고속정을 4초 안에 격침해 "교전하러 나감"을 볼 수 없다 — 이 측정 동안만 호위함 사격을 멈춘다
+            var holdFire = new List<Game.TaskForce.EscortDefense>();
+            foreach (var d in Object.FindObjectsByType<Game.TaskForce.EscortDefense>(FindObjectsSortMode.None)) if (d.enabled) { d.enabled = false; holdFire.Add(d); }
             float before = float.MaxValue, after = float.MaxValue;
             for (int i = 0; i < n; i++) before = Mathf.Min(before, Vector3.Distance(formation.GetEscort(i).transform.position, foe.transform.position));
             yield return new WaitForSeconds(4f);
@@ -758,6 +774,7 @@ namespace Game.Dev
             }
             _report.AppendLine($"- 자율 교전: 적 고속정 출현 → 수상 교전 {engaging}척 · 가장 가까운 호위함 거리 {before:0}m → {after:0}m");
             if (engaging == 0) Fail("자율: 적 수상함이 나타나도 교전하러 나가지 않음");
+            foreach (var d in holdFire) if (d != null) d.enabled = true;
             if (foe != null) foe.RemoveWithoutReward();
             yield return null;
         }

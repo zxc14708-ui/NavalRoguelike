@@ -437,6 +437,8 @@ namespace Game.TaskForce
         {
             Vector3 o = vessel != null ? vessel.transform.position - transform.position : PatrolOffset(slot);
             o.y = 0f;
+            // 단종진 맨 뒤(52m)처럼 묶음 밖에서 바꿔도 목표는 처음부터 묶음 안 — 배는 평소처럼 조함해 들어온다
+            if (o.magnitude > AutoLeash) o = o.normalized * AutoLeash;
             _autoOffset[slot] = _autoGoal[slot] = o;
             _autoReady[slot] = true;
             _autoTask[slot] = "초계";
@@ -973,9 +975,15 @@ namespace Game.TaskForce
                 Vector3 pos = transform.position;
                 Vector3 to = target - pos; to.y = 0f;
                 float dist = to.magnitude;
-                if (dist > 70f && !_disabled)
+                // 기함이 한 프레임에 크게 튄 경우(스테이지 시작 등)만 자리에 놓는다. 예전에는 슬롯과 70m만 벌어져도 놓았는데,
+                // 단종진 맨 뒤(52m 뒤) 슬롯이 급선회 때 크게 휘며 70m를 넘어 호위함이 순간 이동했다(2026-10-11, 검증 "게걸음").
+                Vector3 flag = _flagship.position;
+                bool flagJumped = _hasFlagPosition && Flat2(flag - _lastFlagPosition).sqrMagnitude > 25f * 25f;
+                _lastFlagPosition = flag;
+                _hasFlagPosition = true;
+                if ((flagJumped && dist > 30f || dist > 160f) && !_disabled)
                 {
-                    // 기함이 순간 이동했다(스테이지 시작 등): 자리에 놓는다
+                    // 기함이 순간 이동했다(스테이지 시작 등) — 또는 너무 멀어 따라갈 수 없다: 자리에 놓는다
                     _heading = Mathf.Atan2(slotForward.x, slotForward.z) * Mathf.Rad2Deg;
                     _speed = _targetVel.magnitude;
                     _yawRate = 0f;
@@ -1032,6 +1040,10 @@ namespace Game.TaskForce
                     _speed *= 0.6f;
                 transform.SetPositionAndRotation(next, rot);
             }
+
+            private Vector3 _lastFlagPosition;
+            private bool _hasFlagPosition;
+            private static Vector3 Flat2(Vector3 v) { v.y = 0f; return v; }
 
             /// <summary>회피: 다른 호위함(8m), 기함 선체(현측 + 4m), 앞쪽 섬. 원하는 속도에 더하는 벡터(m/s).</summary>
             private Vector3 Avoidance(Vector3 pos)

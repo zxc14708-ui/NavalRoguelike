@@ -791,7 +791,7 @@ namespace Game.EditorTools
         {
             var keep = new HashSet<Transform>();
             foreach (var t in _root.GetComponentsInChildren<Transform>(true))
-                if (t.name is "Pier" or "Berths" or "Fighter1" or "NightLights" or "RoadTraffic" || t.name.StartsWith("ESC_PB") || t.name.StartsWith("DockedShip"))
+                if (t.name is "Pier" or "Berths" or "Fighter1" or "P3C_Taxi" or "NightLights" or "RoadTraffic" || t.name.StartsWith("ESC_PB") || t.name.StartsWith("DockedShip"))   // P3C_Taxi: 시작 화면에서 움직인다(2026-10-11)
                     keep.Add(t);
             bool Kept(Transform t)
             {

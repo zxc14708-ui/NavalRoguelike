@@ -11,7 +11,11 @@ using Game.Refit;
 
 namespace Game.UI
 {
-    public enum CodexSection { Weapons, Escorts, Enemies }
+    public enum CodexSection { Weapons, Escorts, Enemies, Guide }
+
+    /// <summary>사전 역할 필터(2026-10-11 점검 C01). 무장은 맡는 위협, 적은 대응에 필요한 역할, 호위함은 역할.</summary>
+    [System.Flags]
+    public enum CodexRole { None = 0, Air = 1, Surface = 2, Sub = 4, Support = 8 }
 
     /// <summary>사전 한 항목: 이름·분류 줄·본문(리치 텍스트)과 미리보기 모델(형태·단계별).</summary>
     public sealed class CodexEntry
@@ -22,6 +26,22 @@ namespace Game.UI
         public string Body;
         public Color Accent = Color.white;
         public readonly List<CodexModel> Models = new();
+        /// <summary>역할 필터에 걸리는 역할.</summary>
+        public CodexRole Roles;
+        /// <summary>형태·단계 버튼을 고르면 본문 맨 위에 붙는 그 단계 요약(이전 단계 대비, 점검 C02). 없으면 null.</summary>
+        public System.Func<int, string> ModelNote;
+        /// <summary>배치 도식: 설치할 수 있는 자리(무장만, 점검 C03). 없으면 도식을 그리지 않는다.</summary>
+        public PlacementZone? Zone;
+        /// <summary>사거리 막대(0~60 m 같은 눈금 — 항목끼리 비교된다).</summary>
+        public readonly List<CodexRange> Ranges = new();
+    }
+
+    /// <summary>사거리 막대 한 줄: 최소~최대 거리.</summary>
+    public readonly struct CodexRange
+    {
+        public readonly string Label;
+        public readonly float Min, Max;
+        public CodexRange(string label, float min, float max) { Label = label; Min = min; Max = max; }
     }
 
     /// <summary>미리보기 모델 하나. OnlyChild가 있으면 그 자식(Visual_LevelN)만 보인다.</summary>
@@ -45,7 +65,7 @@ namespace Game.UI
     /// 호위함 = 편대 역할. 수치도 데이터·편대 공식에서 읽으므로 밸런스를 바꾸면 사전이 따라 바뀐다.
     /// 적의 행동 설명·대응만 여기 글로 둔다(없으면 분류로 대신 설명).
     /// </summary>
-    public static class CodexCatalog
+    public static partial class CodexCatalog
     {
         private const string Muted = "#8fa4b8";
         private const string Key = "#e0c05a";
@@ -56,17 +76,23 @@ namespace Game.UI
         private const string Column = "<pos=34%>";
         private const float Knots = 1.944f;
 
-        public static List<CodexEntry> Build(CodexSection section) => section switch
+        public static List<CodexEntry> Build(CodexSection section)
         {
-            CodexSection.Weapons => Weapons(),
-            CodexSection.Escorts => Escorts(),
-            _ => Enemies(),
-        };
+            s_modules = null;   // 링크·함께 쓰기가 보는 블록 목록 — 지금 씬의 카드 풀·시작 배치로 다시 모은다
+            return section switch
+            {
+                CodexSection.Weapons => Weapons(),
+                CodexSection.Escorts => Escorts(),
+                CodexSection.Guide => Guide(),
+                _ => Enemies(),
+            };
+        }
 
         public static string SectionName(CodexSection section) => section switch
         {
             CodexSection.Weapons => "무장",
             CodexSection.Escorts => "호위함",
+            CodexSection.Guide => "함정·용어",
             _ => "적",
         };
 
@@ -135,7 +161,10 @@ namespace Game.UI
                     Title = def.DisplayName,
                     Tag = $"{ModuleCardText.BuildTag(def)}  ·  {RarityName(def.Rarity)}",
                     Accent = new Color(0.66f, 1f, 0.75f),
+                    Roles = RolesOf(def.Type),
+                    Zone = def.Placement.Zone,
                 };
+                AddRanges(e, def);
                 var sb = new StringBuilder();
                 if (!string.IsNullOrEmpty(def.Description)) sb.AppendLine(def.Description).AppendLine();
                 // 카드 표(<pos=44%>)는 값이 길면 왼쪽 끝으로 줄이 넘어간다 — 사전에서는 넘어간 줄도 값 칸에 맞춘다
@@ -163,16 +192,20 @@ namespace Game.UI
                             if (!string.IsNullOrWhiteSpace(line)) sb.AppendLine("   " + line.Trim());
                     }
                 }
+                Synergy(sb, def.Type);
                 e.Body = sb.ToString().TrimEnd();
 
                 // 미리보기: 형태가 있으면 형태별 모델, 강화 외형이 있으면 단계별, 아니면 블록 모델
                 if (ModuleVariants.HasVariants(def.Type))
                 {
-                    foreach (var v in VariantsOf(def.Type))
+                    var forms = new List<ModuleVariant>(VariantsOf(def.Type));
+                    foreach (var v in forms)
                     {
                         var prefab = Resources.Load<GameObject>($"Modules/Variants/{ModuleVariants.ModelName(v)}");
                         e.Models.Add(new CodexModel(ModuleVariants.Name(v), prefab != null ? prefab : def.Prefab));
                     }
+                    e.ModelNote = i => i >= 0 && i < forms.Count
+                        ? $"<color={Key}><b>선택: {ModuleVariants.Name(forms[i])}</b></color>\n<color={Muted}>{ModuleVariants.Summary(forms[i])}</color>" : null;
                 }
                 else if (def.Prefab != null && def.Prefab.GetComponent<ModuleUpgradeVisuals>() is { } visuals && visuals.VariantCount > 1)
                 {
@@ -184,6 +217,9 @@ namespace Game.UI
                             : $"강화 {ModuleUpgrades.Roman(i)}";
                         e.Models.Add(new CodexModel(label, def.Prefab, $"Visual_Level{i + 1}"));
                     }
+                    int variants = visuals.VariantCount;
+                    var entry = e;
+                    e.ModelNote = i => i >= 0 && i < entry.Models.Count ? StageNote(def, i, i == variants - 1 ? max : i, entry.Models[i].Label) : null;
                 }
                 else e.Models.Add(new CodexModel("모델", def.Prefab));
                 entries.Add(e);
@@ -233,22 +269,44 @@ namespace Game.UI
                     Title = TaskForceEscortFormation.RoleName(role),
                     Tag = $"<color=#{ColorUtility.ToHtmlStringRGB(TaskForceEscortFormation.RoleColor(role))}>{code}</color>  ·  {TaskForceEscortFormation.RoleShort(role)}  ·  아군 수상함",
                     Accent = TaskForceEscortFormation.RoleColor(role),
+                    Roles = role switch
+                    {
+                        EscortRole.AirDefense => CodexRole.Air,
+                        EscortRole.AntiSubmarine => CodexRole.Sub,
+                        EscortRole.ElectronicWarfare => CodexRole.Air | CodexRole.Support,
+                        _ => CodexRole.Surface,
+                    },
                 };
                 var sb = new StringBuilder();
                 sb.AppendLine($"<color={Muted}>{TaskForceEscortFormation.RoleSummary(role)}.</color>").AppendLine();
                 Row(sb, "얻는 법", role == EscortRole.None
                     ? $"편대 배치 카드 — 1척 합류(최대 {TaskForceEscortFormation.MaxEscorts}척)"
                     : "고속정에 편대 강화 카드 → 역할 지정(T0), 다시 강화하면 T1~T3");
-                Row(sb, "함포(모든 함)", $"반경 {EscortDefense.GunRange:0} m · 피해 {EscortDefense.GunDamageFor(0):0.#}~{EscortDefense.GunDamageFor(maxTier):0.#} · {EscortDefense.GunInterval:0.0#}초 간격");
+                // 2026-10-11 호위함 실제 무장: 모델에 실린 무장이 각자 실제 탄·미사일을 쏜다
+                Row(sb, "함포(모든 함)", $"포탑마다 따로 — 주포·후방포·현측포 76mm 탄({EscortDefense.HeavyRange:0} m · {EscortDefense.HeavyInterval:0.0#}초), " +
+                                       $"기관총 기관포 탄({EscortDefense.LightRange:0} m · {EscortDefense.LightInterval:0.0#}초). 사격각 안의 가장 가까운 적");
                 string ability = role switch
                 {
-                    EscortRole.AirDefense => $"함대공 요격 반경 {EscortDefense.SamRange:0} m — 기함에 가장 가까운 적 미사일부터",
-                    EscortRole.AntiSubmarine => $"대잠 탐색 반경 {EscortDefense.AswRange:0} m — 잠항 중인 잠수함도 찾아 접촉 확정 + 경어뢰",
+                    EscortRole.AirDefense => $"VLS·함대공 발사기에서 함대공 미사일({EscortDefense.SamRange:0} m, 기함에 가장 급한 미사일부터) · CIWS 탄막({EscortDefense.CiwsRange:0} m, CIWS를 단 개량형)",
+                    EscortRole.AntiSubmarine => "대잠 헬기(잠수함 위에서 디핑 소나로 접촉 확정 → 폭뢰, 수상함엔 유도로켓 · 착함 뒤 18 − 3×단계 초 재출격) · 표적 쪽 현측 어뢰관 경어뢰 · T3 대잠 로켓",
                     EscortRole.ElectronicWarfare => $"근접 교란 반경 {EscortDefense.JamRange:0} m — 교란되지 않은 적 미사일 하나",
-                    EscortRole.SurfaceStrike => $"대함 타격 반경 {EscortDefense.StrikeRange:0} m — 드러난 수상 표적 중 가치가 가장 높은 것",
+                    EscortRole.SurfaceStrike => $"미사일 발사관마다 대함 미사일 한 발씩(0.25초 간격, {EscortDefense.StrikeRange:0} m) — 개량형일수록 발사관이 많다",
                     _ => null,
                 };
-                if (ability != null) Row(sb, "역할 능력", ability);
+                if (ability != null) Row(sb, "역할 무장", ability);
+                e.Ranges.Add(new CodexRange("76mm", 0f, EscortDefense.HeavyRange));
+                e.Ranges.Add(new CodexRange("기관총", 0f, EscortDefense.LightRange));
+                switch (role)
+                {
+                    case EscortRole.AirDefense: e.Ranges.Add(new CodexRange("함대공", 0f, EscortDefense.SamRange)); break;
+                    case EscortRole.AntiSubmarine: e.Ranges.Add(new CodexRange("헬기", 0f, EscortHelideck.SubRange)); break;
+                    case EscortRole.ElectronicWarfare: e.Ranges.Add(new CodexRange("교란", 0f, EscortDefense.JamRange)); break;
+                    case EscortRole.SurfaceStrike: e.Ranges.Add(new CodexRange("대함", 0f, EscortDefense.StrikeRange)); break;
+                }
+                var escortRole = role;
+                e.ModelNote = t => t < 0 ? null
+                    : $"<color={Good}><b>선택: T{t}</b></color>  {TaskForceEscortFormation.TierDescription(escortRole, t)} · 선체 {TaskForceEscortFormation.MaxHullFor(t):0}" +
+                      (t > 0 ? $" <color={Muted}>(T{t - 1} 대비 +{TaskForceEscortFormation.MaxHullFor(t) - TaskForceEscortFormation.MaxHullFor(t - 1):0})</color>" : "");
                 sb.AppendLine().AppendLine($"<color={Good}><b>개량 단계</b></color>");
                 int tiers = role == EscortRole.None ? 0 : maxTier;
                 for (int t = 0; t <= tiers; t++)
@@ -331,7 +389,9 @@ namespace Game.UI
                     Tag = $"{rank}  ·  {CategoryName(def)}  ·  {where}",
                     Accent = def.Rank == EnemyRank.Boss ? new Color(1f, 0.42f, 0.35f)
                         : def.Rank == EnemyRank.Elite ? new Color(0.95f, 0.64f, 0.23f) : new Color(0.85f, 0.9f, 0.92f),
+                    Roles = CounterRoles(def),
                 };
+                if (def.PreferredRange > 0f) e.Ranges.Add(new CodexRange("교전", 0f, def.PreferredRange));
                 var (about, counter) = Lore(def);
                 var sb = new StringBuilder();
                 sb.AppendLine($"<color={Muted}>{about}</color>").AppendLine();
@@ -353,6 +413,7 @@ namespace Game.UI
                 if (def.MaxAlive > 0) Row(sb, "동시 최대", $"{def.MaxAlive}척");
                 if (!string.IsNullOrEmpty(counter))
                     sb.AppendLine().AppendLine($"<color={Key}><b>대응</b></color>").AppendLine(counter);
+                CounterLinks(sb, def);
                 e.Body = sb.ToString().TrimEnd();
                 e.Models.Add(new CodexModel("모델", def.Prefab));
                 entries.Add(e);
@@ -376,6 +437,9 @@ namespace Game.UI
                 _ => "수상함",
             },
         };
+
+        /// <summary>적의 대응 글(보스 막대·결과 화면이 쓴다). 없으면 null.</summary>
+        public static string CounterTip(EnemyDefinition def) => def != null ? Lore(def).counter : null;
 
         /// <summary>적 행동 설명과 대응(수치는 데이터에서 따로 보여 주므로 여기엔 행동만 적는다).</summary>
         private static (string about, string counter) Lore(EnemyDefinition def) => def.Id switch

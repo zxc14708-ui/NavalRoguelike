@@ -320,8 +320,21 @@ namespace Game.Enemies
         public virtual void TakeDamage(in DamageInfo info)
         {
             if (!IsAlive) return;
-            _hp -= info.Amount;
+            float before = _hp;
+            _hp -= info.Amount * (Time.time < _markedUntil ? _markMultiplier : 1f);
+            // 결과 분석: 실제로 깎은 체력과 격침(마지막 한 방)을 무장별로(점검 O02)
+            if (Factions.GrantsReward(this)) RunReport.RecordDamage(info.Tag, info.Source, before - Mathf.Max(0f, _hp), _hp <= 0f);
             if (_hp <= 0f) Die();
+        }
+
+        // --- 표적 지시(초계함 광역 탐색, 2026-10-11): 잠깐 받는 피해가 늘어난다
+        private float _markedUntil = -1f, _markMultiplier = 1f;
+        public bool IsMarked => Time.time < _markedUntil;
+        public float MarkedSecondsLeft => Mathf.Max(0f, _markedUntil - Time.time);
+        public void Mark(float seconds, float damageMultiplier)
+        {
+            _markedUntil = Mathf.Max(_markedUntil, Time.time + seconds);
+            _markMultiplier = Mathf.Max(1f, damageMultiplier);
         }
 
         /// <summary>선체를 고친다(수리 지원정). 최대 체력을 넘지 않고, 실제로 고친 양을 돌려준다.</summary>
