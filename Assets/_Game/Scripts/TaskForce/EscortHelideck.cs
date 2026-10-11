@@ -7,7 +7,7 @@ using Game.Enemies;
 namespace Game.TaskForce
 {
     /// <summary>
-    /// 대잠 호위함의 헬기 갑판(2026-10-11 호위함 실제 무장). 함선 헬기갑판 블록과 같은 대잠 헬기(HEL_Asw)를 띄운다.
+    /// 대잠 호위함의 헬기 갑판(2026-10-11 호위함 실제 무장). 개량 단계에 맞는 대잠 헬기(Codex v19 HEL_EscortAsw_T1~T3, 없으면 HEL_Asw)를 띄운다.
     ///   - 출격: 헬기가 갑판에 있고 재출격 대기가 끝났으면, 호위함 50m 안의 잠수함(드러났거나 접촉 확정) → 없으면 35m 안의 수상함,
     ///     둘 다 없어도 55m 안에 잠수함이 있으면 그 마지막 위치로 수색 비행.
     ///   - 헬기는 잠수함 위를 돌며 접촉을 확정(디핑 소나)하고 폭뢰, 수상함에는 유도로켓. 할 일이 없으면 갑판으로 돌아온다.
@@ -48,7 +48,8 @@ namespace Game.TaskForce
             var gm = GameManager.Instance;
             if (gm == null || gm.State != GameState.Playing) return;
             var armory = EscortArmory.Instance;
-            if (armory == null || armory.helicopter == null) return;
+            var heliPrefab = armory != null ? armory.HelicopterFor(_tier != null ? _tier() : 0) : null;
+            if (heliPrefab == null) return;
 
             var target = FindTarget();
             Vector3 cue = default;
@@ -57,7 +58,7 @@ namespace Game.TaskForce
 
             var spot = _spot != null ? _spot() : null;
             if (spot == null) spot = transform;
-            var go = PoolManager.Instance?.Spawn(armory.helicopter, spot.position + Vector3.up * 0.4f, spot.rotation);
+            var go = PoolManager.Instance?.Spawn(heliPrefab, spot.position + Vector3.up * 0.4f, spot.rotation);
             if (go == null || !go.TryGetComponent<AswHelicopter>(out var heli)) return;
             heli.Sortie(spot, target, this, target != null ? target.Transform.position : cue);
             _airborne = true;

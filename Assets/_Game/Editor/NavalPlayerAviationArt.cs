@@ -37,6 +37,27 @@ namespace Game.EditorTools
         private static readonly string[] DeckFiles = { "MOD_HeliDeck_T1", "MOD_HeliDeck_T2", "MOD_HeliDeck_T3" };
         private static readonly string[] HeliFiles = { "HEL_PlayerAsw_T1", "HEL_PlayerAsw_T2", "HEL_PlayerAsw_T3" };
         private static readonly string[] NobongFiles = { "MOD_Nobong_T1", "MOD_Nobong_T2", "MOD_Nobong_T3" };
+        private static readonly string[] EscortHeliFiles = { "HEL_EscortAsw_T1", "HEL_EscortAsw_T2", "HEL_EscortAsw_T3" };
+
+        /// <summary>
+        /// 호위함 시안 적용(2026-10-12): 미사일 호위함 v18(ESC_STK_T1~T3, Art/Models/TaskForce에 덮어씀) 프리팹을 다시 만들고,
+        /// 대잠 호위함 헬기 v19(HEL_EscortAsw_T1~T3)를 출격 헬기 프리팹으로 만들어 EscortArmory.helicoptersByTier에 연결한다.
+        /// 배치 실행: -executeMethod Game.EditorTools.NavalPlayerAviationArt.RunEscort
+        /// </summary>
+        [MenuItem("Naval/Art/Apply Escort STK v18 · Escort Helicopters v19", priority = 44)]
+        public static void RunEscort()
+        {
+            NavalEscortArtBuilder.BuildAll();
+            foreach (var f in EscortHeliFiles) ImportAndRemap($"{AviationDir}/{f}.fbx");
+            AssetDatabase.Refresh();
+            var helis = BuildHelicopters(MeasureScale(), EscortHeliFiles);
+            var armory = AssetDatabase.LoadAssetAtPath<Game.TaskForce.EscortArmory>(Root + "/Resources/TaskForce/EscortArmory.asset");
+            if (helis == null || armory == null) { Debug.LogError("[Player Aviation] 호위함 헬기 또는 EscortArmory가 없습니다."); return; }
+            armory.helicoptersByTier = helis;
+            EditorUtility.SetDirty(armory);
+            AssetDatabase.SaveAssets();
+            Debug.Log("[Player Aviation] 미사일 호위함 v18 · 호위함 헬기 T1~T3 적용 완료.");
+        }
 
         [MenuItem("Naval/Art/Apply Player Aviation v24 · Nobong v22", priority = 43)]
         public static void Run()
@@ -47,13 +68,31 @@ namespace Game.EditorTools
             AssetDatabase.Refresh();
 
             float scale = MeasureScale();
-            var helis = BuildHelicopters(scale);
+            var helis = BuildHelicopters(scale, HeliFiles);
             if (helis != null) ApplyHeliDeck(helis, scale);
             EnsureHeliDeckProfile();
             ApplyNobongV22();
             AssetDatabase.SaveAssets();
             BakeIcons("mod_helideck", "mod_nobong");
             Debug.Log($"[Player Aviation] 헬기데크·헬기 T1~T3·노봉 v22 적용 완료(크기 배율 {scale:0.###}).");
+        }
+
+        /// <summary>
+        /// 프로토타입 셋업·아트 새로고침(NavalPrototypeSetup)이 모듈 프리팹을 다시 만든 뒤 부른다(2026-10-12 — 셋업이 헬기데크를
+        /// 예전 단일 외형으로 되돌린 일이 있었다). 이미 만든 출격 헬기 프리팹으로 데크 외형·노봉 v22만 다시 넣고 아이콘을 굽는다.
+        /// </summary>
+        public static void ReapplyAfterSetup()
+        {
+            var helis = new GameObject[3];
+            for (int i = 0; i < 3; i++)
+            {
+                helis[i] = AssetDatabase.LoadAssetAtPath<GameObject>($"{HeliPrefabDir}/{HeliFiles[i]}.prefab");
+                if (helis[i] == null) { Debug.LogWarning("[Player Aviation] 출격 헬기 프리팹이 없어 헬기데크 외형을 다시 넣지 못했습니다(Naval/Art/Apply Player Aviation을 실행)."); return; }
+            }
+            ApplyHeliDeck(helis, MeasureScale());
+            ApplyNobongV22();
+            AssetDatabase.SaveAssets();
+            BakeIcons("mod_helideck", "mod_nobong");
         }
 
         // ------------------------------------------------------------ 임포트
@@ -206,21 +245,21 @@ namespace Game.EditorTools
 
         // ------------------------------------------------------------ 헬기
 
-        private static GameObject[] BuildHelicopters(float scale)
+        private static GameObject[] BuildHelicopters(float scale, string[] files)
         {
             var baseHeli = AssetDatabase.LoadAssetAtPath<GameObject>(BaseHeliPrefab);
             if (baseHeli == null) { Debug.LogError("[Player Aviation] HEL_Asw 프리팹이 없습니다."); return null; }
             var result = new GameObject[3];
             for (int i = 0; i < 3; i++)
             {
-                var model = AssetDatabase.LoadAssetAtPath<GameObject>($"{AviationDir}/{HeliFiles[i]}.fbx");
-                if (model == null) { Debug.LogError($"[Player Aviation] {HeliFiles[i]}.fbx 없음"); return null; }
-                string path = $"{HeliPrefabDir}/{HeliFiles[i]}.prefab";
+                var model = AssetDatabase.LoadAssetAtPath<GameObject>($"{AviationDir}/{files[i]}.fbx");
+                if (model == null) { Debug.LogError($"[Player Aviation] {files[i]}.fbx 없음"); return null; }
+                string path = $"{HeliPrefabDir}/{files[i]}.prefab";
                 if (AssetDatabase.LoadAssetAtPath<GameObject>(path) == null) AssetDatabase.CopyAsset(BaseHeliPrefab, path);
                 var root = PrefabUtility.LoadPrefabContents(path);
                 try
                 {
-                    root.name = HeliFiles[i];
+                    root.name = files[i];
                     for (int c = root.transform.childCount - 1; c >= 0; c--) Object.DestroyImmediate(root.transform.GetChild(c).gameObject);
                     var inst = Mount(model, root.transform, "ModelPivot", scale, "Rotor", null, "ChinEOHousing", "Rotor", false);
                     CenterVertically(root.transform, inst);

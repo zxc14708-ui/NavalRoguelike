@@ -18,6 +18,17 @@ namespace Game.TaskForce
         [Tooltip("경어뢰(어뢰관·대잠 로켓 탄두)")] public GameObject aswTorpedo;
         [Tooltip("대잠 로켓(대잠 로켓 발사기, 탄두 = 경어뢰)")] public GameObject aswRocket;
         [Tooltip("대잠 헬기(헬기 갑판)")] public GameObject helicopter;
+        [Tooltip("개량 단계별 대잠 헬기(0 = T1: 호위함 T0·T1, 1 = T2, 2 = T3). Codex v19 — 비어 있으면 helicopter")]
+        public GameObject[] helicoptersByTier;
+
+        /// <summary>호위함 개량 단계(0~3)에 맞는 헬기. T0·T1 → 헬기 T1, T2 → T2, T3 → T3.</summary>
+        public GameObject HelicopterFor(int escortTier)
+        {
+            if (helicoptersByTier != null && helicoptersByTier.Length > 0)
+                for (int i = Mathf.Clamp(escortTier - 1, 0, helicoptersByTier.Length - 1); i >= 0; i--)
+                    if (helicoptersByTier[i] != null) return helicoptersByTier[i];
+            return helicopter;
+        }
 
         private static EscortArmory s_instance;
         private static bool s_loaded;

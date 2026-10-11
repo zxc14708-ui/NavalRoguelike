@@ -158,6 +158,31 @@ namespace Game.Dev
             }
             else Fail("노봉 설치 실패");
 
+            // ---- 4) 호위함 시안(2026-10-12): 대잠 헬기 T1~T3(v19) 단계 연결, 미사일 호위함 v18
+            var armory = Game.TaskForce.EscortArmory.Instance;
+            string Heli(int tier) => armory != null && armory.HelicopterFor(tier) != null ? armory.HelicopterFor(tier).name : "-";
+            bool tiers = Heli(0) == "HEL_EscortAsw_T1" && Heli(1) == "HEL_EscortAsw_T1" && Heli(2) == "HEL_EscortAsw_T2" && Heli(3) == "HEL_EscortAsw_T3";
+            _report.AppendLine($"- 호위함 헬기: T0 {Heli(0)} · T1 {Heli(1)} · T2 {Heli(2)} · T3 {Heli(3)} {Yes(tiers)}");
+            if (!tiers) Fail("대잠 호위함 헬기가 개량 단계별 T1~T3에 연결되지 않음");
+            var heliT3 = armory != null ? armory.HelicopterFor(3) : null;
+            if (heliT3 != null)
+            {
+                var h = Object.Instantiate(heliT3, ship.transform.position + ship.transform.forward * 14f + Vector3.up * 6f, ship.transform.rotation);
+                var hc = h.GetComponent<AswHelicopter>();
+                bool hUp = hc != null && Vector3.Dot(hc.RotorAxisWorld, h.transform.up) > 0.95f;
+                var hn = FindChildDeep(h.transform, "ChinEOHousing");
+                var hr = Get<Transform>(hc, "rotor");
+                bool hFront = hn != null && hr != null && Vector3.Dot(hn.position - hr.position, h.transform.forward) > 0.05f;
+                _report.AppendLine($"  - 호위함 헬기 T3 모델: 로터 축 위 {Yes(hUp)} · 기수 앞 {Yes(hFront)}");
+                if (!hUp || !hFront) Fail("호위함 헬기 T3 모델 방향이 틀림");
+                yield return CloseShot("aviation_escort_heli_T3", h.transform, 5f);
+                Object.Destroy(h);
+            }
+            var stk = Resources.Load<GameObject>("TaskForce/Escorts/ESC_STK_T3");
+            bool v18 = stk != null && FindChildDeep(stk.transform, "BroadsideGun_1Muzzle_02") == null && FindChildDeep(stk.transform, "PrimaryGunPivot") != null;
+            _report.AppendLine($"- 미사일 호위함 T3 v18(현측 단포, 깔끔한 소켓 이름) {Yes(v18)}");
+            if (!v18) Fail("미사일 호위함이 v18 모델이 아님");
+
             foreach (var b in off) if (b != null) b.enabled = true;
         }
 
