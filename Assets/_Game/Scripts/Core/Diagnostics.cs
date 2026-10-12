@@ -54,6 +54,7 @@ namespace Game.Core
             var sb = new StringBuilder();
             sb.AppendLine($"# NavalRoguelike 진단 — {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
             sb.AppendLine($"버전: {Version} · Unity {Application.unityVersion} · {Application.platform}");
+            sb.AppendLine($"출처: {BuildStamp.Summary}");   // 커밋·미커밋 변경(O03)
             sb.AppendLine($"기기: {SystemInfo.operatingSystem} · CPU {SystemInfo.processorType} ({SystemInfo.processorCount}) · RAM {SystemInfo.systemMemorySize} MB");
             sb.AppendLine($"그래픽: {SystemInfo.graphicsDeviceName} ({SystemInfo.graphicsDeviceType}, {SystemInfo.graphicsMemorySize} MB)");
             sb.AppendLine($"화면: {Screen.width}×{Screen.height} {Screen.fullScreenMode} · 주사율 {Screen.currentResolution.refreshRateRatio.value:0} Hz · 품질 {QualitySettings.names[QualitySettings.GetQualityLevel()]}");

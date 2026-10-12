@@ -482,6 +482,13 @@ ECS 미사용, 외부 유료 플러그인 미사용.
 - 남은 경고 7건: 옛 블록 mod_armor·mod_generator(스크립트가 지워진 프리팹, 게임에서 안 씀)와 옛 XP_Pickup 프리팹 — 빌드에 안 들어가서 그대로 둠.
 - 일부러 깨서 확인: Resources의 전술 리그 하나를 치우면 오류 1건으로 검증 빌드가 멈추고, CIWS 강화 설명을 "+25%"로 바꾸면 "turnSpeedMultiplier = 1.2" 경고.
 
+### QA 결과표 (2026-10-12 점검 O03, `QA_RESULTS.md`)
+검증 결과가 어느 코드에서 나온 것인지 남기고, 지금 코드로 다시 확인하지 않은 예전 결과를 구별한다.
+- **빌드 출처**: 빌드가 끝나면 `BuildStampWriter`가 실행 파일 옆에 `build_stamp.txt`(커밋·브랜치·미커밋 파일 수·빌드 시각·Unity·빌드 직전 데이터 동기화 결과)를 쓰고, 게임은 `Core/BuildStamp`로 읽는다(에디터에서는 git을 직접 읽음). 검증용 미러처럼 git 저장소가 아닌 곳에서 빌드할 때는 `-gitRepo <원본 프로젝트 폴더>`. 진단 내보내기에도 `출처:` 줄로 들어간다.
+- **보고서 머리**(`report.md`): 검사 이름(켜진 `-xxxOnly`, 없으면 전체) · 빌드 출처 · 빌드 직전 데이터 동기화 결과 · 환경(OS·GPU·해상도·Unity) · 시작 런 시드 · 소요 시간.
+- **결과표**: 검증 실행에 `-qaTable <파일>`을 붙이면 끝날 때 그 파일을 고쳐 쓴다(`CombatVerificationRunner.Qa`). 검사별 최신 결과 한 줄씩(결과·실행 시각·커밋·미커밋 수·시드·소요·환경·첫 실패) + 최근 40회 기록. **기준** 칸은 가장 최근 실행과 같은 커밋이면 `최신`, 아니면 `예전 커밋`. 프로젝트 루트의 `QA_RESULTS.md`를 쓴다(손으로 고치지 않는다).
+- 실행 예: `Unity … -executeMethod Game.EditorTools.CombatVerification.BuildVerificationPlayer -buildOut <폴더>/NavalRoguelike.exe -gitRepo <프로젝트>` → `NavalRoguelike.exe -batchmode -combatVerify <출력> -seaOnly -qaTable <프로젝트>/QA_RESULTS.md`.
+
 ### 하단 HUD 배치 (`HUDView`, 화면 아래 가운데 한 덩어리, 폭 798)
 ```
 [ Lv 3 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━  12 / 17 XP ]   레벨 막대(26)
@@ -709,7 +716,8 @@ World/        Islands, IslandField(+.Banks 수로 기슭), IslandBuilder(+.Art, 
              NavalUpgradeBuilder, NavalAudioBuilder, NavalEditorUtil(공용 헬퍼·레이어)
 아트         ArtModelPostprocessor, NavalEnvironmentArtBuilder, NavalEscortArtBuilder, NavalModuleVariantArtBuilder,
              EscortNavalGreyApply, NavalIconBaker, NavalBaseMenuShipRefresh(시작 화면 항구의 끊긴 정박 함정만 다시 옮김)
-검증         CombatVerification(플레이어 빌드 + 자동 검증 실행), TaskForceVerification, DataSyncCheck(빌드 전 데이터 동기화 검사)
+검증         CombatVerification(플레이어 빌드 + 자동 검증 실행), TaskForceVerification, DataSyncCheck(빌드 전 데이터 동기화 검사),
+             BuildStampWriter(빌드 옆 build_stamp.txt: 커밋·미커밋 수)
 프로젝트     BuildSceneGuard(빌드 씬 목록 첫 칸을 Prototype_Main으로 유지)
 ```
 
@@ -784,6 +792,7 @@ World/        Islands, IslandField(+.Banks 수로 기슭), IslandBuilder(+.Art, 
 
 | 날짜 | 변경 | 이유 |
 |---|---|---|
+| 2026-10-12 | **QA 결과표(O03)**: 빌드 출처 파일(`build_stamp.txt`: 커밋·미커밋 수·빌드 시각·데이터 동기화 결과), 검증 보고서 머리(검사 이름·출처·환경·시드·소요), `-qaTable`로 `QA_RESULTS.md`의 검사별 최신 결과·최근 40회 기록 갱신(예전 커밋 결과 표시), 진단 파일에 출처 줄 | 점검표 O03(P0): 현재 빌드/커밋·시드·환경·시나리오별 최신 결과, 예전 결과와 구별 |
 | 2026-10-12 | **데이터 동기화 검사(O05)**: 빌드 직전·검증 빌드 직전·메뉴·배치로 빠진 스크립트·끊긴 참조·블록/적 데이터·코드가 읽는 Resources 경로·강화 데이터/외형·씬 필수 구성을 보고 오류면 빌드 중단, 강화 설명 수치와 실제 배율 비교 등은 경고. 첫 실행에서 잡은 시작 화면 항구 정박 함정 3척의 끊긴 메시를 `Refresh Harbor Menu Ships`로 복구. Codex 지적 3건(이어하기 블록 복원 순서·결과 화면 입력 유예·일시정지 조작 안내 갱신) | 점검표 다음 순서(P0), "소스 수정 후 에셋 미갱신을 빌드 전에 감지" |
 | 2026-10-11 | **해역 차별화(K04) · Codex 시안 적용**: 스테이지별 군도 → 좁은 수로(진짜 양안 기슭 + 보이지 않는 경계) → 개방해역, 해역별 섬·레이더·적 구성·정비 카드·물색/안개, 고정 적 해안포대, 해역 안내 카드·항로 선택 안내·사전 용어. 플레이어 헬기데크 3단계 강화(새 강화 데이터, 단계별 데크·헬기 T1~T3, 출격 간격·피해·수색 반경·속력·내구), 노봉 v22 모델·좌우 포구. 검사 `-seaOnly` · `-aviationOnly` | 사용자 결정: 해역 1(스테이지 고정) · 2(전부) · 3(진짜 양안 + 경계) · 4(고정 적 추가) · 5(배율 방식), Codex 시안 확인·적용 요청 |
 | 2026-10-11 | **점검 D 묶음 — 배포 기본·소리·회차 밖 목표·선택 임무**: D0 정리(편대 순간이동 조건·자율 전환 시작 위치, 성장 검사의 함교 기관총 탄 제외, 흐름 문서 3스테이지, 오른쪽 콘솔 접기), 런 시드·버전·진단 내보내기·크레딧(O07), 합성 메뉴·알림음과 음량 채널·경보 중 효과음 줄임(O06), 출격 기록·도전 과제 15개·칭호·고난도 출항 해금(K06), 임무 항로 — 보급선 호위(K03). 검사 `-bundleDOnly`. 구름 그림자(`_LIGHT_COOKIES`)는 플레이어 빌드에서 10-05 커밋부터 켜지지 않음 — 에디터 확인 필요 | Codex 점검 문서 D 묶음 |

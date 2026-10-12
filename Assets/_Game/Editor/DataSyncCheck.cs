@@ -64,6 +64,9 @@ namespace Game.EditorTools
             }
         }
 
+        /// <summary>마지막 검사 요약("오류 0 · 경고 7"). 빌드 출처 파일(BuildStampWriter)에 남긴다. 검사를 안 했으면 빈 문자열.</summary>
+        public static string LastSummary { get; private set; } = "";
+
         public static string ReportPath => Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Logs", "DataSync.md"));
 
         // ------------------------------------------------------------ 진입점
@@ -144,6 +147,7 @@ namespace Game.EditorTools
             CheckScene(r, openScene);
             r.Notes.Add($"블록 {modules.Count} · 적 {enemies.Count} · 프리팹 {prefabs} · 빌드에 들어가는 에셋 {build.Count} · 씬 {Path.GetFileName(MainScene)}");
             r.Notes.Add("빌드에 안 들어가는 에셋(씬·Resources 어디서도 안 쓰는 옛 프리팹 등)의 문제는 경고로만 적는다");
+            LastSummary = $"오류 {r.Errors.Count} · 경고 {r.Warnings.Count}";
             return r;
         }
 

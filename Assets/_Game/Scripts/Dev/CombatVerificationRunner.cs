@@ -128,8 +128,10 @@ namespace Game.Dev
             Directory.CreateDirectory(OutputDirectory);
             _report.AppendLine("# 전투 검증 보고서");
             _report.AppendLine($"- 실행: {System.DateTime.Now:yyyy-MM-dd HH:mm:ss}, 시간 배속 {TimeScale}");
+            WriteReportHeader();   // 검사 이름·빌드 출처·환경(O03)
 
             yield return new WaitForSecondsRealtime(1.5f);   // StageDirector.Start·ShipInitializer 대기
+            WriteSeed();
 
             if (BundleCOnly)
             {
@@ -502,6 +504,7 @@ namespace Game.Dev
         private void Finish()
         {
             Time.timeScale = 1f;
+            WriteQaFooterAndTable();   // 소요 시간 · QA 결과표(O03)
             _report.AppendLine(_failures == 0 ? "\n## 결과: 규칙 검사 모두 통과" : $"\n## 결과: 규칙 검사 실패 {_failures}건");
             File.WriteAllText(Path.Combine(OutputDirectory, "report.md"), _report.ToString(), new UTF8Encoding(false));
             Debug.Log($"[CombatVerification] 완료 → {OutputDirectory}\n{_report}");
@@ -964,6 +967,7 @@ namespace Game.Dev
         private void Fail(string message)
         {
             _failures++;
+            NoteFailure(message);
             _report.AppendLine($"- **실패**: {message}");
         }
 
