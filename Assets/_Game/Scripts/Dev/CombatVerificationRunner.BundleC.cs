@@ -161,7 +161,11 @@ namespace Game.Dev
                 bool fromBackup = RunSave.TryLoad(out var fallback) && fallback != null;
                 string problem = RunSave.LastProblem;
                 RunSave.ClearProblem();
-                File.WriteAllText(RunSave.FilePath, good);
+                // 정비에서 집었다 놓으면 저장 순서가 섞인다: 블록 순서를 거꾸로 저장해도 전부 돌아와야 한다(Codex 지적 P1)
+                var shuffled = JsonUtility.FromJson<RunSave.Data>(good);
+                shuffled.modules.Reverse();
+                File.WriteAllText(RunSave.FilePath, JsonUtility.ToJson(shuffled));
+                _report.AppendLine($"- 저장 블록 순서 뒤집음: 첫 블록 {shuffled.modules[0].id} · 마지막 {shuffled.modules[shuffled.modules.Count - 1].id}");
                 _report.AppendLine($"- 본 파일 손상 → 백업으로 읽음 {Yes(fromBackup)} · 안내 \"{problem}\"");
                 if (!fromBackup || string.IsNullOrEmpty(problem)) Fail("손상된 저장을 백업으로 복구하지 못함(O01)");
 
@@ -183,6 +187,7 @@ namespace Game.Dev
                 var got = Snapshot(ship);
                 _report.AppendLine($"- 이어하기 후: {got} · 상태 {gm.State} · 스테이지 {director.StageNumber} · 위험 항로 {Yes(director.DangerRoute)} · 건너뛴 블록 {RunSave.LastSkippedModules}");
                 if (got != want) Fail("이어하기한 함선·성장·편대·교리·레벨이 저장과 다름(O01)");
+                if (RunSave.LastSkippedModules != 0) Fail("저장 순서가 섞이면 이어하기에서 블록이 빠짐(Codex 지적 P1)");
                 if (gm.State != GameState.Playing || director.StageNumber != 2 || !director.DangerRoute) Fail("이어하기가 저장된 스테이지·항로로 시작하지 않음(O01)");
                 yield return ScreenShot("bundlec_resumed");
 
@@ -224,6 +229,9 @@ namespace Game.Dev
                     ship.TakeDamage(new DamageInfo(400f, ship.transform.position + Vector3.up, Vector3.forward, DamageSource.Gun));
                 yield return null;
                 var result = Object.FindFirstObjectByType<ResultScreenUI>();
+                bool blockedAtStart = result.InputBlocked;
+                _report.AppendLine($"- 결과 화면이 막 뜬 동안 R·H·ENTER 입력 막음: {Yes(blockedAtStart)}");
+                if (!blockedAtStart) Fail("격침 순간 누른 키가 결과 화면 단축키로 처리될 수 있음(Codex 지적 P2)");
                 string contribution = Strip(result.ContributionText).Replace("\n", " / ");
                 string overview = Strip(result.OverviewText).Replace("\n", " / ");
                 _report.AppendLine($"- 결과 화면 무장 기여: \"{contribution}\"");

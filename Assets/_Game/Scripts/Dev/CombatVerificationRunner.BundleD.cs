@@ -47,7 +47,16 @@ namespace Game.Dev
                 _report.AppendLine($"- 설정 › 정보: 크레딧 파일 {Yes(credits)}");
                 if (!credits) Fail("크레딧 파일이 없음(O07)");
                 yield return ScreenShot("bundled_about");
+                // 설정에서 키를 바꾸고 닫으면 일시정지 조작 안내도 새 키로(Codex 지적 P2)
+                var oldThrottle = GameSettings.Binding(NavalControl.ThrottleUp);
+                GameSettings.TryBind(NavalControl.ThrottleUp, UnityEngine.InputSystem.Key.F9, out _);
                 Call(hud, "CloseSettings");
+                yield return null;
+                yield return null;
+                bool guideUpdated = hud.PauseGuideText.Contains("F9");
+                _report.AppendLine($"- 키 변경 뒤 일시정지 조작 안내 갱신: {Yes(guideUpdated)}");
+                if (!guideUpdated) Fail("키를 바꿔도 일시정지 조작 안내가 이전 키를 보여 줌");
+                GameSettings.TryBind(NavalControl.ThrottleUp, oldThrottle, out _);
                 hud.ResumeFromPause();
                 yield return null;
             }

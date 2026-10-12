@@ -209,15 +209,32 @@ namespace Game.Core
                 if (m.Runtime != null) m.Runtime.gameObject.SetActive(false);
                 factory.Uninstall(m);
             }
+            // 저장 순서는 정비에서 집었다 놓은 순서라 연결부보다 바깥 블록이 앞설 수 있다.
+            // 한 바퀴에 붙일 수 있는 것만 붙이고, 더 붙는 게 없을 때까지 남은 것을 다시 돈다.
             LastSkippedModules = 0;
+            var pending = new List<(ModuleData md, ModuleDefinition def)>();
             foreach (var md in d.modules)
             {
-                if (!defs.TryGetValue(md.id, out var def)) { LastSkippedModules++; Debug.LogWarning($"[RunSave] 블록 {md.id} 없음 — 건너뜀"); continue; }
-                var inst = factory.Install(def, new GridCoord(md.x, md.z), md.rot);
-                if (inst == null) { LastSkippedModules++; continue; }
-                for (int i = 0; i < md.upgrade; i++) if (!inst.ApplyUpgrade()) break;
-                if (md.raised) factory.SetRaised(inst, true);
+                if (defs.TryGetValue(md.id, out var def)) pending.Add((md, def));
+                else { LastSkippedModules++; Debug.LogWarning($"[RunSave] 블록 {md.id} 없음 — 건너뜀"); }
             }
+            bool progress = true;
+            while (pending.Count > 0 && progress)
+            {
+                progress = false;
+                for (int p = 0; p < pending.Count; p++)
+                {
+                    var (md, def) = pending[p];
+                    if (!grid.CanPlace(def, new GridCoord(md.x, md.z), md.rot, out _)) continue;
+                    var inst = factory.Install(def, new GridCoord(md.x, md.z), md.rot);
+                    if (inst == null) continue;
+                    for (int i = 0; i < md.upgrade; i++) if (!inst.ApplyUpgrade()) break;
+                    if (md.raised) factory.SetRaised(inst, true);
+                    pending.RemoveAt(p--);
+                    progress = true;
+                }
+            }
+            foreach (var (md, _) in pending) { LastSkippedModules++; Debug.LogWarning($"[RunSave] 블록 {md.id} ({md.x},{md.z}) 놓을 수 없음 — 건너뜀"); }
             ship.Systems?.Recalculate();
 
             // 성장 · 교리 · 다시 뽑기 · 레벨

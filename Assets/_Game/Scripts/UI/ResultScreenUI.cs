@@ -27,6 +27,10 @@ namespace Game.UI
         private bool _built;
         private TMP_Text _contribution, _overview, _footer;
         private Game.Data.StartingShipConcept _concept;
+        private float _inputReadyAt;
+
+        /// <summary>격침 순간 누르던 R(응급수리)·H(헬기) 입력이 결과 화면 단축키로 새지 않게 잠시 막는 시간.</summary>
+        private const float InputGraceSeconds = 0.6f;
 
         private void OnEnable() => GameEvents.StateChanged += OnStateChanged;
         private void OnDisable() => GameEvents.StateChanged -= OnStateChanged;
@@ -38,11 +42,15 @@ namespace Game.UI
 
         public bool IsShown => root != null && root.activeSelf;
 
+        /// <summary>검증용: 결과 화면이 막 떠서 키 입력을 아직 받지 않는 중인가.</summary>
+        public bool InputBlocked => IsShown && Time.unscaledTime < _inputReadyAt;
+
         private void OnStateChanged(GameState state)
         {
             bool show = state == GameState.Victory || state == GameState.GameOver;
             if (root != null) root.SetActive(show);
             if (!show) return;
+            _inputReadyAt = Time.unscaledTime + InputGraceSeconds;
 
             var init = FindFirstObjectByType<Game.Ship.ShipInitializer>();
             _concept = init != null ? init.SelectedConcept : null;
@@ -120,6 +128,7 @@ namespace Game.UI
         private void Update()
         {
             if (!IsShown || RunRestart.InProgress || Keyboard.current == null) return;
+            if (Time.unscaledTime < _inputReadyAt) return;
             var kb = Keyboard.current;
             if (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame || kb.rKey.wasPressedThisFrame) Retry();
             else if (kb.hKey.wasPressedThisFrame) RunRestart.ReturnToHarbor();

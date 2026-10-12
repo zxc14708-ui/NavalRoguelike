@@ -21,6 +21,7 @@ namespace Game.UI
         private GameObject _pauseRoot;
         private TMP_Text _pauseInfo;
         private GameObject _pauseGuide;
+        private TMP_Text _pauseGuideBody;
         private Button _pendingConfirm;
         private string _pendingConfirmLabel;
         private bool _overlayOpenLastFrame;
@@ -41,6 +42,7 @@ namespace Game.UI
             // 설정·사전이 이번 프레임이나 바로 전 프레임에 열려 있었으면 ESC는 그 화면 몫(닫는 순서가 컴포넌트마다 달라서)
             bool sub = SubOverlayOpen, subBefore = _overlayOpenLastFrame;
             _overlayOpenLastFrame = sub;
+            if (subBefore && !sub && IsPauseMenuOpen) RefreshPauseGuide();   // 설정에서 키를 바꾸고 돌아왔을 수 있다
             var kb = Keyboard.current;
             if (kb == null || !kb.escapeKey.wasPressedThisFrame || sub || subBefore) return;
             if (IsPauseMenuOpen) ResumeFromPause();
@@ -59,6 +61,7 @@ namespace Game.UI
             _pauseRoot.SetActive(true);
             ClearPendingConfirm();
             RefreshPauseInfo();
+            RefreshPauseGuide();
             AudioListener.pause = true;
             return true;
         }
@@ -135,15 +138,26 @@ namespace Game.UI
             _pauseGuide = guide.gameObject;
             Panel(guide, "Top signal", Vector2.zero, new Vector2(0, 636), new Vector2(420, 4), ConsoleIdle);
             Label(guide, "Header", "조작 안내  /  CONTROLS", new Vector2(24, 590), new Vector2(380, 30), 19, ConsoleText);
+            _pauseGuideBody = Label(guide, "Bindings", "", new Vector2(24, 76), new Vector2(380, 500), 17, Color.white);
+            _pauseGuideBody.alignment = TextAlignmentOptions.TopLeft;
+            _pauseGuideBody.lineSpacing = 6f;
+            Label(guide, "Hint", "키는 설정 › 조작키에서 바꿀 수 있습니다.", new Vector2(24, 22), new Vector2(380, 26), 14, ConsoleText);
+            RefreshPauseGuide();
+        }
+
+        /// <summary>조작 안내를 지금 키 배치로 다시 쓴다(일시정지를 열 때·설정을 닫고 돌아올 때).</summary>
+        private void RefreshPauseGuide()
+        {
+            if (_pauseGuideBody == null) return;
             var sb = new System.Text.StringBuilder();
             foreach (var (action, title) in ControlTitles)
                 sb.Append(title).Append("<pos=66%><color=#A8FFC0>").Append(GameSettings.BindingLabel(action)).Append("</color>\n");
             sb.Append("일시정지 · 화면 닫기<pos=66%><color=#A8FFC0>ESC</color>");
-            var body = Label(guide, "Bindings", sb.ToString(), new Vector2(24, 76), new Vector2(380, 500), 17, Color.white);
-            body.alignment = TextAlignmentOptions.TopLeft;
-            body.lineSpacing = 6f;
-            Label(guide, "Hint", "키는 설정 › 조작키에서 바꿀 수 있습니다.", new Vector2(24, 22), new Vector2(380, 26), 14, ConsoleText);
+            _pauseGuideBody.text = sb.ToString();
         }
+
+        /// <summary>검증용: 일시정지 조작 안내 본문.</summary>
+        public string PauseGuideText => _pauseGuideBody != null ? _pauseGuideBody.text : "";
 
         private Button PauseButton(Transform parent, string title, float y, Color color) =>
             MenuButton(parent, title, new Vector2(30, y), new Vector2(500, 52), color, 21);
