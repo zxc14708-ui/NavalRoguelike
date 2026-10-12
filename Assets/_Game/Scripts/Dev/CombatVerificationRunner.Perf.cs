@@ -207,11 +207,15 @@ namespace Game.Dev
 
             // 1. 항구 시작 화면(출항 전)
             yield return new WaitForSecondsRealtime(2f);
+            var harborMenu = Game.UI.NavalBaseMenu.Active;
+            if (harborMenu != null)
+                _report.AppendLine($"- 항구 시작 화면: 가린 전투 카메라 {harborMenu.MutedCameraCount}대 · 그림자를 끈 작은 물체 {harborMenu.SmallCastersOff}개");
             yield return Measure("항구 시작 화면", 15f);
 
             // 2. 일반 전투: 실제 스테이지 진행, 함선은 죽지 않게
             LaunchFromStartScreen();
             yield return new WaitForSecondsRealtime(2f);
+            if (Camera.main == null || Camera.main.cullingMask == 0) Fail("출항 뒤에도 전투 카메라가 아무것도 그리지 않음(시작 화면이 가린 채)");
             foreach (var x in UnityEngine.Object.FindObjectsByType<ExperienceSystem>(FindObjectsSortMode.None)) x.enabled = false;   // 정비 화면이 멈추지 않게
             var ship = GameManager.Instance != null ? GameManager.Instance.Player : null;
             MakeInvulnerable(ship);

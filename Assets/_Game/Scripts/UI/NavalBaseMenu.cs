@@ -33,6 +33,17 @@ namespace Game.UI
         bool _lightingSaved;
         float _shadowDistance = -1f;
         int _shadowResolution = -1, _pipelineMsaa = -1;
+
+        /// <summary>
+        /// 그리기 줄이기(2026-10-13, 점검 O04 측정 뒤): 시작 화면이 화면 전체를 덮는 동안 뒤의 전투 카메라는 아무것도 그리지 않게
+        /// (끄면 Camera.main이 비어 다른 코드가 깨지므로 그릴 층만 비운다 — 나갈 때 되돌림), 작은 물체(난간·창·차량 등
+        /// 경계 대각선 SmallCaster 미만)는 그림자를 그리지 않는다(개관 시점에서 안 보이는데 그림자 단계마다 한 번씩 그려졌다).
+        /// </summary>
+        public const float SmallCaster = 0.6f;
+        readonly List<(Camera camera, int mask, bool shadows, bool post)> _mutedCameras = new();
+        /// <summary>검증용: 가린 전투 카메라 수 · 그림자를 끈 작은 물체 수.</summary>
+        public int MutedCameraCount => _mutedCameras.Count;
+        public int SmallCastersOff { get; private set; }
         /// <summary>
         /// 계단 현상 설정(2026-10-11). 렌더 텍스처 세로 = 화면 세로 × Supersample(최소 1440, 최대 MaxRenderHeight),
         /// MSAA 표본 수, 카메라 후처리 안티앨리어싱. URP 설정의 MSAA가 꺼져 있으면(1) 렌더 텍스처의 MSAA도 무시되므로
@@ -131,8 +142,41 @@ namespace Game.UI
             ApplyAntialiasing();
             BuildBerths(); BuildTraffic();
             foreach(var t in _island.GetComponentsInChildren<Transform>(true)) t.gameObject.layer=Layer;
+            DropSmallShadows(); MuteSceneCameras();
             ShowOverview(); _camera.transform.position=_destination; _currentLook=_lookAt;
             _camera.transform.LookAt(_currentLook); _camera.fieldOfView=_fov;
+        }
+
+        void DropSmallShadows()
+        {
+            foreach(var r in _stage.GetComponentsInChildren<Renderer>())
+                if(r.shadowCastingMode!=ShadowCastingMode.Off && r.bounds.size.magnitude<SmallCaster)
+                    { r.shadowCastingMode=ShadowCastingMode.Off; SmallCastersOff++; }
+        }
+
+        /// <summary>화면에 그리는 다른 카메라(전투 카메라)는 시작 화면 동안 그릴 층·그림자·후처리를 비운다.</summary>
+        void MuteSceneCameras()
+        {
+            foreach(var c in FindObjectsByType<Camera>(FindObjectsSortMode.None))
+            {
+                if(c==_camera || !c.enabled || c.targetTexture!=null) continue;
+                var data=c.GetUniversalAdditionalCameraData();
+                _mutedCameras.Add((c,c.cullingMask,data!=null && data.renderShadows,data!=null && data.renderPostProcessing));
+                c.cullingMask=0;
+                if(data!=null){data.renderShadows=false;data.renderPostProcessing=false;}
+            }
+        }
+
+        void RestoreSceneCameras()
+        {
+            foreach(var (c,mask,shadows,post) in _mutedCameras)
+            {
+                if(c==null) continue;
+                c.cullingMask=mask;
+                var data=c.GetUniversalAdditionalCameraData();
+                if(data!=null){data.renderShadows=shadows;data.renderPostProcessing=post;}
+            }
+            _mutedCameras.Clear();
         }
 
         void BuildBerths()
@@ -332,6 +376,7 @@ namespace Game.UI
         void OnDisable()
         {
             if(_stage!=null)_stage.gameObject.SetActive(false);
+            RestoreSceneCameras();
             foreach(var l in _mutedLights)if(l!=null)l.enabled=true;
             if(_lightingSaved) {RenderSettings.ambientMode=_ambientMode;RenderSettings.ambientLight=_ambient;_lightingSaved=false;}
             if(GraphicsSettings.currentRenderPipeline is UniversalRenderPipelineAsset urp)

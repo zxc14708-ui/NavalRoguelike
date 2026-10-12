@@ -33,7 +33,8 @@ namespace Game.Dev
             var gm = GameManager.Instance;
             if (gm == null || gm.State != GameState.Playing) { Fail($"출항 뒤 전투 상태가 아님: {gm?.State}"); yield break; }
             var concept = Object.FindFirstObjectByType<ShipInitializer>()?.SelectedConcept;
-            _report.AppendLine($"- 출항: {concept?.Title ?? "(기본 배치)"}");
+            _report.AppendLine($"- 출항: {concept?.Title ?? "(기본 배치)"} · 전투 카메라 그림 층 {(Camera.main != null ? Camera.main.cullingMask : 0) != 0}");
+            if (Camera.main == null || Camera.main.cullingMask == 0) Fail("출항 뒤에도 전투 카메라가 아무것도 그리지 않음(시작 화면이 가린 채)");
             var env0 = EnvironmentSignature();
             _report.AppendLine($"- 씬 부트스트랩(처음): {env0}");
 
@@ -159,6 +160,8 @@ namespace Game.Dev
                 if (stale > 0) Fail($"{how}: 파괴된 표적이 목록에 남음");
                 if (env != env0) Fail($"{how}: 바다·섬 등 씬 부트스트랩이 처음과 다름");
                 if (oldShip != null) Fail($"{how}: 이전 기함이 파괴되지 않음");
+                // 시작 화면이 가렸던 전투 카메라가 출항 뒤 다시 그리는가(항구 그리기 줄이기, 2026-10-13)
+                if (Camera.main == null || Camera.main.cullingMask == 0) Fail($"{how}: 출항 뒤에도 전투 카메라가 아무것도 그리지 않음");
                 if (round == 1) yield return ScreenShot("runflow_retry");
 
                 // 다음 회차를 위해 이번 판에도 교리·성장을 쌓는다(초기화 확인)
