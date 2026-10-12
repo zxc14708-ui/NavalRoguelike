@@ -76,6 +76,13 @@ namespace Game.EditorTools
                 target = BuildTarget.StandaloneWindows64,
                 options = BuildOptions.Development,
             };
+            // 데이터 동기화 검사(O05): 오류가 있으면 빌드하지 않는다(-skipDataSync로 건너뜀)
+            if (DataSyncCheck.GateEnabled && Array.IndexOf(args, "-skipDataSync") < 0 && !DataSyncCheck.RunBeforeVerificationBuild())
+            {
+                Debug.LogError($"[CombatVerification] 빌드 결과: DataSyncFailed → {DataSyncCheck.ReportPath}");
+                if (Application.isBatchMode) EditorApplication.Exit(1);
+                return;
+            }
             var report = UnityEditor.BuildPipeline.BuildPlayer(options);
             Debug.Log($"[CombatVerification] 빌드 결과: {report.summary.result}, {report.summary.totalErrors} errors → {output}");
             if (Application.isBatchMode) EditorApplication.Exit(report.summary.result == UnityEditor.Build.Reporting.BuildResult.Succeeded ? 0 : 1);

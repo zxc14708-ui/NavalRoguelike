@@ -468,6 +468,20 @@ ECS 미사용, 외부 유료 플러그인 미사용.
   - 로터 회전축: Codex 모델의 로터 노드는 위가 Y가 아니어서, 헬기·데크가 기체의 위(꼬리 로터는 오른쪽)를 로터 좌표로 바꿔 그 축으로 돌린다(예전 모델도 같은 결과).
 - **노봉 v22**: Visual_Level1~3을 v22 모델로, 조준 부품(TurretPivot·ElevationPivot·Muzzle) 다시 연결. 좌우 포구 `Muzzle_01·02`가 있으면 좌우 교대 사격이 그 포구에서 나간다(없으면 예전처럼 가운데 포구에서 좌우로 띄움). 무기 팩 적용기(`NavalWeaponUpgradeVisuals`)가 다시 돌아도 v22를 쓴다.
 
+### 데이터 동기화 검사 (2026-10-12 점검 O05, `Editor/DataSyncCheck`)
+빌더 코드로 만든 에셋·프리팹·씬이 지금 게임 코드가 기대하는 모양인지 **빌드 전에** 본다. 에셋은 읽기만 하고 고치지 않는다. 결과는 `Logs/DataSync.md`.
+- **언제 도나**: 메뉴 `Naval/Check/Data Sync (O05)` · 모든 플레이어 빌드 직전(`IPreprocessBuildWithReport`, 오류가 있으면 빌드 중단) · 검증 빌드(`BuildVerificationPlayer`) 직전(씬까지 보고, 오류면 `빌드 결과: DataSyncFailed`) · 배치 `-executeMethod Game.EditorTools.DataSyncCheck.RunBatch [-dataSyncOut 파일]`(오류면 종료 코드 1). 끄기: 메뉴 `Naval/Check/Data Sync Before Build` 또는 `-skipDataSync`.
+- **오류(빌드를 막음)** — 빌드에 실제로 들어가는 것(빌드 씬·Resources와 그것들이 가리키는 에셋)만:
+  - 빠진 스크립트 · 끊긴 참조(가리키던 에셋이 지워졌거나 모델 교체로 메시 id가 바뀜). 에셋 하나당 한 줄로 묶어 개수와 예 3개.
+  - 블록/적 데이터: 프리팹 없음 · 프리팹에 `ModuleRuntime`/`EnemyController` 없음 · id 빈칸·겹침(이어하기가 id로 블록을 찾는다).
+  - 코드가 읽는 Resources 경로가 없음: 게임 코드의 `Resources.Load("…")`·상수 경로를 읽어 모으고, 이름을 조립하는 경로(호위함 역할·단계 `ESC_{역할}_T0~3`, 전술 리그 `FX_*_Tactical`, 블록 형태 모델 `Modules/Variants/*`)를 더한다(현재 52개).
+  - 강화 데이터가 블록을 안 가리킴·한 블록에 둘 · 강화 외형 칸이 비어 있음 · 스테이지 구간에 적이 빈 출현 항목.
+  - 씬 필수 구성: GameManager·EnemySpawner·HUDView·ResultScreenUI·ModuleFactory·StageDirector(스테이지 빈칸 없음)·ShipInitializer(시작 배치)·ExperienceSystem(ProgressionConfig)가 하나씩.
+- **경고(기록만)**: 게임에서 안 쓰는 블록·적(만들고 연결하지 않음) · 빌드에 안 들어가는 옛 에셋의 문제 · 아이콘 없음 · **강화 설명 수치 ≠ 실제 배율**("피해 +25%"·"발사 간격 −10%"·"보급 15% 빠르게"·"반동 피해 25% → 10%"를 배율과 비교, 바뀐 배율이 설명에 없음도) · 블록 설명 "최대 N개" ≠ 최대 개수 · 강화 단계보다 외형이 적음.
+- 첫 실행에서 잡은 것: **시작 화면 항구의 정박 함정 3척(대잠 T3·미사일 T3·독의 대잠 T2)의 메시 257개가 끊겨 안 보였다** — 메뉴 프리팹은 원본 씬(`Scenes/NavalBase`)을 통째로 복사한 것이라 호위함 모델을 바꾸면 복사본이 따라가지 못한다. `Naval/Art/Refresh Harbor Menu Ships`(`NavalBaseMenuShipRefresh`)로 끊긴 `Berth_*`·`DockedShip_*`만 원본 씬에서 다시 옮겨 오고(새 모델의 흘수를 원본 씬에서 다시 맞춘 뒤) 고쳤다. **호위함 모델을 바꾸면 이 메뉴를 한 번 돌린다**(검사가 알려 준다).
+- 남은 경고 7건: 옛 블록 mod_armor·mod_generator(스크립트가 지워진 프리팹, 게임에서 안 씀)와 옛 XP_Pickup 프리팹 — 빌드에 안 들어가서 그대로 둠.
+- 일부러 깨서 확인: Resources의 전술 리그 하나를 치우면 오류 1건으로 검증 빌드가 멈추고, CIWS 강화 설명을 "+25%"로 바꾸면 "turnSpeedMultiplier = 1.2" 경고.
+
 ### 하단 HUD 배치 (`HUDView`, 화면 아래 가운데 한 덩어리, 폭 798)
 ```
 [ Lv 3 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━  12 / 17 XP ]   레벨 막대(26)
@@ -694,8 +708,8 @@ World/        Islands, IslandField(+.Banks 수로 기슭), IslandBuilder(+.Art, 
 셋업 메뉴    NavalPrototypeSetup(Naval/… 메뉴 모음), NavalSceneBuilder(Prototype_Main 씬), NavalPrefabBuilder, NavalDataBuilder,
              NavalUpgradeBuilder, NavalAudioBuilder, NavalEditorUtil(공용 헬퍼·레이어)
 아트         ArtModelPostprocessor, NavalEnvironmentArtBuilder, NavalEscortArtBuilder, NavalModuleVariantArtBuilder,
-             EscortNavalGreyApply, NavalIconBaker
-검증         CombatVerification(플레이어 빌드 + 자동 검증 실행), TaskForceVerification
+             EscortNavalGreyApply, NavalIconBaker, NavalBaseMenuShipRefresh(시작 화면 항구의 끊긴 정박 함정만 다시 옮김)
+검증         CombatVerification(플레이어 빌드 + 자동 검증 실행), TaskForceVerification, DataSyncCheck(빌드 전 데이터 동기화 검사)
 프로젝트     BuildSceneGuard(빌드 씬 목록 첫 칸을 Prototype_Main으로 유지)
 ```
 
@@ -770,6 +784,7 @@ World/        Islands, IslandField(+.Banks 수로 기슭), IslandBuilder(+.Art, 
 
 | 날짜 | 변경 | 이유 |
 |---|---|---|
+| 2026-10-12 | **데이터 동기화 검사(O05)**: 빌드 직전·검증 빌드 직전·메뉴·배치로 빠진 스크립트·끊긴 참조·블록/적 데이터·코드가 읽는 Resources 경로·강화 데이터/외형·씬 필수 구성을 보고 오류면 빌드 중단, 강화 설명 수치와 실제 배율 비교 등은 경고. 첫 실행에서 잡은 시작 화면 항구 정박 함정 3척의 끊긴 메시를 `Refresh Harbor Menu Ships`로 복구. Codex 지적 3건(이어하기 블록 복원 순서·결과 화면 입력 유예·일시정지 조작 안내 갱신) | 점검표 다음 순서(P0), "소스 수정 후 에셋 미갱신을 빌드 전에 감지" |
 | 2026-10-11 | **해역 차별화(K04) · Codex 시안 적용**: 스테이지별 군도 → 좁은 수로(진짜 양안 기슭 + 보이지 않는 경계) → 개방해역, 해역별 섬·레이더·적 구성·정비 카드·물색/안개, 고정 적 해안포대, 해역 안내 카드·항로 선택 안내·사전 용어. 플레이어 헬기데크 3단계 강화(새 강화 데이터, 단계별 데크·헬기 T1~T3, 출격 간격·피해·수색 반경·속력·내구), 노봉 v22 모델·좌우 포구. 검사 `-seaOnly` · `-aviationOnly` | 사용자 결정: 해역 1(스테이지 고정) · 2(전부) · 3(진짜 양안 + 경계) · 4(고정 적 추가) · 5(배율 방식), Codex 시안 확인·적용 요청 |
 | 2026-10-11 | **점검 D 묶음 — 배포 기본·소리·회차 밖 목표·선택 임무**: D0 정리(편대 순간이동 조건·자율 전환 시작 위치, 성장 검사의 함교 기관총 탄 제외, 흐름 문서 3스테이지, 오른쪽 콘솔 접기), 런 시드·버전·진단 내보내기·크레딧(O07), 합성 메뉴·알림음과 음량 채널·경보 중 효과음 줄임(O06), 출격 기록·도전 과제 15개·칭호·고난도 출항 해금(K06), 임무 항로 — 보급선 호위(K03). 검사 `-bundleDOnly`. 구름 그림자(`_LIGHT_COOKIES`)는 플레이어 빌드에서 10-05 커밋부터 켜지지 않음 — 에디터 확인 필요 | Codex 점검 문서 D 묶음 |
 | 2026-10-11 | **점검 C 묶음 — 한 판의 지속성**: 스테이지 경계 저장·이어하기(백업·손상 복구, O01), 결과 분석(무장별 실제 피해·격침, 미사일 처리, 최종 빌드, O02), 정비 카드 빌드 방향(역할 구성·카드별 함선 변화, K01), 카드 다시 뽑기(K02), 보스 막대(단계 눈금·다음 공격 예고·대응, K05), 설정 › 그래픽(장식 효과·연기 옅게 G04, 항구 화질·배경 정지 G05). 검사 `-bundleCOnly` | Codex 점검 문서 C 묶음 |
