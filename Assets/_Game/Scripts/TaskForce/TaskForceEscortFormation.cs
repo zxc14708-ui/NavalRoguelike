@@ -267,6 +267,7 @@ namespace Game.TaskForce
             if (!CanDeploy || rosterSlot < 0 || rosterSlot >= MaxEscorts || !IsRosterSlotEmpty(rosterSlot)) return -1;
             var vessel = EscortVessel.Create(this, transform, rosterSlot + 1);
             _escorts.Add(vessel);
+            Game.Core.PlayerProfile.Discover($"escort_{RoleCode(EscortRole.None).ToLowerInvariant()}");   // 사전 발견 기록(점검 C05)
             Reflow(true);
             CombatLog.Add("편대", $"{vessel.DisplayName} {rosterSlot + 1}번 슬롯 합류 ({_escorts.Count}/{MaxEscorts}척)");
             Changed?.Invoke();
@@ -333,6 +334,7 @@ namespace Game.TaskForce
             if (v == null || v.Role != EscortRole.None || role == EscortRole.None) return false;
             string before = v.DisplayName;
             v.SetRole(role);
+            Game.Core.PlayerProfile.Discover($"escort_{RoleCode(role).ToLowerInvariant()}");   // 사전 발견 기록(점검 C05)
             CombatLog.Add("편대", $"{before} → {v.DisplayName} 역할 지정 · {RoleSummary(role)}");
             Changed?.Invoke();
             return true;

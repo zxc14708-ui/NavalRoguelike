@@ -239,6 +239,45 @@ namespace Game.Dev
                 yield return ScreenShot("bundleb_codex_guide");
                 codex.Select(guide.FindIndex(e => e.Id == "term_detect"));
                 yield return ScreenShot("bundleb_codex_term");
+
+                // 발견 기록 · 즐겨찾기(C05) — 검증용 기록 파일만 비운다
+                PlayerProfile.ResetForVerify();
+                codex.ShowSection(CodexSection.Enemies);
+                var enemies = codex.Entries(CodexSection.Enemies);
+                string before = codex.CountText;
+                bool allHidden = codex.VisibleLabels.TrueForAll(l => l.Contains("미발견"));
+                bool cleanText = codex.VisibleParsedLabels.TrueForAll(l => !l.Contains("<") && !l.Contains(">"));   // 태그가 글자로 보이지 않게
+                var boat = CombatDevTools.SpawnRing("ene_fastboat", 1, 40f);
+                codex.ShowSection(CodexSection.Enemies);
+                int boatIndex = enemies.FindIndex(e => e.Id == "ene_fastboat");
+                bool boatFound = PlayerProfile.IsDiscovered("ene_fastboat") &&
+                                 codex.VisibleLabels.Exists(l => l.Contains(enemies[boatIndex].Title) && !l.Contains("미발견"));
+                string after = codex.CountText;
+                codex.Select(enemies.Count - 1);
+                bool lockedInfo = codex.BodyText.Length > 40;   // 미발견이어도 내용은 그대로
+                string lastId = codex.Selected?.Id;
+                codex.ToggleFavoriteSelected();
+                bool starredFirst = codex.VisibleLabels.Count > 0 && codex.VisibleLabels[0].Contains("★") && codex.VisibleLabels[0].Contains(codex.Selected?.Title ?? "?");
+                codex.SetFavoritesOnly(true);
+                int onlyCount = codex.VisibleCount;
+                bool saved = System.IO.File.Exists(PlayerProfile.FilePath) && System.IO.File.ReadAllText(PlayerProfile.FilePath).Contains(lastId ?? "?");
+                yield return ScreenShot("bundleb_codex_favorite");
+                codex.SetFavoritesOnly(false);
+                codex.ToggleFavoriteSelected();
+                bool unstarred = !PlayerProfile.IsFavorite(lastId);
+                var fleet = GameManager.Instance.Player.GetComponent<Game.TaskForce.TaskForceEscortFormation>();
+                fleet.ClearAll();
+                fleet.Deploy();
+                bool escortFound = PlayerProfile.IsDiscovered("escort_pb");
+                fleet.ClearAll();
+                foreach (var b in boat) if (b != null) b.gameObject.SetActive(false);
+                _report.AppendLine($"- 사전 발견 기록: 비운 뒤 \"{before}\" · 모두 미발견 {Yes(allHidden)} · 태그 노출 없음 {Yes(cleanText)} → 고속정 만남 \"{after}\" · 고속정 발견 표시 {Yes(boatFound)} · 미발견도 내용 보임 {Yes(lockedInfo)} · 호위정 합류 기록 {Yes(escortFound)}");
+                _report.AppendLine($"- 사전 즐겨찾기: {lastId} ★ 맨 위 {Yes(starredFirst)} · 즐겨찾기만 {onlyCount}개 · 기록 파일 {Yes(saved)} · 해제 {Yes(unstarred)}");
+                if (!allHidden || !boatFound || !before.Contains("발견 0/") || !after.Contains("발견 1/")) Fail("사전 발견 기록이 맞지 않음(C05)");
+                if (!cleanText) Fail("사전 목록에 서식 태그가 글자로 보임(C05)");
+                if (!lockedInfo) Fail("미발견 항목의 내용이 가려짐(C05 — 잠그지 않음)");
+                if (!escortFound) Fail("호위정 합류가 사전 발견에 기록되지 않음(C05)");
+                if (!starredFirst || onlyCount != 1 || !saved || !unstarred) Fail("사전 즐겨찾기가 맞지 않음(C05)");
                 codex.Close();
             }
 

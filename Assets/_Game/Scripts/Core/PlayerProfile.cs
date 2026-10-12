@@ -54,6 +54,8 @@ namespace Game.Core
             public List<Unlocked> achievements = new();
             public string title;
             public bool dangerStart;
+            public List<string> favorites = new();    // 사전 즐겨찾기(점검 C05) — 항목 id
+            public List<string> discovered = new();   // 사전 발견 기록: 만난 적·설치한 블록·합류/역할을 받은 호위함의 항목 id
         }
 
         private static Data s_data;
@@ -135,6 +137,30 @@ namespace Game.Core
             }
         }
 
+        // ------------------------------------------------------------ 사전 즐겨찾기 · 발견(점검 C05)
+
+        public static bool IsFavorite(string id) => !string.IsNullOrEmpty(id) && Current.favorites.Contains(id);
+
+        /// <summary>즐겨찾기를 켜거나 끈다. 바뀐 뒤 상태.</summary>
+        public static bool ToggleFavorite(string id)
+        {
+            if (string.IsNullOrEmpty(id)) return false;
+            if (!Current.favorites.Remove(id)) Current.favorites.Add(id);
+            Save();
+            return IsFavorite(id);
+        }
+
+        public static bool IsDiscovered(string id) => !string.IsNullOrEmpty(id) && Current.discovered.Contains(id);
+
+        /// <summary>처음 만난 항목을 기록한다(처음이면 true). 사전은 잠그지 않고 "미발견" 표시만 한다.</summary>
+        public static bool Discover(string id)
+        {
+            if (string.IsNullOrEmpty(id) || Current.discovered.Contains(id)) return false;
+            Current.discovered.Add(id);
+            Save();
+            return true;
+        }
+
         // ------------------------------------------------------------ 파일
 
         public static void Save()
@@ -160,7 +186,7 @@ namespace Game.Core
                 {
                     if (!File.Exists(path)) continue;
                     var d = JsonUtility.FromJson<Data>(File.ReadAllText(path));
-                    if (d != null && d.version > 0 && d.version <= Version) { d.ships ??= new(); d.achievements ??= new(); return d; }
+                    if (d != null && d.version > 0 && d.version <= Version) { d.ships ??= new(); d.achievements ??= new(); d.favorites ??= new(); d.discovered ??= new(); return d; }
                 }
                 catch (Exception e) { Debug.LogWarning($"[Profile] {Path.GetFileName(path)} 읽기 실패: {e.Message}"); }
             }

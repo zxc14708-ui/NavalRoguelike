@@ -85,6 +85,7 @@ namespace Game.Enemies
         {
             ReleaseEngagement();
             definition = def;
+            if (def != null) Game.Core.PlayerProfile.Discover(def.Id);   // 사전 발견 기록(점검 C05)
             Player = player;
             _flagship = player;
             _engaged = player != null ? player.GetComponent<ITargetable>() : null;

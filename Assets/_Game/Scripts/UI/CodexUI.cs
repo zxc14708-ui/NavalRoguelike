@@ -17,6 +17,8 @@ namespace Game.UI
     ///   - 형태·단계 버튼을 고르면 본문 위에 그 단계 요약(이전 단계 대비), 처음에는 기본형(C02·B05)
     ///   - 미리보기 아래 배치 도식(설치할 수 있는 자리)과 0~60 m 사거리 막대, 본문의 함께 쓰기·관련 무장 링크(C03)
     ///   - 함정·용어 탭(C04), 탭마다 고른 항목·목록 위치를 기억해 다시 열면 그대로(B06)
+    /// 2026-10-13 점검 C05: 항목 즐겨찾기(★, 기록 파일에 남음 — 목록 맨 위로, 검색 옆 ★로 즐겨찾기만 보기)와 발견 기록
+    ///   (만난 적·설치한 블록·합류한 호위함만 "발견" — 안 만난 항목도 잠그지 않고 "미발견"만 표시, 탭 머리에 발견 수).
     /// </summary>
     public sealed class CodexUI : MonoBehaviour
     {
@@ -55,6 +57,10 @@ namespace Game.UI
         private CodexPreview _preview;
         private CodexRole _filter;
         private bool _byName;
+        private bool _favoritesOnly;
+        private Image _favoritesOnlyImage, _favoriteImage;
+        private TMP_Text _favoriteLabel;
+        private static readonly Color Gold = new(1f, 0.82f, 0.4f);
         private string _baseBody = "";
         private bool _built;
 
@@ -68,6 +74,13 @@ namespace Game.UI
         /// <summary>검증용: 지금 목록에 보이는 항목 수(검색·필터 적용 후).</summary>
         public int VisibleCount => _listItems.Count;
         public CodexRole Filter => _filter;
+        /// <summary>검증용: 즐겨찾기만 보기 · 목록에 보이는 글(★·미발견 표시 포함) · 머리 글.</summary>
+        public bool FavoritesOnly => _favoritesOnly;
+        public List<string> VisibleLabels { get { var l = new List<string>(); foreach (var i in _listItems) l.Add(i.text.text); return l; } }
+        public string CountText => _count != null ? _count.text : "";
+        /// <summary>검증용: 목록 글을 태그 해석 뒤 실제로 보이는 글자로(잘못된 태그는 글자로 남는다).</summary>
+        public List<string> VisibleParsedLabels { get { var l = new List<string>(); foreach (var i in _listItems) { i.text.ForceMeshUpdate(); l.Add(i.text.GetParsedText()); } return l; } }
+        public string TagText => _tag != null ? _tag.text : "";
         /// <summary>검증용: 미리보기를 지금 그려 모델이 차지한 화면 비율(0~1)을 잰다.</summary>
         public float MeasurePreview() => _preview != null ? _preview.RenderAndMeasure() : 0f;
 
@@ -137,7 +150,11 @@ namespace Game.UI
             sort.onClick.AddListener(ToggleSort);
 
             // 왼쪽: 검색 · 역할 필터 · 목록
-            _search = SearchBox(content, new Vector2(26, 474), new Vector2(300, 40));
+            _search = SearchBox(content, new Vector2(26, 474), new Vector2(252, 40));
+            var favOnly = Btn(content, "★", new Vector2(282, 474), new Vector2(44, 40), 20);
+            favOnly.name = "Codex favorites only";
+            _favoritesOnlyImage = favOnly.GetComponent<Image>();
+            favOnly.onClick.AddListener(() => SetFavoritesOnly(!_favoritesOnly));
             for (int i = 0; i < Filters.Length; i++)
             {
                 var role = Filters[i].role;
@@ -158,7 +175,12 @@ namespace Game.UI
 
             // 오른쪽: 이름 · 분류 줄 · 미리보기 · 배치/사거리 · 형태 버튼 · 설명
             _titleAccent = Box(content, "Title accent", new Vector2(342, 470), new Vector2(5, 34), ConsoleText).GetComponent<Image>();
-            _title = Text(content, "Entry title", "", new Vector2(356, 466), new Vector2(778, 42), 30, Color.white);
+            _title = Text(content, "Entry title", "", new Vector2(356, 466), new Vector2(636, 42), 30, Color.white);
+            var fav = Btn(content, "☆ 즐겨찾기", new Vector2(1004, 470), new Vector2(130, 36), 15);
+            fav.name = "Codex favorite";
+            _favoriteImage = fav.GetComponent<Image>();
+            _favoriteLabel = fav.GetComponentInChildren<TMP_Text>();
+            fav.onClick.AddListener(ToggleFavoriteSelected);
             _tag = Text(content, "Entry tag", "", new Vector2(342, 434), new Vector2(792, 28), 16, ConsoleText);
 
             var frame = Box(content, "Preview frame", new Vector2(340, 190), new Vector2(364, 238), PagePanel);
@@ -263,13 +285,48 @@ namespace Game.UI
         private void PaintFilters()
         {
             for (int i = 0; i < _filterImages.Count; i++) _filterImages[i].color = Filters[i].role == _filter ? ConsoleActive : ConsoleIdle;
+            if (_favoritesOnlyImage != null) _favoritesOnlyImage.color = _favoritesOnly ? ConsoleActive : ConsoleIdle;
         }
+
+        /// <summary>즐겨찾기한 항목만 보기(검색·역할 필터와 함께 걸린다).</summary>
+        public void SetFavoritesOnly(bool on)
+        {
+            _favoritesOnly = on;
+            PaintFilters();
+            RefreshList(keepSelection: true);
+        }
+
+        /// <summary>지금 항목의 즐겨찾기를 켜고 끈다(기록 파일에 남는다). 목록 순서·표시가 바로 바뀐다.</summary>
+        public void ToggleFavoriteSelected()
+        {
+            var entry = Selected;
+            if (entry == null) return;
+            Game.Core.PlayerProfile.ToggleFavorite(entry.Id);
+            Game.Core.UiSound.Play(Game.Core.UiSound.Cue.Select);
+            PaintFavorite();
+            RefreshList(keepSelection: true);
+        }
+
+        private void PaintFavorite()
+        {
+            if (_favoriteLabel == null) return;
+            bool on = Selected != null && Game.Core.PlayerProfile.IsFavorite(Selected.Id);
+            _favoriteLabel.text = on ? "★ 즐겨찾기" : "☆ 즐겨찾기";
+            _favoriteLabel.color = on ? Gold : Color.white;
+            _favoriteImage.color = on ? ConsoleActive : ConsoleIdle;
+        }
+
+        /// <summary>발견 기록을 쓰는 탭(함정·용어는 늘 전부 보인다).</summary>
+        private static bool TracksDiscovery(CodexSection section) => section != CodexSection.Guide;
+
+        private bool Undiscovered(CodexEntry e) => TracksDiscovery(Section) && !Game.Core.PlayerProfile.IsDiscovered(e.Id);
 
         private static readonly Regex Tags = new("<[^>]+>");
 
         private bool Matches(CodexEntry e)
         {
             if (_filter != CodexRole.None && (e.Roles & _filter) == 0) return false;
+            if (_favoritesOnly && !Game.Core.PlayerProfile.IsFavorite(e.Id)) return false;
             string q = _search != null ? _search.text.Trim() : "";
             if (q.Length == 0) return true;
             return e.Title.IndexOf(q, System.StringComparison.OrdinalIgnoreCase) >= 0
@@ -287,6 +344,9 @@ namespace Game.UI
             var visible = new List<int>();
             for (int i = 0; i < list.Count; i++) if (Matches(list[i])) visible.Add(i);
             if (_byName) visible.Sort((a, b) => string.CompareOrdinal(list[a].Title, list[b].Title));
+            // 즐겨찾기를 맨 위로(그 안에서는 지금 순서 그대로)
+            var favorites = visible.FindAll(i => Game.Core.PlayerProfile.IsFavorite(list[i].Id));
+            if (favorites.Count > 0) { visible.RemoveAll(favorites.Contains); visible.InsertRange(0, favorites); }
             foreach (int index in visible)
             {
                 var item = new GameObject(list[index].Title, typeof(RectTransform), typeof(Image), typeof(Button), typeof(LayoutElement));
@@ -298,7 +358,10 @@ namespace Game.UI
                 btn.targetGraphic = img;
                 int captured = index;
                 btn.onClick.AddListener(() => { Game.Core.UiSound.Play(Game.Core.UiSound.Cue.Select); Select(captured); });
-                var label = Text(item.transform, "Text", list[index].Title, new Vector2(14, 0), new Vector2(270, ItemHeight), 18, Color.white);
+                string title = list[index].Title;
+                if (Game.Core.PlayerProfile.IsFavorite(list[index].Id)) title = "<color=#FFD166>★</color> " + title;
+                if (Undiscovered(list[index])) title = $"<alpha=#88>{title}<alpha=#FF> <size=70%><color=#7d9a8c>미발견</color></size>";
+                var label = Text(item.transform, "Text", title, new Vector2(14, 0), new Vector2(270, ItemHeight), 18, Color.white);
                 label.alignment = TextAlignmentOptions.MidlineLeft;
                 label.textWrappingMode = TextWrappingModes.NoWrap;
                 label.overflowMode = TextOverflowModes.Ellipsis;
@@ -306,7 +369,13 @@ namespace Game.UI
             }
             bool narrowed = visible.Count != list.Count;
             _count.text = narrowed ? $"{CodexCatalog.SectionName(Section)} {visible.Count} / {list.Count}종" : $"{CodexCatalog.SectionName(Section)} {list.Count}종";
-            if (keepSelection && visible.Contains(SelectedIndex)) { PaintList(); return; }
+            if (TracksDiscovery(Section))
+            {
+                int found = 0;
+                foreach (var e in list) if (Game.Core.PlayerProfile.IsDiscovered(e.Id)) found++;
+                _count.text += $"  ·  발견 {found}/{list.Count}";
+            }
+            if (keepSelection && visible.Contains(SelectedIndex)) { PaintList(); ScrollListTo(SelectedIndex); return; }
             Select(visible.Count > 0 ? visible[0] : -1);
             _listScroll.verticalNormalizedPosition = 1f;
         }
@@ -356,6 +425,7 @@ namespace Game.UI
                 if (!Matches(Entries(section)[index]))
                 {
                     _filter = CodexRole.None;
+                    _favoritesOnly = false;
                     PaintFilters();
                     if (_search != null) _search.SetTextWithoutNotify("");
                 }
@@ -391,6 +461,8 @@ namespace Game.UI
             if (entry != null) _lastId[Section] = entry.Id;
             _title.text = entry != null ? entry.Title : "";
             _tag.text = entry != null ? entry.Tag : "";
+            if (entry != null && Undiscovered(entry)) _tag.text += "  ·  <color=#9fb3c0>미발견 — 전투에서 만나면 기록</color>";
+            PaintFavorite();
             _baseBody = entry != null ? entry.Body : "항목이 없습니다.";
             _titleAccent.color = entry != null ? entry.Accent : ConsoleText;
             ShowStrip(entry);
