@@ -822,6 +822,7 @@ namespace Game.TaskForce
                     if (tintNeutral) Neutralize(_model);
                     _supportSocket = FindChild(_model.transform, "SupportOrigin");
                     EscortTurrets.Attach(_model, transform);
+                    Game.View.Waterline.Settle(_visual, _model.transform);   // 수면선(점검 G06) — 출렁이는 시각 묶음 기준
                     return;
                 }
                 if (_greybox != null) Destroy(_greybox.gameObject);

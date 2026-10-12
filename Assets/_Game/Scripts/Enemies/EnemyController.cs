@@ -86,6 +86,9 @@ namespace Game.Enemies
             ReleaseEngagement();
             definition = def;
             if (def != null) Game.Core.PlayerProfile.Discover(def.Id);   // 사전 발견 기록(점검 C05)
+            // 수상함은 모델 바닥을 수면 아래로(점검 G06 수면선) — 판정 상자·위치는 그대로
+            if (def != null && def.Kind == Game.Combat.TargetKind.Surface && transform.Find("ModelPivot") is { } pivot)
+                Game.View.Waterline.Settle(transform, pivot);
             Player = player;
             _flagship = player;
             _engaged = player != null ? player.GetComponent<ITargetable>() : null;

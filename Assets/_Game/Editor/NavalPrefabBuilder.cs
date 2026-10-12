@@ -327,24 +327,7 @@ namespace Game.EditorTools
                             new Vector3(1.2f, 0.6f, 3f), eneDir,
                             (go, comp) => Configure(comp, so => Set(so, "projectilePrefab", enemyGun)));
 
-            r.MissileBoat = BuildArtEnemy<MissileBoat>("ENE_MissileBoat", "EnemyMissileBoat",
-                            1.0f, 0f, new Vector3(3.5f, 2.0f, 8.0f), eneDir, (go, comp) =>
-                            {
-                                var launcher = BuildCanisterLaunchPoint(go.transform)
-                                               ?? FindDeep(go.transform, "MissileLauncherPivot");
-                                if (launcher == null)
-                                {
-                                    // 모델에 발사대가 없으면 갑판 위에서 쏜다. 수면에서 쏘면 물속을 난다.
-                                    launcher = new GameObject("LaunchPoint").transform;
-                                    launcher.SetParent(go.transform, false);
-                                    launcher.localPosition = new Vector3(0f, 1.6f, 0f);
-                                }
-                                Configure(comp, so =>
-                                {
-                                    Set(so, "launchPoint", launcher);
-                                    Set(so, "launcherPivot", FindDeep(go.transform, "MissileLauncherPivot"));
-                                });
-                            })
+            r.MissileBoat = BuildArtMissileBoat(eneDir)
                          ?? BuildEnemy<MissileBoat>("ENE_MissileBoat", mEnemy,
                             new Vector3(1.8f, 0.9f, 4.5f), eneDir, null);
 
@@ -947,8 +930,53 @@ namespace Game.EditorTools
             r.CruiseSubmarine = BuildArtCruiseSubmarine(eneDir);
             if (r.CruiseSubmarine == null) Debug.LogWarning("[Setup] EnemyCruiseSubmarine.fbx가 없어 순항미사일 잠수함 프리팹을 만들지 않았습니다.");
 
+            r.PccCorvette = BuildArtPccCorvette(enemyGun, flash, eneDir);
+            if (r.PccCorvette == null) Debug.LogWarning("[Setup] EnemyPccCorvette.fbx가 없어 초계함 프리팹을 만들지 않았습니다.");
+        }
+
+        // ------------------------------------------------------------------ 미사일정 · 엘리트 초계함(모델만 바꿀 때도 쓴다)
+
+        /// <summary>
+        /// 미사일정과 엘리트 초계함 프리팹만 지금 Art/Models의 FBX로 다시 만든다(2026-10-13 — Codex 적 리프레시 v12 적용용).
+        /// 다른 적·데이터·씬은 건드리지 않는다. 적 데이터는 프리팹을 같은 경로로 덮어써 그대로 이어진다.
+        /// </summary>
+        public static (GameObject missileBoat, GameObject pcc) BuildMissileBoatAndPccOnly()
+        {
+            PrepareArtMaterials("EnemyMissileBoat", "EnemyPccCorvette");
+            var r = Load();
+            string eneDir = $"{Root}/Prefabs/Enemies";
+            var boat = BuildArtMissileBoat(eneDir);
+            var pcc = BuildArtPccCorvette(r.ProjEnemyGun, r.FxGunFlash, eneDir);
+            AssetDatabase.SaveAssets();
+            return (boat, pcc);
+        }
+
+        private static GameObject BuildArtMissileBoat(string eneDir)
+        {
+            return BuildArtEnemy<MissileBoat>("ENE_MissileBoat", "EnemyMissileBoat",
+                            1.0f, 0f, new Vector3(3.5f, 2.0f, 8.0f), eneDir, (go, comp) =>
+                            {
+                                var launcher = BuildCanisterLaunchPoint(go.transform)
+                                               ?? FindDeep(go.transform, "MissileLauncherPivot");
+                                if (launcher == null)
+                                {
+                                    // 모델에 발사대가 없으면 갑판 위에서 쏜다. 수면에서 쏘면 물속을 난다.
+                                    launcher = new GameObject("LaunchPoint").transform;
+                                    launcher.SetParent(go.transform, false);
+                                    launcher.localPosition = new Vector3(0f, 1.6f, 0f);
+                                }
+                                Configure(comp, so =>
+                                {
+                                    Set(so, "launchPoint", launcher);
+                                    Set(so, "launcherPivot", FindDeep(go.transform, "MissileLauncherPivot"));
+                                });
+                            });
+        }
+
+        private static GameObject BuildArtPccCorvette(GameObject enemyGun, GameObject flash, string eneDir)
+        {
             // 엘리트 초계함: 14m 모델 × 0.85 ≈ 12m. 미사일정(8m)과 보스(17m) 사이
-            r.PccCorvette = BuildArtEnemy<PccCorvette>("ENE_PccCorvette", "EnemyPccCorvette",
+            return BuildArtEnemy<PccCorvette>("ENE_PccCorvette", "EnemyPccCorvette",
                 0.85f, 0f, new Vector3(2.4f, 2.2f, 12f), eneDir, (go, comp) =>
                 {
                     var box = go.GetComponent<BoxCollider>();
@@ -1006,7 +1034,6 @@ namespace Game.EditorTools
                     Set(so, "muzzleFlash", flash);
                     so.ApplyModifiedPropertiesWithoutUndo();
                 });
-            if (r.PccCorvette == null) Debug.LogWarning("[Setup] EnemyPccCorvette.fbx가 없어 초계함 프리팹을 만들지 않았습니다.");
         }
 
         // ------------------------------------------------------------------ 일반 적 5종
