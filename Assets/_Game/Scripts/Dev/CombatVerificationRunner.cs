@@ -139,6 +139,13 @@ namespace Game.Dev
                 Finish();
                 yield break;
             }
+            if (PerfOnly)
+            {
+                // 성능 측정(O04): 항구 시작 화면부터 재야 해서 검사 환경을 쓰지 않는다
+                yield return PerfCheck();
+                Finish();
+                yield break;
+            }
             if (RunFlowOnly)
             {
                 // 실제 게임 흐름 그대로(스테이지·스포너·경험치 켠 채) 검사한다 — 검사 환경(PrepareSandbox)을 쓰지 않는다

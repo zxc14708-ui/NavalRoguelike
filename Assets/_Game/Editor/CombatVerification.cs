@@ -83,7 +83,12 @@ namespace Game.EditorTools
                 if (Application.isBatchMode) EditorApplication.Exit(1);
                 return;
             }
-            var report = UnityEditor.BuildPipeline.BuildPlayer(options);
+            // 성능 측정(O04)이 CPU 메인 스레드·GPU 시간을 읽도록 검증 빌드에만 Frame Timing Stats를 켠다(끝나면 원래대로)
+            bool frameTiming = PlayerSettings.enableFrameTimingStats;
+            PlayerSettings.enableFrameTimingStats = true;
+            UnityEditor.Build.Reporting.BuildReport report;
+            try { report = UnityEditor.BuildPipeline.BuildPlayer(options); }
+            finally { PlayerSettings.enableFrameTimingStats = frameTiming; }
             Debug.Log($"[CombatVerification] 빌드 결과: {report.summary.result}, {report.summary.totalErrors} errors → {output}");
             if (Application.isBatchMode) EditorApplication.Exit(report.summary.result == UnityEditor.Build.Reporting.BuildResult.Succeeded ? 0 : 1);
         }

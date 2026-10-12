@@ -38,6 +38,12 @@ namespace Game.Dev
                 foreach (var f in GetType().GetFields(BindingFlags.Public | BindingFlags.Instance))
                     if (f.FieldType == typeof(bool) && f.Name != nameof(QuitWhenDone) && (bool)f.GetValue(this))
                         names.Add("-" + char.ToLowerInvariant(f.Name[0]) + f.Name.Substring(1));
+                // 성능 측정은 길이·창 모드에 따라 다른 결과라 따로 줄을 둔다
+                if (PerfOnly)
+                {
+                    if (!Mathf.Approximately(PerfMinutes, 3f)) names.Add($"-perfMinutes {PerfMinutes:0.#}");
+                    names.Add(Application.isBatchMode ? "(배치 모드)" : "(창 모드)");
+                }
                 return names.Count > 0 ? string.Join(" ", names) : "전체";
             }
         }

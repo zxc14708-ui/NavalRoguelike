@@ -96,6 +96,11 @@ namespace Game.Dev
                 runner.BundleDOnly = System.Array.IndexOf(args, "-bundleDOnly") >= 0;
                 runner.AviationOnly = System.Array.IndexOf(args, "-aviationOnly") >= 0;
                 runner.SeaOnly = System.Array.IndexOf(args, "-seaOnly") >= 0;
+                runner.PerfOnly = System.Array.IndexOf(args, "-perfOnly") >= 0;   // 성능 측정(O04)
+                int perfMinutes = System.Array.IndexOf(args, "-perfMinutes");
+                if (perfMinutes >= 0 && perfMinutes < args.Length - 1 &&
+                    float.TryParse(args[perfMinutes + 1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float minutes))
+                    runner.PerfMinutes = minutes;
                 int qa = System.Array.IndexOf(args, "-qaTable");   // QA 결과표(O03)
                 if (qa >= 0 && qa < args.Length - 1) runner.QaTablePath = args[qa + 1];
                 break;
