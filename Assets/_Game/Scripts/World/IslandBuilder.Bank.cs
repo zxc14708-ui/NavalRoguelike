@@ -9,6 +9,9 @@ namespace Game.World
     ///   - 단면: 물속 바위 → 해변 → (높으면) 절벽 / (낮으면) 풀 언덕 → 내륙 능선, 높이 4~14m. 섬과 같은 재질·각진 면
     ///   - 판정: 8m마다 상자 콜라이더(Terrain 레이어) — 사선 가림·좌초·적 회피·스폰 판정이 섬과 똑같이 동작한다
     ///   - 해안 파도 거품 띠, 낮은 언덕에는 나무, 물가에는 바위
+    /// 2026-10-13 점검 G06(각진 느낌 다듬기): 해변 띠는 늘 모래, 그 위는 삼각형마다 실제 경사로 절벽/풀을 정하고(경계가 지형을 따라
+    /// 톱니처럼 — 예전엔 4m 칸마다 사각형으로 바뀌어 체크무늬·계단이 보였다), 내륙 열을 늘려 낮은 구릉을 넣고, 열 위치를 조금씩
+    /// 흔들어 줄이 곧지 않게 했다. 해안선·판정 상자·거품은 그대로(경계·사선 가림 동작 같음). 나무는 같은 높이 함수에 앉는다.
     /// 섬처럼 Islands에 등록한다(레이더·섬 간격 판정). 중심은 기슭 안쪽 30m, 반경 30m로 둔다 — 물길 안 바위섬이 기슭에 붙지 않게.
     /// </summary>
     public static partial class IslandBuilder
@@ -44,7 +47,40 @@ namespace Game.World
             return Mathf.Lerp(h * 1.05f, h * 0.9f, Mathf.Clamp01((u - 45f) / (BankDepth - 45f)));
         }
 
-        private static readonly float[] BankColumns = { -3f, 0f, 2.5f, 8f, 20f, 45f, BankDepth };
+        private static readonly float[] BankColumns = { -3f, 0f, 2.5f, 8f, 14f, 20f, 32f, 45f, 65f, BankDepth };
+
+        /// <summary>
+        /// 기슭 표면 한 점(기슭 루트 좌표): 단면 표(BankGround)에 열 위치 흔들기와 내륙 구릉을 더한다.
+        /// 물길 축 거리(along)로만 정해져 이웃 구간과 꼭짓점이 그대로 이어진다. 물가(u ≤ 0)는 흔들지 않는다 — 해안선·거품과 맞춤.
+        /// </summary>
+        private static Vector3 BankSurface(float along, float localZ, float u, int side, int seed, float shore, float h)
+        {
+            float uu = u;
+            if (u > 0.5f && u < BankDepth - 0.5f)
+                uu += (Mathf.PerlinNoise(along * 0.13f + u * 0.07f, seed % 89 + side * 3.3f) - 0.5f) * Mathf.Min(4f, u * 0.25f);
+            float y = BankGround(uu, h);
+            if (uu > 10f)
+                y += (Mathf.PerlinNoise(along * 0.045f + seed % 37, uu * 0.05f + side * 7.7f) - 0.5f) * Mathf.Min(1f, (uu - 10f) / 15f) * h * 0.5f;
+            return new Vector3(side * (shore + uu), y, localZ);
+        }
+
+        private const float CliffSlope = 0.8f;   // 칸 법선의 위 성분이 이보다 작으면(약 37° 넘게 가파르면) 절벽
+
+        /// <summary>물길 축 거리 cellAlong에서 시작하는 칸(BankStep 길이)의 c번째 열이 절벽인가. 이웃 구간 칸도 같은 답(축 거리로만 정함).</summary>
+        private static bool BankCliff(float cellAlong, int c, int side, int seed)
+        {
+            float a0 = cellAlong, a1 = cellAlong + BankStep;
+            float s0 = BankShore(a0, side, seed), s1 = BankShore(a1, side, seed);
+            float h0 = BankHeight(a0, side, seed), h1 = BankHeight(a1, side, seed);
+            Vector3 a = BankSurface(a0, 0f, BankColumns[c], side, seed, s0, h0);
+            Vector3 b = BankSurface(a0, 0f, BankColumns[c + 1], side, seed, s0, h0);
+            Vector3 d = BankSurface(a1, BankStep, BankColumns[c], side, seed, s1, h1);
+            Vector3 e = BankSurface(a1, BankStep, BankColumns[c + 1], side, seed, s1, h1);
+            var n = Vector3.Cross(e - a, d - b);
+            if (n.y < 0f) n = -n;
+            float wobble = (Mathf.PerlinNoise((cellAlong + BankStep * 0.5f) * 0.05f + c * 0.9f, side * 4.3f + seed % 53) - 0.5f) * 0.2f;
+            return n.normalized.y < CliffSlope + wobble;
+        }
 
         public static IslandInfo BuildBank(int index, int side, int seed, Transform parent)
         {
@@ -71,11 +107,7 @@ namespace Game.World
             // ---- 지형 메시(재질별 부분 메시: 0 물속 바위, 1 해변, 2 절벽, 3 풀)
             var verts = new List<Vector3>();
             var subs = new[] { new List<int>(), new List<int>(), new List<int>(), new List<int>() };
-            Vector3 P(int k, int c)
-            {
-                float u = BankColumns[c];
-                return new Vector3(side * (shore[k] + u), BankGround(u, height[k]), k * BankStep);
-            }
+            Vector3 P(int k, int c) => BankSurface(along0 + k * BankStep, k * BankStep, BankColumns[c], side, seed, shore[k], height[k]);
             Vector3 expected = new Vector3(-side, 1.2f, 0f).normalized;   // 물길 쪽·위를 향한 면이 보인다
             void Tri(int sub, Vector3 a, Vector3 b, Vector3 c)
             {
@@ -86,16 +118,20 @@ namespace Game.World
             }
             for (int k = 0; k < samples - 1; k++)
             {
-                float avgH = (height[k] + height[k + 1]) * 0.5f;
                 for (int c = 0; c < BankColumns.Length - 1; c++)
                 {
-                    // 절벽/풀 경계가 일직선이 되지 않게 칸마다 ±2.5m 흔든다(구간 경계에서도 이어지게 축 거리로 정함)
-                    float jitter = (Mathf.PerlinNoise((along0 + k * BankStep) * 0.23f + c * 3.7f, side * 5.1f + seed % 211) - 0.5f) * 5f;
-                    bool cliff = avgH + jitter > 9f;
-                    int sub = c == 0 ? 0 : c == 1 ? (cliff ? 0 : 1) : c == 2 ? 2 : c == 3 ? (cliff ? 2 : 3) : 3;
+                    // 물속 바위 · 해변 모래 · 그 위는 칸의 평균 경사로 절벽/풀. 절벽 띠의 앞뒤 끝 칸은 대각선으로 반만 절벽(모서리를 깎음)
                     Vector3 a = P(k, c), b = P(k, c + 1), d = P(k + 1, c), e = P(k + 1, c + 1);
-                    Tri(sub, a, b, e);
-                    Tri(sub, a, e, d);
+                    int near = c == 0 ? 0 : c == 1 ? 1 : 3, far = near;
+                    if (c >= 2 && BankCliff(along0 + k * BankStep, c, side, seed))
+                    {
+                        bool before = BankCliff(along0 + (k - 1) * BankStep, c, side, seed);
+                        bool after = BankCliff(along0 + (k + 1) * BankStep, c, side, seed);
+                        near = before || !after ? 2 : 3;   // (a,b,e): 이 칸의 앞쪽(k) 변
+                        far = after || !before ? 2 : 3;    // (a,e,d): 뒤쪽(k+1) 변
+                    }
+                    Tri(near, a, b, e);
+                    Tri(far, a, e, d);
                 }
             }
             var mesh = new Mesh { name = "Strait bank" };
@@ -152,7 +188,8 @@ namespace Game.World
                 {
                     float u = Range(rng, 12f, 40f);
                     float z = (k + (float)rng.NextDouble()) * BankStep;
-                    AddTree(root.transform, new Vector3(side * (shore[k] + u), BankGround(u, height[k]) - 0.3f, z), rng);
+                    var spot = BankSurface(along0 + z, z, u, side, seed, shore[k], height[k]);
+                    AddTree(root.transform, spot + Vector3.down * 0.3f, rng);
                 }
                 if (rng.NextDouble() < 0.18)
                     AddRock(root.transform, new Vector3(side * (shore[k] + Range(rng, -0.5f, 2f)), 0f, (k + 0.5f) * BankStep),

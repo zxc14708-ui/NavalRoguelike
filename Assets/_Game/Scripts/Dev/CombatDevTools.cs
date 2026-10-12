@@ -97,6 +97,7 @@ namespace Game.Dev
                 runner.AviationOnly = System.Array.IndexOf(args, "-aviationOnly") >= 0;
                 runner.SeaOnly = System.Array.IndexOf(args, "-seaOnly") >= 0;
                 runner.PerfOnly = System.Array.IndexOf(args, "-perfOnly") >= 0;   // 성능 측정(O04)
+                runner.ArtOnly = System.Array.IndexOf(args, "-artOnly") >= 0;   // 시각 규칙 점검(G06)
                 int perfMinutes = System.Array.IndexOf(args, "-perfMinutes");
                 if (perfMinutes >= 0 && perfMinutes < args.Length - 1 &&
                     float.TryParse(args[perfMinutes + 1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float minutes))

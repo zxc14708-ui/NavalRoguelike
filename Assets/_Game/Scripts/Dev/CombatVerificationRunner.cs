@@ -163,6 +163,12 @@ namespace Game.Dev
             CombatDevTools.Instance?.SetOverlay(true);
             yield return new WaitForSeconds(2f);             // 카메라가 자리 잡을 시간
 
+            if (ArtOnly)
+            {
+                yield return ArtCheck();   // 시각 규칙 점검(G06)
+                Finish();
+                yield break;
+            }
             if (SpecOnly)
             {
                 yield return SpecTests();
