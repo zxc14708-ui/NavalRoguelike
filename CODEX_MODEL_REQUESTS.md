@@ -1,5 +1,8 @@
 # Codex 모델링 요청 — 해안포대 · 보급선 (점검 G06)
 
+> **2026-10-13 적용 완료**: 해안포대 `ArtSource/CoastalBatteryAngular_v27`, 보급선 `ArtSource/SupplyShipAngular_v28`(메뉴 `Naval/Art/Apply Coastal Battery v27 · Supply Ship v28`). v25·v26은 이전 시안으로 남겨 둠. 보급선은 갑판 위 아군 표식이 아직 없다 — 필요하면 다음 시안에서.
+> 다음 시안에서 고칠 것: **v27 해안포대 포신(`TaperedGunTube`, 0.76~2.46m)과 포구(`OpenMuzzle` 바깥 벽 2.71m~) 사이 25cm 틈** — 지금은 빌더가 포신을 늘려 메운다.
+
 작성 2026-10-13 · Claude. 게임에 들어가 있지만 **기본 도형으로 임시로 지은 것** 두 가지의 실제 모델을 요청한다.
 코드·데이터 연결은 Claude가 한다. Codex는 **모델(FBX)·비교 이미지**까지만.
 

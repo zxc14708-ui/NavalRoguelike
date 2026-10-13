@@ -97,7 +97,7 @@ namespace Game.EditorTools
 
         // ------------------------------------------------------------ 임포트
 
-        private static void ImportAndRemap(string path)
+        internal static void ImportAndRemap(string path)
         {
             var importer = AssetImporter.GetAtPath(path) as ModelImporter;
             if (importer == null) { Debug.LogError($"[Player Aviation] 모델 없음: {path}"); return; }
@@ -153,7 +153,7 @@ namespace Game.EditorTools
         /// 모델을 피벗 아래에 붙이고, 위(top 노드가 bottom 노드보다 위)·앞(front가 origin보다 +Z, 90° 단위)을 맞춘 뒤
         /// 배율을 곱하고 바닥을 부모 원점 높이에 둔다. 모델 자체 트랜스폼은 건드리지 않는다.
         /// </summary>
-        private static Transform Mount(GameObject asset, Transform parent, string pivotName, float scale,
+        internal static Transform Mount(GameObject asset, Transform parent, string pivotName, float scale,
                                        string top, string bottom, string front, string frontOrigin, bool groundAtZero = true)
         {
             var pivot = new GameObject(pivotName).transform;
@@ -460,7 +460,7 @@ namespace Game.EditorTools
 
         // ------------------------------------------------------------ 도우미
 
-        private static Transform Deep(Transform root, string name)
+        internal static Transform Deep(Transform root, string name)
         {
             if (root == null || string.IsNullOrEmpty(name)) return null;
             if (root.name == name) return root;

@@ -478,10 +478,20 @@ namespace Game.TaskForce
                 ship._hull.center = new Vector3(0f, 1f, 0f) * VisualScale;
                 ship._visual = BuildModel(root.transform);
                 ship._visual.localScale = Vector3.one * VisualScale;
+                // 모델의 설계 수면선(Waterline 점 — 붉은 선저 도장이 시작하는 높이)을 실제 수면에 맞춘다
+                var waterline = FindDeep(ship._visual, "Waterline");
+                if (waterline != null) ship._visual.position += Vector3.up * (root.transform.position.y + Waterline.WaterY - waterline.position.y);
                 Game.View.ShipWake.Ensure(root, () => GameManager.Instance != null && GameManager.Instance.State == GameState.Playing ? 1f : 0f);
                 root.SetActive(true);
                 Waterline.Settle(root.transform, ship._visual);   // 수면선(점검 G06)
                 return ship;
+            }
+
+            private static Transform FindDeep(Transform t, string name)
+            {
+                if (t.name == name) return t;
+                foreach (Transform c in t) { var f = FindDeep(c, name); if (f != null) return f; }
+                return null;
             }
 
             public void SetRoute(List<Vector3> route) { _route = route; _index = Mathf.Min(1, route.Count); }
@@ -586,9 +596,20 @@ namespace Game.TaskForce
                 transform.SetPositionAndRotation(p, rot);
             }
 
-            /// <summary>회색박스 화물선: 붉은 선체, 흰 선교(뒤쪽), 갑판의 컨테이너 줄.</summary>
+            /// <summary>
+            /// Codex 보급선 모델(`Resources/TaskForce/SupplyShip`, 2026-10-13 v28 회색 함대 보급함 — 길이 15.5m, 원점 = 수면선)을 붙인다.
+            /// 없으면 회색박스 화물선(붉은 선체, 흰 선교, 갑판의 컨테이너 줄).
+            /// </summary>
             private static Transform BuildModel(Transform root)
             {
+                var art = Resources.Load<GameObject>("TaskForce/SupplyShip");
+                if (art != null)
+                {
+                    var model = Instantiate(art, root, false).transform;
+                    model.name = "Supply visual";
+                    foreach (var t in model.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = root.gameObject.layer;
+                    return model;
+                }
                 var visual = new GameObject("Supply visual").transform;
                 visual.SetParent(root, false);
                 Box(visual, "Hull", new Vector3(0f, 0.2f, 0f), new Vector3(4.2f, 2.2f, 15.5f), new Color(0.42f, 0.13f, 0.1f));
