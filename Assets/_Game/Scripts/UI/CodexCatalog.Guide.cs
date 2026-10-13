@@ -284,7 +284,7 @@ namespace Game.UI
             sb.AppendLine($"<color={Muted}>보스를 격침하면 보상 카드 → 다음 해역으로 갈 항로를 고른다.</color>").AppendLine();
             Row(sb, "<b>보급 항로</b>", "선체 40 수리 · 적 편성 기본");
             Row(sb, "<b>위험 항로</b>", "적 등장·동시 수 +25% · 격침 경험치 +25%");
-            Row(sb, "<b>임무 항로</b>", $"보급선 {Game.TaskForce.SupplyEscortMission.Duration:0}초 호위 — 성공: 선체 완전 수리 · 다시 뽑기 +1 · 정비 1회 / 실패: 보상 없음");
+            Row(sb, "<b>임무 항로</b>", $"앞쪽에서 기다리는 보급선과 합류해 도착지까지 약 {Game.TaskForce.SupplyEscortMission.RouteLength:0}m 호위(수면의 금색 항로) — 성공: 선체 완전 수리 · 다시 뽑기 +1 · 정비 1회 / 실패(보급선 격침, 또는 {Game.TaskForce.SupplyEscortMission.EscortRange:0}m 넘게 {Game.TaskForce.SupplyEscortMission.LeashTime:0}초 이탈): 보상 없음");
             yield return Term("term_route", "항로 선택", "진행", CodexRole.Support, sb.ToString().TrimEnd());
 
             // 해역 차별화(점검 K04): 스테이지마다 해역이 정해져 있다

@@ -203,12 +203,29 @@ namespace Game.Dev
                 Game.Refit.RefitDraft.SetRerolls(1);
                 ship.ApplyHullDamage(ship.HullMaxHp * 0.4f, "검증");
                 int levelBefore = xp.Level;
-                var mission = Game.TaskForce.SupplyEscortMission.Begin(ship, xp, 8f, 0.5f);
+                // 보급선 호위(2026-10-13 개편): 앞쪽에서 기다림 → 합류하면 정해진 항로로 출발 → 도착지에 닿으면 성공
+                var rb = ship.GetComponent<Rigidbody>();
+                ship.SetEngineOrder(0f);
+                ship.DevRudderOverride = 0f;
+                void Warp(Vector3 p) { p.y = ship.transform.position.y; if (rb != null) rb.position = p; ship.transform.position = p; }
+                var mission = Game.TaskForce.SupplyEscortMission.Begin(ship, xp, 160f, 0.5f);
                 float t0 = Time.realtimeSinceStartup;
-                while (mission != null && mission.State != Game.TaskForce.SupplyEscortMission.Outcome.Running && Time.realtimeSinceStartup - t0 < 5f) yield return null;
+                while (mission != null && mission.State != Game.TaskForce.SupplyEscortMission.Outcome.Waiting && Time.realtimeSinceStartup - t0 < 5f) yield return null;
                 var supply = mission != null ? mission.Ship : null;
                 bool spawned = supply != null && supply.IsAlive;
                 bool registered = spawned && System.Linq.Enumerable.Contains(Game.Combat.TargetRegistry.Of(Game.Combat.CombatFaction.Player, Game.Combat.TargetKind.Surface), supply);
+                float staging = mission != null ? mission.DistanceToFlagship : 0f;
+                float routeLen = 0f;
+                if (mission != null) for (int i = 0; i + 1 < mission.Route.Count; i++) routeLen += Vector3.Distance(mission.Route[i], mission.Route[i + 1]);
+                bool marks = GameObject.Find("Supply route") != null && GameObject.Find("Supply join line") != null && GameObject.Find("Supply destination beacon") != null;
+                Vector3 waitPos = spawned ? supply.transform.position : Vector3.zero;
+                yield return new WaitForSeconds(1f);
+                bool held = spawned && Vector3.Distance(waitPos, supply.transform.position) < 0.5f && mission.State == Game.TaskForce.SupplyEscortMission.Outcome.Waiting;
+                string waitingText = mission != null ? Strip(mission.PanelText) : "";
+                _report.AppendLine($"- 보급선 대기: 나옴 {Yes(spawned)} · 아군 표적 {Yes(registered)} · 기함 앞 {staging:0}m · 항로 {mission?.Route.Count}점 {routeLen:0}m · 합류 전 제자리 {Yes(held)} · 항로·합류선·도착지 표시 {Yes(marks)} · \"{waitingText}\"");
+                if (!spawned || !registered) Fail("보급선이 나오지 않거나 아군 표적이 아님(K03)");
+                if (staging < 110f || staging > 190f) Fail("보급선이 기함 앞쪽 150m 근처에서 기다리지 않음(K03 개편)");
+                if (routeLen < 120f || routeLen > 260f || !held || !marks) Fail("보급선 항로·대기·표시가 맞지 않음(K03 개편)");
 
                 // 적이 보급선을 노리는지: 보급선 옆에 고속정 셋
                 int aiming = 0;
@@ -220,7 +237,6 @@ namespace Game.Dev
                         var e = EnemySpawner.Instance.SpawnAt(def, supply.transform.position + Quaternion.Euler(0f, i * 120f, 0f) * Vector3.forward * 12f, Quaternion.identity);
                         if (e != null) e.DevFrozen = false;
                     }
-                    // 적은 0.4~1.4초 뒤 처음 표적을 다시 고른다
                     float tAim = Time.realtimeSinceStartup;
                     while (Time.realtimeSinceStartup - tAim < 2.5f)
                     {
@@ -233,15 +249,23 @@ namespace Game.Dev
                     yield return ScreenShot("bundled_supply");
                     CombatDevTools.ClearBattlefield();
                 }
-                _report.AppendLine($"- 보급선: 합류 {Yes(spawned)} · 아군 표적 등록 {Yes(registered)} · 옆의 고속정 3척 중 보급선을 노림 {aiming}");
-                if (!spawned || !registered) Fail("보급선이 나오지 않거나 아군 표적이 아님(K03)");
+                _report.AppendLine($"- 옆의 고속정 3척 중 보급선을 노림 {aiming}");
                 if (aiming == 0) Fail("적이 보급선을 노리지 않음(K03)");
 
-                float followMax = 0f;
+                // 합류 → 출발 → 기함이 옆에 붙어 가면 도착
+                if (spawned) Warp(supply.transform.position - supply.transform.right * 25f);
                 t0 = Time.realtimeSinceStartup;
-                while (mission != null && mission.State == Game.TaskForce.SupplyEscortMission.Outcome.Running && Time.realtimeSinceStartup - t0 < 15f)
+                while (mission != null && mission.State == Game.TaskForce.SupplyEscortMission.Outcome.Waiting && Time.realtimeSinceStartup - t0 < 3f) yield return null;
+                bool departed = mission != null && mission.State == Game.TaskForce.SupplyEscortMission.Outcome.Running;
+                float startRemain = mission != null ? mission.RemainingDistance : 0f;
+                string runningText = "";
+                bool escortShot = false;
+                t0 = Time.realtimeSinceStartup;
+                while (mission != null && mission.State == Game.TaskForce.SupplyEscortMission.Outcome.Running && Time.realtimeSinceStartup - t0 < 40f)
                 {
-                    if (supply != null) followMax = Mathf.Max(followMax, Vector3.Distance(supply.transform.position, ship.transform.position));
+                    if (supply != null) Warp(supply.transform.position - supply.transform.right * 25f);
+                    if (runningText == "") runningText = Strip(mission.PanelText);
+                    if (!escortShot && Time.realtimeSinceStartup - t0 > 3f) { escortShot = true; yield return ScreenShot("bundled_supply_escort"); }
                     yield return null;
                 }
                 float tRefit = Time.realtimeSinceStartup;
@@ -252,26 +276,50 @@ namespace Game.Dev
                 bool repaired = Mathf.Approximately(ship.HullHp, ship.HullMaxHp);
                 bool reroll = Game.Refit.RefitDraft.RerollsLeft == 2;
                 bool leveled = xp.Level > levelBefore;
-                _report.AppendLine($"- 임무 성공(8초 단축): {Yes(ok)} · 따라온 최대 거리 {followMax:0}m · 완전 수리 {Yes(repaired)} · 다시 뽑기 +1 {Yes(reroll)} · 정비 1회(레벨 {levelBefore}→{xp.Level}{(refitOpened ? ", 정비 열림" : " — 검사 환경은 StageDirector를 꺼 둬서 정비 화면은 실제 판에서 열림")}) · 도전 과제 {Yes(PlayerProfile.Has("supply"))}");
-                if (!ok || !repaired || !reroll || !leveled) Fail("보급선 호위 성공 보상이 맞지 않음(K03)");
-                if (followMax > 90f) Fail("보급선이 기함을 따라오지 않음(K03)");
+                _report.AppendLine($"- 합류하면 출발 {Yes(departed)} · 남은 항로 {startRemain:0}m → 도착 {Yes(ok)} · \"{runningText}\"");
+                _report.AppendLine($"- 도착 보상: 완전 수리 {Yes(repaired)} · 다시 뽑기 +1 {Yes(reroll)} · 정비 1회(레벨 {levelBefore}→{xp.Level}{(refitOpened ? ", 정비 열림" : " — 검사 환경은 StageDirector를 꺼 둬서 정비 화면은 실제 판에서 열림")}) · 도전 과제 {Yes(PlayerProfile.Has("supply"))}");
+                if (!departed) Fail("합류해도 보급선이 출발하지 않음(K03 개편)");
+                if (!ok || !repaired || !reroll || !leveled) Fail("보급선이 도착지에 닿지 않거나 보상이 맞지 않음(K03)");
 
-                // 실패 경로: 보급선 격침 → 보상 없음
+                // 실패 1: 호위 이탈 — 출발 뒤 기함이 150m 넘게 10초
                 ship.ApplyHullDamage(ship.HullMaxHp * 0.3f, "검증");
                 float hullBefore = ship.HullHp;
                 int rerollBefore = Game.Refit.RefitDraft.RerollsLeft;
-                var failing = Game.TaskForce.SupplyEscortMission.Begin(ship, xp, 30f, 0.2f);
+                var leash = Game.TaskForce.SupplyEscortMission.Begin(ship, xp, 600f, 0.2f);
                 t0 = Time.realtimeSinceStartup;
-                while (failing != null && failing.State != Game.TaskForce.SupplyEscortMission.Outcome.Running && Time.realtimeSinceStartup - t0 < 5f) yield return null;
+                while (leash != null && leash.State != Game.TaskForce.SupplyEscortMission.Outcome.Waiting && Time.realtimeSinceStartup - t0 < 5f) yield return null;
+                if (leash != null && leash.Ship != null) Warp(leash.Ship.transform.position - leash.Ship.transform.right * 25f);
+                t0 = Time.realtimeSinceStartup;
+                while (leash != null && leash.State == Game.TaskForce.SupplyEscortMission.Outcome.Waiting && Time.realtimeSinceStartup - t0 < 3f) yield return null;
+                string warnText = "";
+                bool rangeRing = false;
+                t0 = Time.realtimeSinceStartup;
+                while (leash != null && leash.State == Game.TaskForce.SupplyEscortMission.Outcome.Running && Time.realtimeSinceStartup - t0 < 15f)
+                {
+                    if (leash.Ship != null) Warp(leash.Ship.transform.position - leash.Ship.transform.right * 230f);
+                    if (warnText == "" && leash.DistanceToFlagship > 160f) { yield return null; warnText = Strip(leash.PanelText); var ring = GameObject.Find("Supply escort range"); rangeRing = ring != null && ring.GetComponent<LineRenderer>().enabled; }
+                    yield return null;
+                }
+                bool leashed = Game.TaskForce.SupplyEscortMission.LastOutcome == Game.TaskForce.SupplyEscortMission.Outcome.Failed && Game.TaskForce.SupplyEscortMission.LastFailReason == "이탈";
+                bool noReward = Mathf.Approximately(ship.HullHp, hullBefore) && Game.Refit.RefitDraft.RerollsLeft == rerollBefore;
+                _report.AppendLine($"- 호위 이탈(230m 떨어짐): 실패 {Yes(leashed)} · 경고 \"{warnText}\" · 호위 범위 원 {Yes(rangeRing)} · 보상 없음 {Yes(noReward)}");
+                if (!leashed || !noReward || !warnText.Contains("이탈")) Fail("보급선에서 멀리 떨어져도 임무가 실패하지 않거나 경고가 없음(K03 개편)");
+
+                // 실패 2: 보급선 격침 → 보상 없음
+                Warp(ship.transform.position);
+                var failing = Game.TaskForce.SupplyEscortMission.Begin(ship, xp, 300f, 0.2f);
+                t0 = Time.realtimeSinceStartup;
+                while (failing != null && failing.State != Game.TaskForce.SupplyEscortMission.Outcome.Waiting && Time.realtimeSinceStartup - t0 < 5f) yield return null;
                 if (failing != null && failing.Ship != null)
                     failing.Ship.TakeDamage(new Game.Combat.DamageInfo(9999f, failing.Ship.transform.position, Vector3.forward, Game.Combat.DamageSource.Missile));
                 yield return new WaitForSecondsRealtime(0.3f);
-                bool failed = Game.TaskForce.SupplyEscortMission.LastOutcome == Game.TaskForce.SupplyEscortMission.Outcome.Failed;
-                bool noReward = Mathf.Approximately(ship.HullHp, hullBefore) && Game.Refit.RefitDraft.RerollsLeft == rerollBefore;
-                bool panelGone = GameObject.Find("Supply escort panel") == null;
-                _report.AppendLine($"- 임무 실패(보급선 격침): {Yes(failed)} · 보상 없음 {Yes(noReward)} · 임무 막대 정리 {Yes(panelGone)}");
-                if (!failed || !noReward) Fail("보급선 격침 때 실패 처리·보상이 맞지 않음(K03)");
-                if (!panelGone) Fail("임무가 끝났는데 화면 막대가 남음(K03)");
+                bool failed = Game.TaskForce.SupplyEscortMission.LastOutcome == Game.TaskForce.SupplyEscortMission.Outcome.Failed && Game.TaskForce.SupplyEscortMission.LastFailReason == "격침";
+                bool noReward2 = Mathf.Approximately(ship.HullHp, hullBefore) && Game.Refit.RefitDraft.RerollsLeft == rerollBefore;
+                bool panelGone = GameObject.Find("Supply escort panel") == null && GameObject.Find("Supply route") == null;
+                _report.AppendLine($"- 임무 실패(보급선 격침): {Yes(failed)} · 보상 없음 {Yes(noReward2)} · 임무 막대·항로 표시 정리 {Yes(panelGone)}");
+                if (!failed || !noReward2) Fail("보급선 격침 때 실패 처리·보상이 맞지 않음(K03)");
+                if (!panelGone) Fail("임무가 끝났는데 화면 막대·항로 표시가 남음(K03)");
+                ship.DevRudderOverride = null;
                 ship.RepairHull(ship.HullMaxHp);
                 PlayerProfile.ResetForVerify();
             }

@@ -911,7 +911,7 @@ namespace Game.UI
             RouteButton(content, "Danger route", new Vector2(275, 30), size,
                 "[2] 위험 항로", "적 등장·동시 수 +25% · 격침 XP +25%", new Color(0.34f, 0.17f, 0.15f), () => ChooseRoute(true));
             RouteButton(content, "Mission route", new Vector2(538, 30), size,
-                "[3] 임무 항로", $"보급선 {Game.TaskForce.SupplyEscortMission.Duration:0}초 호위 — 성공: 완전 수리 · 다시 뽑기 +1 · 정비 1회 / 실패: 보상 없음",
+                "[3] 임무 항로", $"보급선을 도착지까지 약 {Game.TaskForce.SupplyEscortMission.RouteLength:0}m 호위 — 성공: 완전 수리 · 다시 뽑기 +1 · 정비 1회 / 실패: 보상 없음",
                 new Color(0.30f, 0.25f, 0.08f), ChooseMission);
         }
 
