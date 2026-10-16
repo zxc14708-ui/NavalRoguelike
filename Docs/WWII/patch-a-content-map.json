@@ -1,0 +1,284 @@
+{
+  "schemaVersion": 1,
+  "rulesetId": "ww2_v1",
+  "status": "design_only",
+  "runtimeEnabled": false,
+  "date": "2026-10-16",
+  "decisionMeaning": {
+    "retain": "Reuse role or infrastructure; requires WWII validation, not automatic asset reuse",
+    "redesign": "New WWII ID and behavior required",
+    "exclude": "Excluded from WWII; preserve modern source"
+  },
+  "modules": [
+    {
+      "sourceType": "Bridge",
+      "decision": "retain"
+    },
+    {
+      "sourceType": "Autocannon",
+      "decision": "redesign"
+    },
+    {
+      "sourceType": "Radar",
+      "decision": "redesign"
+    },
+    {
+      "sourceType": "Vls",
+      "decision": "exclude"
+    },
+    {
+      "sourceType": "Ciws",
+      "decision": "exclude"
+    },
+    {
+      "sourceType": "DecoyLauncher",
+      "decision": "exclude"
+    },
+    {
+      "sourceType": "Magazine",
+      "decision": "retain"
+    },
+    {
+      "sourceType": "Sonar",
+      "decision": "redesign"
+    },
+    {
+      "sourceType": "HelicopterDeck",
+      "decision": "exclude"
+    },
+    {
+      "sourceType": "RepairBay",
+      "decision": "retain"
+    },
+    {
+      "sourceType": "GuidedRocket",
+      "decision": "exclude"
+    },
+    {
+      "sourceType": "AswLauncher",
+      "decision": "redesign"
+    },
+    {
+      "sourceType": "NavalGun",
+      "decision": "redesign"
+    },
+    {
+      "sourceType": "SamLauncher",
+      "decision": "exclude"
+    },
+    {
+      "sourceType": "EwSuite",
+      "decision": "exclude"
+    },
+    {
+      "sourceType": "Armor",
+      "decision": "exclude"
+    },
+    {
+      "sourceType": "Generator",
+      "decision": "exclude"
+    },
+    {
+      "sourceType": "FleetRelay",
+      "decision": "redesign"
+    },
+    {
+      "sourceType": "TurboIntake",
+      "decision": "redesign"
+    },
+    {
+      "sourceType": "FireControlArray",
+      "decision": "redesign"
+    },
+    {
+      "sourceType": "MissileLogistics",
+      "decision": "exclude"
+    },
+    {
+      "sourceType": "TorpedoTube",
+      "decision": "redesign"
+    },
+    {
+      "sourceType": "Howitzer",
+      "decision": "redesign"
+    },
+    {
+      "sourceType": "RamBow",
+      "decision": "exclude"
+    },
+    {
+      "sourceType": "MineRail",
+      "decision": "retain"
+    },
+    {
+      "sourceType": "Nobong",
+      "decision": "redesign"
+    }
+  ],
+  "enemies": [
+    {
+      "sourceId": "ene_ew_corvette",
+      "decision": "exclude",
+      "targetRole": "none"
+    },
+    {
+      "sourceId": "ene_usv",
+      "decision": "redesign",
+      "targetRole": "crewed_patrol_boat"
+    },
+    {
+      "sourceId": "ene_drone",
+      "decision": "exclude",
+      "targetRole": "none"
+    },
+    {
+      "sourceId": "ene_torpedo_boat",
+      "decision": "redesign",
+      "targetRole": "straight_torpedo_boat"
+    },
+    {
+      "sourceId": "ene_coastal_battery",
+      "decision": "retain",
+      "targetRole": "coastal_gun"
+    },
+    {
+      "sourceId": "ene_suicide_boat",
+      "decision": "exclude",
+      "targetRole": "none"
+    },
+    {
+      "sourceId": "ene_cruise_submarine",
+      "decision": "exclude",
+      "targetRole": "none"
+    },
+    {
+      "sourceId": "ene_submarine",
+      "decision": "redesign",
+      "targetRole": "submarine_contact_cycle"
+    },
+    {
+      "sourceId": "ene_boss_corvette",
+      "decision": "redesign",
+      "targetRole": "gunnery_boss"
+    },
+    {
+      "sourceId": "ene_sea_mine",
+      "decision": "retain",
+      "targetRole": "sea_mine"
+    },
+    {
+      "sourceId": "ene_artillery_boat",
+      "decision": "redesign",
+      "targetRole": "gunboat"
+    },
+    {
+      "sourceId": "ene_boss",
+      "decision": "redesign",
+      "targetRole": "boss_role_review"
+    },
+    {
+      "sourceId": "ene_boss2",
+      "decision": "redesign",
+      "targetRole": "boss_role_review"
+    },
+    {
+      "sourceId": "ene_missileboat",
+      "decision": "exclude",
+      "targetRole": "none"
+    },
+    {
+      "sourceId": "ene_repair_boat",
+      "decision": "retain",
+      "targetRole": "repair_boat"
+    },
+    {
+      "sourceId": "ene_attack_submarine",
+      "decision": "redesign",
+      "targetRole": "submarine_contact_cycle"
+    },
+    {
+      "sourceId": "ene_armored_boat",
+      "decision": "redesign",
+      "targetRole": "armored_gunboat"
+    },
+    {
+      "sourceId": "ene_minelayer",
+      "decision": "retain",
+      "targetRole": "minelayer"
+    },
+    {
+      "sourceId": "ene_recon",
+      "decision": "redesign",
+      "targetRole": "prop_recon_plane"
+    },
+    {
+      "sourceId": "ene_aa_frigate",
+      "decision": "redesign",
+      "targetRole": "aa_gun_escort"
+    },
+    {
+      "sourceId": "ene_fighter",
+      "decision": "redesign",
+      "targetRole": "prop_fighter"
+    },
+    {
+      "sourceId": "ene_fastboat",
+      "decision": "redesign",
+      "targetRole": "fast_gunboat"
+    },
+    {
+      "sourceId": "ene_pcc_corvette",
+      "decision": "redesign",
+      "targetRole": "gun_escort"
+    }
+  ],
+  "escortRoles": [
+    {
+      "sourceRole": "AirDefense",
+      "decision": "redesign",
+      "targetRole": "aa_gun_escort"
+    },
+    {
+      "sourceRole": "AntiSubmarine",
+      "decision": "redesign",
+      "targetRole": "sonar_depth_charge_escort"
+    },
+    {
+      "sourceRole": "SurfaceStrike",
+      "decision": "redesign",
+      "targetRole": "gun_torpedo_escort"
+    },
+    {
+      "sourceRole": "ElectronicWarfare",
+      "decision": "exclude",
+      "targetRole": "none"
+    }
+  ],
+  "missions": [
+    {
+      "sourceId": "supply_escort",
+      "decision": "retain",
+      "targetRole": "supply_convoy"
+    }
+  ],
+  "profileSave": {
+    "modern": "naval_profile.json",
+    "ww2": "naval_profile_ww2_v1.json"
+  },
+  "reviewSupplement": "WWII_PATCH_A_DESIGN.md#9",
+  "newContent": [
+    "ww2_hull_destroyer",
+    "ww2_hull_cruiser",
+    "ww2_hull_battleship",
+    "ww2_hull_carrier",
+    "ww2_mod_dual_purpose_gun",
+    "ww2_mod_quad_aa",
+    "ww2_mod_broadside_torpedo",
+    "ww2_mod_depth_charge_rack",
+    "ww2_mod_depth_charge_thrower",
+    "ww2_enemy_torpedo_bomber",
+    "ww2_enemy_dive_bomber"
+  ],
+  "runtimeImplementationPatch": "B",
+  "designDocument": "../../WWII_PATCH_A_DESIGN.md"
+}
