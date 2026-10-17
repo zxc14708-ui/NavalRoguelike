@@ -50,6 +50,7 @@ namespace Game.WW2
         private Coroutine _salvo;
         private int _secondaryIndex;
         private Quaternion[] _turretRest;
+        private Vector3[] _turretRestDir;   // 쉬는 자세의 포신 방향(포탑 부모 공간, 수평) — 모델 포탑의 로컬 축을 믿지 않는다
 
         public bool Phase2 => HpFraction <= 0.5f;
         public int SalvosFired { get; private set; }
@@ -71,7 +72,13 @@ namespace Game.WW2
             if (_turretRest == null || _turretRest.Length != turrets.Length)
             {
                 _turretRest = new Quaternion[turrets.Length];
-                for (int i = 0; i < turrets.Length; i++) _turretRest[i] = turrets[i] != null ? turrets[i].localRotation : Quaternion.identity;
+                _turretRestDir = new Vector3[turrets.Length];
+                for (int i = 0; i < turrets.Length; i++)
+                {
+                    var t = turrets[i];
+                    _turretRest[i] = t != null ? t.localRotation : Quaternion.identity;
+                    _turretRestDir[i] = RestDirection(t);
+                }
             }
             else for (int i = 0; i < turrets.Length; i++) if (turrets[i] != null) turrets[i].localRotation = _turretRest[i];
         }
@@ -98,6 +105,22 @@ namespace Game.WW2
             _salvo = StartCoroutine(Salvo(predicted, Phase2));
         }
 
+        /// <summary>포탑 아래 포구가 있으면 "포탑 → 포구"(부모 공간, 수평), 없으면 로컬 +Z.</summary>
+        private Vector3 RestDirection(Transform turret)
+        {
+            if (turret == null || turret.parent == null) return Vector3.forward;
+            foreach (var m in muzzles)
+                if (m != null && m.IsChildOf(turret))
+                {
+                    Vector3 d = turret.parent.InverseTransformDirection(m.position - turret.position);
+                    d.y = 0f;
+                    if (d.sqrMagnitude > 1e-4f) return d.normalized;
+                }
+            Vector3 f = turret.localRotation * Vector3.forward;
+            f.y = 0f;
+            return f.sqrMagnitude > 1e-4f ? f.normalized : Vector3.forward;
+        }
+
         /// <summary>착탄 시각에 기함이 있을 곳 — 지금 속력·선회를 유지한다고 본다(Ww2Aim).</summary>
         private Vector3 Predicted(float seconds) => Ww2Aim.Predict(Player, _playerShip, seconds);
 
@@ -112,7 +135,7 @@ namespace Game.WW2
                 Vector3 local = t.parent.InverseTransformPoint(point) - t.localPosition;
                 local.y = 0f;
                 if (local.sqrMagnitude < 0.01f) continue;
-                Vector3 rest = _turretRest[i] * Vector3.forward;
+                Vector3 rest = _turretRestDir != null && i < _turretRestDir.Length ? _turretRestDir[i] : _turretRest[i] * Vector3.forward;
                 rest.y = 0f;
                 var want = Quaternion.AngleAxis(Vector3.SignedAngle(rest, local, Vector3.up), Vector3.up) * _turretRest[i];
                 t.localRotation = Quaternion.RotateTowards(t.localRotation, want, turretTurnRate * dt);

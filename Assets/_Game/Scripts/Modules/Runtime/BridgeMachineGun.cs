@@ -88,6 +88,17 @@ namespace Game.Modules.Runtime
         }
 
         /// <summary>함교 렌더러 맨 위, 조금 앞쪽에 받침 → 포탑(선회) → 고각부 → 총열·포구를 만든다.</summary>
+        private static Transform FindSocket(Transform root, string name)
+        {
+            if (root.name == name) return root;
+            for (int i = 0; i < root.childCount; i++)
+            {
+                var f = FindSocket(root.GetChild(i), name);
+                if (f != null) return f;
+            }
+            return null;
+        }
+
         private void BuildMount(Transform bridge)
         {
             var renderers = bridge.GetComponentsInChildren<Renderer>(true);
@@ -103,6 +114,9 @@ namespace Game.Modules.Runtime
 
             Vector3 fwd = bridge.forward; fwd.y = 0f; fwd.Normalize();
             Vector3 top = new Vector3(bounds.center.x, bounds.max.y, bounds.center.z) + fwd * Mathf.Min(1.2f, bounds.extents.magnitude * 0.25f);
+            // 모델에 기관총 자리(BridgeGunMount — Codex WWII 함교 v30)가 있으면 그 자리에(마스트 꼭대기로 올라가지 않게)
+            var socket = FindSocket(bridge, "BridgeGunMount");
+            if (socket != null) top = socket.position;
             _mount = new GameObject("BridgeMG").transform;
             _mount.SetParent(bridge, true);
             _mount.position = top;

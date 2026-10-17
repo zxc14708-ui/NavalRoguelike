@@ -78,6 +78,7 @@ namespace Game.Dev
             if (ship.Grid.Modules.Any(m => !m.Definition.Id.StartsWith("ww2_"))) Fail("WWII 구축함에 현대 블록이 있음");
             yield return new WaitForSeconds(1f);
             yield return ScreenShot("ww2_start");
+            yield return CloseShot("ww2_destroyer_close", ship.transform, 15f);   // Codex 모델 v30 조립 모습
 
             // 이제부터는 규칙 검사: 웨이브를 멈추고 함선을 튼튼하게
             director.enabled = false;
@@ -471,7 +472,10 @@ namespace Game.Dev
             if (airMode == 0) Fail("양용포가 공격해 오는 항공기로 돌리지 않음");
             CombatDevTools.ClearBattlefield();
 
-            // ---- 5) 보스
+            // ---- 5) 보스(함선을 세워 두고 — 전속이면 느린 순양함이 사거리 밖으로 떨어진다)
+            ship.SetEngineOrder(0f);
+            ship.DevRudderOverride = 0f;
+            yield return new WaitForSeconds(4f);
             off = DisableWeapons(null);
             BridgeMachineGun.DevHoldFire = true;
             fwd = ship.transform.forward; fwd.y = 0f; fwd.Normalize();
@@ -487,7 +491,23 @@ namespace Game.Dev
             }
             yield return new WaitForSeconds(0.6f);
             yield return ScreenShot("ww2_boss_salvo");
+            if (cruiser != null) yield return CloseShot("ww2_cruiser_close", cruiser.transform, 22f);
             var boss1 = cruiser as Ww2GunneryBoss;
+            if (boss1 != null)
+            {
+                var ts = Get<Transform[]>(boss1, "turrets");
+                var ms = Get<Transform[]>(boss1, "muzzles");
+                var sbT = new System.Text.StringBuilder();
+                foreach (var t in ts ?? new Transform[0])
+                {
+                    if (t == null) { sbT.Append(" null"); continue; }
+                    var mz = ms?.FirstOrDefault(m => m != null && m.IsChildOf(t));
+                    Vector3 barrel = mz != null ? mz.position - t.position : t.forward; barrel.y = 0f;
+                    Vector3 toP = ship.transform.position - t.position; toP.y = 0f;
+                    sbT.Append($" {t.name} 포신↔기함 {Vector3.Angle(barrel, toP):0}° 회전 {t.localEulerAngles:F0}");
+                }
+                _report.AppendLine($"  - 진단: 포탑 {ts?.Length ?? 0} · 포구 {ms?.Length ?? 0} ·{sbT} · 거리 {Vector3.Distance(cruiser.transform.position, ship.transform.position):0} · 남은 타이머 {boss1.NextAttack.seconds:0.0}");
+            }
             _report.AppendLine($"- 순양함: 일제 사격 {boss1?.SalvosFired ?? 0}회 · 경고 원 {markers} · 보스 막대 {Yes(bar != null && bar.Boss == cruiser)} · 단계 \"{boss1?.PhaseName}\"");
             if (boss1 == null || boss1.SalvosFired == 0 || markers == 0) Fail("순양함 주포 일제 사격에 경고 원이 없음");
             if (bar == null || bar.Boss != cruiser) Fail("보스 막대가 순양함을 잡지 않음");

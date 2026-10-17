@@ -83,3 +83,10 @@
 
 - 해안포대: `NavalCoastalBatteryBuilder`의 시각 부분을 FBX로 바꾸고 `TurretPivot`·`ElevationPivot`·`Muzzle` 연결, 판정 상자는 그대로. `-seaOnly`(포대 물가 배치·포격·격침)와 `-artOnly`로 확인.
 - 보급선: `SupplyShip.BuildModel`을 FBX 프리팹으로 바꾸고 배율 1, 판정 상자 그대로. `-bundleDOnly`(보급선 합류·표적·성공/실패)로 확인.
+
+## 5. WWII 시험 전투 (2026-10-17 — v29/v30 적용 후)
+
+v30(`ArtSource/WWII_ScaleReview_v30`) 14종을 모두 게임에 적용했다(`NavalWw2Builder.Art`). 다음 시안에서 부탁할 것:
+- **어뢰정**(`ww2_enemy_torpedo_boat`, 2차 조정에서 추가): WWII 모델이 없어 현대 경어뢰정 모델을 쓰고 있다. 소형 포함보다 조금 길고, 양현 고정 어뢰관 2기가 위에서 보이게. 소켓은 `ModelPivot`(원점 = 설계 수면선), `TurretPivot/ElevationPivot/Muzzle`(선수 기관총), `LaunchPoint_01/02`(좌·우 어뢰관 앞끝).
+- **선체**: 플레이어 구축함 선체는 블록 배치로 자동 생성(어두운 상자)이라 Codex 블록과 질감 차이가 크다. 블록 아래에 깔릴 "WWII 갑판 판재·현측 띠" 질감 또는 선체 생성 규칙 제안이 있으면 좋다(코드 쪽 작업 포함).
+- 뇌격기 편대 3기가 겹쳐 보이지 않게 기체마다 꼬리 번호·띠 색 변형(선택).

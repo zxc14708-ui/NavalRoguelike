@@ -23,7 +23,7 @@ namespace Game.EditorTools
     /// 고속정·포격함은 현대 프리팹(ENE_FastBoat·ENE_ArtilleryBoat)을 그대로 쓰고 데이터만 WWII ID로 따로 둔다.
     /// 배치 실행: -executeMethod Game.EditorTools.NavalWw2Builder.Run
     /// </summary>
-    public static class NavalWw2Builder
+    public static partial class NavalWw2Builder
     {
         private const string PrefabDir = Root + "/Prefabs/WW2";
         private const string DataDir = Root + "/Data/WW2";
@@ -47,10 +47,11 @@ namespace Game.EditorTools
             _bombWarn = CreateMaterial("ww2_bomb_warn", new Color(0.85f, 0.18f, 0.12f), 0.2f, 0.4f);
             _enemyHull = CreateMaterial("ww2_enemy_hull", new Color(0.4f, 0.41f, 0.44f), 0.1f, 0.3f);
             _enemyDeck = CreateMaterial("ww2_enemy_deck", new Color(0.3f, 0.28f, 0.25f), 0f, 0.15f);
+            ImportArt();   // Codex WWII 모델(있으면) — NavalWw2Builder.Art
 
             // --- 탄
-            var gunShell = Clone("Prefabs/Projectiles/PRJ_Gun76.prefab", "PRJ_Ww2DualGun", null);
-            var aaRound = Clone("Prefabs/Projectiles/PRJ_Autocannon.prefab", "PRJ_Ww2QuadAa", null);
+            var gunShell = Clone("Prefabs/Projectiles/PRJ_Gun76.prefab", "PRJ_Ww2DualGun", root => SkinProjectile(root, "PRJ_Ww2DualGun"));
+            var aaRound = Clone("Prefabs/Projectiles/PRJ_Autocannon.prefab", "PRJ_Ww2QuadAa", root => SkinProjectile(root, "PRJ_Ww2QuadAa"));
             var bossShellPrefab = Load<GameObject>("Prefabs/Projectiles/PRJ_BossShell.prefab");
             var enemyTorpedo = Load<GameObject>("Prefabs/Projectiles/TOR_Enemy.prefab");
             var enemyGun = Load<GameObject>("Prefabs/Projectiles/PRJ_EnemyGun.prefab");
@@ -59,7 +60,10 @@ namespace Game.EditorTools
             {
                 var shell = root.GetComponent<ArtilleryShell>();
                 Configure(shell, so => { Set(so, "warningMarker", null); Set(so, "apexHeight", 0.4f); });
+                SkinProjectile(root, "BOMB_Ww2");
             });
+            // 뇌격기 어뢰: 현대 적 어뢰(TOR_Enemy) 동작 그대로, 겉모습만 항공어뢰
+            var airTorpedo = Clone("Prefabs/Projectiles/TOR_Enemy.prefab", "TOR_Ww2Air", root => SkinProjectile(root, "TOR_Ww2Air")) ?? enemyTorpedo;
             GameObject warningMarker = null, flash = null;
             if (bossShellPrefab != null)
             {
@@ -77,7 +81,7 @@ namespace Game.EditorTools
             var bridge = BuildBridge();
 
             // --- 적
-            var torpedoBomber = BuildTorpedoBomber(enemyTorpedo);
+            var torpedoBomber = BuildTorpedoBomber(airTorpedo);
             var diveBomber = BuildDiveBomber(bomb, warningMarker);
             var cruiser = BuildCruiser(bossShellPrefab, enemyGun, flash);
 
@@ -110,9 +114,9 @@ namespace Game.EditorTools
                     s.AmmoFamily = AmmoFamily.Asw; s.MagazineCapacity = 4; s.AmmoPerShot = 1; s.AmmoReloadAmount = 0; s.AmmoReloadTime = 22f;
                 }, Eff(1f, 1f, 1f, 1f, 0f, 0f, 0f, 0f));
 
-            var eFast = EnemyDef("ww2_enemy_fast_gunboat", "소형 포함", TargetKind.Surface, Load<GameObject>("Prefabs/Enemies/ENE_FastBoat.prefab"),
+            var eFast = EnemyDef("ww2_enemy_fast_gunboat", "소형 포함", TargetKind.Surface, BuildGunboat(true) ?? Load<GameObject>("Prefabs/Enemies/ENE_FastBoat.prefab"),
                 TargetCategory.SmallSurface, EnemyRank.Normal, 1, 0, hp: 14f, speed: 11f, turn: 190f, range: 7f, damage: 3.5f, cooldown: 1.7f, xp: 1);
-            var eGunboat = EnemyDef("ww2_enemy_gunboat", "포격함", TargetKind.Surface, Load<GameObject>("Prefabs/Enemies/ENE_ArtilleryBoat.prefab"),
+            var eGunboat = EnemyDef("ww2_enemy_gunboat", "포격함", TargetKind.Surface, BuildGunboat(false) ?? Load<GameObject>("Prefabs/Enemies/ENE_ArtilleryBoat.prefab"),
                 TargetCategory.MediumSurface, EnemyRank.Normal, 3, 2, hp: 42f, speed: 6f, turn: 70f, range: 38f, damage: 10f, cooldown: 9f, xp: 4);
             // 2026-10-17 플레이 피드백: 뇌격기 3기 편대 · 급강하 2기 편대(동시 최대 = 편대 둘) · 어뢰정 추가 · 보스 체력 +20%(900 → 1080)
             var eTorpBomber = EnemyDef("ww2_enemy_torpedo_bomber", "뇌격기", TargetKind.Aircraft, torpedoBomber,
@@ -200,7 +204,7 @@ namespace Game.EditorTools
             {
                 Set(so, "id", "ww2_v1");
                 Set(so, "schemaVersion", 1);
-                Set(so, "contentVersion", 2);   // 2026-10-17: 어뢰정 · 편대 · 웨이브 강화
+                Set(so, "contentVersion", 3);   // 2026-10-17: 어뢰정 · 편대 · 웨이브 강화 → Codex 모델 v30
                 Set(so, "title", "WWII 시험 전투");
                 Set(so, "idPrefix", "ww2_");
                 SetArray(so, "hulls", concept);
@@ -395,6 +399,7 @@ namespace Game.EditorTools
                     Set(s, "hitMask", 1 << LayerEnemy);
                 });
                 SetLayerRecursive(root, LayerPlayerMissile);
+                SkinProjectile(root, "TOR_Ww2Player");
             });
         }
 
@@ -402,6 +407,7 @@ namespace Game.EditorTools
 
         private static GameObject BuildDualGun(GameObject shell, GameObject flash)
         {
+            if (Art("MOD_Ww2DualGun") is { } art) return BuildDualGunArt(art, shell, flash);
             var root = new GameObject("MOD_Ww2DualGun");
             var R = root.transform;
             Disk("Base", R, new Vector3(0f, 0.1f, 0f), 1.6f, 0.2f, _deck);
@@ -434,6 +440,7 @@ namespace Game.EditorTools
 
         private static GameObject BuildQuadAa(GameObject round)
         {
+            if (Art("MOD_Ww2QuadAa") is { } art) return BuildQuadAaArt(art, round);
             var root = new GameObject("MOD_Ww2QuadAa");
             var R = root.transform;
             Disk("Tub_Floor", R, new Vector3(0f, 0.08f, 0f), 1.75f, 0.16f, _deck);
@@ -475,6 +482,7 @@ namespace Game.EditorTools
 
         private static GameObject BuildTorpedoMount(GameObject torpedo)
         {
+            if (Art("MOD_Ww2TorpedoMount") is { } art) return BuildTorpedoMountArt(art, torpedo);
             var root = new GameObject("MOD_Ww2TorpedoMount");
             var R = root.transform;
             Box("Deck", R, new Vector3(0f, 0.08f, 0f), new Vector3(1.8f, 0.16f, 1.8f), _deck);
@@ -515,6 +523,14 @@ namespace Game.EditorTools
                     var mf = r.GetComponent<MeshFilter>();
                     Object.DestroyImmediate(r);
                     if (mf != null) Object.DestroyImmediate(mf);
+                }
+                var bridgeArt = Art("MOD_Ww2Bridge");
+                if (bridgeArt != null)
+                {
+                    MountBridgeArt(bridgeArt, root);
+                    var bm = root.GetComponent<BridgeModule>();
+                    Configure(bm, so => { Set(so, "decoyEnabled", false); Set(so, "smokeRounds", true); });
+                    return;
                 }
                 var R = Node("Ww2Visual", root.transform, Vector3.zero);
                 Box("Deckhouse", R, new Vector3(0f, 0.45f, 0.2f), new Vector3(1.6f, 0.9f, 4.6f), _hull);
@@ -566,6 +582,7 @@ namespace Game.EditorTools
 
         private static GameObject BuildTorpedoBomber(GameObject torpedo)
         {
+            if (Art("ENE_Ww2TorpedoBomber") is { } art) return BuildTorpedoBomberArt(art, torpedo);
             var root = Plane("ENE_Ww2TorpedoBomber", out var R, new Vector3(3.2f, 1f, 2.8f));
             Airframe(R, 3.6f, 2.6f, false);
             Tube("Torpedo", R, new Vector3(0f, -0.35f, 0.1f), 0.2f, 1.6f, _torpedoWarn);   // 배에 단 주황 어뢰 — 뇌격기 표시
@@ -581,6 +598,7 @@ namespace Game.EditorTools
 
         private static GameObject BuildDiveBomber(GameObject bomb, GameObject marker)
         {
+            if (Art("ENE_Ww2DiveBomber") is { } art) return BuildDiveBomberArt(art, bomb, marker);
             var root = Plane("ENE_Ww2DiveBomber", out var R, new Vector3(3f, 1.1f, 2.6f));
             Airframe(R, 3.2f, 2.4f, true);
             for (int side = -1; side <= 1; side += 2)
@@ -599,6 +617,7 @@ namespace Game.EditorTools
 
         private static GameObject BuildCruiser(GameObject shell, GameObject secondaryRound, GameObject flash)
         {
+            if (Art("ENE_Ww2GunneryCruiser") is { } art) return BuildCruiserArt(art, shell, secondaryRound, flash);
             var root = new GameObject("ENE_Ww2GunneryCruiser");
             var col = root.AddComponent<BoxCollider>();
             col.size = new Vector3(3.6f, 3f, 18f);

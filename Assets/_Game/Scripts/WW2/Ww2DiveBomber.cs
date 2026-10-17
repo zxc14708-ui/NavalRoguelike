@@ -28,6 +28,8 @@ namespace Game.WW2
         [SerializeField] private float releaseAltitude = 5f;
         [SerializeField] private float bombFlightTime = 0.6f;
         [SerializeField] private float blastRadius = 4f;
+        [Tooltip("폭탄을 놓는 자리(모델의 BombDropPoint). 없으면 기체 중심")]
+        [SerializeField] private Transform dropPoint;
 
         [Header("Formation")]
         [SerializeField] private float wingmanDelay = 0.7f;
@@ -119,7 +121,7 @@ namespace Game.WW2
             Fly(_releasePos, Mathf.Clamp(dist / left, 6f, 40f), 900f, true, dt);
             if (Time.time < ReleaseAt) return;
 
-            var p = transform.position;
+            var p = dropPoint != null ? dropPoint.position : transform.position;
             var go = bombPrefab != null ? PoolManager.Instance?.Spawn(bombPrefab, p, Quaternion.LookRotation(Vector3.down + CommittedHeading)) : null;
             if (go != null && go.TryGetComponent<ArtilleryShell>(out var bomb))
             {
