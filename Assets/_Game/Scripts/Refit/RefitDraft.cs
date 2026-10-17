@@ -35,8 +35,9 @@ namespace Game.Refit
         /// <summary>3번 자유 자리에서 편대 배치·편대 강화 카드의 몫(설치 0.30 · 성장 0.40 · 강화와 함께 가중 추첨).</summary>
         public const float FleetDeployWeight = 0.22f, FleetUpgradeWeight = 0.30f;
 
+        /// <summary>편대 카드의 대상. 편대를 쓰지 않는 규칙 집합(WWII 패치 B)이면 없음 — 편대 카드가 나오지 않는다.</summary>
         private static TaskForceEscortFormation Fleet
-            => GameManager.Instance != null && GameManager.Instance.Player != null
+            => ContentRegistry.AllowsEscorts && GameManager.Instance != null && GameManager.Instance.Player != null
                 ? GameManager.Instance.Player.GetComponent<TaskForceEscortFormation>() : null;
 
         /// <summary>무장 강화 카드가 나올 몫(성장 슬롯 안). 레벨 1 = 30%, 레벨당 +4%p, 최대 65%.</summary>
@@ -185,7 +186,15 @@ namespace Game.Refit
             var definitions = new List<ModuleDefinition>();
             void Add(ModuleDefinition def)
             {
-                if (def != null && def.Weight > 0f && !definitions.Contains(def)) definitions.Add(def);
+                if (def != null && def.Weight > 0f && !definitions.Contains(def) && ContentRegistry.Allows(def)) definitions.Add(def);
+            }
+
+            // WWII(패치 B): 규칙 집합 목록의 블록만 — 현대 카드 풀·Resources/Modules는 보지 않는다
+            var ruleset = Ruleset.Active;
+            if (ruleset != null)
+            {
+                foreach (var def in ruleset.Modules) Add(def);
+                return definitions;
             }
 
             if (progression != null)
@@ -240,6 +249,7 @@ namespace Game.Refit
         /// <summary>계열·수리 카드는 그 장비가 있을 때만, 장탄수는 탄약을 쓰는 무장이 있을 때만 나온다.</summary>
         private bool StatEligible(RunStatDefinition def)
         {
+            if (!ContentRegistry.AllowsStat(def.Stat)) return false;   // 규칙 집합에 없는 능력(WWII: 미사일계·방공계 등)
             if (grid == null) return true;
             if (def.RequiresAny != null)
             {
@@ -268,6 +278,7 @@ namespace Game.Refit
         private void EnsureAntiSub(List<RefitCard> cards)
         {
             if (cards.Count == 0 || GameManager.Instance == null || GameManager.Instance.ElapsedTime < 180f || HasAntiSubCapability()) return;
+            if (ContentRegistry.Filtering) return;   // WWII 시험 전투에는 잠수함이 없다(대잠은 패치 C)
             if (cards[0].Kind != RefitCardKind.Install) return;
             foreach (var c in cards)
                 if (c.Kind == RefitCardKind.Install && c.Module != null && IsAntiSub(c.Module.Type)) return;   // 이미 대잠 카드가 있다

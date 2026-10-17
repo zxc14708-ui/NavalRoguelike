@@ -175,6 +175,7 @@ namespace Game.UI
         private TMP_Text _settingsMessage;
         private Image _controlsTabImage, _audioTabImage, _displayTabImage, _graphicsTabImage, _aboutTabImage;
         private NavalControl? _pendingBinding;
+        private Ww2Control? _pendingWw2Binding;   // WWII 전용 키(패치 B)
         private int _settingsTab;
         private GameObject _routeChoice;
         private System.Action<bool> _onRouteChosen;
@@ -523,12 +524,13 @@ namespace Game.UI
         public TMP_FontAsset Font => _navalFont;
 
         /// <summary>시작 화면. onTraining이 있으면 항구 화면에 [훈련] 버튼(첫 출격 훈련, 점검 U03).</summary>
-        public void ShowStartScreen(System.Action onLaunch, System.Action onTraining = null, System.Action<RunSave.Data> onResume = null)
+        public void ShowStartScreen(System.Action onLaunch, System.Action onTraining = null, System.Action<RunSave.Data> onResume = null,
+                                    System.Action onWw2 = null)
         {
             if (TryQuickLaunch(onLaunch)) return;
             if(Resources.Load<GameObject>("Environment/NavalBaseMenu")!=null)
             {
-                ShowHarborStartScreen(onLaunch, onTraining, onResume);
+                ShowHarborStartScreen(onLaunch, onTraining, onResume, onWw2);
                 return;
             }
             _combatGroup.alpha = 0;
@@ -591,7 +593,8 @@ namespace Game.UI
                 new Vector2(0, 17), new Vector2(1030, 28), 16, new Color(0.55f, 0.73f, 0.65f));
         }
 
-        private void ShowHarborStartScreen(System.Action onLaunch, System.Action onTraining = null, System.Action<RunSave.Data> onResume = null)
+        private void ShowHarborStartScreen(System.Action onLaunch, System.Action onTraining = null, System.Action<RunSave.Data> onResume = null,
+                                           System.Action onWw2 = null)
         {
             _combatGroup.alpha=0; _combatGroup.blocksRaycasts=false;
             var canvas=GetComponentInParent<Canvas>();
@@ -661,6 +664,49 @@ namespace Game.UI
             var records=MenuButton(content,"기록  /  출격 기록 · 도전 과제",new Vector2(28,12),new Vector2(464,42),ConsoleIdle,19);
             records.name="Records open";
             records.onClick.AddListener(ShowRecords);
+            // WWII 시험 전투(패치 B): 현대 출항과 따로 — 규칙 집합 ww2_v1, 구축함 한 척, 5~8분. 현대 저장·기록은 건드리지 않는다
+            if(onWw2!=null && Ruleset.Ww2Definition!=null && Ruleset.Ww2Definition.Hulls.Count>0)
+            {
+                var ww2Panel=Panel(menu,"WW2 console",new Vector2(0,.5f),new Vector2(64,-334),new Vector2(520,56),new Color(.06f,.05f,.03f,.9f));
+                var ww2=MenuButton(ww2Panel,"WWII 시험 전투  /  구축함 · 5~8분 (개발 중)",new Vector2(10,7),new Vector2(500,42),new Color(.42f,.3f,.12f,1f),18);
+                ww2.name="WW2 test start";
+                ww2.onClick.AddListener(()=>
+                {
+                    if(!StartWw2Test()) return;
+                    onWw2();
+                });
+            }
+        }
+
+        /// <summary>WWII 시험 전투로 들어간다: 규칙 집합 → 구축함 선택 → 출항 잠금 → HUD를 WWII용으로. 실패하면 현대로 되돌리고 false.</summary>
+        public bool StartWw2Test()
+        {
+            var def=Ruleset.Ww2Definition;
+            var concept=def!=null&&def.Hulls.Count>0?def.Hulls[0]:null;
+            if(concept==null||!Ruleset.Enter(Ruleset.Ww2)) { GameEvents.RaiseBanner("WWII 시험 전투 데이터가 없습니다"); return false; }
+            var initializer=FindFirstObjectByType<Game.Ship.ShipInitializer>();
+            if(initializer!=null&&!initializer.TrySelect(concept,out string reason))
+            {
+                Debug.LogWarning($"[HUD] WWII 구축함 선택 실패: {reason}");
+                Ruleset.Enter(Ruleset.Modern);
+                GameEvents.RaiseBanner($"WWII 구축함을 띄우지 못했습니다 — {reason}");
+                return false;
+            }
+            if(initializer!=null) initializer.LockForLaunch();
+            if(_menu!=null) _menu.SetActive(false);
+            _combatGroup.alpha=1;_combatGroup.blocksRaycasts=true;
+            return true;
+        }
+
+        /// <summary>
+        /// WWII 판 HUD: 기만체·재밍·고유 스킬 칸을 숨긴다(WWII에는 없다 — 그 키는 어뢰가 쓴다). 응급 수리·연막·전속은 그대로.
+        /// </summary>
+        public void ApplyWw2Hud()
+        {
+            if (_skillBar == null) return;
+            _skillBar.SetTileVisible(DecoySlot, false);
+            _skillBar.SetTileVisible(JamSlot, false);
+            _skillBar.SetTileVisible(SignatureSlot, false);
         }
 
         private Button MenuButton(Transform parent, string title, Vector2 position, Vector2 size, Color color, float fontSize)
@@ -739,6 +785,7 @@ namespace Game.UI
         private void CloseSettings()
         {
             _pendingBinding = null;
+            _pendingWw2Binding = null;
             if (_settingsOverlay != null) _settingsOverlay.SetActive(false);
             PlayerPrefs.Save();
         }
@@ -747,6 +794,7 @@ namespace Game.UI
         {
             _settingsTab = tab;
             _pendingBinding = null;
+            _pendingWw2Binding = null;
             if (_controlsTabImage != null) _controlsTabImage.color = tab == 0 ? ConsoleActive : ConsoleIdle;
             if (_audioTabImage != null) _audioTabImage.color = tab == 1 ? ConsoleActive : ConsoleIdle;
             if (_displayTabImage != null) _displayTabImage.color = tab == 2 ? ConsoleActive : ConsoleIdle;
@@ -787,36 +835,70 @@ namespace Game.UI
             (NavalControl.Signature, "함정 고유 스킬")
         };
 
+        /// <summary>지금 규칙 집합에서 쓰는 현대 조작(WWII 판: 조타·전령기·수리·연막·전속·함 현황 — 기만체·재밍·VLS·헬기·편대는 뺀다).</summary>
+        private static System.Collections.Generic.List<(NavalControl action, string title)> ActiveControlTitles()
+        {
+            var list = new System.Collections.Generic.List<(NavalControl, string)>();
+            foreach (var c in ControlTitles)
+                if (!Ruleset.IsWw2 || System.Array.IndexOf(Ww2Controls.SharedControls, c.action) >= 0)
+                    if (!(Ruleset.IsWw2 && c.action == NavalControl.Signature)) list.Add(c);   // WWII 구축함은 고유 스킬이 아직 없다
+            return list;
+        }
+
         private void BuildControlsSettings(Transform page)
         {
-            var controls = ControlTitles;
-            for (int i = 0; i < controls.Length; i++)
+            var controls = ActiveControlTitles();
+            int rows = controls.Count + (Ruleset.IsWw2 ? System.Enum.GetValues(typeof(Ww2Control)).Length : 0);
+            int index = 0;
+            Vector2 Slot(int i)
             {
                 // 두 열: 왼쪽 8줄, 오른쪽 7줄(오른쪽 아래는 '기본 키 복원' 자리)
                 int column = i < 8 ? 0 : 1, row = i < 8 ? i : i - 8;
-                float x = 14 + column * 466, y = 345 - row * 44;
-                var line = Panel(page, controls[i].title, Vector2.zero, new Vector2(x, y),
-                    new Vector2(452, 38), ConsoleIdle);
-                Label(line, "Action", controls[i].title, new Vector2(12, 6),
-                    new Vector2(292, 27), 17, Color.white);
-                var action = controls[i].action;
+                return new Vector2(14 + column * 466, 345 - row * 44);
+            }
+            foreach (var (action, title) in controls)
+            {
+                var line = Panel(page, title, Vector2.zero, Slot(index++), new Vector2(452, 38), ConsoleIdle);
+                Label(line, "Action", title, new Vector2(12, 6), new Vector2(292, 27), 17, Color.white);
                 var key = MenuButton(line, GameSettings.BindingLabel(action), new Vector2(312, 4),
                     new Vector2(134, 33), ConsoleActive, 15);
                 key.onClick.AddListener(() =>
                 {
                     _pendingBinding = action;
+                    _pendingWw2Binding = null;
                     key.GetComponentInChildren<TMP_Text>().text = "키 입력 대기…";
-                    _settingsMessage.text = $"{controls[(int)action].title}: 새 키를 누르세요. ESC는 취소.";
+                    _settingsMessage.text = $"{title}: 새 키를 누르세요. ESC는 취소.";
                 });
             }
-            MenuButton(page, "기본 키 복원", new Vector2(720, 10), new Vector2(210, 36),
+            if (Ruleset.IsWw2)
+            {
+                // WWII 전용 키(Naval.WW2.Control.* — 현대 키 설정과 따로 저장)
+                foreach (Ww2Control c in System.Enum.GetValues(typeof(Ww2Control)))
+                {
+                    string title = Ww2Controls.Title(c);
+                    var line = Panel(page, title, Vector2.zero, Slot(index++), new Vector2(452, 38), new Color(.16f, .12f, .05f, 1f));
+                    Label(line, "Action", title, new Vector2(12, 6), new Vector2(292, 27), 15, new Color(1f, .86f, .55f));
+                    var control = c;
+                    var key = MenuButton(line, Ww2Controls.BindingLabel(c), new Vector2(312, 4), new Vector2(134, 33), ConsoleActive, 15);
+                    key.onClick.AddListener(() =>
+                    {
+                        _pendingWw2Binding = control;
+                        _pendingBinding = null;
+                        key.GetComponentInChildren<TMP_Text>().text = "키 입력 대기…";
+                        _settingsMessage.text = $"{title}: 새 키를 누르세요. ESC는 취소(WWII 전용 키).";
+                    });
+                }
+            }
+            MenuButton(page, Ruleset.IsWw2 ? "WWII 키 복원" : "기본 키 복원", new Vector2(720, 10), new Vector2(210, 36),
                 ConsoleIdle, 15).onClick.AddListener(() =>
                 {
-                    GameSettings.ResetBindings();
+                    if (Ruleset.IsWw2) Ww2Controls.ResetBindings();
+                    else GameSettings.ResetBindings();
                     RefreshSkillKeyLabels();
                     ShowSettingsTab(0);
-                    _settingsMessage.text = "기본 조작키로 복원했습니다.";
+                    _settingsMessage.text = Ruleset.IsWw2 ? "WWII 전용 키를 기본(Q/E)으로 복원했습니다." : "기본 조작키로 복원했습니다.";
                 });
+            if (rows > 15) Debug.LogWarning($"[HUD] 조작키 줄이 칸보다 많습니다({rows})");
         }
 
         private void BuildAudioSettings(Transform page)
@@ -1016,7 +1098,23 @@ namespace Game.UI
             UpdateDisplayRevert();
             if (_settingsOverlay != null && _settingsOverlay.activeSelf && Keyboard.current != null)
             {
-                if (_pendingBinding.HasValue)
+                if (_pendingWw2Binding.HasValue)
+                {
+                    foreach (var key in Keyboard.current.allKeys)
+                    {
+                        if (!key.wasPressedThisFrame) continue;
+                        if (key.keyCode == Key.Escape) { _pendingWw2Binding = null; _settingsMessage.text = "키 변경을 취소했습니다."; }
+                        else
+                        {
+                            bool changed = Ww2Controls.TryBind(_pendingWw2Binding.Value, key.keyCode, out string message);
+                            _pendingWw2Binding = null;
+                            if (changed) ShowSettingsTab(0);
+                            _settingsMessage.text = message;
+                        }
+                        break;
+                    }
+                }
+                else if (_pendingBinding.HasValue)
                 {
                     foreach (var key in Keyboard.current.allKeys)
                     {
@@ -1036,7 +1134,9 @@ namespace Game.UI
                                 RefreshSkillKeyLabels();
                                 ShowSettingsTab(0);
                             }
-                            _settingsMessage.text = message;
+                            // 현대 키를 WWII 어뢰 키와 같게 바꾸면 WWII 판에서 겹친다 — 알려 준다
+                            var conflicts = Ww2Controls.Conflicts();
+                            _settingsMessage.text = conflicts.Count > 0 ? $"{message}  (WWII 키와 겹침: {conflicts[0]})" : message;
                         }
                         break;
                     }

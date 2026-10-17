@@ -1,0 +1,74 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee8925205f16a2b47900cba0670cd113, type: 3}
+  m_Name: ww2_mod_quad_aa
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Modules.ModuleDefinition
+  id: ww2_mod_quad_aa
+  displayName: "40mm\uAE09 4\uC5F0\uC7A5 \uB300\uACF5\uD3EC"
+  description: "\uB124 \uD3EC\uC2E0\uC774 \uBC88\uAC08\uC544 \uC3D8\uB294 \uB300\uACF5\uD3EC.
+    \uD56D\uACF5\uAE30\uB97C \uBA3C\uC800(\uACF5\uACA9 \uBC29\uD5A5\uC744 \uC815\uD55C
+    \uAE30\uCCB4\uBD80\uD130), \uC5C6\uC73C\uBA74 \uAC00\uAE4C\uC6B4 \uC18C\uD615
+    \uC218\uC0C1\uD568. \uADFC\uC811\uC2E0\uAD00\uC774 \uC5C6\uC5B4 \uC9C1\uACA9\uD574\uC57C
+    \uB9DE\uACE0, \uD070 \uBC30\uC5D0\uB294 \uAC70\uC758 \uB4E3\uC9C0 \uC54A\uB294\uB2E4."
+  type: 27
+  icon: {fileID: 21300000, guid: d2c34b0e92041dc4eb5e9d2e9a0b2abd, type: 3}
+  width: 1
+  height: 1
+  canRotate: 1
+  placement:
+    Zone: 0
+  heightClass: 1
+  maxCount: 0
+  maxHp: 35
+  rarity: 0
+  weight: 1
+  prefab: {fileID: 7625062227298415116, guid: da4d63280f3383548aa09ce5e3067cf3, type: 3}
+  stats:
+    Range: 32
+    MinRange: 0
+    Damage: 1.8
+    ReloadTime: 0.09
+    ProjectileSpeed: 70
+    FireArcDegrees: 360
+    TurretTurnRate: 140
+    AmmoFamily: 0
+    MagazineCapacity: 160
+    AmmoPerShot: 1
+    AmmoReloadAmount: 16
+    AmmoReloadTime: 2
+    DetectionRange: 0
+    ExtraTrackedTargets: 0
+    SupportRadiusCells: 0
+    ReloadBonus: 0
+    AmmoCapacityBonus: 0
+    ResupplyBonus: 0
+    CookOffDamage: 0
+    DamageReduction: 0
+    HullRepairPerSecond: 0
+    ModuleRepairPerSecond: 0
+    SortieCooldown: 0
+    HelicopterSpeed: 0
+    EscortFireRateBonus: 0
+    SpeedBonus: 0
+    AccelerationBonus: 0
+    MovingGunDamageBonus: 0
+    GuidedRangeBonus: 0
+    MissileReloadReduction: 0
+  targetEfficiency:
+    SmallSurface: 0.6
+    MediumSurface: 0.25
+    LargeSurface: 0.1
+    Boss: 0.05
+    Submarine: 0
+    Drone: 1
+    Air: 1
+    Missile: 0

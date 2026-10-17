@@ -43,6 +43,12 @@ namespace Game.Modules.Runtime
         [SerializeField] private BridgeMachineGun machineGun = new();
         public BridgeMachineGun MachineGun => machineGun;
 
+        [Header("Ruleset (WWII 패치 A 9.1)")]
+        [Tooltip("내장 발사기로 기만체를 쏘는가. WWII 함교는 끈다(현대 함교 프리팹은 그대로 켜 둔다).")]
+        [SerializeField] private bool decoyEnabled = true;
+        [Tooltip("내장 발사기에 연막탄을 싣는가. 현대 함교는 기만체만, WWII 함교는 기만체 대신 연막.")]
+        [SerializeField] private bool smokeRounds;
+
         [Header("Radar")]
         [Tooltip("함교 마스트의 회전 안테나. 비어 있어도 탐지 기능은 동작한다.")]
         [SerializeField] private Transform radarAntenna;
@@ -109,7 +115,8 @@ namespace Game.Modules.Runtime
         public float AntennaRpm => antennaRpm;
         public float AntennaBearing => _radar.Bearing(radarAntenna, Ship != null ? Ship.transform : transform);
 
-        protected override bool HasSmokeRounds => false;
+        protected override bool HasSmokeRounds => smokeRounds;
+        public override bool DecoyEnabled => decoyEnabled;
 
         public bool FlankReady => _flankCooldown <= 0f && Ship != null && Instance != null && Instance.IsOperational;
         public float FlankReadiness01 => flankCooldown > 0f ? 1f - Mathf.Clamp01(_flankCooldown / flankCooldown) : 1f;

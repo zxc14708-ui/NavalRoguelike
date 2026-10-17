@@ -157,7 +157,7 @@ namespace Game.Modules
         public static bool IsWeapon(ModuleType t) => t is ModuleType.Autocannon or ModuleType.NavalGun or ModuleType.Vls
             or ModuleType.GuidedRocket or ModuleType.Ciws or ModuleType.SamLauncher or ModuleType.AswLauncher
             or ModuleType.TorpedoTube or ModuleType.Howitzer or ModuleType.RamBow or ModuleType.MineRail
-            or ModuleType.Nobong;
+            or ModuleType.Nobong or ModuleType.Ww2DualPurposeGun or ModuleType.Ww2QuadAa or ModuleType.Ww2BroadsideTorpedo;
 
         /// <summary>이 종류의 무장이 받는 공격력 배율.</summary>
         public static float DamageMultiplier(ModuleType t)
@@ -178,7 +178,8 @@ namespace Game.Modules
             return 1f + b;
         }
 
-        public static float MagazineMultiplier(ModuleType t) => IsWeapon(t) ? 1f + Get(RunStat.Magazine) : 1f;
+        public static float MagazineMultiplier(ModuleType t)
+            => IsWeapon(t) && t != ModuleType.Ww2BroadsideTorpedo ? 1f + Get(RunStat.Magazine) : 1f;   // 어뢰 발사관 수는 장탄수 카드로 늘지 않는다(WWII 패치 A 6장)
         public static float RangeMultiplier(ModuleType t) => IsWeapon(t) ? 1f + Get(RunStat.Range) : 1f;
         public static float RepairMultiplier => 1f + Get(RunStat.Repair);
         public static float DetectionMultiplier => 1f + Get(RunStat.Detection);

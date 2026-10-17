@@ -109,10 +109,13 @@ namespace Game.UI
             var xp = Object.FindFirstObjectByType<ExperienceSystem>(FindObjectsInactive.Include);
             foreach (var m in RefitDraft.CollectInstallDefinitions(xp != null ? xp.Config : null))
                 if (!list.Contains(m)) list.Add(m);
-            foreach (var concept in StartingShipCatalog.All)
+            // 규칙 집합의 시작 함정(현대: 시작 함정 목록 · WWII: ww2_v1 정의의 함정)
+            var hulls = Ruleset.Active != null ? Ruleset.Active.Hulls : StartingShipCatalog.All;
+            foreach (var concept in hulls)
                 if (concept != null && concept.StartLoadout != null)
                     foreach (var entry in concept.StartLoadout.Entries)
                         if (entry.Module != null && !list.Contains(entry.Module)) list.Add(entry.Module);
+            list.RemoveAll(m => !ContentRegistry.Allows(m));   // 다른 규칙 집합의 블록(현대 ↔ WWII)은 빼다
             list.Sort((a, b) =>
             {
                 int c = TypeOrder(a.Type).CompareTo(TypeOrder(b.Type));
@@ -147,6 +150,9 @@ namespace Game.UI
             ModuleType.RamBow => 1,        // 근접
             ModuleType.Nobong => 1,        // 기관포와 76mm 사이
             ModuleType.MineRail => 8,      // 대잠·후방 장비 옆에
+            ModuleType.Ww2DualPurposeGun => 2,    // WWII(패치 B)
+            ModuleType.Ww2QuadAa => 5,
+            ModuleType.Ww2BroadsideTorpedo => 8,
             _ => 20,
         };
 
@@ -257,6 +263,7 @@ namespace Game.UI
         private static List<CodexEntry> Escorts()
         {
             var entries = new List<CodexEntry>();
+            if (!ContentRegistry.AllowsEscorts) return entries;   // WWII 시험 전투는 호위함이 없다(패치 A 9.2)
             var roles = new List<EscortRole> { EscortRole.None };
             roles.AddRange(TaskForceEscortFormation.Roles);
             int maxTier = TaskForceEscortFormation.MaxUpgradeLevel;
@@ -365,6 +372,7 @@ namespace Game.UI
             var result = new List<(EnemyDefinition, string)>();
             foreach (var d in order)
             {
+                if (!ContentRegistry.Allows(d)) continue;   // 다른 규칙 집합의 적
                 string stages = "스테이지 " + string.Join(", ", where[d]);
                 result.Add((d, notes.TryGetValue(d, out var n) ? $"{stages} ({n})" : stages));
             }
@@ -484,6 +492,17 @@ namespace Game.UI
                 "미사일 위주라면 함포로 먼저 잡는다. 근접방어포는 점사 뒤 1.2초 쉬므로 여러 발을 몰아 쏘면 뚫린다."),
             "ene_attack_submarine" => ("스테이지 3 엘리트 잠수함. 어뢰 잠수함보다 단단하고 자주 쏜다(예고 뒤 직선 어뢰).",
                 "소나 · 대잠 헬기로 찾고 폭뢰 · 대잠 호위함으로. 어뢰는 예고 동안 침로 · 속력을 바꿔 피한다."),
+            // WWII 시험 전투(패치 B)
+            "ww2_enemy_fast_gunboat" => ("무리 지어 다가와 선회하며 갑판 기관포로 점사하는 소형 포함. 하나하나는 약하다.",
+                "양용포 · 4연장 대공포(가까운 경수상)로 정리한다. 어뢰를 쓰기엔 작고 빠르다."),
+            "ww2_enemy_gunboat" => ("큰 선수포를 단 포격함. 멀리서 돌며 곡사로 쏘고, 포탄이 날아가는 동안 착탄점에 붉은 원이 차오른다.",
+                "원을 보고 침로 · 속력을 바꾼다. 느리고 곧게 돌므로 현측 어뢰의 좋은 표적이다 — 앞을 내다보고 쏜다."),
+            "ww2_enemy_torpedo_bomber" => ("현측으로 돌아 들어와 낮게 깔린 뒤 직진 어뢰 한 발을 떨어뜨리는 뇌격기. 방향을 정하면 수면에 떨어질 지점(원)과 어뢰 경로(주황 선)가 보이고 그 방향은 바뀌지 않는다.",
+                "주황 선이 뜨면 전령기를 바꾸거나 선과 나란히 돈다. 투하 전에 격추하면 어뢰가 없다 — 4연장 대공포 · 양용포가 진입하는 기체를 먼저 노린다."),
+            "ww2_enemy_dive_bomber" => ("높이 와서 기함 위에서 급강하해 폭탄 한 발을 떨어뜨린다. 강하를 시작하면 떨어질 자리에 붉은 원이 차오른다.",
+                "원이 뜨면 원 밖으로 빠진다. 강하하는 동안 낮게 내려오므로 대공포가 잡을 기회다 — 투하 전에 격추하면 폭탄이 없다."),
+            "ww2_boss_gunnery_cruiser" => ("임시 포격 보스(적 순양함, 회색 실루엣). 둘레를 돌며 주포 일제 사격 — 1단계는 침로를 따라 앞뒤로 늘어선 협차, 체력 절반부터 좌우 두 줄로 더 자주. 가까우면 부포가 점사한다.",
+                "붉은 원은 속력(1단계) · 타(2단계)로 빠져나간다. 큰 선체라 현측 어뢰 일제 발사가 잘 맞는다 — 보스 침로 앞을 노린다."),
             "ene_boss2" => ("스테이지 3의 적 기함(현대화 이세급 항공전함). 앞은 전함, 뒤는 비행갑판. 체력에 따라 세 단계로 바뀐다: 주포 일제사격(수면의 붉은 경고 원) → 드론 편대 · 정찰기 운용 → 드론 · 전투기 편대와 대함미사일 연발. 선미 쪽은 주포가 쏘지 못하는 안전 지대.",
                 "경고 원은 조함 · 전속(C) · 연막(F)으로 피한다. 함재기는 대공 무기로, 미사일은 기만체 · 재밍으로. 선미 쪽으로 돌아 들어가면 주포를 피할 수 있다."),
             _ => (def.Kind switch

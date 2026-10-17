@@ -38,6 +38,9 @@ namespace Game.UI
             (ModuleType.AswLauncher, "폭뢰"),
             (ModuleType.TorpedoTube, "경어뢰"),
             (ModuleType.MineRail, "기뢰"),
+            (ModuleType.Ww2DualPurposeGun, "양용포"),        // WWII(패치 B)
+            (ModuleType.Ww2QuadAa, "4연장 대공"),
+            (ModuleType.Ww2BroadsideTorpedo, "현측 어뢰"),
         };
 
         private static readonly Color Dim = new(0.62f, 0.72f, 0.76f, 0.75f);

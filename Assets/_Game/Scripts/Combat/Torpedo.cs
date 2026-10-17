@@ -25,7 +25,7 @@ namespace Game.Combat
         public static IReadOnlyList<Torpedo> Active => s_active;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetStatics() => s_active.Clear();
+        private static void ResetStatics() { s_active.Clear(); Finished = null; }
 
         [SerializeField] private float speed = 16f;
         [SerializeField] private float lifeTime = 9f;
@@ -42,6 +42,13 @@ namespace Game.Combat
         private float _damage;
         private float _age;
         private float _countermeasureTimer;
+        private bool _reported;
+
+        /// <summary>피해 출처 이름(결과 화면 격침 원인). 없으면 "어뢰·기뢰 수중 폭발". WWII 뇌격기 어뢰가 쓴다.</summary>
+        public string Cause { get; private set; }
+
+        /// <summary>어뢰가 끝났다(true = 무언가에 맞음, false = 다 달려 가라앉음). WWII 시험 전투 기록이 듣는다.</summary>
+        public static event System.Action<Torpedo, bool> Finished;
 
         public float Speed => speed;
         public GameObject ImpactEffect => impactEffect;
@@ -55,10 +62,14 @@ namespace Game.Combat
         public bool IsRevealed => true;
 
         /// <summary>aimPoint를 향해 수평으로 곧게 달린다. 이후 방향은 바뀌지 않는다.</summary>
-        public void Launch(Vector3 aimPoint, float damage)
+        public void Launch(Vector3 aimPoint, float damage) => Launch(aimPoint, damage, null);
+
+        public void Launch(Vector3 aimPoint, float damage, string cause)
         {
             _damage = damage;
             _age = 0f;
+            _reported = false;
+            Cause = cause;
 
             var p = transform.position;
             transform.position = new Vector3(p.x, runDepth, p.z);
@@ -81,7 +92,7 @@ namespace Game.Combat
         {
             float dt = Time.deltaTime;
             _age += dt;
-            if (_age >= lifeTime) { Despawn(); return; }
+            if (_age >= lifeTime) { Report(false); Despawn(); return; }
 
             // 어뢰 기만기(아직 없음)가 있으면 주기적으로 무력화를 시도한다
             if (TorpedoCountermeasures.Count > 0)
@@ -98,8 +109,13 @@ namespace Game.Combat
             if (Physics.SphereCast(transform.position, hitRadius, transform.forward, out var hit, step,
                                    hitMask | Game.World.Islands.Mask, QueryTriggerInteraction.Collide))
             {
+                bool damaged = false;
                 if (hit.collider.TryGetComponent<IDamageable>(out var target) && target.IsAlive && Factions.CanDamage(Faction, target))
-                    target.TakeDamage(new DamageInfo(_damage, hit.point, transform.forward, DamageSource.Torpedo));
+                {
+                    target.TakeDamage(new DamageInfo(_damage, hit.point, transform.forward, DamageSource.Torpedo, Cause));
+                    damaged = true;
+                }
+                Report(damaged);
 
                 PooledEffect.Spawn(impactEffect, new Vector3(hit.point.x, 0f, hit.point.z));
                 AudioManager.Play(Game.Data.SfxId.Explosion, hit.point, 0.9f, 0.65f);
@@ -108,6 +124,13 @@ namespace Game.Combat
             }
 
             transform.position += transform.forward * step;
+        }
+
+        private void Report(bool hit)
+        {
+            if (_reported) return;
+            _reported = true;
+            Finished?.Invoke(this, hit);
         }
 
         private void Despawn()

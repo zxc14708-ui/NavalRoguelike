@@ -78,6 +78,7 @@ namespace Game.Ship
         public static (string title, string summary, float cooldown) Describe(StartShipKind kind)
         {
             var ability = Create(kind);
+            if (ability == null) return ("없음", "고유 기술은 다음 패치(C)에서 정한다 — 구축함 기동.", 0f);
             string summary = kind switch
             {
                 StartShipKind.Command =>
@@ -94,6 +95,7 @@ namespace Game.Ship
 
         private static ISignatureAbility Create(StartShipKind kind) => kind switch
         {
+            StartShipKind.Ww2Destroyer => null,   // WWII 시험 전투: 현대 고유 스킬(미사일·항공대)을 쓰지 않는다(패치 A 4장)
             StartShipKind.Command => new AirWingAbility(),
             StartShipKind.MissileDestroyer => new FullSalvoAbility(),
             StartShipKind.Assault => new AssaultRunAbility(),

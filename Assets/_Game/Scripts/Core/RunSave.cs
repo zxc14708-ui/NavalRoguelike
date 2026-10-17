@@ -71,7 +71,7 @@ namespace Game.Core
         {
             var gm = GameManager.Instance;
             var ship = gm != null ? gm.Player : null;
-            if (ship == null || director == null || director.Training) return false;
+            if (ship == null || director == null || director.Training || director.Ww2Test) return false;   // WWII 시험 전투는 저장하지 않는다
             var init = UnityEngine.Object.FindFirstObjectByType<ShipInitializer>();
             var xp = UnityEngine.Object.FindFirstObjectByType<ExperienceSystem>();
             var fleet = ship.GetComponent<TaskForceEscortFormation>();
@@ -132,7 +132,7 @@ namespace Game.Core
         public static void OnRunEnded()
         {
             var director = UnityEngine.Object.FindFirstObjectByType<StageDirector>();
-            if (director != null && director.Training) return;
+            if (director != null && (director.Training || director.Ww2Test)) return;   // 훈련·WWII 시험 전투는 현대 이어하기 기록을 지우지 않는다
             Delete();
         }
 

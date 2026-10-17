@@ -37,6 +37,9 @@ namespace Game.Enemies
         /// 목표 지점을 향해 기수를 돌리며 전진한다. terminal이면 남은 거리 안에 돌아설 수 있을 만큼 선회를 올려
         /// 표적 주위를 맴돌지 않게 한다(미사일과 같은 규칙).
         /// </summary>
+        /// <summary>Fly 없이 직접 움직이는 기체(WWII 뇌격기 진입)가 요격 무기의 예측용 속도를 알린다.</summary>
+        protected void SetVelocity(Vector3 velocity) => _velocity = velocity;
+
         protected void Fly(Vector3 point, float speed, float turnRate, bool terminal, float dt)
         {
             Vector3 to = point - transform.position;

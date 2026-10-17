@@ -108,7 +108,10 @@ namespace Game.Core
         public static bool IsShiftKey(Key key) => key == Key.LeftShift || key == Key.RightShift;
 
         public static Key Binding(NavalControl control) { Load(); return Bindings[(int)control]; }
-        public static string BindingLabel(NavalControl control) => Binding(control) switch
+        public static string BindingLabel(NavalControl control) => KeyLabel(Binding(control));
+
+        /// <summary>키 이름(화면 표시용). WWII 조작키(Ww2Controls)도 같은 표기를 쓴다.</summary>
+        public static string KeyLabel(Key key) => key switch
         {
             Key.LeftShift => "SHIFT",
             Key.RightShift => "R-SHIFT",
@@ -118,7 +121,7 @@ namespace Game.Core
             Key.DownArrow => "DOWN",
             Key.Tab => "TAB",
             Key.Space => "SPACE",
-            _ => Binding(control).ToString().ToUpperInvariant()
+            _ => key.ToString().ToUpperInvariant()
         };
         public static bool Pressed(NavalControl control)
         {

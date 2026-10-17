@@ -11,6 +11,7 @@ namespace Game.Core
     ///   - 도전 과제(Catalog): 달성하면 칭호를 받는다(힘이 세지는 보상은 없다). 칭호 하나를 골라 항구·결과 화면에 단다.
     ///   - 해금: "고난도 출항"(첫 스테이지부터 위험 항로 — 적 +25%, 경험치 +25%)은 스테이지 3에 도달하면 열린다. 기본 대응 수단은 잠그지 않는다.
     ///   - 파일: persistentDataPath/naval_profile.json(자동 검증은 naval_profile_verify.json). 저장 방식은 RunSave와 같다(임시 → 교체, .bak).
+    ///     WWII 판은 naval_profile_ww2_v1.json을 따로 쓴다(<see cref="PathFor"/>).
     /// </summary>
     public static class PlayerProfile
     {
@@ -59,10 +60,28 @@ namespace Game.Core
         }
 
         private static Data s_data;
+        private static string s_dataRuleset;
         private static readonly bool s_verify = Array.IndexOf(Environment.GetCommandLineArgs(), "-combatVerify") >= 0;
 
-        public static string FilePath => Path.Combine(Application.persistentDataPath, s_verify ? "naval_profile_verify.json" : "naval_profile.json");
-        public static Data Current => s_data ??= Load();
+        /// <summary>
+        /// 규칙 집합마다 따로(WWII 패치 A 9.3): 현대 naval_profile.json, WWII naval_profile_ww2_v1.json — WWII 사전 발견·기록이
+        /// 현대 프로필에 섞이지 않고, 현대 파일은 WWII 판에서 읽지도 쓰지도 않는다.
+        /// </summary>
+        public static string PathFor(string ruleset)
+            => Path.Combine(Application.persistentDataPath, $"naval_profile{Ruleset.FileSuffix(ruleset)}{(s_verify ? "_verify" : "")}.json");
+        public static string FilePath => PathFor(Ruleset.Current);
+        public static Data Current
+        {
+            get
+            {
+                if (s_data == null || s_dataRuleset != Ruleset.Current)
+                {
+                    s_dataRuleset = Ruleset.Current;
+                    s_data = Load();
+                }
+                return s_data;
+            }
+        }
 
         /// <summary>이번 실행에서 새로 달성한 도전 과제(결과 화면이 보여 주고 비운다).</summary>
         public static readonly List<string> NewThisRun = new();
@@ -166,13 +185,14 @@ namespace Game.Core
         public static void Save()
         {
             if (s_data == null) return;
+            string path = PathFor(s_dataRuleset ?? Ruleset.Current);   // 읽어 온 규칙 집합의 파일에만 쓴다
             try
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(FilePath));
-                string tmp = FilePath + ".tmp";
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
+                string tmp = path + ".tmp";
                 File.WriteAllText(tmp, JsonUtility.ToJson(s_data, true));
-                if (File.Exists(FilePath)) File.Copy(FilePath, FilePath + ".bak", true);
-                File.Copy(tmp, FilePath, true);
+                if (File.Exists(path)) File.Copy(path, path + ".bak", true);
+                File.Copy(tmp, path, true);
                 File.Delete(tmp);
             }
             catch (Exception e) { Debug.LogWarning($"[Profile] 저장 실패: {e.Message}"); }
@@ -197,6 +217,7 @@ namespace Game.Core
         public static void ResetForVerify()
         {
             if (!s_verify) return;
+            s_dataRuleset = Ruleset.Current;
             s_data = new Data();
             NewThisRun.Clear();
             Save();

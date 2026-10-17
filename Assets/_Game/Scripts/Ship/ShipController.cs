@@ -398,7 +398,8 @@ namespace Game.Ship
 
             AudioManager.Play(SfxId.HullImpact, info.HitPoint);
 
-            _cause = CauseName(info.Source);
+            // WWII 판은 적 공격이 단 이름(뇌격기 어뢰·급강하 폭탄·순양함 주포)을 원인으로 쓴다. 현대 판은 예전 그대로(종류별 이름)
+            _cause = Game.Core.Ruleset.IsWw2 && !string.IsNullOrEmpty(info.Tag) ? info.Tag : CauseName(info.Source);
             if (damageResolver != null) damageResolver.Resolve(info);
             else ApplyHullDamage(info.Amount);   // 방어 코드: 리졸버가 없으면 선체가 전부 받는다
             _cause = null;
@@ -410,6 +411,9 @@ namespace Game.Ship
 
         /// <summary>마지막으로 선체를 깎은 피해의 출처(격침 원인).</summary>
         public string LastHullDamageCause { get; private set; }
+
+        /// <summary>출처별 선체 피해(검증·결과 분석).</summary>
+        public IReadOnlyDictionary<string, float> HullDamageByCause => _hullDamageByCause;
 
         /// <summary>이번 판에 선체를 가장 많이 깎은 출처와 그 비율(0~1). 피해가 없으면 null.</summary>
         public (string cause, float share) TopHullDamageCause()

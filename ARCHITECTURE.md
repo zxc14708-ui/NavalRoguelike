@@ -525,6 +525,27 @@ ECS 미사용, 외부 유료 플러그인 미사용.
 - **수면선 맞추기**(2026-10-13, `View/Waterline`): 프리팹을 고치지 않고 함정이 생길 때 모델만 내려 바닥을 수면 아래 0.35m로 — 적은 수상함(`TargetKind.Surface`)의 `ModelPivot`(`EnemyController.Setup`), 호위함은 단계 모델을 붙일 때(`BuildVisual`, 출렁이는 시각 묶음 기준). 내리기만 하고(이미 잠긴 보스·기함은 그대로) 판정 상자·위치·로직은 그대로, 여러 번 불러도 같다(풀 재사용·개량). 빌더가 프리팹을 다시 만들어도 유지. 결과: 24척 모두 흘수 0.26~0.43m, 수면선 다름 0. 해안포대·보급선 모델 요청과 수면선 규격은 **`CODEX_MODEL_REQUESTS.md`**.
 - **Codex 적 리프레시 v12 적용**(2026-10-13): `ArtSource/EnemyRefresh_v12`(10-11)의 미사일정·엘리트 초계함 새 모델이 원본만 들어와 있고 게임은 예전 모델(09-26·09-17)을 쓰고 있었다 → `Naval/Art/Apply Enemy Refresh v12`(`NavalEnemyRefreshV12`)가 원본을 `Art/Models`에 덮어쓰고(.meta 유지) 두 프리팹만 `NavalPrefabBuilder.BuildMissileBoatAndPccOnly`로 다시 만든다(포탑·포구·발사대 이름이 같아 그대로 연결). 미사일정 8.0×2.0m, 초계함 11.9×2.8m. `-enemyOnly`(초계함 4문 선회·살보·연막·격침)·`-threatOnly`(미사일정 정예·웨이브·표식) 통과.
 
+### WWII 시험 전투 (2026-10-17, 전환 패치 B — `Scripts/WW2`, 계획 `WWII_TRANSITION_PLAN.md`, 설계 `WWII_PATCH_A_DESIGN.md`)
+현대 모드는 그대로 기본이고(설계 9.6 "일단 병행"), WWII는 **항구의 [WWII 시험 전투] 버튼**으로만 들어가는 별도 규칙 집합이다. 5~8분 한 판으로 조타와 무장 선택의 차이를 먼저 확인한다.
+- **규칙 집합·레지스트리**: `Core/Ruleset`(modern_v1 기본 / ww2_v1, 판을 다시 열면 현대로 — 같은 함정 재출격은 그 함정의 규칙으로 다시 들어감) · `Data/RulesetDefinition`(`Resources/Rulesets/ww2_v1`: 시작 함정·블록·적·스테이지·허용 성장 카드·편대 여부, `Validate()` = ID 중복·누락·`ww2_` 접두사·프리팹·웨이브/시작 배치 포함 여부) · `Core/ContentRegistry`(드래프트 `RefitDraft.CollectInstallDefinitions`·성장 카드·편대 카드·사전 `CodexCatalog`·적 생성 `EnemySpawner`·출항 호위함이 모두 여기에 묻는다 — WWII 판에는 현대 콘텐츠가, 현대 판에는 `ww2_` 콘텐츠가 들어오지 않는다).
+- **저장 분리**: 시험 전투는 저장하지 않고 현대 `naval_run.json`을 지우지도 않는다(`RunSave.OnRunEnded`·출항 때 지우기 건너뜀). 프로필은 `naval_profile_ww2_v1.json`(`PlayerProfile.PathFor` — 읽어 온 규칙 집합의 파일에만 쓴다). 출격 기록·도전 과제(`AchievementTracker`)는 세지 않는다. 키는 `Core/Ww2Controls`(`Naval.WW2.Control.N`, 기본 Q 좌현 어뢰 · E 우현 어뢰 — WWII에 없는 기만체·재밍 자리) — 조타·전령기·응급 수리·연막·전속·함 현황은 현대 키를 같이 쓰고, 그 키와 겹치는 WWII 키 변경은 거부, 현대 쪽에서 겹치게 바꾸면 알림(`Conflicts`).
+- **구축함**(`ww2_hull_destroyer`, `StartShipKind.Ww2Destroyer` = 4 — enum 끝에 추가, 고유 스킬 없음): 배치 X −4…2 한 줄(길이 14m) — 함미 양용포(뒤) · 4연장 대공포(뒤) · 현측 어뢰 발사관 · 함교(3칸) · 함수 양용포. 함교(`MOD_Ww2Bridge`)는 범용 초계함 함교를 복제해 겉모습만 회색 상자(함교탑·연돌)로, `BridgeModule.decoyEnabled = false`·`smokeRounds = true`(설계 9.1 — 기만체 없음, 연막 있음). 이동·선체 수치는 현대와 같음(함종별 수치는 패치 C).
+- **무장**(`ModuleType` 끝에 26~28 추가, 데이터 `Data/WW2`, 프리팹 `Prefabs/WW2` 회색 실루엣):
+
+  | 블록 | 동작 | 수치(시험값) |
+  |---|---|---|
+  | 양용포 `Ww2DualPurposeGunModule` | 수상 우선, 공격 방향을 확정한 항공기가 대공 사거리 안이면 그쪽 — 한 번에 한 표적(바꾸면 1.2초 유지), 쌍열 번갈아 | 6~46m · 대공 30m(×0.65) · 22 · 2.0초 · 탄속 42 · 선회 45°/초 · 항공 효율 0.45 · 24발(+3/6초) |
+  | 40mm급 4연장 대공포 `Ww2QuadAaModule` | 항공기 우선(확정한 기체 먼저), 없으면 경수상(효율 0.3 미만 제외) — 근접신관 없음, 8발 쏘고 0.6초 쉼 | 대공 32m · 경수상 19m · 1.8 · 0.09초 · 탄속 70 · 160발(+16/2초) |
+  | 현측 어뢰 발사관 `Ww2BroadsideTorpedoModule` | **수동** 일제 발사 — 키를 누르면 현측 사격각(정횡 ±30°)과 예상 경로, 떼면 발사. 직진 `Ww2StraightTorpedo`(유도 없음, 9m 안 불발). 양현 중 트인 쪽만(가운데 줄은 양쪽), 사방을 막는 설치 거부 | 4발 · 55 · 15m/초 · 75m · 전량 재장전 22초 · 3° 부채꼴. 장탄수 카드 미적용 |
+
+  함포·대공포는 기존 사격각(`FireArc` — 함교·이웃 블록 방향 선회·사격 금지)과 승강 거치대 규칙을 그대로 쓴다. 모든 WWII 무장은 전투 중(Playing)이 아니면 쏘지 않는다.
+- **적**(데이터만 WWII ID, 고속정·포격함 프리팹은 현대 것 재사용): 소형 포함(`FastAttackBoat`) · 포격함(`ArtilleryBoat` — 착탄 경고 원) · **뇌격기**(`Ww2TorpedoBomber`: 빠르게 현측 바깥으로 → 확정하면 낮고 느리게(10m/초·3.6초) 곧게 진입, 투하 지점·어뢰 경로·내 침로와 만나는 곳(원) 표시 → 직진 어뢰) · **급강하폭격기**(`Ww2DiveBomber`: 26m 안에서 착탄점(내가 침로를 유지하면 있을 곳)을 고정하고 붉은 원 → 2.3초 강하 → 폭탄 0.6초) · **임시 포격 보스**(`Ww2GunneryBoss` 순양함 실루엣: 주포 일제 사격 1단계 협차(침로 앞뒤 5발)·2단계 좌우 두 줄 8발, 부포). 공격기 공통(`Ww2StrikeAircraft`, `IAirStrike`): 접근 → 확정(방향 고정·예고) → 투하 → 이탈(8초 뒤 떠남, 경험치 없음). **투하 전에 격추하면 취소**, 투하한 어뢰·폭탄은 남는다. 연막 중에는 확정하지 않는다.
+- **웨이브**(`RoundSet_WW2_Test`): 초계 접촉 60초(소형 포함) → 포격함 출현 70초 → 뇌격기 공습 75초 → 급강하 폭격 75초 → 적 순양함(보스 + 호위 소형 포함 2). 열린 바다(해역 없음). 보스 격침 = 승리.
+- **HUD**: 왼쪽 위 안내판(`Ww2BattlePanel` — 구간 · 좌/우 어뢰 장전·재장전 · 확정한 공습마다 방향·투하까지 초 · 위험 지점 표식(화면 밖이면 가장자리 — 전속이면 뇌격 만나는 곳이 화면 위로 벗어난다)), 무장 패널에 양용포·4연장 대공·현측 어뢰 줄, 스킬 줄의 기만체·재밍·고유 스킬 칸 숨김, 설정·일시정지 조작 안내는 WWII 키만, 사전은 WWII 함정·블록·적 + "WWII 시험 전투 규칙", 결과 화면 오른쪽은 공격 단계(피격·피함·투하 전 격추·내 어뢰 명중).
+- **기록**(`Ww2BattleLog`): 공격 이름별 시도(확정)·투하·투하 전 격추·명중·빗나감. 선체 피해 원인은 WWII 판에서 적 공격 이름(뇌격기 어뢰·급강하 폭탄·순양함 주포)으로(`ShipController` — 현대는 예전 그대로).
+- **만들기**: 메뉴 **Naval/WW2/Build Patch B Content**(`NavalWw2Builder` — WWII 것만 덮어쓴다), 점검 **Naval/WW2/Validate Ruleset**. 검사 `-ww2Only`(규칙: 분리·어뢰·함포·공습·보스·저장/프로필/키 보존), `-ww2BattleOnly`(조타 로봇 한 판 — 균형 자료).
+- **첫 결과**(2026-10-17): `-ww2Only` 통과. `-ww2BattleOnly` 로봇이 기본 장비로 두 번 모두 승리(377초 · 선체 27/124 / 333초 · 59/136), 첫 판 수치 — 무장별 피해 양용포 1462 · 현측 어뢰 836 · 4연장 대공포 435 · 함교 기관총 177. 뇌격기 어뢰 투하 12·명중 1·투하 전 격추 3, 급강하 폭탄 투하 7·명중 1·투하 전 격추 19, 순양함 주포 80발 중 9발 명중, 내 어뢰 40발 중 17발 명중. 선체 피해 1위 소형 포함 기총(88).
+
 ### 하단 HUD 배치 (`HUDView`, 화면 아래 가운데 한 덩어리, 폭 798)
 ```
 [ Lv 3 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━  12 / 17 XP ]   레벨 막대(26)
@@ -743,6 +764,10 @@ UI/           HUDView(+Pause 일시정지 · Display 화면 설정), HudTextures
 View/         QuarterViewCamera, ShipVisualSway, OceanSurface, ShipWake, EliteMarker, Explosions, DecoyFx,
               장식(DecorFx, ShipWreck, FunnelSmoke, CloudShadows, SeaLife), SeaAtmosphere(해역 물색·안개)
 World/        Islands, IslandField(+.Banks 수로 기슭), IslandBuilder(+.Art, .Decor, .Bank 부분 클래스), EnvironmentArt, SeaRegion(해역 프로필·물길)
+WW2/          WWII 시험 전투(패치 B) — Ww2Battle(시작 준비), Ww2BattlePanel(안내판·위험 지점 표식), Ww2BattleLog(공격 단계 기록),
+              Ww2DualPurposeGunModule, Ww2QuadAaModule, Ww2BroadsideTorpedoModule(+Ww2TorpedoControl 수동 발사, Ww2StraightTorpedo),
+              Ww2StrikeAircraft(+IAirStrike·AirStrikes) → Ww2TorpedoBomber, Ww2DiveBomber, Ww2GunneryBoss, Ww2Marks(수면 표시선)
+(공용)        Core/Ruleset·ContentRegistry·Ww2Controls, Data/RulesetDefinition
 ```
 
 에디터 전용(`Assets/_Game/Editor/`):
@@ -752,6 +777,7 @@ World/        Islands, IslandField(+.Banks 수로 기슭), IslandBuilder(+.Art, 
              NavalUpgradeBuilder, NavalAudioBuilder, NavalEditorUtil(공용 헬퍼·레이어)
 아트         ArtModelPostprocessor, NavalEnvironmentArtBuilder, NavalEscortArtBuilder, NavalModuleVariantArtBuilder,
              EscortNavalGreyApply, NavalIconBaker, NavalBaseMenuShipRefresh(시작 화면 항구의 끊긴 정박 함정만 다시 옮김)
+WWII         NavalWw2Builder(패치 B 프리팹·데이터·규칙 집합, Naval/WW2/…)
 검증         CombatVerification(플레이어 빌드 + 자동 검증 실행), TaskForceVerification, DataSyncCheck(빌드 전 데이터 동기화 검사),
              BuildStampWriter(빌드 옆 build_stamp.txt: 커밋·미커밋 수)
 프로젝트     BuildSceneGuard(빌드 씬 목록 첫 칸을 Prototype_Main으로 유지)
@@ -828,6 +854,7 @@ World/        Islands, IslandField(+.Banks 수로 기슭), IslandBuilder(+.Art, 
 
 | 날짜 | 변경 | 이유 |
 |---|---|---|
+| 2026-10-17 | **WWII 전환 패치 B — 시험 전투**: 규칙 집합(`Ruleset`·`RulesetDefinition` ww2_v1·`ContentRegistry`)으로 드래프트·성장·편대·사전·적 생성·출항 호위함을 분리, 항구 [WWII 시험 전투] 버튼. 구축함(양용포 2·4연장 대공포·현측 어뢰 4연장·기만체 없는 함교), 적 소형 포함·포격함·뇌격기·급강하폭격기·임시 포격 순양함, 5구간 웨이브. 수동 어뢰(누르고 조준·떼면 발사, 사격각·통로·재장전 거부 이유), 공습 단계(확정→예고→투하→이탈, 투하 전 격추 = 취소), 안내판·위험 지점 표식·결과 화면 공격 기록. WWII 프로필·키 이름공간 분리, 현대 저장 보존. `ModuleType` 26~28 · `StartShipKind.Ww2Destroyer` · `Ww2Control`은 끝에 추가. `Torpedo.Finished`·`ArtilleryShell.Landed`(+피해 출처 이름)·`AirEnemy.SetVelocity`·`BridgeModule.decoyEnabled/smokeRounds`·`DecoySkill.Provides` 추가. 검사 `-ww2Only`·`-ww2BattleOnly` | 사용자: WWII 전환 B 진행, 현대 모드는 일단 병행(9.6) |
 | 2026-10-13 | **Codex 해안포대 v27 · 보급선 v28 모델 적용**: `Naval/Art/Apply Coastal Battery v27 · Supply Ship v28`(`NavalCoastalSupplyArt`) — FBX를 `Art/Models/Coastal`로, 해안포대는 빌더가 모델의 포탑·고각·포구를 연결해 프리팹을 다시 만들고, 보급선은 `Resources/TaskForce/SupplyShip` 프리팹(게임이 생길 때 불러 씀). 보급선은 위 판정 기준 점을 레이더(선미 쪽)로 잡으면 배가 세로로 서서 보급 기둥 점으로 고침. `-seaOnly`·`-bundleDOnly` 통과 | Codex가 요청 문서대로 만든 최신 시안(v25~v28 중 v27·v28) |
 | 2026-10-13 | **보급선 임무 개편(수송선단 호위)**: 기함을 따라다니던 보급선 → 앞쪽 150m에서 기다렸다가 합류하면 출발지→도착지 약 900m 항로(섬 회피·수로 따라)를 순항 7.5m/s로 혼자 감. 도착하면 성공(보상 같음), 격침 또는 150m 넘게 10초 이탈하면 실패. 금색 항로·도착지 등대·합류선·호위 범위 원, 막대에 남은 항로·거리 | 사용자 요청: 정해진 경로를 따라 호위하는 수송선단 호위 작전 느낌 |
 | 2026-10-13 | **옛 에셋 정리**: 스크립트가 지워진 옛 블록 mod_armor·mod_generator(데이터·프리팹)와 XP_Pickup 프리팹 삭제 → 데이터 동기화 검사 경고 7 → 0 | 사용자 결정 |

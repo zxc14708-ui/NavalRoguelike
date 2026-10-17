@@ -175,10 +175,40 @@ namespace Game.UI
         private static List<CodexEntry> Guide()
         {
             var entries = new List<CodexEntry>();
+            if (Ruleset.Active != null)
+            {
+                // WWII 시험 전투(패치 B): 그 규칙 집합의 함정 + WWII 규칙 한 장(현대 용어 — 미사일·CIWS·VLS — 는 빼다)
+                foreach (var concept in Ruleset.Active.Hulls)
+                    if (concept != null) entries.Add(ShipEntry(concept));
+                entries.Add(Ww2RulesEntry());
+                return entries;
+            }
             foreach (var concept in StartingShipCatalog.All)
                 if (concept != null) entries.Add(ShipEntry(concept));
             entries.AddRange(Terms());
             return entries;
+        }
+
+        /// <summary>WWII 시험 전투 규칙 요약(패치 B).</summary>
+        private static CodexEntry Ww2RulesEntry()
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine($"<color={Muted}>2차 세계대전 기술을 바탕으로 한 가상 해군. 유도 미사일 · CIWS · 헬기 · 기만체 · 재밍이 없다.</color>").AppendLine();
+            Row(sb, "함포 · 대공포", "자동으로 쏜다. 포탑이 돌아야 쏘고, 함교 · 붙은 블록 방향은 가려서 못 쏜다. 탄이 날아가는 시간이 있다.");
+            Row(sb, $"어뢰 [{Ww2Controls.BindingLabel(Ww2Control.TorpedoPort)}]/[{Ww2Controls.BindingLabel(Ww2Control.TorpedoStarboard)}]",
+                "직접 쏜다 — 누르고 있으면 현측 사격각(정횡 ±30°)과 예상 경로, 떼면 일제 발사. 곧게만 가므로 적의 앞을 노린다. 재장전이 길다.");
+            Row(sb, "공습", "뇌격기 · 급강하폭격기는 공격 방향을 정하면 수면에 예고(주황 선 · 붉은 원)를 띄운다. 그 뒤로는 방향을 바꾸지 않는다 — 보고 피한다. 투하 전에 격추하면 공격이 취소된다.");
+            Row(sb, "능력", "응급 수리 · 연막 · 전속은 그대로. 연막 속에서는 적이 조준 공격을 하지 못한다.");
+            Row(sb, "저장", "시험 전투는 저장하지 않는다. 현대 이어하기 기록 · 출격 기록 · 사전 발견은 따로 남는다.");
+            return new CodexEntry
+            {
+                Id = "ww2_rules",
+                Title = "WWII 시험 전투 규칙",
+                Tag = "규칙 집합 ww2_v1  ·  패치 B",
+                Accent = new Color(1f, 0.78f, 0.42f),
+                Roles = CodexRole.Surface | CodexRole.Air,
+                Body = sb.ToString().TrimEnd(),
+            };
         }
 
         private static CodexEntry ShipEntry(StartingShipConcept c)

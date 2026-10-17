@@ -91,6 +91,8 @@ namespace Game.Dev
                 runner.SignatureOnly = System.Array.IndexOf(args, "-signatureOnly") >= 0;
                 runner.EscortArmsOnly = System.Array.IndexOf(args, "-escortArmsOnly") >= 0;
                 runner.RunFlowOnly = System.Array.IndexOf(args, "-runFlowOnly") >= 0;
+                runner.Ww2Only = System.Array.IndexOf(args, "-ww2Only") >= 0;           // WWII 패치 B 규칙 검사
+                runner.Ww2BattleOnly = System.Array.IndexOf(args, "-ww2BattleOnly") >= 0;   // WWII 시험 전투 한 판
                 runner.BundleBOnly = System.Array.IndexOf(args, "-bundleBOnly") >= 0;
                 runner.BundleCOnly = System.Array.IndexOf(args, "-bundleCOnly") >= 0;
                 runner.BundleDOnly = System.Array.IndexOf(args, "-bundleDOnly") >= 0;

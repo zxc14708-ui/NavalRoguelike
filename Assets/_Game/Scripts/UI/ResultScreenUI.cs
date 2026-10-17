@@ -95,6 +95,7 @@ namespace Game.UI
         /// <summary>적 미사일 처리와 최종 빌드.</summary>
         private string Overview()
         {
+            if (Ruleset.IsWw2) return Ww2Overview();
             var sb = new System.Text.StringBuilder("<color=#e0c05a><b>적 미사일</b></color>");
             int Count(Game.Combat.ThreatOutcome o) => Game.Combat.CombatStats.Threats.TryGetValue(o, out var t) ? t.Count : 0;
             int intercepted = Count(Game.Combat.ThreatOutcome.Intercepted), hit = Count(Game.Combat.ThreatOutcome.HitShip), lost = Count(Game.Combat.ThreatOutcome.Lost);
@@ -122,6 +123,36 @@ namespace Game.UI
                 if (news.Count > 2) sb.Append($" 외 {news.Count - 2}");
                 sb.Append("</size>");
             }
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// WWII 시험 전투(패치 B): 적 미사일 대신 공격 단계 기록 — 공습·포격이 몇 번 와서 몇 번 맞았고(피격),
+        /// 몇 번 피했고(빗나감), 몇 번 투하 전에 떨어뜨렸는지. 내 현측 어뢰 명중률도 함께.
+        /// </summary>
+        private string Ww2Overview()
+        {
+            var sb = new System.Text.StringBuilder("<color=#e0c05a><b>공습 · 어뢰 · 포격</b></color>");
+            bool any = false;
+            foreach (var a in Game.WW2.Ww2BattleLog.All)
+            {
+                any = true;
+                bool mine = a.Name == Game.WW2.Ww2BattleLog.PlayerTorpedo;
+                if (mine) sb.Append($"\n{a.Name} {a.Released}발 — 명중 {a.Hits} · 빗나감 {a.Misses}");
+                else
+                {
+                    string cancelled = a.Cancelled > 0 ? $" · 투하 전 격추 {a.Cancelled}" : "";
+                    sb.Append($"\n{a.Name} — <color=#FF9A7A>피격 {a.Hits}</color> · 피함 {a.Misses}{cancelled}");
+                }
+            }
+            if (!any) sb.Append("\n<color=#9fb3c0>없음</color>");
+            var ship = GameManager.Instance != null ? GameManager.Instance.Player : null;
+            var grid = ship != null ? ship.Grid : null;
+            int blocks = 0;
+            if (grid != null) foreach (var m in grid.Modules) if (m != null && !m.IsDestroyed) blocks++;
+            sb.Append("\n\n<color=#e0c05a><b>최종 빌드</b></color>");
+            sb.Append($"\n{(_concept != null ? _concept.Title : "기본 함정")} · 블록 {blocks}개 · 성장 카드 {Game.Modules.RunUpgrades.Cards.Count}장");
+            sb.Append("\n<size=88%><color=#9fb3c0>WWII 시험 전투 — 기록·도전 과제·이어하기에 남기지 않음</color></size>");
             return sb.ToString();
         }
 

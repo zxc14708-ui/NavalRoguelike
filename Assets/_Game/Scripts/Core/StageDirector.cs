@@ -35,9 +35,15 @@ namespace Game.Core
         private bool _dangerRoute;
         private bool _stageTransitioning;
         private bool _training;
+        private bool _ww2;
 
         /// <summary>첫 출격 훈련 중: 구간·웨이브를 돌리지 않는다(TrainingDirector가 적을 낸다).</summary>
         public bool Training => _training;
+        /// <summary>
+        /// WWII 시험 전투 중(패치 B): 스테이지 목록을 규칙 집합(ww2_v1)의 것으로 바꿔 돌린다. 저장·도전 과제·해역·항로·교리는 쓰지 않는다
+        /// (현대 이어하기 기록 naval_run.json을 지우거나 덮어쓰지 않는다). 보스를 격침하면 승리.
+        /// </summary>
+        public bool Ww2Test => _ww2;
         /// <summary>지금 스테이지 순번(0부터)과 위험 항로 여부 — 저장이 읽는다.</summary>
         public int StageIndex => _stageIndex;
         public bool DangerRoute => _dangerRoute;
@@ -119,6 +125,8 @@ namespace Game.Core
                 GameManager.Instance.SetState(GameState.Paused);
                 hud.ShowStartScreen(() =>
                 {
+                    // 같은 함정 재출격이 WWII 시험 전투 함정이면(RunRestart.Retry) 그 전투로 다시 시작한다
+                    if (Ruleset.IsWw2) { BeginWw2Battle(hud); return; }
                     RunSave.Delete();   // 새 출항: 이어하기 기록은 버린다(시작 화면이 미리 알린다)
                     RunSeed.Begin();    // 새 판의 시드(점검 O07)
                     if (PlayerProfile.DangerStart)
@@ -143,7 +151,7 @@ namespace Game.Core
                 {
                     // 이어하기(점검 O01): 함선·편대·성장을 되살리고 저장된 스테이지 처음부터
                     RunSave.Apply(data, this);
-                });
+                }, () => BeginWw2Battle(hud));
             }
             else
             {
@@ -152,12 +160,40 @@ namespace Game.Core
             }
         }
 
+        /// <summary>
+        /// WWII 시험 전투 시작(패치 B). 규칙 집합은 이미 ww2_v1이어야 한다(항구 버튼·재출격이 들여보낸다).
+        /// 스테이지 목록을 규칙 집합의 것으로 바꾸고, 열린 바다(해역 없음)에서 구간을 돌린다.
+        /// </summary>
+        public void BeginWw2Battle(Game.UI.HUDView hud)
+        {
+            var def = Ruleset.Ww2Definition;
+            if (!Ruleset.IsWw2 || def == null || def.Stages.Count == 0 || def.Stages[0] == null)
+            {
+                Debug.LogError("[StageDirector] WWII 규칙 집합·스테이지가 없습니다 — 현대 전투로 시작합니다.");
+                Ruleset.Enter(Ruleset.Modern);
+                GameManager.Instance.SetState(GameState.Playing);
+                BeginStage(0);
+                return;
+            }
+            _ww2 = true;
+            _training = false;
+            stages = new RoundSet[def.Stages.Count];
+            for (int i = 0; i < stages.Length; i++) stages[i] = def.Stages[i];
+            Game.World.SeaRegion.Leave();
+            RunSeed.Begin();
+            GameManager.Instance.SetState(GameState.Playing);
+            var ship = player != null ? player.GetComponent<Game.Ship.ShipController>() : null;
+            Game.WW2.Ww2Battle.Begin(ship, hud);
+            BeginStage(0);
+        }
+
         private void BeginStage(int stageIndex)
         {
             _stageTransitioning = false;
             _stageIndex = stageIndex;
             // 해역(점검 K04): 스테이지마다 군도 → 좁은 수로 → 개방해역. 수로는 지금 함선 위치·침로가 물길이 된다
-            if (player != null) Game.World.SeaRegion.Enter(Game.World.SeaRegion.ForStage(StageNumber), player.position, player.forward);
+            // WWII 시험 전투는 열린 바다에서 한다(군도·수로는 패치 E)
+            if (player != null && !_ww2) Game.World.SeaRegion.Enter(Game.World.SeaRegion.ForStage(StageNumber), player.position, player.forward);
             _elapsed = 0f;
             _totalDuration = 0f;
             foreach (var p in Phases.Rounds) _totalDuration += Mathf.Max(5f, p.Duration);

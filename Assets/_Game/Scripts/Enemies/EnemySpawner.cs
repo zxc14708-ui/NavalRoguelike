@@ -79,9 +79,17 @@ namespace Game.Enemies
             return n < def.MaxAlive;
         }
 
+        /// <summary>지금 규칙 집합에 없는 적은 내지 않는다(WWII 판에 현대 적, 현대 판에 WWII 적이 섞이지 않게).</summary>
+        private static bool Allowed(EnemyDefinition def)
+        {
+            if (ContentRegistry.Allows(def)) return true;
+            Debug.LogWarning($"[EnemySpawner] 규칙 집합 {Ruleset.Current}에 없는 적은 내지 않음: {def.Id}");
+            return false;
+        }
+
         private EnemyController Spawn(EnemyDefinition def)
         {
-            if (def == null || def.Prefab == null) return null;
+            if (def == null || def.Prefab == null || !Allowed(def)) return null;
 
             var go = PoolManager.Instance?.Spawn(def.Prefab, GetRingPosition(), Quaternion.identity);
             if (go == null) return null;
@@ -122,7 +130,7 @@ namespace Game.Enemies
 
         public EnemyController SpawnAt(EnemyDefinition def, Vector3 position, Quaternion rotation)
         {
-            if (def == null || def.Prefab == null || _player == null) return null;
+            if (def == null || def.Prefab == null || _player == null || !Allowed(def)) return null;
 
             var go = PoolManager.Instance?.Spawn(def.Prefab, position, rotation);
             if (go == null || !go.TryGetComponent<EnemyController>(out var enemy)) return null;
@@ -136,7 +144,7 @@ namespace Game.Enemies
         /// <summary>고정 적(해안포대)을 그 자리에 둔다. 동시 최대 수에 세지 않는다.</summary>
         public EnemyController SpawnFixed(EnemyDefinition def, Vector3 position, Quaternion rotation)
         {
-            if (def == null || def.Prefab == null || _player == null) return null;
+            if (def == null || def.Prefab == null || _player == null || !Allowed(def)) return null;
             var go = PoolManager.Instance?.Spawn(def.Prefab, position, rotation);
             if (go == null || !go.TryGetComponent<EnemyController>(out var enemy)) return null;
             enemy.Setup(def, _player);

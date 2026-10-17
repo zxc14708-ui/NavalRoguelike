@@ -150,8 +150,12 @@ namespace Game.UI
         {
             if (_pauseGuideBody == null) return;
             var sb = new System.Text.StringBuilder();
-            foreach (var (action, title) in ControlTitles)
+            foreach (var (action, title) in ActiveControlTitles())
                 sb.Append(title).Append("<pos=66%><color=#A8FFC0>").Append(GameSettings.BindingLabel(action)).Append("</color>\n");
+            if (Ruleset.IsWw2)
+                foreach (Ww2Control c in System.Enum.GetValues(typeof(Ww2Control)))
+                    sb.Append(c == Ww2Control.TorpedoPort ? "좌현 어뢰(누르고 조준·떼면 발사)" : "우현 어뢰(누르고 조준·떼면 발사)")
+                      .Append("<pos=66%><color=#FFD27A>").Append(Ww2Controls.BindingLabel(c)).Append("</color>\n");
             sb.Append("일시정지 · 화면 닫기<pos=66%><color=#A8FFC0>ESC</color>");
             _pauseGuideBody.text = sb.ToString();
         }
@@ -215,6 +219,7 @@ namespace Game.UI
             if (!RunRestart.ConsumeQuickLaunch(out var concept)) return false;
             var initializer = FindFirstObjectByType<Game.Ship.ShipInitializer>();
             string reason = null;
+            Ruleset.EnterFor(concept);   // WWII 시험 전투 함정이면 WWII 규칙으로 다시 들어간다(현대 함정이면 현대)
             if (initializer != null && concept != null && !initializer.TrySelect(concept, out reason))
             {
                 Debug.LogWarning($"[HUD] 재출격 함정 선택 실패 — 시작 화면을 엽니다: {reason}");

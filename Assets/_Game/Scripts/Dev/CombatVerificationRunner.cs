@@ -108,6 +108,10 @@ namespace Game.Dev
         public bool EscortArmsOnly;
         [Tooltip("일시정지·결과 화면·재출격 흐름 검사만 돌린다(-runFlowOnly). 씬을 다시 여므로 검증기가 씬 전환을 넘어 살아남는다")]
         public bool RunFlowOnly;
+        [Tooltip("WWII 패치 B 규칙 검사만(-ww2Only): 항구 버튼으로 시험 전투에 들어가 분리·어뢰·함포·공습·보스를 검사")]
+        public bool Ww2Only;
+        [Tooltip("WWII 시험 전투 한 판(-ww2BattleOnly): 조타 로봇이 기본 장비로 끝까지 — 균형 자료")]
+        public bool Ww2BattleOnly;
         [Tooltip("점검 B 묶음 검사만 돌린다(-bundleBOnly): 사전·무장 패널·대잠 카드·화면 설정·적아 표식·위협 묶음·첫 출격 훈련")]
         public bool BundleBOnly;
         [Tooltip("점검 C 묶음 검사만 돌린다(-bundleCOnly): 다시 뽑기·빌드 안내·항구/효과 품질·보스 막대·저장/이어하기·결과 분석. 씬을 다시 연다")]
@@ -143,6 +147,16 @@ namespace Game.Dev
             {
                 // 성능 측정(O04): 항구 시작 화면부터 재야 해서 검사 환경을 쓰지 않는다
                 yield return PerfCheck();
+                Finish();
+                yield break;
+            }
+            if (Ww2Only || Ww2BattleOnly)
+            {
+                // WWII 시험 전투(패치 B): 항구의 [WWII 시험 전투] 버튼부터 실제 흐름 그대로 — 검사 환경(PrepareSandbox)을 쓰지 않는다
+                if (Camera.main != null) Camera.main.aspect = 16f / 9f;
+                if (Ww2Only) yield return Ww2Check();
+                else yield return Ww2BattleCheck();
+                SaveLog(Ww2Only ? "ww2" : "ww2battle");
                 Finish();
                 yield break;
             }

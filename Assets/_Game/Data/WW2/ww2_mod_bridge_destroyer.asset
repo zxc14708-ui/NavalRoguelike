@@ -1,0 +1,72 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee8925205f16a2b47900cba0670cd113, type: 3}
+  m_Name: ww2_mod_bridge_destroyer
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Modules.ModuleDefinition
+  id: ww2_mod_bridge_destroyer
+  displayName: "\uAD6C\uCD95\uD568 \uD568\uAD50"
+  description: "WWII \uAD6C\uCD95\uD568\uC758 \uD568\uAD50\xB7\uAE30\uAD00\uC2E4\xB7\uC5F0\uB3CC.
+    \uD56D\uD574 \uB808\uC774\uB354\xB7\uC190\uC0C1 \uD1B5\uC81C\xB7\uC804\uC18D\xB7\uC5F0\uB9C9\uC744
+    \uB9E1\uB294\uB2E4. \uAE30\uB9CC\uCCB4\uB294 \uC5C6\uB2E4(\uD328\uCE58 A 9.1)."
+  type: 0
+  icon: {fileID: 21300000, guid: b7de0487ecfe821448d748ddea991a66, type: 3}
+  width: 3
+  height: 1
+  canRotate: 0
+  placement:
+    Zone: 0
+  heightClass: 2
+  maxCount: 0
+  maxHp: 110
+  rarity: 0
+  weight: 0
+  prefab: {fileID: 8411865862403907728, guid: 2f9541c388925aa42844a6ebdc79a9da, type: 3}
+  stats:
+    Range: 0
+    MinRange: 0
+    Damage: 0
+    ReloadTime: 14
+    ProjectileSpeed: 0
+    FireArcDegrees: 0
+    TurretTurnRate: 0
+    AmmoFamily: 0
+    MagazineCapacity: 0
+    AmmoPerShot: 0
+    AmmoReloadAmount: 0
+    AmmoReloadTime: 0
+    DetectionRange: 46
+    ExtraTrackedTargets: 2
+    SupportRadiusCells: 0
+    ReloadBonus: 0
+    AmmoCapacityBonus: 0
+    ResupplyBonus: 0
+    CookOffDamage: 0
+    DamageReduction: 0.05
+    HullRepairPerSecond: 0.5
+    ModuleRepairPerSecond: 0.6
+    SortieCooldown: 0
+    HelicopterSpeed: 0
+    EscortFireRateBonus: 0
+    SpeedBonus: 0
+    AccelerationBonus: 0
+    MovingGunDamageBonus: 0
+    GuidedRangeBonus: 0
+    MissileReloadReduction: 0
+  targetEfficiency:
+    SmallSurface: 0
+    MediumSurface: 0
+    LargeSurface: 0
+    Boss: 0
+    Submarine: 0
+    Drone: 0
+    Air: 0
+    Missile: 0

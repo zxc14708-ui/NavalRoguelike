@@ -140,7 +140,7 @@ namespace Game.Ship
             if (SelectionLocked) return;
             SelectionLocked = true;
             int count = SelectedConcept != null ? SelectedConcept.InitialEscortCount : 0;
-            if (count <= 0) return;
+            if (count <= 0 || !ContentRegistry.AllowsEscorts) return;
             var formation = GetComponent<TaskForceEscortFormation>();
             if (formation == null) formation = gameObject.AddComponent<TaskForceEscortFormation>();
             for (int slot = 0; slot < Mathf.Min(count, TaskForceEscortFormation.MaxEscorts); slot++)

@@ -45,7 +45,7 @@ namespace Game.UI
         }
 
         private static StageDirector Director => FindFirstObjectByType<StageDirector>();
-        private static bool Training => Director != null && Director.Training;
+        private static bool Training => Director != null && (Director.Training || Director.Ww2Test);   // WWII 시험 전투도 기록·도전 과제를 세지 않는다
 
         private void OnPhase(int stage, int phase, int count, string title)
         {

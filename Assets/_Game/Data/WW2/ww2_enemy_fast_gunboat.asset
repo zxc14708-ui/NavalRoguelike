@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b0951aedabbf14429864b73543333f0, type: 3}
+  m_Name: ww2_enemy_fast_gunboat
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.EnemyDefinition
+  id: ww2_enemy_fast_gunboat
+  displayName: "\uC18C\uD615 \uD3EC\uD568"
+  kind: 0
+  prefab: {fileID: 4835920138294464225, guid: 2e467ab1661a5c241857a47e179b7c5d, type: 3}
+  category: 1
+  rank: 0
+  targetValue: 1
+  maxAlive: 0
+  maxHp: 14
+  moveSpeed: 11
+  turnRateDegPerSec: 190
+  preferredRange: 7
+  attackDamage: 3.5
+  attackCooldown: 1.7
+  missilePrefab: {fileID: 0}
+  salvoSize: 1
+  salvoSpacing: 0.15
+  xpReward: 1
+  revealDuration: 6
+  launchedDrone: {fileID: 0}
+  launchedRecon: {fileID: 0}
+  launchedFighter: {fileID: 0}
