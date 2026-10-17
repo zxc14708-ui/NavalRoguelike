@@ -24,6 +24,7 @@ namespace Game.WW2
         public const string DiveBomber = "급강하 폭탄";
         public const string PlayerTorpedo = "현측 어뢰";
         public const string BossSalvo = "순양함 주포";
+        public const string TorpedoBoat = "어뢰정 어뢰";   // 현대 TorpedoBoat가 WWII 판에서 붙이는 이름과 같아야 한다
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics() { s_attacks.Clear(); s_order.Clear(); }

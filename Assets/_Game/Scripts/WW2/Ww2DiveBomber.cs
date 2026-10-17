@@ -1,6 +1,7 @@
 using UnityEngine;
 using Game.Core;
 using Game.Combat;
+using Game.Enemies;
 
 namespace Game.WW2
 {
@@ -13,8 +14,11 @@ namespace Game.WW2
     ///      강하 중에 격추하면 폭탄은 없다(원도 사라진다).
     ///   4 이탈: 기수를 들어 빠져나가 떠난다.
     /// 피하는 법: 원이 뜨면 전령기·타로 원 밖으로 빠진다. 대공포는 강하하는 동안 가까이 내려온 기체를 잡을 기회다.
+    /// 예측은 지금 속력과 <b>선회</b>를 유지한다고 본다(Ww2Aim) — 돌고 있던 그대로 돌면 맞는다.
+    /// <b>2기 편대</b>(GroupSize 2): 두 번째는 편대장 뒤를 따라오다 편대장이 확정하면 <see cref="wingmanDelay"/>초 늦게,
+    /// 예상 침로를 따라 <see cref="wingmanLead"/>m 앞(속력을 올려 빠져나가면 있을 곳)에 떨어뜨린다.
     /// </summary>
-    public class Ww2DiveBomber : Ww2StrikeAircraft
+    public class Ww2DiveBomber : Ww2StrikeAircraft, IFormationMember
     {
         [Header("Dive")]
         [SerializeField] private GameObject bombPrefab;
@@ -25,20 +29,46 @@ namespace Game.WW2
         [SerializeField] private float bombFlightTime = 0.6f;
         [SerializeField] private float blastRadius = 4f;
 
+        [Header("Formation")]
+        [SerializeField] private float wingmanDelay = 0.7f;
+        [SerializeField] private float wingmanLead = 7f;
+
+        private Ww2DiveBomber _leader, _wingman;
         private Vector3 _diveStart, _releasePos;
         private GameObject _marker;
         private Collider _playerHull;
 
         public override string StrikeName => Ww2BattleLog.DiveBomber;
 
+        public Ww2DiveBomber Leader => _leader;
+
         protected override void OnStrikeSetup()
         {
             _playerHull = Player != null ? Player.GetComponent<Collider>() : null;
+            _leader = _wingman = null;
+        }
+
+        public void JoinFormation(EnemyController leader, int slot)
+        {
+            if (leader is not Ww2DiveBomber lead || lead == this || lead._wingman != null) return;
+            _leader = lead;
+            lead._wingman = this;
         }
 
         protected override void UpdateApproach(float dt)
         {
-            Vector3 over = Player.position + PlayerVelocity * 1.5f;
+            if (_leader != null && _leader.IsAlive && _leader.State == Phase.Approach)
+            {
+                // 편대장 뒤 오른쪽 비스듬히
+                var lt = _leader.transform;
+                Vector3 spot = lt.position + lt.right * 6f - lt.forward * 6f;
+                float gap = Vector3.Distance(spot, transform.position);
+                Fly(spot, Definition.MoveSpeed * Mathf.Lerp(0.95f, 1.3f, Mathf.Clamp01(gap / 15f)), Definition.TurnRateDegPerSec * 1.5f, gap < 6f, dt);
+                return;
+            }
+            _leader = null;
+
+            Vector3 over = Ww2Aim.Predict(Player, PlayerShip, 1.5f);
             over.y = cruiseAltitude;
             Fly(over, Definition.MoveSpeed, Definition.TurnRateDegPerSec, false, dt);
 
@@ -49,15 +79,36 @@ namespace Game.WW2
             if (PlayerConcealed || flat.magnitude > commitDistance || Vector3.Angle(fwd, flat) > 55f) return;
 
             float t = diveTime + bombFlightTime;
-            Vector3 aim = Player.position + PlayerVelocity * t;
+            BeginDive(Ww2Aim.Predict(Player, PlayerShip, t), diveTime);
+            // 편대: 조금 늦게, 예상 침로를 따라 조금 앞에
+            if (_wingman != null && _wingman.IsAlive && _wingman.State == Phase.Approach && _wingman._leader == this)
+            {
+                float t2 = t + wingmanDelay;
+                Vector3 aim2 = Ww2Aim.Predict(Player, PlayerShip, t2) + Ww2Aim.PredictHeading(Player, PlayerShip, t2) * wingmanLead;
+                _wingman.BeginDive(aim2, diveTime + wingmanDelay);
+            }
+        }
+
+        /// <summary>착탄점 aim을 고정하고 seconds 뒤 투하하도록 강하를 시작한다(원 표시).</summary>
+        private void BeginDive(Vector3 aim, float seconds)
+        {
             aim.y = 0f;
             Vector3 approach = aim - transform.position;
             approach.y = 0f;
+            if (approach.sqrMagnitude < 1e-4f) approach = transform.forward;
             _diveStart = transform.position;
             // 폭탄은 앞으로 조금 날아가므로 착탄점 조금 앞(뒤쪽)에서 놓는다
             _releasePos = aim - approach.normalized * 3f + Vector3.up * releaseAltitude;
-            Commit(diveTime, aim, approach);
-            ShowMarker(t);
+            Commit(seconds, aim, approach);
+            ShowMarker(seconds + bombFlightTime);
+        }
+
+        public override void OnDespawned()
+        {
+            if (_leader != null && _leader._wingman == this) _leader._wingman = null;
+            if (_wingman != null && _wingman._leader == this) _wingman._leader = null;
+            _leader = _wingman = null;
+            base.OnDespawned();
         }
 
         protected override void UpdateCommitted(float dt)

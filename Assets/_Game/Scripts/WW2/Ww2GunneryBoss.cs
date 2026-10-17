@@ -28,7 +28,7 @@ namespace Game.WW2
         [SerializeField] private float turretTurnRate = 40f;
         [SerializeField] private float salvoInterval = 8f;
         [SerializeField] private float salvoIntervalPhase2 = 6f;
-        [SerializeField] private int shellsPhase1 = 5;
+        [SerializeField] private int shellsPhase1 = 6;
         [SerializeField] private int shellsPhase2 = 8;
         [SerializeField] private float shellFlightTime = 2.8f;
         [SerializeField] private float blastRadius = 3.2f;
@@ -98,14 +98,8 @@ namespace Game.WW2
             _salvo = StartCoroutine(Salvo(predicted, Phase2));
         }
 
-        private Vector3 Predicted(float seconds)
-        {
-            Vector3 v = _playerShip != null ? Player.forward * _playerShip.CurrentSpeed : Vector3.zero;
-            v.y = 0f;
-            Vector3 p = Player.position + v * seconds;
-            p.y = 0f;
-            return p;
-        }
+        /// <summary>착탄 시각에 기함이 있을 곳 — 지금 속력·선회를 유지한다고 본다(Ww2Aim).</summary>
+        private Vector3 Predicted(float seconds) => Ww2Aim.Predict(Player, _playerShip, seconds);
 
         /// <summary>포탑을 예상 위치로 돌린다. 하나라도 20° 안이면 쏠 수 있다.</summary>
         private bool TrainTurrets(Vector3 point, float dt)
@@ -130,9 +124,7 @@ namespace Game.WW2
         private IEnumerator Salvo(Vector3 predicted, bool phase2)
         {
             SalvosFired++;
-            Vector3 fwd = Player.forward;
-            fwd.y = 0f;
-            fwd = fwd.sqrMagnitude > 0.01f ? fwd.normalized : Vector3.forward;
+            Vector3 fwd = Ww2Aim.PredictHeading(Player, _playerShip, shellFlightTime);   // 착탄 때의 침로를 따라 늘어선다
             Vector3 right = Vector3.Cross(Vector3.up, fwd);
             int count = phase2 ? shellsPhase2 : shellsPhase1;
             for (int i = 0; i < count; i++)

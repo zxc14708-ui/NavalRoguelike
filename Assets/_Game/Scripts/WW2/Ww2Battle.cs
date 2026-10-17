@@ -44,6 +44,7 @@ namespace Game.WW2
         private static void OnTorpedo(Torpedo torpedo, bool hit)
         {
             if (torpedo == null || string.IsNullOrEmpty(torpedo.Cause)) return;
+            if (torpedo.Cause == Ww2BattleLog.TorpedoBoat) Ww2BattleLog.Released(torpedo.Cause);   // 어뢰정은 투하 단계가 따로 없어 끝날 때 함께 센다
             if (hit) Ww2BattleLog.Hit(torpedo.Cause); else Ww2BattleLog.Miss(torpedo.Cause);
         }
 

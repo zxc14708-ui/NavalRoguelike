@@ -383,6 +383,74 @@ namespace Game.Dev
                 yield return new WaitForSeconds(1.5f);
             }
 
+            // ---- 4-1) 선회까지 읽는 조준(2026-10-17 피드백 "플레이어를 더 노리게"): 같은 타로 계속 돌면 급강하 폭탄이 맞는다
+            ship.SetEngineOrder(1f);
+            ship.DevRudderOverride = 0.5f;
+            yield return new WaitForSeconds(3f);
+            {
+                string line = null; bool turnHit = false;
+                yield return Strike(diveBomber, false, false, (l, t, h, tr) => { line = l; turnHit = h; });
+                ship.DevRudderOverride = 0.5f;
+                _report.AppendLine($"- 급강하폭격기 · 같은 타로 계속 선회: {line}");
+                if (!turnHit) Fail("선회를 유지하는 함선을 급강하폭격기가 맞히지 못함(선회 예측 안 됨)");
+                CombatDevTools.ClearBattlefield();
+            }
+            ship.DevRudderOverride = 0f;
+            yield return new WaitForSeconds(2f);
+
+            // ---- 4-2) 편대: 뇌격기 3기 · 급강하 2기 — 함께 날고 함께 확정, 어뢰 부채
+            var spawnGroup = typeof(EnemySpawner).GetMethod("Spawn", Inst);
+            {
+                Ww2BattleLog.Get(Ww2BattleLog.TorpedoBomber);
+                var lead = spawnGroup?.Invoke(EnemySpawner.Instance, new object[] { torpedoBomber }) as Ww2TorpedoBomber;
+                yield return null;
+                var flight = Object.FindObjectsByType<Ww2TorpedoBomber>(FindObjectsSortMode.None).Where(b => b.IsAlive).ToList();
+                float maxGap = 0f, watchStart = Time.time;
+                while (Time.time - watchStart < 25f && lead != null && lead.IsAlive && !lead.IsCommitted)
+                {
+                    if (Time.time - watchStart > 4f)
+                        foreach (var b in flight) if (b != lead && b.IsAlive) maxGap = Mathf.Max(maxGap, Vector3.Distance(b.transform.position, lead.transform.position));
+                    yield return null;
+                }
+                var committed = flight.Where(b => b.IsAlive && b.IsCommitted).ToList();
+                var headings = committed.Select(b => b.CommittedHeading).ToList();
+                float fan = 0f;
+                for (int i = 0; i < headings.Count; i++) for (int j = i + 1; j < headings.Count; j++) fan = Mathf.Max(fan, Vector3.Angle(headings[i], headings[j]));
+                float meetSpread = committed.Count >= 2 ? committed.Max(a => committed.Max(b => Vector3.Distance(a.DangerPoint, b.DangerPoint))) : 0f;
+                yield return new WaitForSeconds(1.2f);
+                yield return ScreenShot("ww2_torpedo_flight");
+                int torps0 = ActiveTorpedoes();
+                float wait = Time.time;
+                while (Time.time - wait < 6f && committed.Any(b => b.IsAlive && !b.HasReleased)) yield return null;
+                int dropped = ActiveTorpedoes() - torps0;
+                _report.AppendLine($"- 뇌격기 편대: {flight.Count}기 · 접근 중 편대장과 최대 거리 {maxGap:0}m · 함께 확정 {committed.Count}기 · 방향 차이 최대 {fan:0.0}° · 노리는 곳 간격 최대 {meetSpread:0}m · 어뢰 {dropped}발");
+                if (flight.Count != 3) Fail("뇌격기가 3기 편대로 나오지 않음");
+                if (maxGap > 30f) Fail("뇌격기 편대가 흩어져 날아옴");
+                if (committed.Count != 3) Fail("뇌격기 편대가 함께 확정하지 않음");
+                if (meetSpread < 10f) Fail("뇌격기 편대 어뢰가 부채로 벌어지지 않음");
+                if (dropped < 3) Fail("뇌격기 편대가 어뢰 3발을 떨어뜨리지 않음");
+                yield return new WaitForSeconds(4f);
+                CombatDevTools.ClearBattlefield();
+            }
+            {
+                var lead = spawnGroup?.Invoke(EnemySpawner.Instance, new object[] { diveBomber }) as Ww2DiveBomber;
+                yield return null;
+                var pair = Object.FindObjectsByType<Ww2DiveBomber>(FindObjectsSortMode.None).Where(b => b.IsAlive).ToList();
+                float watchStart = Time.time;
+                while (Time.time - watchStart < 25f && lead != null && lead.IsAlive && !lead.IsCommitted) yield return null;
+                var dove = pair.Where(b => b.IsAlive && b.IsCommitted).ToList();
+                float gapPoints = dove.Count == 2 ? Vector3.Distance(dove[0].StrikePoint, dove[1].StrikePoint) : 0f;
+                float gapTime = dove.Count == 2 ? Mathf.Abs(dove[0].SecondsToRelease - dove[1].SecondsToRelease) : 0f;
+                _report.AppendLine($"- 급강하 편대: {pair.Count}기 · 함께 강하 {dove.Count}기 · 착탄점 간격 {gapPoints:0}m · 투하 시차 {gapTime:0.0}초");
+                if (pair.Count != 2 || dove.Count != 2) Fail("급강하폭격기가 2기 편대로 함께 강하하지 않음");
+                yield return new WaitForSeconds(4f);
+                CombatDevTools.ClearBattlefield();
+            }
+            var bossDef = def.Enemies.First(e => e.Id == "ww2_boss_gunnery_cruiser");
+            var torpBoat = def.Enemies.FirstOrDefault(e => e.Id == "ww2_enemy_torpedo_boat");
+            _report.AppendLine($"- 데이터: 순양함 체력 {bossDef.MaxHp:0}(900 +20%) · 뇌격기 편대 {torpedoBomber.GroupSize} · 급강하 편대 {diveBomber.GroupSize} · 어뢰정 {Yes(torpBoat != null)}");
+            if (!Mathf.Approximately(bossDef.MaxHp, 1080f) || torpedoBomber.GroupSize != 3 || diveBomber.GroupSize != 2 || torpBoat == null) Fail("플레이 피드백 데이터(보스 체력·편대·어뢰정)가 반영되지 않음");
+
             // 무장 켠 채: 양용포가 진입 기체로 돌리는가
             foreach (var b in off) if (b != null) b.enabled = true;
             BridgeMachineGun.DevHoldFire = false;

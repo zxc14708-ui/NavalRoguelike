@@ -114,12 +114,15 @@ namespace Game.EditorTools
                 TargetCategory.SmallSurface, EnemyRank.Normal, 1, 0, hp: 14f, speed: 11f, turn: 190f, range: 7f, damage: 3.5f, cooldown: 1.7f, xp: 1);
             var eGunboat = EnemyDef("ww2_enemy_gunboat", "포격함", TargetKind.Surface, Load<GameObject>("Prefabs/Enemies/ENE_ArtilleryBoat.prefab"),
                 TargetCategory.MediumSurface, EnemyRank.Normal, 3, 2, hp: 42f, speed: 6f, turn: 70f, range: 38f, damage: 10f, cooldown: 9f, xp: 4);
+            // 2026-10-17 플레이 피드백: 뇌격기 3기 편대 · 급강하 2기 편대(동시 최대 = 편대 둘) · 어뢰정 추가 · 보스 체력 +20%(900 → 1080)
             var eTorpBomber = EnemyDef("ww2_enemy_torpedo_bomber", "뇌격기", TargetKind.Aircraft, torpedoBomber,
-                TargetCategory.Air, EnemyRank.Normal, 2, 3, hp: 12f, speed: 22f, turn: 90f, range: 0f, damage: 30f, cooldown: 0f, xp: 3);
+                TargetCategory.Air, EnemyRank.Normal, 2, 6, hp: 12f, speed: 22f, turn: 90f, range: 0f, damage: 30f, cooldown: 0f, xp: 3, group: 3);
             var eDiveBomber = EnemyDef("ww2_enemy_dive_bomber", "급강하폭격기", TargetKind.Aircraft, diveBomber,
-                TargetCategory.Air, EnemyRank.Normal, 2, 3, hp: 11f, speed: 24f, turn: 110f, range: 0f, damage: 22f, cooldown: 0f, xp: 3);
+                TargetCategory.Air, EnemyRank.Normal, 2, 4, hp: 11f, speed: 24f, turn: 110f, range: 0f, damage: 22f, cooldown: 0f, xp: 3, group: 2);
+            var eTorpBoat = EnemyDef("ww2_enemy_torpedo_boat", "어뢰정", TargetKind.Surface, Load<GameObject>("Prefabs/Enemies/ENE_TorpedoBoat.prefab"),
+                TargetCategory.SmallSurface, EnemyRank.Normal, 2, 3, hp: 26f, speed: 10f, turn: 110f, range: 40f, damage: 24f, cooldown: 13f, xp: 3);
             var eBoss = EnemyDef("ww2_boss_gunnery_cruiser", "적 순양함(임시)", TargetKind.Surface, cruiser,
-                TargetCategory.Boss, EnemyRank.Boss, 10, 0, hp: 900f, speed: 5.5f, turn: 30f, range: 36f, damage: 14f, cooldown: 0f, xp: 0);
+                TargetCategory.Boss, EnemyRank.Boss, 10, 0, hp: 1080f, speed: 5.5f, turn: 30f, range: 36f, damage: 14f, cooldown: 0f, xp: 0);
 
             var loadout = CreateSO<StartingLoadout>($"{DataDir}/Loadout_WW2_Destroyer.asset");
             Configure(loadout, so =>
@@ -159,13 +162,16 @@ namespace Game.EditorTools
             Configure(waves, so =>
             {
                 var rounds = so.FindProperty("rounds");
+                // 2026-10-17 플레이 피드백 "난이도가 낮아 앞·옆 차이를 확인하기 어렵다": 스폰·동시 수를 올리고 어뢰정·편대를 섞는다.
+                // 편대는 한 번 스폰에 3기(뇌격)·2기(급강하)가 나오므로 가중치는 낮게 둔다.
                 var spec = new (string title, float dur, float rate, int max, (EnemyDefinition e, float w)[] entries, EnemyDefinition boss, EnemyDefinition escort, int escortCount)[]
                 {
-                    ("초계 접촉", 60f, 0.35f, 4, new[] { (eFast, 1f) }, null, null, 0),
-                    ("포격함 출현", 70f, 0.4f, 5, new[] { (eFast, 1f), (eGunboat, 0.5f) }, null, null, 0),
-                    ("뇌격기 공습", 75f, 0.45f, 6, new[] { (eFast, 0.7f), (eTorpBomber, 1f) }, null, null, 0),
-                    ("급강하 폭격", 75f, 0.45f, 6, new[] { (eGunboat, 0.4f), (eDiveBomber, 1f), (eTorpBomber, 0.4f) }, null, null, 0),
-                    ("적 순양함", 60f, 0.25f, 4, new[] { (eFast, 0.6f), (eTorpBomber, 0.35f), (eDiveBomber, 0.3f) }, eBoss, eFast, 2),
+                    // 소형 포함 기총이 피해 대부분을 차지하지 않게(첫 시험: 소형 포함 137 · 뇌격 47) 포함 비중은 낮추고 어뢰·항공 위협 비중을 둔다
+                    ("초계 접촉", 55f, 0.45f, 6, new[] { (eFast, 1f) }, null, null, 0),
+                    ("포격함·어뢰정", 70f, 0.5f, 8, new[] { (eFast, 0.7f), (eGunboat, 0.45f), (eTorpBoat, 0.45f) }, null, null, 0),
+                    ("뇌격기 편대", 75f, 0.5f, 10, new[] { (eFast, 0.5f), (eTorpBomber, 0.45f), (eTorpBoat, 0.35f) }, null, null, 0),
+                    ("급강하 폭격", 75f, 0.55f, 11, new[] { (eFast, 0.4f), (eGunboat, 0.4f), (eDiveBomber, 0.55f), (eTorpBomber, 0.3f) }, null, null, 0),
+                    ("적 순양함", 60f, 0.35f, 8, new[] { (eFast, 0.5f), (eTorpBoat, 0.35f), (eTorpBomber, 0.3f), (eDiveBomber, 0.25f) }, eBoss, eTorpBoat, 2),
                 };
                 rounds.arraySize = spec.Length;
                 for (int i = 0; i < spec.Length; i++)
@@ -194,12 +200,12 @@ namespace Game.EditorTools
             {
                 Set(so, "id", "ww2_v1");
                 Set(so, "schemaVersion", 1);
-                Set(so, "contentVersion", 1);
+                Set(so, "contentVersion", 2);   // 2026-10-17: 어뢰정 · 편대 · 웨이브 강화
                 Set(so, "title", "WWII 시험 전투");
                 Set(so, "idPrefix", "ww2_");
                 SetArray(so, "hulls", concept);
                 SetArray(so, "modules", defBridge, defGun, defAa, defTorpedo);
-                SetArray(so, "enemies", eFast, eGunboat, eTorpBomber, eDiveBomber, eBoss);
+                SetArray(so, "enemies", eFast, eGunboat, eTorpBoat, eTorpBomber, eDiveBomber, eBoss);
                 SetArray(so, "stages", waves);
                 var stats = so.FindProperty("allowedStats");
                 var allowed = new[] { RunStat.Damage, RunStat.FireRate, RunStat.Range, RunStat.Speed, RunStat.HullMax, RunStat.Defense };
@@ -285,7 +291,7 @@ namespace Game.EditorTools
         }
 
         private static EnemyDefinition EnemyDef(string id, string name, TargetKind kind, GameObject prefab, TargetCategory category, EnemyRank rank,
-            int value, int maxAlive, float hp, float speed, float turn, float range, float damage, float cooldown, int xp)
+            int value, int maxAlive, float hp, float speed, float turn, float range, float damage, float cooldown, int xp, int group = 1)
         {
             var def = CreateSO<EnemyDefinition>($"{DataDir}/{id}.asset");
             Configure(def, so =>
@@ -305,6 +311,7 @@ namespace Game.EditorTools
                 Set(so, "attackDamage", damage);
                 Set(so, "attackCooldown", cooldown);
                 Set(so, "xpReward", xp);
+                Set(so, "groupSize", group);
             });
             return def;
         }
@@ -645,6 +652,7 @@ namespace Game.EditorTools
                 Set(so, "muzzleFlash", flash);
                 SetArray(so, "secondaryMuzzles", secondary.ToArray());
                 Set(so, "secondaryProjectile", secondaryRound);
+                Set(so, "shellsPhase1", 6);
             });
             SetLayerRecursive(root, LayerEnemy);
             return Save(root);

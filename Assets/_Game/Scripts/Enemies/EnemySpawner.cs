@@ -9,6 +9,12 @@ namespace Game.Enemies
     /// 스테이지 구간 구성에 따라 적을 스폰한다.
     /// 구간이 바뀌어도 살아 있는 적은 그대로 두고 스폰 표만 바꾼다(전투가 끊기지 않게).
     /// </summary>
+    /// <summary>편대로 나오는 적(EnemyDefinition.GroupSize &gt; 1). 스포너가 편대장과 자리 번호(1부터)를 알려 준다.</summary>
+    public interface IFormationMember
+    {
+        void JoinFormation(EnemyController leader, int slot);
+    }
+
     public class EnemySpawner : MonoBehaviour
     {
         public static EnemySpawner Instance { get; private set; }
@@ -103,7 +109,31 @@ namespace Game.Enemies
 
             enemy.Setup(def, _player);
             _alive.Add(enemy);
+            if (def.GroupSize > 1) SpawnWingmen(def, enemy);
             return enemy;
+        }
+
+        /// <summary>
+        /// 편대(EnemyDefinition.GroupSize, WWII 뇌격기 3기 등): 편대장 뒤 좌우로 비스듬히 나머지를 내고 편대장에 붙인다.
+        /// 동시 최대 수는 편대장 한 번만 확인한다(편대를 반쪽으로 내지 않게).
+        /// </summary>
+        private void SpawnWingmen(EnemyDefinition def, EnemyController leader)
+        {
+            Vector3 fwd = leader.transform.forward; fwd.y = 0f;
+            fwd = fwd.sqrMagnitude > 1e-4f ? fwd.normalized : Vector3.forward;
+            Vector3 right = Vector3.Cross(Vector3.up, fwd);
+            for (int i = 1; i < def.GroupSize; i++)
+            {
+                float side = i % 2 == 1 ? 1f : -1f;
+                int rank = (i + 1) / 2;
+                Vector3 pos = leader.transform.position + right * side * 7f * rank - fwd * 7f * rank;
+                var go = PoolManager.Instance?.Spawn(def.Prefab, pos, leader.transform.rotation);
+                if (go == null || !go.TryGetComponent<EnemyController>(out var wing)) continue;
+                wing.Setup(def, _player);
+                wing.transform.SetPositionAndRotation(new Vector3(pos.x, wing.transform.position.y, pos.z), leader.transform.rotation);
+                _alive.Add(wing);
+                if (wing is IFormationMember member) member.JoinFormation(leader, i);
+            }
         }
 
         /// <summary>플레이어 주변 링 위의 임의 지점.</summary>
