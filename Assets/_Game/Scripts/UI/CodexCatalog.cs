@@ -11,7 +11,11 @@ using Game.Refit;
 
 namespace Game.UI
 {
-    public enum CodexSection { Weapons, Escorts, Enemies }
+    public enum CodexSection { Weapons, Escorts, Enemies, Guide }
+
+    /// <summary>사전 역할 필터(2026-10-11 점검 C01). 무장은 맡는 위협, 적은 대응에 필요한 역할, 호위함은 역할.</summary>
+    [System.Flags]
+    public enum CodexRole { None = 0, Air = 1, Surface = 2, Sub = 4, Support = 8 }
 
     /// <summary>사전 한 항목: 이름·분류 줄·본문(리치 텍스트)과 미리보기 모델(형태·단계별).</summary>
     public sealed class CodexEntry
@@ -22,6 +26,22 @@ namespace Game.UI
         public string Body;
         public Color Accent = Color.white;
         public readonly List<CodexModel> Models = new();
+        /// <summary>역할 필터에 걸리는 역할.</summary>
+        public CodexRole Roles;
+        /// <summary>형태·단계 버튼을 고르면 본문 맨 위에 붙는 그 단계 요약(이전 단계 대비, 점검 C02). 없으면 null.</summary>
+        public System.Func<int, string> ModelNote;
+        /// <summary>배치 도식: 설치할 수 있는 자리(무장만, 점검 C03). 없으면 도식을 그리지 않는다.</summary>
+        public PlacementZone? Zone;
+        /// <summary>사거리 막대(0~60 m 같은 눈금 — 항목끼리 비교된다).</summary>
+        public readonly List<CodexRange> Ranges = new();
+    }
+
+    /// <summary>사거리 막대 한 줄: 최소~최대 거리.</summary>
+    public readonly struct CodexRange
+    {
+        public readonly string Label;
+        public readonly float Min, Max;
+        public CodexRange(string label, float min, float max) { Label = label; Min = min; Max = max; }
     }
 
     /// <summary>미리보기 모델 하나. OnlyChild가 있으면 그 자식(Visual_LevelN)만 보인다.</summary>
@@ -45,7 +65,7 @@ namespace Game.UI
     /// 호위함 = 편대 역할. 수치도 데이터·편대 공식에서 읽으므로 밸런스를 바꾸면 사전이 따라 바뀐다.
     /// 적의 행동 설명·대응만 여기 글로 둔다(없으면 분류로 대신 설명).
     /// </summary>
-    public static class CodexCatalog
+    public static partial class CodexCatalog
     {
         private const string Muted = "#8fa4b8";
         private const string Key = "#e0c05a";
@@ -56,17 +76,23 @@ namespace Game.UI
         private const string Column = "<pos=34%>";
         private const float Knots = 1.944f;
 
-        public static List<CodexEntry> Build(CodexSection section) => section switch
+        public static List<CodexEntry> Build(CodexSection section)
         {
-            CodexSection.Weapons => Weapons(),
-            CodexSection.Escorts => Escorts(),
-            _ => Enemies(),
-        };
+            s_modules = null;   // 링크·함께 쓰기가 보는 블록 목록 — 지금 씬의 카드 풀·시작 배치로 다시 모은다
+            return section switch
+            {
+                CodexSection.Weapons => Weapons(),
+                CodexSection.Escorts => Escorts(),
+                CodexSection.Guide => Guide(),
+                _ => Enemies(),
+            };
+        }
 
         public static string SectionName(CodexSection section) => section switch
         {
             CodexSection.Weapons => "무장",
             CodexSection.Escorts => "호위함",
+            CodexSection.Guide => "함정·용어",
             _ => "적",
         };
 
@@ -83,10 +109,13 @@ namespace Game.UI
             var xp = Object.FindFirstObjectByType<ExperienceSystem>(FindObjectsInactive.Include);
             foreach (var m in RefitDraft.CollectInstallDefinitions(xp != null ? xp.Config : null))
                 if (!list.Contains(m)) list.Add(m);
-            foreach (var concept in StartingShipCatalog.All)
+            // 규칙 집합의 시작 함정(현대: 시작 함정 목록 · WWII: ww2_v1 정의의 함정)
+            var hulls = Ruleset.Active != null ? Ruleset.Active.Hulls : StartingShipCatalog.All;
+            foreach (var concept in hulls)
                 if (concept != null && concept.StartLoadout != null)
                     foreach (var entry in concept.StartLoadout.Entries)
                         if (entry.Module != null && !list.Contains(entry.Module)) list.Add(entry.Module);
+            list.RemoveAll(m => !ContentRegistry.Allows(m));   // 다른 규칙 집합의 블록(현대 ↔ WWII)은 빼다
             list.Sort((a, b) =>
             {
                 int c = TypeOrder(a.Type).CompareTo(TypeOrder(b.Type));
@@ -121,6 +150,9 @@ namespace Game.UI
             ModuleType.RamBow => 1,        // 근접
             ModuleType.Nobong => 1,        // 기관포와 76mm 사이
             ModuleType.MineRail => 8,      // 대잠·후방 장비 옆에
+            ModuleType.Ww2DualPurposeGun => 2,    // WWII(패치 B)
+            ModuleType.Ww2QuadAa => 5,
+            ModuleType.Ww2BroadsideTorpedo => 8,
             _ => 20,
         };
 
@@ -135,7 +167,10 @@ namespace Game.UI
                     Title = def.DisplayName,
                     Tag = $"{ModuleCardText.BuildTag(def)}  ·  {RarityName(def.Rarity)}",
                     Accent = new Color(0.66f, 1f, 0.75f),
+                    Roles = RolesOf(def.Type),
+                    Zone = def.Placement.Zone,
                 };
+                AddRanges(e, def);
                 var sb = new StringBuilder();
                 if (!string.IsNullOrEmpty(def.Description)) sb.AppendLine(def.Description).AppendLine();
                 // 카드 표(<pos=44%>)는 값이 길면 왼쪽 끝으로 줄이 넘어간다 — 사전에서는 넘어간 줄도 값 칸에 맞춘다
@@ -163,16 +198,20 @@ namespace Game.UI
                             if (!string.IsNullOrWhiteSpace(line)) sb.AppendLine("   " + line.Trim());
                     }
                 }
+                Synergy(sb, def.Type);
                 e.Body = sb.ToString().TrimEnd();
 
                 // 미리보기: 형태가 있으면 형태별 모델, 강화 외형이 있으면 단계별, 아니면 블록 모델
                 if (ModuleVariants.HasVariants(def.Type))
                 {
-                    foreach (var v in VariantsOf(def.Type))
+                    var forms = new List<ModuleVariant>(VariantsOf(def.Type));
+                    foreach (var v in forms)
                     {
                         var prefab = Resources.Load<GameObject>($"Modules/Variants/{ModuleVariants.ModelName(v)}");
                         e.Models.Add(new CodexModel(ModuleVariants.Name(v), prefab != null ? prefab : def.Prefab));
                     }
+                    e.ModelNote = i => i >= 0 && i < forms.Count
+                        ? $"<color={Key}><b>선택: {ModuleVariants.Name(forms[i])}</b></color>\n<color={Muted}>{ModuleVariants.Summary(forms[i])}</color>" : null;
                 }
                 else if (def.Prefab != null && def.Prefab.GetComponent<ModuleUpgradeVisuals>() is { } visuals && visuals.VariantCount > 1)
                 {
@@ -184,6 +223,9 @@ namespace Game.UI
                             : $"강화 {ModuleUpgrades.Roman(i)}";
                         e.Models.Add(new CodexModel(label, def.Prefab, $"Visual_Level{i + 1}"));
                     }
+                    int variants = visuals.VariantCount;
+                    var entry = e;
+                    e.ModelNote = i => i >= 0 && i < entry.Models.Count ? StageNote(def, i, i == variants - 1 ? max : i, entry.Models[i].Label) : null;
                 }
                 else e.Models.Add(new CodexModel("모델", def.Prefab));
                 entries.Add(e);
@@ -221,6 +263,7 @@ namespace Game.UI
         private static List<CodexEntry> Escorts()
         {
             var entries = new List<CodexEntry>();
+            if (!ContentRegistry.AllowsEscorts) return entries;   // WWII 시험 전투는 호위함이 없다(패치 A 9.2)
             var roles = new List<EscortRole> { EscortRole.None };
             roles.AddRange(TaskForceEscortFormation.Roles);
             int maxTier = TaskForceEscortFormation.MaxUpgradeLevel;
@@ -233,22 +276,44 @@ namespace Game.UI
                     Title = TaskForceEscortFormation.RoleName(role),
                     Tag = $"<color=#{ColorUtility.ToHtmlStringRGB(TaskForceEscortFormation.RoleColor(role))}>{code}</color>  ·  {TaskForceEscortFormation.RoleShort(role)}  ·  아군 수상함",
                     Accent = TaskForceEscortFormation.RoleColor(role),
+                    Roles = role switch
+                    {
+                        EscortRole.AirDefense => CodexRole.Air,
+                        EscortRole.AntiSubmarine => CodexRole.Sub,
+                        EscortRole.ElectronicWarfare => CodexRole.Air | CodexRole.Support,
+                        _ => CodexRole.Surface,
+                    },
                 };
                 var sb = new StringBuilder();
                 sb.AppendLine($"<color={Muted}>{TaskForceEscortFormation.RoleSummary(role)}.</color>").AppendLine();
                 Row(sb, "얻는 법", role == EscortRole.None
                     ? $"편대 배치 카드 — 1척 합류(최대 {TaskForceEscortFormation.MaxEscorts}척)"
                     : "고속정에 편대 강화 카드 → 역할 지정(T0), 다시 강화하면 T1~T3");
-                Row(sb, "함포(모든 함)", $"반경 {EscortDefense.GunRange:0} m · 피해 {EscortDefense.GunDamageFor(0):0.#}~{EscortDefense.GunDamageFor(maxTier):0.#} · {EscortDefense.GunInterval:0.0#}초 간격");
+                // 2026-10-11 호위함 실제 무장: 모델에 실린 무장이 각자 실제 탄·미사일을 쏜다
+                Row(sb, "함포(모든 함)", $"포탑마다 따로 — 주포·후방포·현측포 76mm 탄({EscortDefense.HeavyRange:0} m · {EscortDefense.HeavyInterval:0.0#}초), " +
+                                       $"기관총 기관포 탄({EscortDefense.LightRange:0} m · {EscortDefense.LightInterval:0.0#}초). 사격각 안의 가장 가까운 적");
                 string ability = role switch
                 {
-                    EscortRole.AirDefense => $"함대공 요격 반경 {EscortDefense.SamRange:0} m — 기함에 가장 가까운 적 미사일부터",
-                    EscortRole.AntiSubmarine => $"대잠 탐색 반경 {EscortDefense.AswRange:0} m — 잠항 중인 잠수함도 찾아 접촉 확정 + 경어뢰",
+                    EscortRole.AirDefense => $"VLS·함대공 발사기에서 함대공 미사일({EscortDefense.SamRange:0} m, 기함에 가장 급한 미사일부터) · CIWS 탄막({EscortDefense.CiwsRange:0} m, CIWS를 단 개량형)",
+                    EscortRole.AntiSubmarine => "대잠 헬기(잠수함 위에서 디핑 소나로 접촉 확정 → 폭뢰, 수상함엔 유도로켓 · 착함 뒤 18 − 3×단계 초 재출격) · 표적 쪽 현측 어뢰관 경어뢰 · T3 대잠 로켓",
                     EscortRole.ElectronicWarfare => $"근접 교란 반경 {EscortDefense.JamRange:0} m — 교란되지 않은 적 미사일 하나",
-                    EscortRole.SurfaceStrike => $"대함 타격 반경 {EscortDefense.StrikeRange:0} m — 드러난 수상 표적 중 가치가 가장 높은 것",
+                    EscortRole.SurfaceStrike => $"미사일 발사관마다 대함 미사일 한 발씩(0.25초 간격, {EscortDefense.StrikeRange:0} m) — 개량형일수록 발사관이 많다",
                     _ => null,
                 };
-                if (ability != null) Row(sb, "역할 능력", ability);
+                if (ability != null) Row(sb, "역할 무장", ability);
+                e.Ranges.Add(new CodexRange("76mm", 0f, EscortDefense.HeavyRange));
+                e.Ranges.Add(new CodexRange("기관총", 0f, EscortDefense.LightRange));
+                switch (role)
+                {
+                    case EscortRole.AirDefense: e.Ranges.Add(new CodexRange("함대공", 0f, EscortDefense.SamRange)); break;
+                    case EscortRole.AntiSubmarine: e.Ranges.Add(new CodexRange("헬기", 0f, EscortHelideck.SubRange)); break;
+                    case EscortRole.ElectronicWarfare: e.Ranges.Add(new CodexRange("교란", 0f, EscortDefense.JamRange)); break;
+                    case EscortRole.SurfaceStrike: e.Ranges.Add(new CodexRange("대함", 0f, EscortDefense.StrikeRange)); break;
+                }
+                var escortRole = role;
+                e.ModelNote = t => t < 0 ? null
+                    : $"<color={Good}><b>선택: T{t}</b></color>  {TaskForceEscortFormation.TierDescription(escortRole, t)} · 선체 {TaskForceEscortFormation.MaxHullFor(t):0}" +
+                      (t > 0 ? $" <color={Muted}>(T{t - 1} 대비 +{TaskForceEscortFormation.MaxHullFor(t) - TaskForceEscortFormation.MaxHullFor(t - 1):0})</color>" : "");
                 sb.AppendLine().AppendLine($"<color={Good}><b>개량 단계</b></color>");
                 int tiers = role == EscortRole.None ? 0 : maxTier;
                 for (int t = 0; t <= tiers; t++)
@@ -307,6 +372,7 @@ namespace Game.UI
             var result = new List<(EnemyDefinition, string)>();
             foreach (var d in order)
             {
+                if (!ContentRegistry.Allows(d)) continue;   // 다른 규칙 집합의 적
                 string stages = "스테이지 " + string.Join(", ", where[d]);
                 result.Add((d, notes.TryGetValue(d, out var n) ? $"{stages} ({n})" : stages));
             }
@@ -331,7 +397,9 @@ namespace Game.UI
                     Tag = $"{rank}  ·  {CategoryName(def)}  ·  {where}",
                     Accent = def.Rank == EnemyRank.Boss ? new Color(1f, 0.42f, 0.35f)
                         : def.Rank == EnemyRank.Elite ? new Color(0.95f, 0.64f, 0.23f) : new Color(0.85f, 0.9f, 0.92f),
+                    Roles = CounterRoles(def),
                 };
+                if (def.PreferredRange > 0f) e.Ranges.Add(new CodexRange("교전", 0f, def.PreferredRange));
                 var (about, counter) = Lore(def);
                 var sb = new StringBuilder();
                 sb.AppendLine($"<color={Muted}>{about}</color>").AppendLine();
@@ -353,6 +421,7 @@ namespace Game.UI
                 if (def.MaxAlive > 0) Row(sb, "동시 최대", $"{def.MaxAlive}척");
                 if (!string.IsNullOrEmpty(counter))
                     sb.AppendLine().AppendLine($"<color={Key}><b>대응</b></color>").AppendLine(counter);
+                CounterLinks(sb, def);
                 e.Body = sb.ToString().TrimEnd();
                 e.Models.Add(new CodexModel("모델", def.Prefab));
                 entries.Add(e);
@@ -376,6 +445,9 @@ namespace Game.UI
                 _ => "수상함",
             },
         };
+
+        /// <summary>적의 대응 글(보스 막대·결과 화면이 쓴다). 없으면 null.</summary>
+        public static string CounterTip(EnemyDefinition def) => def != null ? Lore(def).counter : null;
 
         /// <summary>적 행동 설명과 대응(수치는 데이터에서 따로 보여 주므로 여기엔 행동만 적는다).</summary>
         private static (string about, string counter) Lore(EnemyDefinition def) => def.Id switch
@@ -420,6 +492,17 @@ namespace Game.UI
                 "미사일 위주라면 함포로 먼저 잡는다. 근접방어포는 점사 뒤 1.2초 쉬므로 여러 발을 몰아 쏘면 뚫린다."),
             "ene_attack_submarine" => ("스테이지 3 엘리트 잠수함. 어뢰 잠수함보다 단단하고 자주 쏜다(예고 뒤 직선 어뢰).",
                 "소나 · 대잠 헬기로 찾고 폭뢰 · 대잠 호위함으로. 어뢰는 예고 동안 침로 · 속력을 바꿔 피한다."),
+            // WWII 시험 전투(패치 B)
+            "ww2_enemy_fast_gunboat" => ("무리 지어 다가와 선회하며 갑판 기관포로 점사하는 소형 포함. 하나하나는 약하다.",
+                "양용포 · 4연장 대공포(가까운 경수상)로 정리한다. 어뢰를 쓰기엔 작고 빠르다."),
+            "ww2_enemy_gunboat" => ("큰 선수포를 단 포격함. 멀리서 돌며 곡사로 쏘고, 포탄이 날아가는 동안 착탄점에 붉은 원이 차오른다.",
+                "원을 보고 침로 · 속력을 바꾼다. 느리고 곧게 돌므로 현측 어뢰의 좋은 표적이다 — 앞을 내다보고 쏜다."),
+            "ww2_enemy_torpedo_bomber" => ("현측으로 돌아 들어와 낮게 깔린 뒤 직진 어뢰 한 발을 떨어뜨리는 뇌격기. 방향을 정하면 수면에 떨어질 지점(원)과 어뢰 경로(주황 선)가 보이고 그 방향은 바뀌지 않는다.",
+                "주황 선이 뜨면 전령기를 바꾸거나 선과 나란히 돈다. 투하 전에 격추하면 어뢰가 없다 — 4연장 대공포 · 양용포가 진입하는 기체를 먼저 노린다."),
+            "ww2_enemy_dive_bomber" => ("높이 와서 기함 위에서 급강하해 폭탄 한 발을 떨어뜨린다. 강하를 시작하면 떨어질 자리에 붉은 원이 차오른다.",
+                "원이 뜨면 원 밖으로 빠진다. 강하하는 동안 낮게 내려오므로 대공포가 잡을 기회다 — 투하 전에 격추하면 폭탄이 없다."),
+            "ww2_boss_gunnery_cruiser" => ("임시 포격 보스(적 순양함, 회색 실루엣). 둘레를 돌며 주포 일제 사격 — 1단계는 침로를 따라 앞뒤로 늘어선 협차, 체력 절반부터 좌우 두 줄로 더 자주. 가까우면 부포가 점사한다.",
+                "붉은 원은 속력(1단계) · 타(2단계)로 빠져나간다. 큰 선체라 현측 어뢰 일제 발사가 잘 맞는다 — 보스 침로 앞을 노린다."),
             "ene_boss2" => ("스테이지 3의 적 기함(현대화 이세급 항공전함). 앞은 전함, 뒤는 비행갑판. 체력에 따라 세 단계로 바뀐다: 주포 일제사격(수면의 붉은 경고 원) → 드론 편대 · 정찰기 운용 → 드론 · 전투기 편대와 대함미사일 연발. 선미 쪽은 주포가 쏘지 못하는 안전 지대.",
                 "경고 원은 조함 · 전속(C) · 연막(F)으로 피한다. 함재기는 대공 무기로, 미사일은 기만체 · 재밍으로. 선미 쪽으로 돌아 들어가면 주포를 피할 수 있다."),
             _ => (def.Kind switch

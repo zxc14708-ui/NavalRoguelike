@@ -85,6 +85,10 @@ namespace Game.Enemies
         {
             ReleaseEngagement();
             definition = def;
+            if (def != null) Game.Core.PlayerProfile.Discover(def.Id);   // 사전 발견 기록(점검 C05)
+            // 수상함은 모델 바닥을 수면 아래로(점검 G06 수면선) — 판정 상자·위치는 그대로
+            if (def != null && def.Kind == Game.Combat.TargetKind.Surface && transform.Find("ModelPivot") is { } pivot)
+                Game.View.Waterline.Settle(transform, pivot);
             Player = player;
             _flagship = player;
             _engaged = player != null ? player.GetComponent<ITargetable>() : null;
@@ -314,14 +318,28 @@ namespace Game.Enemies
             if (Kind != TargetKind.Aircraft && _ownHull != null &&
                 Game.World.Islands.ResolveOverlap(_ownHull, ref next, transform.rotation, out _))
                 _speed *= 0.5f;
+            if (Kind != TargetKind.Aircraft && Game.World.SeaRegion.ClampToChannel(ref next, -2f)) _speed *= 0.5f;   // 좁은 수로 경계(점검 K04)
             transform.position = next;
         }
 
         public virtual void TakeDamage(in DamageInfo info)
         {
             if (!IsAlive) return;
-            _hp -= info.Amount;
+            float before = _hp;
+            _hp -= info.Amount * (Time.time < _markedUntil ? _markMultiplier : 1f);
+            // 결과 분석: 실제로 깎은 체력과 격침(마지막 한 방)을 무장별로(점검 O02)
+            if (Factions.GrantsReward(this)) RunReport.RecordDamage(info.Tag, info.Source, before - Mathf.Max(0f, _hp), _hp <= 0f);
             if (_hp <= 0f) Die();
+        }
+
+        // --- 표적 지시(초계함 광역 탐색, 2026-10-11): 잠깐 받는 피해가 늘어난다
+        private float _markedUntil = -1f, _markMultiplier = 1f;
+        public bool IsMarked => Time.time < _markedUntil;
+        public float MarkedSecondsLeft => Mathf.Max(0f, _markedUntil - Time.time);
+        public void Mark(float seconds, float damageMultiplier)
+        {
+            _markedUntil = Mathf.Max(_markedUntil, Time.time + seconds);
+            _markMultiplier = Mathf.Max(1f, damageMultiplier);
         }
 
         /// <summary>선체를 고친다(수리 지원정). 최대 체력을 넘지 않고, 실제로 고친 양을 돌려준다.</summary>

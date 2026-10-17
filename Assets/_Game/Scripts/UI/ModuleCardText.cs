@@ -110,11 +110,11 @@ namespace Game.UI
                     Row(sb, "지원 거리", $"{s.SupportRadiusCells}칸 (기관포·76mm)");
                     Row(sb, $"<color={Warn}>유폭</color>", $"<color={Warn}>{s.CookOffDamage:0}</color>");
                     break;
-                case ModuleType.RepairBay:
+                case ModuleType.RepairBay:   // 2026-10-11: 선체 회복·응급 수리는 함교가 — 이 블록은 함교를 키운다
+                    Row(sb, "선체 자동 회복", $"<color={Good}>상한 +17%p · 속도 +50%</color>");
+                    Row(sb, "<color=" + Key + ">[R]</color> 응급 수리", $"<color={Good}>+1회</color>");
+                    Row(sb, "모듈 수리", $"{s.ModuleRepairPerSecond:0.0} /초 (3칸)");
                     Row(sb, "피해 감소", $"{s.DamageReduction * 100f:0}%");
-                    Row(sb, "선체 회복", $"{s.HullRepairPerSecond:0.0} /초");
-                    Row(sb, "모듈 수리", $"{s.ModuleRepairPerSecond:0.0} /초");
-                    Row(sb, "<color=" + Key + ">[R]</color> 응급 수리", "재장전 35 초");
                     break;
                 case ModuleType.HelicopterDeck:
                     Row(sb, "출격 간격", $"{s.SortieCooldown:0} 초");
@@ -122,7 +122,28 @@ namespace Game.UI
                     break;
                 case ModuleType.Bridge:
                     Row(sb, "탐지 거리", $"{s.DetectionRange:0} m");
-                    Row(sb, "선체 회복", $"{s.HullRepairPerSecond:0.0} /초");
+                    Row(sb, "선체 회복", $"{s.HullRepairPerSecond:0.0} /초 (50%까지)");
+                    Row(sb, "<color=" + Key + ">[R]</color> 응급 수리", "1회 · 스테이지마다 다시");
+                    if (def.Id != null && def.Id.StartsWith(Game.Core.Ruleset.Ww2Prefix))
+                        Row(sb, "<color=" + Key + ">[F]</color> 연막", "함교 연막 · 기만체 없음(WWII)");
+                    break;
+                // WWII(패치 B 2026-10-17)
+                case ModuleType.Ww2DualPurposeGun:
+                    Row(sb, "교전 거리", $"수상 {s.MinRange:0} ~ {s.Range:0} m · 대공 {s.Range * Game.WW2.Ww2DualPurposeGunModule.AirRangeRatio:0} m");
+                    Row(sb, "피해", $"{s.Damage:0.#} (항공기에는 {def.TargetEfficiency.Air * 100f:0}%)");
+                    Row(sb, "발사 간격", $"{s.ReloadTime:0.0#} 초 · 선회 {s.TurretTurnRate:0}°/초 · 탄속 {s.ProjectileSpeed:0} m/초");
+                    Ammo(sb, s);
+                    break;
+                case ModuleType.Ww2QuadAa:
+                    Row(sb, "교전 거리", $"대공 {s.Range:0} m · 경수상 {s.Range * Game.WW2.Ww2QuadAaModule.SurfaceRangeRatio:0} m");
+                    Row(sb, "피해", $"{s.Damage:0.#} × 4연장 번갈아 · 근접신관 없음(직격)");
+                    Row(sb, "발사 간격", $"{s.ReloadTime:0.0#} 초 · {Game.WW2.Ww2QuadAaModule.BurstRounds}발 쏘고 {Game.WW2.Ww2QuadAaModule.BurstPause:0.#} 초 쉼");
+                    Ammo(sb, s);
+                    break;
+                case ModuleType.Ww2BroadsideTorpedo:
+                    Row(sb, "<color=" + Key + ">[수동]</color> 일제 발사", $"{s.MagazineCapacity}발 · 좌/우 현측 정횡 ±{s.FireArcDegrees * 0.5f:0}°");
+                    Row(sb, "어뢰", $"피해 {s.Damage:0} · 직진 {s.Range:0} m · {s.ProjectileSpeed:0} m/초 · 유도 없음");
+                    Row(sb, "재장전", $"{s.AmmoReloadTime:0} 초 (전량) · 발사 후 {s.MinRange:0} m부터 작동");
                     break;
                 case ModuleType.FleetRelay:
                     Row(sb, "편대 재사용 속도", $"+{s.EscortFireRateBonus * 100f:0}%");
@@ -234,7 +255,27 @@ namespace Game.UI
                 sb.Append($"{label}{(aligned ? ValueColumn : " ")}{x.ToString(fmt)}{unit} → <color={Good}>{y.ToString(fmt)}{unit}</color>");
                 lines++;
             }
+            // 곡사포: 한 번에 쏘는 포탄 수(강화의 핵심이라 맨 앞)
+            var howitzer = def.Prefab != null ? def.Prefab.GetComponent<Game.Modules.Runtime.HowitzerModule>() : null;
+            if (howitzer != null) Line("한 번에", howitzer.ShellsAt(fromLevel), howitzer.ShellsAt(toLevel), "0", "발");
+            // 헬기데크(2026-10-11): 출격 간격 · 헬기 무장 피해 · 수색 반경(배율은 데크가 헬기에 넘긴다)
+            if (def.Type == ModuleType.HelicopterDeck)
+            {
+                float Mod(int level, System.Func<ModuleStatModifier, float> pick)
+                {
+                    var stage = level > 0 ? ModuleUpgrades.ProfileFor(def)?.GetStage(level) : null;
+                    float v = stage != null ? pick(stage.Modifier) : 1f;
+                    return v > 0f ? v : 1f;
+                }
+                Line("출격 간격", a.SortieCooldown, b.SortieCooldown, "0.#", "초");
+                Line("헬기 피해", 100f * Mod(fromLevel, m => m.damageMultiplier), 100f * Mod(toLevel, m => m.damageMultiplier), "0", "%");
+                Line("수색 반경", 100f * Mod(fromLevel, m => m.rangeMultiplier), 100f * Mod(toLevel, m => m.rangeMultiplier), "0", "%");
+            }
             Line("피해", a.Damage, b.Damage, "0.##");
+            Line("내구", def.MaxHp * ModuleUpgrades.MaxHpMultiplier(def, fromLevel), def.MaxHp * ModuleUpgrades.MaxHpMultiplier(def, toLevel), "0");
+            if (def.Type == ModuleType.RamBow)
+                Line("반동 피해", Game.Modules.Runtime.RamBowModule.BaseSelfDamageRatio * 100f * ModuleUpgrades.SelfDamageMultiplier(def, fromLevel),
+                     Game.Modules.Runtime.RamBowModule.BaseSelfDamageRatio * 100f * ModuleUpgrades.SelfDamageMultiplier(def, toLevel), "0", "%");
             Line("탄창", a.MagazineCapacity, b.MagazineCapacity, "0");
             Line("발사 간격", a.ReloadTime, b.ReloadTime, "0.###", "초");
             Line("선회", a.TurretTurnRate, b.TurretTurnRate, "0", "°/초");
@@ -310,6 +351,9 @@ namespace Game.UI
             ModuleType.TurboIntake => "기관 보조",
             ModuleType.FireControlArray => "사격 통제",
             ModuleType.MissileLogistics => "미사일 보급",
+            ModuleType.Ww2DualPurposeGun => "중거리 무장",
+            ModuleType.Ww2QuadAa => "방공",
+            ModuleType.Ww2BroadsideTorpedo => "대수상 어뢰",
             _ => "함체",
         };
 
@@ -326,6 +370,9 @@ namespace Game.UI
             ModuleType.TurboIntake => "#e0956a",
             ModuleType.FireControlArray => "#8fd0ff",
             ModuleType.MissileLogistics => "#7fb8e0",
+            ModuleType.Ww2DualPurposeGun => "#e0c05a",
+            ModuleType.Ww2QuadAa => "#8fd0ff",
+            ModuleType.Ww2BroadsideTorpedo => "#e0956a",
             _ => "#c8d4dc",
         };
 
@@ -473,6 +520,9 @@ namespace Game.UI
             ModuleType.TurboIntake => "기관 보조 — 빠르게 항해할 때 실탄 화력 증가",
             ModuleType.FireControlArray => "사격 통제 — 동시 추적과 유도 무장 사거리 증가",
             ModuleType.MissileLogistics => "미사일 발사와 셀 보급 대기 시간을 단축",
+            ModuleType.Ww2DualPurposeGun => "수상함 우선 · 공격해 오는 항공기 보조 — 한 번에 한 표적",
+            ModuleType.Ww2QuadAa => "항공기 우선 · 가까운 경수상함 보조 — 구조물에 가리면 못 쏜다",
+            ModuleType.Ww2BroadsideTorpedo => "현측으로 직진 어뢰 일제 발사 — 예측해서 쏘고 오래 재장전",
             _ => "",
         };
 

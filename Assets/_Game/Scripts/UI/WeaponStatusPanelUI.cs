@@ -13,6 +13,8 @@ namespace Game.UI
     /// 무장 탄약 패널(함 현황 오른쪽). 같은 종류 무기는 한 줄로 묶어 남은 탄/용량과 상태를 보여 준다.
     ///   예) 기관포 ×2  170/400  ▮▮▮▯   /   CIWS  245/300  교전   /   VLS  0/8  EMPTY 12s
     /// 상태: 재장전(남은 초) · EMPTY(다음 보급까지) · 부족(25% 이하) · 교전(CIWS).
+    /// 일부가 파괴되면 이름 옆에 "가동/전체"를 붉게(예: CIWS 1/2), 상태 칸에 "N문 파괴" — 개수가 방어력으로 오해되지 않게(2026-10-11 점검 B07).
+    /// 쏠 수 있는데 안 쏘면 상태 칸에 짧은 이유(범위 밖·근접·미탐지·사각…), 줄을 누르면 문마다 자세한 이유를 위에 펼친다(점검 G03, WeaponDiagnosis).
     /// 적 미사일이 떠 있으면 CIWS 줄을 붉게 강조해 최종 방어 상태를 바로 확인하게 한다.
     /// </summary>
     public class WeaponStatusPanelUI : MonoBehaviour
@@ -36,6 +38,9 @@ namespace Game.UI
             (ModuleType.AswLauncher, "폭뢰"),
             (ModuleType.TorpedoTube, "경어뢰"),
             (ModuleType.MineRail, "기뢰"),
+            (ModuleType.Ww2DualPurposeGun, "양용포"),        // WWII(패치 B)
+            (ModuleType.Ww2QuadAa, "4연장 대공"),
+            (ModuleType.Ww2BroadsideTorpedo, "현측 어뢰"),
         };
 
         private static readonly Color Dim = new(0.62f, 0.72f, 0.76f, 0.75f);
@@ -46,6 +51,7 @@ namespace Game.UI
 
         private sealed class Row
         {
+            public ModuleType Type;
             public RectTransform Root;
             public RawImage Highlight, BarFill;
             public TMP_Text Name, Count, Status;
@@ -53,12 +59,14 @@ namespace Game.UI
 
         private sealed class Group
         {
-            public int Count, Current, Capacity;
+            public int Count, Alive, Current, Capacity;
             public bool Infinite, Engaged, AnyReloading, AllEmpty, Low;
             public float NextSeconds;
+            public string Reason;
             public void Reset()
             {
-                Count = Current = Capacity = 0;
+                Reason = null;
+                Count = Alive = Current = Capacity = 0;
                 Infinite = Engaged = AnyReloading = Low = false;
                 AllEmpty = true;
                 NextSeconds = float.MaxValue;
@@ -80,6 +88,7 @@ namespace Game.UI
             bg.color = panelColor;
             bg.raycastTarget = false;
             panel.gameObject.AddComponent<Canvas>();
+            panel.gameObject.AddComponent<GraphicRaycaster>();   // 줄을 눌러 이유 펼치기
 
             var ui = panel.gameObject.AddComponent<WeaponStatusPanelUI>();
             ui._font = font;
@@ -104,6 +113,7 @@ namespace Game.UI
             _pollTimer = 0.1f;
 
             var player = GameManager.Instance != null ? GameManager.Instance.Player : null;
+            if (_targeting == null && player != null) _targeting = player.GetComponentInChildren<TargetingSystem>();
             Gather(player != null ? player.Grid : null);
             bool vampire = HostileMissileInbound();
 
@@ -112,11 +122,91 @@ namespace Game.UI
             {
                 var g = _groups[type];
                 if (g.Count == 0) continue;
-                Show(GetRow(used), name, g, type == ModuleType.Ciws, vampire && type == ModuleType.Ciws);
+                var row = GetRow(used);
+                row.Type = type;
+                Show(row, name, g, type == ModuleType.Ciws, vampire && type == ModuleType.Ciws);
                 used++;
             }
             for (int i = used; i < _rows.Count; i++) _rows[i].Root.gameObject.SetActive(false);
             _emptyHint.gameObject.SetActive(used == 0);
+            RefreshDetail(player != null ? player.Grid : null);
+        }
+
+        // ------------------------------------------------------------ 안 쏘는 이유(펼침)
+
+        private TargetingSystem _targeting;
+        private ModuleType? _detailType;
+        private RectTransform _detail;
+        private TMP_Text _detailText;
+
+        /// <summary>줄을 누르면 그 무장 종류의 문마다 이유를 펼치고, 다시 누르면 접는다.</summary>
+        public void ToggleDetail(ModuleType type)
+        {
+            _detailType = _detailType == type ? null : type;
+            _pollTimer = 0f;
+        }
+        public bool DetailOpen => _detailType.HasValue;
+
+        /// <summary>펼친 무장의 사전 항목으로(일시정지).</summary>
+        public void OpenCodexForDetail()
+        {
+            if (_detailType == null) return;
+            var grid = GameManager.Instance != null && GameManager.Instance.Player != null ? GameManager.Instance.Player.Grid : null;
+            string id = null;
+            if (grid != null) foreach (var m in grid.Modules) if (m?.Definition != null && m.Definition.Type == _detailType.Value) { id = m.Definition.Id; break; }
+            var hud = FindFirstObjectByType<HUDView>();
+            if (id != null && hud != null && hud.OpenCodexAt(id)) _detailType = null;
+        }
+        public string DetailText => _detailText != null && _detailType.HasValue ? _detailText.text : "";
+
+        private void RefreshDetail(ShipGrid grid)
+        {
+            if (_detailType == null || grid == null || _groups[_detailType.Value].Count == 0)
+            {
+                _detailType = null;
+                if (_detail != null && _detail.gameObject.activeSelf) _detail.gameObject.SetActive(false);
+                return;
+            }
+            if (_detail == null)
+            {
+                _detail = Rect("Why not firing", transform, new Vector2(Width - 430f, _height + 6f), new Vector2(430f, 60f));
+                var bg = _detail.gameObject.AddComponent<Image>();
+                bg.color = new Color(0.02f, 0.05f, 0.07f, 0.94f);
+                bg.raycastTarget = false;
+                _detailText = Label(_detail, "Text", "", new Vector2(10, 6), new Vector2(410, 48), 13, Color.white);
+                _detailText.textWrappingMode = TextWrappingModes.Normal;
+                _detailText.alignment = TextAlignmentOptions.BottomLeft;
+                // 사전에서 보기(점검 U08): 일시정지하고 사전을 이 무장 항목으로
+                var codex = Rect("Open codex", _detail, Vector2.zero, new Vector2(104f, 20f));
+                codex.anchorMin = codex.anchorMax = codex.pivot = new Vector2(1f, 1f);
+                codex.anchoredPosition = new Vector2(-6f, -4f);
+                var bg2 = codex.gameObject.AddComponent<Image>();
+                bg2.color = new Color(0.08f, 0.2f, 0.26f, 1f);
+                var button = codex.gameObject.AddComponent<Button>();
+                button.targetGraphic = bg2;
+                button.onClick.AddListener(OpenCodexForDetail);
+                var label = Label(codex, "Text", "사전에서 보기 ▶", Vector2.zero, new Vector2(104f, 20f), 12, new Color(0.62f, 0.88f, 1f), TextAlignmentOptions.Center);
+                label.rectTransform.anchorMin = label.rectTransform.anchorMax = label.rectTransform.pivot = Vector2.zero;
+            }
+            var sb = new System.Text.StringBuilder();
+            string name = "";
+            foreach (var (t, n) in Order) if (t == _detailType.Value) name = n;
+            sb.Append($"<color=#9FE0FF><b>{name}</b> — 문마다 상태 <size=85%>(다시 누르면 닫힘)</size></color>");
+            int index = 0;
+            foreach (var m in grid.Modules)
+            {
+                if (m?.Definition == null || m.Definition.Type != _detailType.Value) continue;
+                var r = WeaponDiagnosis.Explain(m, _targeting);
+                string state = string.IsNullOrEmpty(r.Detail) ? "작동 중" : r.Detail;
+                sb.Append($"\n<color=#e0c05a>#{++index}</color> {state}");
+            }
+            _detailText.text = sb.ToString();
+            _detailText.rectTransform.sizeDelta = new Vector2(410f, 400f);
+            _detailText.ForceMeshUpdate();
+            float h = _detailText.preferredHeight + 12f;
+            _detail.sizeDelta = new Vector2(430f, h);
+            _detailText.rectTransform.sizeDelta = new Vector2(410f, h - 12f);
+            if (!_detail.gameObject.activeSelf) _detail.gameObject.SetActive(true);
         }
 
         private void Gather(ShipGrid grid)
@@ -128,6 +218,12 @@ namespace Game.UI
             {
                 if (m?.Definition == null || !_groups.TryGetValue(m.Definition.Type, out var g)) continue;
                 g.Count++;
+                if (!m.IsDestroyed) g.Alive++;
+                if (!m.IsDestroyed && g.Reason == null)
+                {
+                    var why = WeaponDiagnosis.Explain(m, _targeting);
+                    if (why.Idle) g.Reason = why.Short;
+                }
                 if (m.IsDestroyed || m.Runtime is not IAmmoUser user || user.Ammo == null) continue;
 
                 var ammo = user.Ammo;
@@ -149,7 +245,9 @@ namespace Game.UI
         private void Show(Row row, string name, Group g, bool isCiws, bool alert)
         {
             row.Root.gameObject.SetActive(true);
-            row.Name.text = g.Count > 1 ? $"{name} <color=#9FB3BA>×{g.Count}</color>" : name;
+            int lost = g.Count - g.Alive;
+            row.Name.text = lost > 0 ? $"{name} <color=#FF6A50>{g.Alive}/{g.Count}</color>"
+                : g.Count > 1 ? $"{name} <color=#9FB3BA>×{g.Count}</color>" : name;
             row.Highlight.enabled = alert;
 
             if (g.Infinite || g.Capacity <= 0)
@@ -157,7 +255,8 @@ namespace Game.UI
                 row.Count.text = g.Infinite ? "무한" : "파괴";
                 row.Count.color = g.Infinite ? Color.white : EmptyColor;
                 row.BarFill.rectTransform.sizeDelta = new Vector2(g.Infinite ? 40f : 0f, 4f);
-                row.Status.text = "";
+                row.Status.text = g.Infinite && !string.IsNullOrEmpty(g.Reason) ? g.Reason : "";
+                row.Status.color = Dim;
                 return;
             }
 
@@ -171,6 +270,8 @@ namespace Game.UI
             else if (g.AnyReloading) { row.Status.text = "재장전" + next; c = ReloadColor; }
             else if (isCiws && g.Engaged) { row.Status.text = g.Low ? "교전·부족" : "교전"; c = g.Low ? LowColor : _gold; }
             else if (g.Low) { row.Status.text = "탄약 부족"; c = LowColor; }
+            else if (lost > 0) { row.Status.text = $"{lost}문 파괴"; c = EmptyColor; }
+            else if (!g.Engaged && !string.IsNullOrEmpty(g.Reason)) { row.Status.text = g.Reason; c = Dim; }
             else { row.Status.text = ""; c = Color.white; }
 
             row.Status.color = c;
@@ -199,6 +300,12 @@ namespace Game.UI
                     Name = Label(root, "Name", "", new Vector2(12, 1), new Vector2(84, 19), 14, Color.white),
                     Count = Label(root, "Count", "", new Vector2(96, 1), new Vector2(62, 19), 14, Color.white, TextAlignmentOptions.Right),
                 };
+                var hit = root.gameObject.AddComponent<Image>();
+                hit.color = Color.clear;   // 줄 전체를 누를 수 있게
+                var button = root.gameObject.AddComponent<Button>();
+                button.targetGraphic = hit;
+                button.transition = Selectable.Transition.None;
+                button.onClick.AddListener(() => ToggleDetail(row.Type));
                 var track = Raw(root, "Bar", Texture2D.whiteTexture, new Vector2(164, 8), new Vector2(40, 4), Track);
                 row.BarFill = Raw(track.transform, "Fill", Texture2D.whiteTexture, Vector2.zero, new Vector2(40, 4), _accent);
                 row.Status = Label(root, "Status", "", new Vector2(208, 2), new Vector2(Width - 212, 17), 11, Color.white);

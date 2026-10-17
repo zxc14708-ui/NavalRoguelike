@@ -10,6 +10,7 @@ namespace Game.Data
         Command = 1,
         Assault = 2,
         MissileDestroyer = 3,
+        Ww2Destroyer = 4,   // WWII 시험 전투 구축함(패치 B 2026-10-17, 끝에만 덧붙임) — 현대 시작 함정 목록에는 없다
     }
 
     /// <summary>

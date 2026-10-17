@@ -35,6 +35,10 @@ namespace Game.Ship
             _threat = missile != null ? missile.Transform.position : null;
         }
 
+        /// <summary>기만체를 끈 장비(WWII 함교)는 세지 않는다 — 기만체 칸이 "장비 없음"으로 보인다.</summary>
+        protected override bool Provides(IDecoySource source)
+            => source is not Game.Modules.Runtime.DecoyLauncherModule d || d.DecoyEnabled;
+
         protected override bool IsReady(IDecoySource source) => source.IsReady;
         protected override float Readiness01(IDecoySource source) => source.Readiness01;
 

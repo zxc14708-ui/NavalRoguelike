@@ -57,6 +57,7 @@ namespace Game.Modules
                 instance.BindRuntime(runtime);
             }
 
+            Game.Core.PlayerProfile.Discover(def.Id);   // 사전 발견 기록(점검 C05)
             GameEvents.RaiseModuleInstalled(instance);
             return instance;
         }

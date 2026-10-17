@@ -1,0 +1,51 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e1c7a92b0d34f5e8a61c3d9f27b5a18, type: 3}
+  m_Name: UPG_Nobong
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Modules.ModuleUpgradeProfile
+  module: {fileID: 11400000, guid: 877b784f493d58940863554806935965, type: 2}
+  stages:
+  - displayName: "\uB178\uBD09 \uAC15\uD654 I"
+    description: "\uD53C\uD574 +25% \xB7 \uD0C4\uCC3D +25%"
+    modifier:
+      damageMultiplier: 1.25
+      rangeMultiplier: 1
+      cooldownMultiplier: 1
+      magazineMultiplier: 1.25
+      ammoReloadMultiplier: 1
+      turnSpeedMultiplier: 1
+      supplyMultiplier: 1
+      explosionDamageMultiplier: 1
+      repairMultiplier: 1
+      detectionMultiplier: 1
+      maxHpMultiplier: 1
+      selfDamageMultiplier: 1
+      speedMultiplier: 1
+    icon: {fileID: 21300000, guid: 68e0209a0d79bb545a56f24a60019ddb, type: 3}
+  - displayName: "\uB178\uBD09 \uAC15\uD654 II"
+    description: "\uD53C\uD574 +50% \xB7 \uD0C4\uCC3D +50% \xB7 \uC0AC\uAC70\uB9AC
+      +15%"
+    modifier:
+      damageMultiplier: 1.5
+      rangeMultiplier: 1.15
+      cooldownMultiplier: 1
+      magazineMultiplier: 1.5
+      ammoReloadMultiplier: 1
+      turnSpeedMultiplier: 1
+      supplyMultiplier: 1
+      explosionDamageMultiplier: 1
+      repairMultiplier: 1
+      detectionMultiplier: 1
+      maxHpMultiplier: 1
+      selfDamageMultiplier: 1
+      speedMultiplier: 1
+    icon: {fileID: 21300000, guid: cd87e464789fa4c41b9d03d16885623e, type: 3}

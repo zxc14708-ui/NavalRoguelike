@@ -34,8 +34,46 @@ namespace Game.Core
         private float _totalDuration;
         private bool _dangerRoute;
         private bool _stageTransitioning;
+        private bool _training;
+        private bool _ww2;
+
+        /// <summary>첫 출격 훈련 중: 구간·웨이브를 돌리지 않는다(TrainingDirector가 적을 낸다).</summary>
+        public bool Training => _training;
+        /// <summary>
+        /// WWII 시험 전투 중(패치 B): 스테이지 목록을 규칙 집합(ww2_v1)의 것으로 바꿔 돌린다. 저장·도전 과제·해역·항로·교리는 쓰지 않는다
+        /// (현대 이어하기 기록 naval_run.json을 지우거나 덮어쓰지 않는다). 보스를 격침하면 승리.
+        /// </summary>
+        public bool Ww2Test => _ww2;
+        /// <summary>지금 스테이지 순번(0부터)과 위험 항로 여부 — 저장이 읽는다.</summary>
+        public int StageIndex => _stageIndex;
+        public bool DangerRoute => _dangerRoute;
+        /// <summary>고난도 출항(점검 K06)으로 시작한 판인지 — 첫 스테이지부터 위험 항로. 기록·도전 과제가 읽고 저장에 남는다.</summary>
+        public bool DangerStartRun { get; set; }
+        /// <summary>이번 스테이지를 임무 항로(보급선 호위, 점검 K03)로 왔는지 — 스테이지 시작에 임무를 열고 저장에 남는다.</summary>
+        public bool MissionRoute { get; set; }
+        public int StageCount => stages != null ? stages.Length : 0;
+
+        /// <summary>저장 불러오기(점검 O01): 그 스테이지 처음부터, 저장된 항로로 시작한다.</summary>
+        public void ResumeAt(int stageIndex, bool danger)
+        {
+            _training = false;
+            _stageTransitioning = false;
+            _dangerRoute = danger;
+            if (experience != null) experience.RewardMultiplier = danger ? 1.25f : 1f;
+            GameManager.Instance.SetState(GameState.Playing);
+            BeginStage(Mathf.Clamp(stageIndex, 0, Mathf.Max(0, StageCount - 1)));
+            if (MissionRoute) StartMission();   // 임무 항로로 저장된 스테이지: 처음부터 다시 임무
+        }
+
+        /// <summary>보급선 호위 임무를 연다(점검 K03).</summary>
+        private void StartMission()
+        {
+            var ship = player != null ? player.GetComponent<Game.Ship.ShipController>() : null;
+            if (ship != null) Game.TaskForce.SupplyEscortMission.Begin(ship, experience);
+        }
 
         public int StageNumber => _stageIndex + 1;
+        private static bool RunOver => GameManager.Instance != null && GameManager.Instance.IsRunOver;
         /// <summary>스테이지별 웨이브 구성(사전이 적 목록·등장 스테이지를 읽는다).</summary>
         public System.Collections.Generic.IReadOnlyList<RoundSet> Stages => stages;
         private RoundSet Phases => stages != null && _stageIndex < stages.Length ? stages[_stageIndex] : null;
@@ -87,9 +125,33 @@ namespace Game.Core
                 GameManager.Instance.SetState(GameState.Paused);
                 hud.ShowStartScreen(() =>
                 {
+                    // 같은 함정 재출격이 WWII 시험 전투 함정이면(RunRestart.Retry) 그 전투로 다시 시작한다
+                    if (Ruleset.IsWw2) { BeginWw2Battle(hud); return; }
+                    RunSave.Delete();   // 새 출항: 이어하기 기록은 버린다(시작 화면이 미리 알린다)
+                    RunSeed.Begin();    // 새 판의 시드(점검 O07)
+                    if (PlayerProfile.DangerStart)
+                    {
+                        // 고난도 출항(점검 K06): 첫 스테이지부터 위험 항로(적 +25%, 경험치 +25%)
+                        DangerStartRun = true;
+                        _dangerRoute = true;
+                        if (experience != null) experience.RewardMultiplier = 1.25f;
+                        GameEvents.RaiseBanner("고난도 출항 — 첫 스테이지부터 위험 항로(적 +25%, 경험치 +25%)");
+                    }
                     GameManager.Instance.SetState(GameState.Playing);
                     BeginStage(0);
-                });
+                }, () =>
+                {
+                    // 첫 출격 훈련(점검 U03): 스테이지를 시작하지 않고 훈련 안내가 단계마다 적을 낸다
+                    _training = true;
+                    Game.World.SeaRegion.Leave();
+                    RunSeed.Begin();
+                    GameManager.Instance.SetState(GameState.Playing);
+                    Game.UI.TrainingDirector.Begin(hud.GetComponentInParent<Canvas>().rootCanvas.transform, hud.Font);
+                }, data =>
+                {
+                    // 이어하기(점검 O01): 함선·편대·성장을 되살리고 저장된 스테이지 처음부터
+                    RunSave.Apply(data, this);
+                }, () => BeginWw2Battle(hud));
             }
             else
             {
@@ -98,10 +160,40 @@ namespace Game.Core
             }
         }
 
+        /// <summary>
+        /// WWII 시험 전투 시작(패치 B). 규칙 집합은 이미 ww2_v1이어야 한다(항구 버튼·재출격이 들여보낸다).
+        /// 스테이지 목록을 규칙 집합의 것으로 바꾸고, 열린 바다(해역 없음)에서 구간을 돌린다.
+        /// </summary>
+        public void BeginWw2Battle(Game.UI.HUDView hud)
+        {
+            var def = Ruleset.Ww2Definition;
+            if (!Ruleset.IsWw2 || def == null || def.Stages.Count == 0 || def.Stages[0] == null)
+            {
+                Debug.LogError("[StageDirector] WWII 규칙 집합·스테이지가 없습니다 — 현대 전투로 시작합니다.");
+                Ruleset.Enter(Ruleset.Modern);
+                GameManager.Instance.SetState(GameState.Playing);
+                BeginStage(0);
+                return;
+            }
+            _ww2 = true;
+            _training = false;
+            stages = new RoundSet[def.Stages.Count];
+            for (int i = 0; i < stages.Length; i++) stages[i] = def.Stages[i];
+            Game.World.SeaRegion.Leave();
+            RunSeed.Begin();
+            GameManager.Instance.SetState(GameState.Playing);
+            var ship = player != null ? player.GetComponent<Game.Ship.ShipController>() : null;
+            Game.WW2.Ww2Battle.Begin(ship, hud);
+            BeginStage(0);
+        }
+
         private void BeginStage(int stageIndex)
         {
             _stageTransitioning = false;
             _stageIndex = stageIndex;
+            // 해역(점검 K04): 스테이지마다 군도 → 좁은 수로 → 개방해역. 수로는 지금 함선 위치·침로가 물길이 된다
+            // WWII 시험 전투는 열린 바다에서 한다(군도·수로는 패치 E)
+            if (player != null && !_ww2) Game.World.SeaRegion.Enter(Game.World.SeaRegion.ForStage(StageNumber), player.position, player.forward);
             _elapsed = 0f;
             _totalDuration = 0f;
             foreach (var p in Phases.Rounds) _totalDuration += Mathf.Max(5f, p.Duration);
@@ -111,7 +203,7 @@ namespace Game.Core
         private void Update()
         {
             var phases = Phases;
-            if (phases == null || GameManager.Instance == null) return;
+            if (phases == null || GameManager.Instance == null || _training) return;
             if (GameManager.Instance.State != GameState.Playing) return;
 
             _elapsed += Time.deltaTime;
@@ -136,13 +228,14 @@ namespace Game.Core
             spawner?.SetPhase(phase, player);
 
             string title = string.IsNullOrEmpty(phase.Title) ? $"구간 {index + 1}" : phase.Title;
+            if (Game.World.SeaRegion.Active) title = $"{Game.World.SeaRegion.CurrentProfile.Name} · {title}";   // 해역 이름(점검 K04)
             GameEvents.RaisePhaseStarted(StageNumber, index + 1, phases.Count, title);
         }
 
         /// <summary>보스 격침: 다음 스테이지가 있으면 이어서, 없으면 승리.</summary>
         private void OnBossDefeated()
         {
-            if (_stageTransitioning) return;
+            if (_stageTransitioning || RunOver) return;
             int next = _stageIndex + 1;
             bool hasNext = stages != null && next < stages.Length && stages[next] != null && stages[next].Count > 0;
 
@@ -168,16 +261,19 @@ namespace Game.Core
         {
             GameManager.Instance?.SetState(GameState.Paused);
             var hud = FindFirstObjectByType<Game.UI.HUDView>();
-            if (hud != null) hud.ShowRouteChoice(next + 1, hullRepairOnStageClear, danger => CompleteStageTransition(next, danger));
+            if (hud != null) hud.ShowRouteChoice(next + 1, hullRepairOnStageClear, danger => CompleteStageTransition(next, danger),
+                () => CompleteStageTransition(next, false, true));
             else CompleteStageTransition(next, false);
         }
 
-        private void CompleteStageTransition(int next, bool danger)
+        private void CompleteStageTransition(int next, bool danger, bool mission = false)
         {
             if (!_stageTransitioning) return;
             _dangerRoute = danger;
+            MissionRoute = mission;
             if (experience != null) experience.RewardMultiplier = danger ? 1.25f : 1f;
-            if (!danger && player != null && player.TryGetComponent<Game.Ship.ShipController>(out var ship))
+            // 보급 항로만 바로 수리한다(임무 항로는 보급선을 지키면 완전 수리)
+            if (!danger && !mission && player != null && player.TryGetComponent<Game.Ship.ShipController>(out var ship))
                 ship.RepairHull(hullRepairOnStageClear);
             var hud = FindFirstObjectByType<Game.UI.HUDView>();
             if (CombatPolicies.Doctrine == NavalDoctrine.None && hud != null)
@@ -194,11 +290,19 @@ namespace Game.Core
             CombatPolicies.ChooseDoctrine(doctrine);
             BeginStage(next);
             GameManager.Instance?.SetState(GameState.Playing);
+            if (MissionRoute) StartMission();
+            // 스테이지 경계 저장: 보상·항로·교리를 다 고른 뒤, 이 스테이지 처음부터 이어 할 수 있게(소리와 알림 문구를 함께)
+            if (RunSave.Save(this))
+            {
+                UiSound.Play(UiSound.Cue.Save);
+                GameEvents.RaiseBanner($"진행 저장됨 — 스테이지 {StageNumber} 처음부터 이어 할 수 있습니다");
+            }
         }
 
         /// <summary>레벨업: 시간을 멈추고 카드 선택·배치 화면을 연다. 닫히면 전투로 돌아간다.</summary>
         private void OnLevelUpRequested(int level, System.Action onClosed)
         {
+            if (RunOver) return;   // 기함 격침과 같은 순간의 마지막 격침 경험치 — 결과 화면 위에 정비를 열지 않는다
             if (refit == null) { onClosed?.Invoke(); return; }
 
             refit.BeginLevelUp(level, () =>

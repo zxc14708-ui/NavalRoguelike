@@ -106,7 +106,8 @@ namespace Game.UI
                 Transform only = string.IsNullOrEmpty(onlyChild) ? null : FindDeep(source.transform, onlyChild);
                 foreach (var r in source.GetComponentsInChildren<Renderer>(true))
                 {
-                    if (!r.enabled || !Visible(r.transform, source.transform, only)) continue;
+                    // Runtime warning lamps are not part of the encyclopedia model.
+                    if (r.name == "TorpedoLamp" || !r.enabled || !Visible(r.transform, source.transform, only)) continue;
                     Mesh mesh = r is SkinnedMeshRenderer skinned ? skinned.sharedMesh
                         : r is MeshRenderer && r.TryGetComponent<MeshFilter>(out var mf) ? mf.sharedMesh : null;
                     if (mesh == null) continue;

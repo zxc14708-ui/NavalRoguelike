@@ -24,8 +24,26 @@ namespace Game.Enemies
     ///   - 체력 50% 이하: 공격 간격 ×0.75, 거리 순환도 빨라지고, 어뢰 뒤에 함포 예고 사격을 이어 쏜다. 연기(75%부터)·화재(50%부터).
     /// 연막 안이거나 섬 뒤면 쏘지 않는다. 정찰기가 있으면 재장전이 빨라진다(다른 적과 같다).
     /// </summary>
-    public class ModernCorvetteBoss : EnemyController
+    public class ModernCorvetteBoss : EnemyController, IBossTelegraph
     {
+        // ---- 보스 학습(점검 K05): 거리에 따라 쓸 공격이 정해진다 — 그중 가장 먼저 준비되는 것.
+        public string PhaseName => Hurt ? "화재 — 공격이 빨라지고 어뢰 뒤 함포" : "거리 순환 — 원거리 미사일 · 중거리 함포 · 근거리 어뢰";
+        public float[] PhaseThresholds => new[] { hurtAt };
+        public (string name, float seconds) NextAttack
+        {
+            get
+            {
+                if (Player == null) return (null, 0f);
+                float d = Vector3.Distance(transform.position, Player.position);
+                (string, float) best = (null, float.MaxValue);
+                void Consider(string n, float t, bool usable) { if (usable && t < best.Item2) best = (n, Mathf.Max(0f, t)); }
+                Consider("현측 어뢰 2발", _torpedoTimer, d <= torpedoRange);
+                Consider("함포 예고 사격", _gunTimer, d >= gunMinRange && d <= gunMaxRange);
+                Consider("미사일 2발", _missileTimer, d >= missileMinRange && d <= missileMaxRange);
+                return best.Item1 != null ? best : (null, 0f);
+            }
+        }
+
         [Header("Range cycle (원거리 → 중거리 → 근거리)")]
         [SerializeField] private float[] cycleRanges = { 44f, 30f, 19f };
         [SerializeField] private float[] cycleSeconds = { 11f, 10f, 9f };

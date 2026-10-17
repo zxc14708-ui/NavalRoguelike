@@ -36,6 +36,9 @@ namespace Game.View
         public static void Emit(ParticleSystem ps, Vector3 position, Vector3 velocity, float lifetime, float size, Color color)
         {
             if (ps == null) return;
+            if (ps == s_flash) color.a *= Game.Core.DisplaySettings.FlashScale;   // 번쩍임 줄이기(섬광 입자)
+            else if (ps != s_sparks && Random.value > Game.Core.DisplaySettings.DecorDensity) return;   // 장식 효과 품질(폭발 불똥·섬광은 그대로)
+            if (Game.Core.DisplaySettings.ThinSmoke && (ps == s_smoke || ps == s_wreckSmoke)) color.a *= 0.5f;   // 연기 옅게
             var p = new ParticleSystem.EmitParams
             {
                 position = position,

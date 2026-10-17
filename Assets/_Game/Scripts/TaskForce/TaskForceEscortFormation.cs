@@ -267,6 +267,7 @@ namespace Game.TaskForce
             if (!CanDeploy || rosterSlot < 0 || rosterSlot >= MaxEscorts || !IsRosterSlotEmpty(rosterSlot)) return -1;
             var vessel = EscortVessel.Create(this, transform, rosterSlot + 1);
             _escorts.Add(vessel);
+            Game.Core.PlayerProfile.Discover($"escort_{RoleCode(EscortRole.None).ToLowerInvariant()}");   // 사전 발견 기록(점검 C05)
             Reflow(true);
             CombatLog.Add("편대", $"{vessel.DisplayName} {rosterSlot + 1}번 슬롯 합류 ({_escorts.Count}/{MaxEscorts}척)");
             Changed?.Invoke();
@@ -333,6 +334,7 @@ namespace Game.TaskForce
             if (v == null || v.Role != EscortRole.None || role == EscortRole.None) return false;
             string before = v.DisplayName;
             v.SetRole(role);
+            Game.Core.PlayerProfile.Discover($"escort_{RoleCode(role).ToLowerInvariant()}");   // 사전 발견 기록(점검 C05)
             CombatLog.Add("편대", $"{before} → {v.DisplayName} 역할 지정 · {RoleSummary(role)}");
             Changed?.Invoke();
             return true;
@@ -437,6 +439,8 @@ namespace Game.TaskForce
         {
             Vector3 o = vessel != null ? vessel.transform.position - transform.position : PatrolOffset(slot);
             o.y = 0f;
+            // 단종진 맨 뒤(52m)처럼 묶음 밖에서 바꿔도 목표는 처음부터 묶음 안 — 배는 평소처럼 조함해 들어온다
+            if (o.magnitude > AutoLeash) o = o.normalized * AutoLeash;
             _autoOffset[slot] = _autoGoal[slot] = o;
             _autoReady[slot] = true;
             _autoTask[slot] = "초계";
@@ -818,6 +822,7 @@ namespace Game.TaskForce
                     if (tintNeutral) Neutralize(_model);
                     _supportSocket = FindChild(_model.transform, "SupportOrigin");
                     EscortTurrets.Attach(_model, transform);
+                    Game.View.Waterline.Settle(_visual, _model.transform);   // 수면선(점검 G06) — 출렁이는 시각 묶음 기준
                     return;
                 }
                 if (_greybox != null) Destroy(_greybox.gameObject);
@@ -973,9 +978,15 @@ namespace Game.TaskForce
                 Vector3 pos = transform.position;
                 Vector3 to = target - pos; to.y = 0f;
                 float dist = to.magnitude;
-                if (dist > 70f && !_disabled)
+                // 기함이 한 프레임에 크게 튄 경우(스테이지 시작 등)만 자리에 놓는다. 예전에는 슬롯과 70m만 벌어져도 놓았는데,
+                // 단종진 맨 뒤(52m 뒤) 슬롯이 급선회 때 크게 휘며 70m를 넘어 호위함이 순간 이동했다(2026-10-11, 검증 "게걸음").
+                Vector3 flag = _flagship.position;
+                bool flagJumped = _hasFlagPosition && Flat2(flag - _lastFlagPosition).sqrMagnitude > 25f * 25f;
+                _lastFlagPosition = flag;
+                _hasFlagPosition = true;
+                if ((flagJumped && dist > 30f || dist > 160f) && !_disabled)
                 {
-                    // 기함이 순간 이동했다(스테이지 시작 등): 자리에 놓는다
+                    // 기함이 순간 이동했다(스테이지 시작 등) — 또는 너무 멀어 따라갈 수 없다: 자리에 놓는다
                     _heading = Mathf.Atan2(slotForward.x, slotForward.z) * Mathf.Rad2Deg;
                     _speed = _targetVel.magnitude;
                     _yawRate = 0f;
@@ -1030,8 +1041,13 @@ namespace Game.TaskForce
                 if (_hullCollider != null && _hullCollider.enabled &&
                     Game.World.Islands.ResolveOverlap(_hullCollider, ref next, rot, out _))
                     _speed *= 0.6f;
+                if (Game.World.SeaRegion.ClampToChannel(ref next, -2f)) _speed *= 0.6f;   // 좁은 수로 경계(점검 K04)
                 transform.SetPositionAndRotation(next, rot);
             }
+
+            private Vector3 _lastFlagPosition;
+            private bool _hasFlagPosition;
+            private static Vector3 Flat2(Vector3 v) { v.y = 0f; return v; }
 
             /// <summary>회피: 다른 호위함(8m), 기함 선체(현측 + 4m), 앞쪽 섬. 원하는 속도에 더하는 벡터(m/s).</summary>
             private Vector3 Avoidance(Vector3 pos)

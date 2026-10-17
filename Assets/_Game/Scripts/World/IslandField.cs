@@ -10,8 +10,10 @@ namespace Game.World
     /// 구역의 섬은 (판 시드, 구역 좌표)로 정해져 같은 판에서 되돌아가면 같은 자리에 같은 섬이 있다.
     /// 판마다 시드가 달라 배치는 매번 바뀐다. 출항 지점 둘레(clearRadius)는 비워 둔다.
     /// 씬을 다시 만들지 않아도 되게 씬이 열린 뒤 스스로 붙는다.
+    /// 해역(SeaRegion, 2026-10-11 점검 K04)이 바뀌면 새 시드로 다시 채운다: 섬 수·간격·바위섬 비율이 해역마다 다르고,
+    /// 좁은 수로에서는 물길 안 작은 바위섬만 두고 양안 기슭(IslandField.Banks)을 물길을 따라 이어 붙인다.
     /// </summary>
-    public class IslandField : MonoBehaviour
+    public partial class IslandField : MonoBehaviour
     {
         public const float ChunkSize = 110f;
         private const int KeepRadius = 2;          // 5×5 구역
@@ -47,11 +49,21 @@ namespace Game.World
         {
             Instance = this;
             _seed = SeedOverride != 0 ? SeedOverride : Random.Range(1, int.MaxValue);
+            SeaRegion.Changed += OnSeaChanged;
         }
 
         private void OnDestroy()
         {
+            SeaRegion.Changed -= OnSeaChanged;
             if (Instance == this) Instance = null;
+        }
+
+        /// <summary>해역이 바뀌었다(스테이지 시작): 기슭을 치우고 새 시드로 다시 채운다(함선 둘레는 비운다).</summary>
+        private void OnSeaChanged(SeaKind kind)
+        {
+            ClearBanks();
+            if (Disabled) return;
+            Regenerate(SeedOverride != 0 ? SeedOverride + (int)kind * 7919 : Random.Range(1, int.MaxValue));
         }
 
         /// <summary>검증용: 모든 섬을 지우고 새 시드로 다시 채운다(출항 지점 = 지금 함선 위치).</summary>
@@ -82,6 +94,7 @@ namespace Game.World
         {
             foreach (var list in _chunks.Values) foreach (var i in list) Remove(i);
             _chunks.Clear();
+            ClearBanks();
         }
 
         private void LateUpdate()
@@ -98,6 +111,7 @@ namespace Game.World
             var focus = Focus(out bool hasPlayer);
             if (!hasPlayer && !force) return;
             if (!_originSet) { _origin = focus; _originSet = true; }
+            RefreshBanks(focus);
 
             var c = new Vector2Int(Mathf.FloorToInt(focus.x / ChunkSize), Mathf.FloorToInt(focus.z / ChunkSize));
             bool added = false;
@@ -139,14 +153,20 @@ namespace Game.World
             int hash = unchecked(_seed * 73856093 ^ key.x * 19349663 ^ key.y * 83492791);
             var rng = new System.Random(hash);
 
+            // 해역별 섬 수(점검 K04). 해역이 없으면(훈련·검사) 예전 그대로 0~2개
+            var sea = SeaRegion.Active ? SeaRegion.CurrentProfile : null;
+            bool strait = SeaRegion.IsStrait;
             double roll = rng.NextDouble();
-            int count = roll < 0.3 ? 0 : roll < 0.78 ? 1 : 2;
+            int count = sea == null ? (roll < 0.3 ? 0 : roll < 0.78 ? 1 : 2)
+                      : roll < sea.P0 ? 0 : roll < sea.P1 ? 1 : roll < sea.P2 ? 2 : 3;
             for (int n = 0; n < count; n++)
             {
-                bool rocky = rng.NextDouble() < 0.55;
+                bool rocky = rng.NextDouble() < (sea != null ? sea.RockyChance : 0.55);
                 float radius = rocky ? 4f + (float)rng.NextDouble() * 6f : 8f + (float)rng.NextDouble() * 8f;
+                if (strait) radius = 4f + (float)rng.NextDouble() * 3f;   // 물길 안에는 작은 바위섬만
                 // Codex 섬(모델)이면 그 해안 반경으로 자리를 잡는다
-                var art = IslandBuilder.PickArt(rocky, rng, out float artScale);
+                float artScale = 1f;
+                EnvironmentArt art = strait ? null : IslandBuilder.PickArt(rocky, rng, out artScale);
                 if (art != null) radius = art.shoreRadius * artScale;
                 float margin = radius + 8f;
                 Vector3 center = Vector3.zero;
@@ -158,7 +178,8 @@ namespace Game.World
                     center.x = Mathf.Clamp(center.x, key.x * ChunkSize + margin, (key.x + 1) * ChunkSize - margin);
                     center.z = Mathf.Clamp(center.z, key.y * ChunkSize + margin, (key.y + 1) * ChunkSize - margin);
                     // 해안 소품(앞바다 최대 약 10m)까지 비워 둔다
-                    ok = FarFromOthers(center, radius) && Horizontal(center - _origin) > ClearRadius + radius + CoastReach && !NearShips(center, radius + 12f + CoastReach);
+                    ok = FarFromOthers(center, radius, sea != null ? sea.MinSpacing : MinSpacing) && Horizontal(center - _origin) > ClearRadius + radius + CoastReach && !NearShips(center, radius + 12f + CoastReach)
+                         && (!strait || Mathf.Abs(SeaRegion.Lateral(center)) < SeaRegion.ChannelHalfWidth - radius - 22f);
                 }
                 if (!ok) continue;
                 var islandRng = new System.Random(rng.Next());
@@ -185,10 +206,10 @@ namespace Game.World
             return info;
         }
 
-        private bool FarFromOthers(Vector3 center, float radius)
+        private bool FarFromOthers(Vector3 center, float radius, float spacing)
         {
             foreach (var other in Islands.All)
-                if (Horizontal(other.Center - center) < other.Radius + radius + MinSpacing) return false;
+                if (Horizontal(other.Center - center) < other.Radius + radius + spacing) return false;
             return true;
         }
 

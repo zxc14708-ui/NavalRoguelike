@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Game.Core;
@@ -127,6 +128,7 @@ namespace Game.Ship
         private const float GroundingDamageSpeed = 3f;
         private const float GroundingDamagePerSpeed = 1.5f;
         private float _lastGrounding = -999f;
+        private float _lastBoundaryWarning = -999f;
 
         /// <summary>지금 섬에 닿아 있는가(좌초).</summary>
         public bool IsAground { get; private set; }
@@ -136,6 +138,9 @@ namespace Game.Ship
 
         /// <summary>전속 중인가.</summary>
         public bool IsFlanking => Time.time < _flankUntil;
+
+        /// <summary>받는 피해 배율(1 = 그대로). 강습함 돌격 기동처럼 잠깐 줄이는 스킬이 쓴다(DamageResolver가 곱한다).</summary>
+        public float IncomingDamageScale { get; set; } = 1f;
 
         /// <summary>전속: 잠시 최고속력·가속·선회를 올린다. 스로틀은 여전히 플레이어가 잡는다.</summary>
         public void BeginFlank(float speedMultiplier, float duration)
@@ -224,6 +229,7 @@ namespace Game.Ship
         {
             Game.View.ShipWake.Ensure(gameObject);   // 지나간 자리의 물살·뱃머리 물보라
             ShipAutopilot.Ensure(this);              // 우클릭 항로(자동 조함)
+            SignatureSkill.Ensure(this);             // 함정 고유 스킬[T](2026-10-11)
             Game.View.FunnelSmoke.Ensure(gameObject, () => Mathf.Abs(ThrottleInput));   // 연돌 연기(기관 명령만큼)
             GameEvents.RaiseHullHpChanged(HullHp, HullMaxHp);
             RebuildCollider();
@@ -296,7 +302,7 @@ namespace Game.Ship
                 {
                     _lastGrounding = Time.time;
                     float damage = (into - GroundingDamageSpeed) * GroundingDamagePerSpeed;
-                    ApplyHullDamage(damage);
+                    ApplyHullDamage(damage, "섬에 좌초");
                     AudioManager.Play(SfxId.HullImpact, next, 0.9f, 0.7f);
                     CombatLog.Add("좌초", $"섬에 충돌 {into:0.0} m/s → 선체 {damage:0.#}");
                 }
@@ -304,6 +310,17 @@ namespace Game.Ship
                 IsAground = true;
             }
             else IsAground = false;
+
+            // 좁은 수로(점검 K04): 양안 너머로는 나갈 수 없다(보이지 않는 경계 — 기슭 콜라이더 사이로 새어 나가도 막는다)
+            if (Game.World.SeaRegion.ClampToChannel(ref next, -2f))
+            {
+                _currentSpeed *= 0.5f;
+                if (Time.time - _lastBoundaryWarning > 6f)
+                {
+                    _lastBoundaryWarning = Time.time;
+                    GameEvents.RaiseBanner("수로 경계 — 양안 너머로는 나갈 수 없습니다");
+                }
+            }
 
             _rb.MovePosition(next);
             GameEvents.RaiseSpeedChanged(_currentSpeed);
@@ -381,8 +398,50 @@ namespace Game.Ship
 
             AudioManager.Play(SfxId.HullImpact, info.HitPoint);
 
+            // WWII 판은 적 공격이 단 이름(뇌격기 어뢰·급강하 폭탄·순양함 주포)을 원인으로 쓴다. 현대 판은 예전 그대로(종류별 이름)
+            _cause = Game.Core.Ruleset.IsWw2 && !string.IsNullOrEmpty(info.Tag) ? info.Tag : CauseName(info.Source);
             if (damageResolver != null) damageResolver.Resolve(info);
             else ApplyHullDamage(info.Amount);   // 방어 코드: 리졸버가 없으면 선체가 전부 받는다
+            _cause = null;
+        }
+
+        // ---- 패배 원인(결과 화면): 선체를 깎은 피해를 출처별로 모은다
+        private string _cause;
+        private readonly Dictionary<string, float> _hullDamageByCause = new();
+
+        /// <summary>마지막으로 선체를 깎은 피해의 출처(격침 원인).</summary>
+        public string LastHullDamageCause { get; private set; }
+
+        /// <summary>출처별 선체 피해(검증·결과 분석).</summary>
+        public IReadOnlyDictionary<string, float> HullDamageByCause => _hullDamageByCause;
+
+        /// <summary>이번 판에 선체를 가장 많이 깎은 출처와 그 비율(0~1). 피해가 없으면 null.</summary>
+        public (string cause, float share) TopHullDamageCause()
+        {
+            string best = null;
+            float bestAmount = 0f, total = 0f;
+            foreach (var kv in _hullDamageByCause)
+            {
+                total += kv.Value;
+                if (kv.Value > bestAmount) { bestAmount = kv.Value; best = kv.Key; }
+            }
+            return (best, total > 0f ? bestAmount / total : 0f);
+        }
+
+        private static string CauseName(DamageSource source) => source switch
+        {
+            DamageSource.Gun => "적 함포·기총 사격",
+            DamageSource.Missile => "미사일·자폭 공격",
+            DamageSource.Torpedo => "어뢰·기뢰 수중 폭발",
+            DamageSource.CookOff => "탄약고 유폭",
+            _ => "충돌",
+        };
+
+        /// <summary>저장 불러오기: 선체를 최대치의 이 비율로 맞춘다(피해·수리 기록 없이).</summary>
+        public void RestoreHull(float fraction)
+        {
+            HullHp = Mathf.Clamp(HullMaxHp * Mathf.Clamp01(fraction), 1f, HullMaxHp);
+            GameEvents.RaiseHullHpChanged(HullHp, HullMaxHp);
         }
 
         /// <summary>수리반이 선체를 회복시킨다. 최대치를 넘지 않는다.</summary>
@@ -395,11 +454,15 @@ namespace Game.Ship
             GameEvents.RaiseHullHpChanged(HullHp, HullMaxHp);
         }
 
-        /// <summary>DamageResolver가 모듈 몫을 뗀 뒤 남은 선체 피해를 적용한다.</summary>
-        public void ApplyHullDamage(float amount)
+        /// <summary>DamageResolver가 모듈 몫을 뗀 뒤 남은 선체 피해를 적용한다. cause가 없으면 지금 처리 중인 피해의 출처.</summary>
+        public void ApplyHullDamage(float amount, string cause = null)
         {
             if (amount <= 0f || !IsAlive) return;
 
+            cause ??= _cause ?? "기타 피해";
+            LastHullDamageCause = cause;
+            _hullDamageByCause.TryGetValue(cause, out float sum);
+            _hullDamageByCause[cause] = sum + Mathf.Min(amount, HullHp);
             HullHp = Mathf.Max(0f, HullHp - amount);
             LastHullDamageTime = Time.time;
             GameEvents.RaiseHullHpChanged(HullHp, HullMaxHp);

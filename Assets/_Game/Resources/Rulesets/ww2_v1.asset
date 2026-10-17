@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 19ef049b9aefd5e4f86c2842f6233649, type: 3}
+  m_Name: ww2_v1
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.RulesetDefinition
+  id: ww2_v1
+  schemaVersion: 1
+  contentVersion: 3
+  title: "WWII \uC2DC\uD5D8 \uC804\uD22C"
+  idPrefix: ww2_
+  hulls:
+  - {fileID: 11400000, guid: 7f5dd012b6d4f824eb55e5c417007373, type: 2}
+  modules:
+  - {fileID: 11400000, guid: 5583da920e334aa418721284c7ca972c, type: 2}
+  - {fileID: 11400000, guid: b0ac96b0827b75d42b3a35030a762e6c, type: 2}
+  - {fileID: 11400000, guid: 9253da1d8c1be3746b4a99741d2301b8, type: 2}
+  - {fileID: 11400000, guid: 7ca3f8aeddaeaa14e8286eb15f5bc4c5, type: 2}
+  enemies:
+  - {fileID: 11400000, guid: 729b2936b0040ad4babe48c91e95458c, type: 2}
+  - {fileID: 11400000, guid: f3543083c23112d4681fc72f4b19fb61, type: 2}
+  - {fileID: 11400000, guid: 3b18e92e2646e814ca344809a8be150e, type: 2}
+  - {fileID: 11400000, guid: ede6264c734ba2441b3c1e07e4a9db76, type: 2}
+  - {fileID: 11400000, guid: 546019a8db14b5046b5625ead5dd2b22, type: 2}
+  - {fileID: 11400000, guid: 53212a1ce718a32409b68da75c33d356, type: 2}
+  stages:
+  - {fileID: 11400000, guid: 71f07be96c6b74842bdc645c0eeaa8b8, type: 2}
+  allowedStats: 000000000100000003000000050000000600000008000000
+  allowsEscorts: 0
+  saveFile: naval_run_ww2_v1.json

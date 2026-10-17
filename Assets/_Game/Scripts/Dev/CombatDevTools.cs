@@ -42,7 +42,9 @@ namespace Game.Dev
             if (Instance != null || Object.FindFirstObjectByType<ShipController>() == null) return;
             new GameObject("CombatDevTools").AddComponent<CombatDevTools>();
 
-            // 개발 빌드를 "-combatVerify <폴더>"로 실행하면 자동 전투 검증을 돌리고 끝나면 종료한다
+            // 개발 빌드를 "-combatVerify <폴더>"로 실행하면 자동 전투 검증을 돌리고 끝나면 종료한다.
+            // 재출격(RunRestart)으로 씬을 다시 열 때도 이 함수가 다시 불린다 — 검증은 처음 연 씬에서만 만든다.
+            if (RunRestart.InProgress || RunRestart.Restarts > 0) return;
             var args = System.Environment.GetCommandLineArgs();
             for (int i = 0; i < args.Length - 1; i++)
             {
@@ -83,6 +85,27 @@ namespace Game.Dev
                 runner.PccSoak = System.Array.IndexOf(args, "-pccSoak") >= 0;
                 runner.RouteOnly = System.Array.IndexOf(args, "-routeOnly") >= 0;
                 runner.VlsOnly = System.Array.IndexOf(args, "-vlsOnly") >= 0;
+                runner.BlockHitOnly = System.Array.IndexOf(args, "-blockHitOnly") >= 0;
+                runner.WeaponPackOnly = System.Array.IndexOf(args, "-weaponPackOnly") >= 0;
+                runner.HarborAAOnly = System.Array.IndexOf(args, "-harborAAOnly") >= 0;
+                runner.SignatureOnly = System.Array.IndexOf(args, "-signatureOnly") >= 0;
+                runner.EscortArmsOnly = System.Array.IndexOf(args, "-escortArmsOnly") >= 0;
+                runner.RunFlowOnly = System.Array.IndexOf(args, "-runFlowOnly") >= 0;
+                runner.Ww2Only = System.Array.IndexOf(args, "-ww2Only") >= 0;           // WWII 패치 B 규칙 검사
+                runner.Ww2BattleOnly = System.Array.IndexOf(args, "-ww2BattleOnly") >= 0;   // WWII 시험 전투 한 판
+                runner.BundleBOnly = System.Array.IndexOf(args, "-bundleBOnly") >= 0;
+                runner.BundleCOnly = System.Array.IndexOf(args, "-bundleCOnly") >= 0;
+                runner.BundleDOnly = System.Array.IndexOf(args, "-bundleDOnly") >= 0;
+                runner.AviationOnly = System.Array.IndexOf(args, "-aviationOnly") >= 0;
+                runner.SeaOnly = System.Array.IndexOf(args, "-seaOnly") >= 0;
+                runner.PerfOnly = System.Array.IndexOf(args, "-perfOnly") >= 0;   // 성능 측정(O04)
+                runner.ArtOnly = System.Array.IndexOf(args, "-artOnly") >= 0;   // 시각 규칙 점검(G06)
+                int perfMinutes = System.Array.IndexOf(args, "-perfMinutes");
+                if (perfMinutes >= 0 && perfMinutes < args.Length - 1 &&
+                    float.TryParse(args[perfMinutes + 1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float minutes))
+                    runner.PerfMinutes = minutes;
+                int qa = System.Array.IndexOf(args, "-qaTable");   // QA 결과표(O03)
+                if (qa >= 0 && qa < args.Length - 1) runner.QaTablePath = args[qa + 1];
                 break;
             }
         }

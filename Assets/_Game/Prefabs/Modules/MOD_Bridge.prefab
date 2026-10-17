@@ -30,7 +30,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 6062137476110650641}
+  - {fileID: 6568553174102918943}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1051083443375238978
@@ -46,7 +46,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game.Modules.Runtime.BridgeModule
   decoyPrefab: {fileID: 4929661311818672539, guid: 381f2b01e1bb82e408c0ba2183e11543, type: 3}
-  launchPoint: {fileID: 4584372279499894314}
+  launchPoint: {fileID: 2589301472364292985}
   decoysPerShot: 2
   spreadDegrees: 70
   smokeDuration: 8
@@ -56,12 +56,29 @@ MonoBehaviour:
     repairRadiusCells: 3
     underFireWindow: 3
     underFireHullRepairRatio: 0.25
-  radarAntenna: {fileID: 3869016244621281379}
+  baseHullCap: 0.5
+  maxRepairBays: 3
+  speedPerRepairBay: 0.5
+  burstHull: 30
+  burstModuleRatio: 0.4
+  burstGap: 4
+  burstEffect: {fileID: 0}
+  machineGun:
+    projectile: {fileID: 0}
+    range: 18
+    damage: 1
+    interval: 0.15
+    burstRounds: 5
+    burstPause: 0.5
+    projectileSpeed: 75
+    turnRate: 220
+    spreadDegrees: 1.6
+  radarAntenna: {fileID: 3008541382094114096}
   antennaRpm: 20
   flankDuration: 5
   flankCooldown: 22
   flankSpeedMultiplier: 1.6
---- !u!1 &4460020302818891608
+--- !u!1 &7451071785779946032
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -69,7 +86,7 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 6062137476110650641}
+  - component: {fileID: 6568553174102918943}
   m_Layer: 0
   m_Name: ModelPivot
   m_TagString: Untagged
@@ -77,29 +94,29 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &6062137476110650641
+--- !u!4 &6568553174102918943
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4460020302818891608}
+  m_GameObject: {fileID: 7451071785779946032}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 1, z: 0, w: -0.00000004371139}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 5450513772925041939}
+  - {fileID: 6329212039718008896}
   m_Father: {fileID: 4128137490555503642}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1001 &5489505420947970808
+--- !u!1001 &5791446243124780971
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 6062137476110650641}
+    m_TransformParent: {fileID: 6568553174102918943}
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 3095ee2ee075cae4c92cbb7808194726, type: 3}
       propertyPath: m_LocalPosition.x
@@ -150,18 +167,18 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 3095ee2ee075cae4c92cbb7808194726, type: 3}
---- !u!4 &3869016244621281379 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: -459607001371946341, guid: 3095ee2ee075cae4c92cbb7808194726, type: 3}
-  m_PrefabInstance: {fileID: 5489505420947970808}
-  m_PrefabAsset: {fileID: 0}
---- !u!4 &4584372279499894314 stripped
+--- !u!4 &2589301472364292985 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -887118605499337518, guid: 3095ee2ee075cae4c92cbb7808194726, type: 3}
-  m_PrefabInstance: {fileID: 5489505420947970808}
+  m_PrefabInstance: {fileID: 5791446243124780971}
   m_PrefabAsset: {fileID: 0}
---- !u!4 &5450513772925041939 stripped
+--- !u!4 &3008541382094114096 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -459607001371946341, guid: 3095ee2ee075cae4c92cbb7808194726, type: 3}
+  m_PrefabInstance: {fileID: 5791446243124780971}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &6329212039718008896 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 3095ee2ee075cae4c92cbb7808194726, type: 3}
-  m_PrefabInstance: {fileID: 5489505420947970808}
+  m_PrefabInstance: {fileID: 5791446243124780971}
   m_PrefabAsset: {fileID: 0}

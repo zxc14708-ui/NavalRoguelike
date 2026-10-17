@@ -10,7 +10,9 @@ namespace Game.Modules.Runtime
     /// 공개 자료: 유효 사거리 대함 6km · 대공 4km, 포신당 분당 310발(포탑 620발), 준비탄 768발, 성형파편 고폭탄,
     /// 자체 사격통제 레이더 없음(함정 레이더 사용). 게임 수치는 기관포(0~22)와 76mm(6~34) 사이로 옮겼다.
     ///   - 사거리: 수상 0~Range(28), 항공기·드론은 Range × airRangeRatio(대공 4km / 대함 6km ≈ 0.7).
-    ///   - 쌍열: 한 번에 두 발(좌우 포신), 4회 쏘고 잠깐 쉰다. 탄은 근접신관 — 드론·항공기 곁을 지나면 공중에서 터진다.
+    ///   - 쌍열: 좌우 포신이 번갈아 한 발씩 쏜다(2026-10-11 — 예전에는 두 발이 함께 나갔다). 발 간격 = ReloadTime ÷ 2라
+    ///     좌우 한 쌍의 간격·화력은 예전과 같다. 8발(좌우 4쌍) 쏘고 잠깐 쉰다. 탄은 근접신관 — 드론·항공기 곁을 지나면 공중에서 터진다.
+    ///   - 강화(UPG_Nobong): I 피해 +25%·탄창 +25%, II 피해 +50%·탄창 +50%·사거리 +15%.
     ///   - 자체 센서가 없다: 레이더·근접 센서(TargetingSystem)가 잡은 표적만 쏜다(CIWS와 다름).
     ///   - 기관포처럼 붙은 블록·상부 구조물 방향은 쏘지 못한다(FireArc). 탄약고 보너스를 받는다.
     /// </summary>
@@ -19,14 +21,15 @@ namespace Game.Modules.Runtime
         [SerializeField] private WeaponController weapon = new();
         [SerializeField] private GameObject projectilePrefab;
         [SerializeField] private GameObject muzzleSmoke;
-        [Tooltip("좌우 포신 간격의 절반(m) — 두 발이 이만큼 벌어져 나간다")]
+        [Tooltip("좌우 포신 간격의 절반(m) — 번갈아 쏘는 두 포신의 포구 위치")]
         [SerializeField] private float barrelOffset = 0.14f;
         [SerializeField] private float spreadDegrees = 0.8f;
         [Tooltip("대공 사거리 = 사거리 × 이 값(대공 4km / 대함 6km)")]
         [SerializeField] private float airRangeRatio = 0.7f;
 
         [Header("Burst")]
-        [SerializeField, Min(1)] private int burstSalvos = 4;
+        [Tooltip("한 번 몰아 쏘는 발 수(좌우 번갈아). 다 쏘면 burstPause만큼 쉰다")]
+        [SerializeField, Min(1)] private int burstRounds = 8;
         [SerializeField] private float burstPause = 0.5f;
         [SerializeField] private float recoilDistance = 0.08f;
 
@@ -35,12 +38,16 @@ namespace Game.Modules.Runtime
         private System.Func<ITargetable, float, float> _score;
         private System.Predicate<Vector3> _inArc;
         private float _pause, _lastShotTime = -999f;
-        private int _burst, _salvoCount;
+        private int _burst, _salvoCount, _barrel;
         private MuzzleBurstVfx _muzzleVfx;
+        private Transform _muzzleA, _muzzleB;   // 좌우 포구(있으면)
 
         public AmmoMagazine Ammo => _ammo;
         public bool IsEngaged => Time.time - _lastShotTime < 0.6f;
+        /// <summary>쏜 발 수(좌우 번갈아 한 발씩).</summary>
         public int Salvos { get; private set; }
+        /// <summary>마지막으로 쏜 포신: −1 = 왼쪽, +1 = 오른쪽.</summary>
+        public int LastBarrel { get; private set; }
         public float AirRange => Stats.Range * airRangeRatio;
 
         protected override void OnInitialized()
@@ -80,32 +87,53 @@ namespace Game.Modules.Runtime
             weapon.AimAt(aim, Stats.TurretTurnRate, dt);
             if (!weapon.IsInFireArc(aim) || !weapon.IsAimedAt(aim)) return;
             if (_pause > 0f || !_ammo.CanFire) return;
-            if (!weapon.TryFire(Stats.ReloadTime)) return;
+            if (!weapon.TryFire(Stats.ReloadTime * 0.5f)) return;   // 좌우 번갈아 — 한 쌍 간격은 ReloadTime
 
-            _ammo.Consume();   // 한 번 = 두 발(AmmoPerShot 2)
+            _ammo.Consume();   // 한 발(AmmoPerShot 1)
             _lastShotTime = Time.time;
             Salvos++;
-            FireSalvo(DamageAgainst(target));
-            if (++_burst >= burstSalvos) { _burst = 0; _pause = burstPause; }
+            _barrel = _barrel < 0 ? 1 : -1;
+            FireRound(DamageAgainst(target), _barrel);
+            if (++_burst >= burstRounds) { _burst = 0; _pause = burstPause; }
         }
 
-        private void FireSalvo(float damage)
+        /// <summary>한 포신(−1 = 왼쪽, +1 = 오른쪽)에서 한 발.</summary>
+        private void FireRound(float damage, int barrel)
         {
             var muzzle = weapon.Muzzle != null ? weapon.Muzzle : transform;
             Vector3 dir = weapon.FireDirection;
             Vector3 side = Vector3.Cross(Vector3.up, dir).normalized;
-            for (int i = -1; i <= 1; i += 2)
+            Vector3 d = Quaternion.AngleAxis(Random.Range(-spreadDegrees, spreadDegrees), Vector3.up) *
+                        Quaternion.AngleAxis(Random.Range(-spreadDegrees, spreadDegrees) * 0.5f, side) * dir;
+            // 강화 모델(Codex v22)에 좌우 포구(Muzzle_01·02)가 있으면 그 포구에서, 없으면 가운데 포구에서 좌우로 띄운다
+            Vector3 from = muzzle.position + side * (barrelOffset * barrel);
+            if (_muzzleA != null && _muzzleB != null && _muzzleA.gameObject.activeInHierarchy)
             {
-                Vector3 d = Quaternion.AngleAxis(Random.Range(-spreadDegrees, spreadDegrees), Vector3.up) *
-                            Quaternion.AngleAxis(Random.Range(-spreadDegrees, spreadDegrees) * 0.5f, side) * dir;
-                Vector3 from = muzzle.position + side * (barrelOffset * i);
-                var go = PoolManager.Instance?.Spawn(projectilePrefab, from, Quaternion.LookRotation(d));
-                go?.GetComponent<Projectile>()?.Launch(d, Stats.ProjectileSpeed, damage, DamageSource.Gun);
+                bool aRight = Vector3.Dot(_muzzleA.position - _muzzleB.position, side) > 0f;
+                from = (barrel > 0) == aRight ? _muzzleA.position : _muzzleB.position;
             }
-            weapon.Kick(recoilDistance);
+            var go = PoolManager.Instance?.Spawn(projectilePrefab, from, Quaternion.LookRotation(d));
+            go?.GetComponent<Projectile>()?.Launch(d, Stats.ProjectileSpeed, damage, DamageSource.Gun);
+            LastBarrel = barrel;
+
+            weapon.Kick(recoilDistance * 0.6f);   // 포신 둘이 한 덩어리라 한 발 반동은 조금 작게
             if (_muzzleVfx == null) _muzzleVfx = gameObject.AddComponent<MuzzleBurstVfx>();
-            _muzzleVfx.Emit(muzzle.position, dir, MuzzleBurstVfx.Style.Autocannon, muzzleSmoke, ++_salvoCount % 2 == 0);
-            AudioManager.Play(Game.Data.SfxId.AutocannonShot, muzzle.position, 1f, 0.72f);   // 기관포보다 낮은 쿵쿵
+            _muzzleVfx.Emit(from, dir, MuzzleBurstVfx.Style.Autocannon, muzzleSmoke, ++_salvoCount % 2 == 0);
+            AudioManager.Play(Game.Data.SfxId.AutocannonShot, from, 0.8f, 0.72f);   // 기관포보다 낮은 쿵쿵
+        }
+
+        /// <summary>강화 외형(Visual_Level1~3)을 바꾼 뒤 새 포탑·고각부·포구에 다시 연결한다.</summary>
+        public override void BindUpgradeVisual(Transform visualRoot)
+        {
+            var turret = FindVisualPart(visualRoot, "TurretPivot");
+            var elevation = FindVisualPart(visualRoot, "ElevationPivot");
+            var muzzle = FindVisualPart(visualRoot, "Muzzle");
+            _muzzleA = FindVisualPart(visualRoot, "Muzzle_01");
+            _muzzleB = FindVisualPart(visualRoot, "Muzzle_02");
+            if (turret != null && elevation != null && muzzle != null)
+                weapon.BindArtTransforms(turret, elevation, muzzle);
+            else
+                Debug.LogError("[Nobong] 강화 모델의 TurretPivot/ElevationPivot/Muzzle을 찾지 못했습니다.", this);
         }
 
         /// <summary>드론·항공기는 기체를, 수상함은 선체 중앙을 앞질러 겨눈다.</summary>

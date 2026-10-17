@@ -19,6 +19,8 @@ namespace Game.World
         public string Art;
         /// <summary>둘레에 놓인 해안 소품(어선·부잔교·방파제·해식 아치·어구·부표) 수.</summary>
         public int CoastProps;
+        /// <summary>좁은 수로의 기슭 구간(섬이 아님, 점검 K04).</summary>
+        public bool Bank;
     }
 
     /// <summary>

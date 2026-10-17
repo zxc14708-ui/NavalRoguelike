@@ -96,6 +96,32 @@ namespace Game.Dev
         public bool RouteOnly;
         [Tooltip("VLS 8셀 덮개 열림 검사만 돌린다(-vlsOnly)")]
         public bool VlsOnly;
+        [Tooltip("피격 칸 판정(블록 내구) 검사만 돌린다(-blockHitOnly)")]
+        public bool BlockHitOnly;
+        [Tooltip("노봉·곡사포·경어뢰·충각 강화 검사만 돌린다(-weaponPackOnly)")]
+        public bool WeaponPackOnly;
+        [Tooltip("시작 화면 비행장(전투기 경로·계단 현상) 검사만 돌린다(-harborAAOnly)")]
+        public bool HarborAAOnly;
+        [Tooltip("시작 무장·손상통제·함정 고유 스킬 검사만 돌린다(-signatureOnly)")]
+        public bool SignatureOnly;
+        [Tooltip("호위함 실제 무장·v17 모델 검사만 돌린다(-escortArmsOnly)")]
+        public bool EscortArmsOnly;
+        [Tooltip("일시정지·결과 화면·재출격 흐름 검사만 돌린다(-runFlowOnly). 씬을 다시 여므로 검증기가 씬 전환을 넘어 살아남는다")]
+        public bool RunFlowOnly;
+        [Tooltip("WWII 패치 B 규칙 검사만(-ww2Only): 항구 버튼으로 시험 전투에 들어가 분리·어뢰·함포·공습·보스를 검사")]
+        public bool Ww2Only;
+        [Tooltip("WWII 시험 전투 한 판(-ww2BattleOnly): 조타 로봇이 기본 장비로 끝까지 — 균형 자료")]
+        public bool Ww2BattleOnly;
+        [Tooltip("점검 B 묶음 검사만 돌린다(-bundleBOnly): 사전·무장 패널·대잠 카드·화면 설정·적아 표식·위협 묶음·첫 출격 훈련")]
+        public bool BundleBOnly;
+        [Tooltip("점검 C 묶음 검사만 돌린다(-bundleCOnly): 다시 뽑기·빌드 안내·항구/효과 품질·보스 막대·저장/이어하기·결과 분석. 씬을 다시 연다")]
+        public bool BundleCOnly;
+        [Tooltip("점검 D 묶음 검사만 돌린다(-bundleDOnly): 배포 기본·사운드·기록/도전 과제·선택 임무")]
+        public bool BundleDOnly;
+        [Tooltip("Codex 시안 적용 검사만 돌린다(-aviationOnly): 헬기데크·헬기 T1~T3·노봉 v22")]
+        public bool AviationOnly;
+        [Tooltip("해역 차별화 검사만 돌린다(-seaOnly): 해역별 섬·레이더·적 구성·카드·물색, 좁은 수로 경계, 해안포대")]
+        public bool SeaOnly;
 
         private readonly StringBuilder _report = new();
         private int _failures;
@@ -106,8 +132,41 @@ namespace Game.Dev
             Directory.CreateDirectory(OutputDirectory);
             _report.AppendLine("# 전투 검증 보고서");
             _report.AppendLine($"- 실행: {System.DateTime.Now:yyyy-MM-dd HH:mm:ss}, 시간 배속 {TimeScale}");
+            WriteReportHeader();   // 검사 이름·빌드 출처·환경(O03)
 
             yield return new WaitForSecondsRealtime(1.5f);   // StageDirector.Start·ShipInitializer 대기
+            WriteSeed();
+
+            if (BundleCOnly)
+            {
+                yield return BundleCCheck();
+                Finish();
+                yield break;
+            }
+            if (PerfOnly)
+            {
+                // 성능 측정(O04): 항구 시작 화면부터 재야 해서 검사 환경을 쓰지 않는다
+                yield return PerfCheck();
+                Finish();
+                yield break;
+            }
+            if (Ww2Only || Ww2BattleOnly)
+            {
+                // WWII 시험 전투(패치 B): 항구의 [WWII 시험 전투] 버튼부터 실제 흐름 그대로 — 검사 환경(PrepareSandbox)을 쓰지 않는다
+                if (Camera.main != null) Camera.main.aspect = 16f / 9f;
+                if (Ww2Only) yield return Ww2Check();
+                else yield return Ww2BattleCheck();
+                SaveLog(Ww2Only ? "ww2" : "ww2battle");
+                Finish();
+                yield break;
+            }
+            if (RunFlowOnly)
+            {
+                // 실제 게임 흐름 그대로(스테이지·스포너·경험치 켠 채) 검사한다 — 검사 환경(PrepareSandbox)을 쓰지 않는다
+                yield return RunFlowCheck();
+                Finish();
+                yield break;
+            }
 
             PrepareSandbox();
             // 배치 모드 플레이어는 창 해상도가 제각각이라 측정·스크린샷은 16:9 기준으로 고정한다
@@ -118,6 +177,12 @@ namespace Game.Dev
             CombatDevTools.Instance?.SetOverlay(true);
             yield return new WaitForSeconds(2f);             // 카메라가 자리 잡을 시간
 
+            if (ArtOnly)
+            {
+                yield return ArtCheck();   // 시각 규칙 점검(G06)
+                Finish();
+                yield break;
+            }
             if (SpecOnly)
             {
                 yield return SpecTests();
@@ -142,6 +207,67 @@ namespace Game.Dev
             {
                 yield return FormationCheck();
                 SaveLog("formation");
+                Finish();
+                yield break;
+            }
+            if (EscortArmsOnly)
+            {
+                yield return EscortArmsCheck();
+                SaveLog("escortarms");
+                Finish();
+                yield break;
+            }
+            if (SeaOnly)
+            {
+                yield return SeaCheck();
+                SaveLog("sea");
+                Finish();
+                yield break;
+            }
+            if (AviationOnly)
+            {
+                yield return AviationCheck();
+                SaveLog("aviation");
+                Finish();
+                yield break;
+            }
+            if (BundleDOnly)
+            {
+                yield return BundleDCheck();
+                Finish();
+                yield break;
+            }
+            if (BundleBOnly)
+            {
+                yield return BundleBCheck();
+                Finish();
+                yield break;
+            }
+            if (SignatureOnly)
+            {
+                yield return SignatureCheck();
+                SaveLog("signature");
+                Finish();
+                yield break;
+            }
+            if (HarborAAOnly)
+            {
+                yield return HarborAACheck();
+                SaveLog("harboraa");
+                Finish();
+                yield break;
+            }
+            if (WeaponPackOnly)
+            {
+                yield return WeaponPackCheck();
+                SaveLog("weaponpack");
+                Finish();
+                yield break;
+            }
+            if (BlockHitOnly)
+            {
+                yield return BlockHitCheck();
+                SaveLog("blockhit");
                 Finish();
                 yield break;
             }
@@ -405,6 +531,7 @@ namespace Game.Dev
         private void Finish()
         {
             Time.timeScale = 1f;
+            WriteQaFooterAndTable();   // 소요 시간 · QA 결과표(O03)
             _report.AppendLine(_failures == 0 ? "\n## 결과: 규칙 검사 모두 통과" : $"\n## 결과: 규칙 검사 실패 {_failures}건");
             File.WriteAllText(Path.Combine(OutputDirectory, "report.md"), _report.ToString(), new UTF8Encoding(false));
             Debug.Log($"[CombatVerification] 완료 → {OutputDirectory}\n{_report}");
@@ -417,6 +544,30 @@ namespace Game.Dev
         // ------------------------------------------------------------ 준비
 
         private static void PrepareSandbox()
+        {
+            LaunchFromStartScreen();
+            foreach (var d in Object.FindObjectsByType<StageDirector>(FindObjectsSortMode.None)) d.enabled = false;
+            // 검사 환경은 해역 효과 없이(점검 K04 이전과 같은 섬·레이더) — 해역 검사(-seaOnly)는 스스로 해역에 들어간다
+            Game.World.SeaRegion.Leave();
+            Game.Enemies.CoastalBatteryField.Disabled = true;
+            foreach (var x in Object.FindObjectsByType<ExperienceSystem>(FindObjectsSortMode.None)) x.enabled = false;
+            // 호위함 자체 무장은 끈다: 기함 단독 검사(자폭 보트 충돌·정지 물보라 등)에 끼어들지 않게. 호위함 검사가 필요할 때 켠다.
+            foreach (var e in Object.FindObjectsByType<Game.TaskForce.EscortDefense>(FindObjectsSortMode.None)) e.enabled = false;
+            if (EnemySpawner.Instance != null) EnemySpawner.Instance.enabled = false;
+            CombatDevTools.ClearBattlefield();
+
+            var ship = GameManager.Instance != null ? GameManager.Instance.Player : null;
+            if (ship != null)
+            {
+                var prop = typeof(ShipController).GetProperty(nameof(ShipController.HullMaxHp));
+                prop?.GetSetMethod(true)?.Invoke(ship, new object[] { 100000f });
+                prop = typeof(ShipController).GetProperty(nameof(ShipController.HullHp));
+                prop?.GetSetMethod(true)?.Invoke(ship, new object[] { 100000f });
+            }
+        }
+
+        /// <summary>시작 화면의 출항 버튼 → 시작 함정 확정까지(플레이어와 같은 절차).</summary>
+        private static void LaunchFromStartScreen()
         {
             // 시작 화면이 있으면 출항 버튼을 눌러 전투 상태로 들어간다(스포너가 함선을 알게 된다)
             foreach (var button in Object.FindObjectsByType<UnityEngine.UI.Button>(FindObjectsInactive.Include, FindObjectsSortMode.None))
@@ -436,22 +587,6 @@ namespace Game.Dev
                     if (button.name == "Confirm" && button.interactable) { button.onClick.Invoke(); break; }
             if (GameManager.Instance != null && GameManager.Instance.State != GameState.Playing)
                 Debug.LogWarning($"[CombatVerification] 출항 절차 뒤에도 전투 상태가 아님: {GameManager.Instance.State}");
-
-            foreach (var d in Object.FindObjectsByType<StageDirector>(FindObjectsSortMode.None)) d.enabled = false;
-            foreach (var x in Object.FindObjectsByType<ExperienceSystem>(FindObjectsSortMode.None)) x.enabled = false;
-            // 호위함 자체 무장은 끈다: 기함 단독 검사(자폭 보트 충돌·정지 물보라 등)에 끼어들지 않게. 호위함 검사가 필요할 때 켠다.
-            foreach (var e in Object.FindObjectsByType<Game.TaskForce.EscortDefense>(FindObjectsSortMode.None)) e.enabled = false;
-            if (EnemySpawner.Instance != null) EnemySpawner.Instance.enabled = false;
-            CombatDevTools.ClearBattlefield();
-
-            var ship = GameManager.Instance != null ? GameManager.Instance.Player : null;
-            if (ship != null)
-            {
-                var prop = typeof(ShipController).GetProperty(nameof(ShipController.HullMaxHp));
-                prop?.GetSetMethod(true)?.Invoke(ship, new object[] { 100000f });
-                prop = typeof(ShipController).GetProperty(nameof(ShipController.HullHp));
-                prop?.GetSetMethod(true)?.Invoke(ship, new object[] { 100000f });
-            }
         }
 
         /// <summary>검증 중 모듈이 파괴되어 다음 시나리오에 영향을 주지 않도록 계속 채운다.</summary>
@@ -859,6 +994,7 @@ namespace Game.Dev
         private void Fail(string message)
         {
             _failures++;
+            NoteFailure(message);
             _report.AppendLine($"- **실패**: {message}");
         }
 

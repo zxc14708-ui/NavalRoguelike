@@ -32,6 +32,31 @@ namespace Game.Combat
         /// <summary>마지막 착탄에서 피해를 준 적 수(검증용).</summary>
         public int LastHitCount { get; private set; }
 
+        /// <summary>피해 출처 이름(결과 화면 격침 원인). WWII 급강하 폭탄·순양함 주포가 쓴다. 없으면 "적 함포·기총 사격".</summary>
+        public string Cause { get; private set; }
+
+        /// <summary>적 포탄·폭탄이 떨어졌다(true = 표적 선체에 맞음). WWII 시험 전투 기록이 듣는다.</summary>
+        public static event System.Action<ArtilleryShell, bool> Landed;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() => Landed = null;
+
+        /// <summary>
+        /// 이미 띄워 둔 경고 원을 이 탄에 넘긴다(착탄 때 함께 치운다). 급강하폭격기가 강하 시작부터 띄운 원을 폭탄에 넘길 때.
+        /// </summary>
+        public void AdoptMarker(GameObject marker)
+        {
+            if (_marker != null && _marker != marker && PoolManager.Instance != null) PoolManager.Instance.Despawn(_marker);
+            _marker = marker;
+        }
+
+        /// <summary>Launch와 같지만 피해 출처 이름을 붙인다.</summary>
+        public void Launch(Vector3 muzzle, Vector3 impactPoint, float flightTime, float damage, float radius, Collider target, string cause)
+        {
+            Launch(muzzle, impactPoint, flightTime, damage, radius, target);
+            Cause = cause;
+        }
+
         /// <summary>발사. 경고 원도 함께 띄운다.</summary>
         public void Launch(Vector3 muzzle, Vector3 impactPoint, float flightTime, float damage, float radius, Collider target)
         {
@@ -45,6 +70,7 @@ namespace Game.Combat
             _flying = true;
             _area = false;
             _apex = apexHeight;
+            Cause = null;
             transform.position = muzzle;
 
             if (warningMarker != null && PoolManager.Instance != null)
@@ -98,16 +124,22 @@ namespace Game.Combat
             _flying = false;
 
             if (_area) AreaDamage();
-            else if (_target != null && _target.gameObject.activeInHierarchy)
+            else
             {
-                Vector3 closest = _target.ClosestPoint(_to);
-                Vector3 flat = closest - _to;
-                flat.y = 0f;
-                if (flat.sqrMagnitude <= _radius * _radius &&
-                    _target.TryGetComponent<IDamageable>(out var dmg) && dmg.IsAlive)
+                bool hit = false;
+                if (_target != null && _target.gameObject.activeInHierarchy)
                 {
-                    dmg.TakeDamage(new DamageInfo(_damage, closest, Vector3.down, DamageSource.Gun));
+                    Vector3 closest = _target.ClosestPoint(_to);
+                    Vector3 flat = closest - _to;
+                    flat.y = 0f;
+                    if (flat.sqrMagnitude <= _radius * _radius &&
+                        _target.TryGetComponent<IDamageable>(out var dmg) && dmg.IsAlive)
+                    {
+                        dmg.TakeDamage(new DamageInfo(_damage, closest, Vector3.down, DamageSource.Gun, Cause));
+                        hit = true;
+                    }
                 }
+                Landed?.Invoke(this, hit);
             }
 
             PooledEffect.Spawn(impactEffect, new Vector3(_to.x, 0f, _to.z));

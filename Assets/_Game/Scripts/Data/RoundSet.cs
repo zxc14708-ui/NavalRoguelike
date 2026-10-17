@@ -5,7 +5,8 @@ using UnityEngine;
 namespace Game.Data
 {
     /// <summary>
-    /// 라운드 구성. 한 라운드를 버티면 정비 페이즈로 넘어간다.
+    /// 한 스테이지의 구간(라운드) 구성. 구간은 쉬지 않고 이어지고, 마지막 구간의 보스를 격침하면 스테이지가 끝난다.
+    /// 정비(카드·배치)는 구간이 끝날 때가 아니라 레벨업과 보스 보상 때 열린다(StageDirector · ExperienceSystem).
     /// 난이도 곡선을 코드가 아니라 이 에셋에서 조절한다.
     /// 난이도는 체력을 올리기보다 "동시에 풀어야 하는 서로 다른 문제"를 늘려 올린다:
     /// 고속정(기관포·함포) → +드론(기관포·CIWS) → +미사일정(VLS 조기 제거 또는 기만체+CIWS) → 미사일정+잠수함(소나·헬기) → 전부 → 보스+포화+호위.
@@ -68,6 +69,25 @@ namespace Game.Data
                 if (e.Enemy == null || !allowed(e.Enemy)) continue;
                 last = e.Enemy;
                 roll -= Mathf.Max(0f, e.Weight);
+                if (roll <= 0f) return e.Enemy;
+            }
+            return last;
+        }
+
+        /// <summary>가중치에 배율(해역별 적 구성, 점검 K04)을 곱해 뽑는다. 원본 가중치는 바꾸지 않는다.</summary>
+        public static EnemyDefinition PickWeighted(in Round round, System.Func<EnemyDefinition, bool> allowed, System.Func<EnemyDefinition, float> scale)
+        {
+            if (round.Entries == null || round.Entries.Count == 0) return null;
+            float total = 0f;
+            foreach (var e in round.Entries) if (e.Enemy != null && allowed(e.Enemy)) total += Mathf.Max(0f, e.Weight * scale(e.Enemy));
+            if (total <= 0f) return PickWeighted(round, allowed);
+            float roll = UnityEngine.Random.value * total;
+            EnemyDefinition last = null;
+            foreach (var e in round.Entries)
+            {
+                if (e.Enemy == null || !allowed(e.Enemy)) continue;
+                last = e.Enemy;
+                roll -= Mathf.Max(0f, e.Weight * scale(e.Enemy));
                 if (roll <= 0f) return e.Enemy;
             }
             return last;

@@ -32,6 +32,11 @@ namespace Game.Modules
         RamBow = 23,           // 충각 함수 — 맨 앞 칸, 나아가며 들이받음
         MineRail = 24,         // 선미 기뢰 투하궤 — 뒤가 트인 자리, 추격하는 적 앞에 기뢰
         Nobong = 25,           // 노봉 40mm 쌍열포 — 기관포와 76mm 사이, 근접신관 공중 폭발(드론 떼)
+
+        // --- WWII 규칙 집합(ww2_v1, 패치 B 2026-10-17). 현대 드래프트·사전에는 나오지 않는다(ContentRegistry).
+        Ww2DualPurposeGun = 26,   // 양용포 — 수상 우선·항공 보조, 포탑 선회·탄 비행 시간
+        Ww2QuadAa = 27,           // 40mm급 4연장 대공포 — 항공 우선·경수상 보조, 근접신관 없음
+        Ww2BroadsideTorpedo = 28, // 현측 어뢰 발사관 — 수동 일제 발사, 직진(유도 없음), 긴 재장전
     }
 
     /// <summary>

@@ -18,6 +18,15 @@ namespace Game.UI
         /// <summary>함 현황 나침반: 옅은 원판, 테두리, 30° 눈금, 북쪽 삼각 표식.</summary>
         public static Texture2D Dial => s_dial != null ? s_dial : s_dial = BuildDial();
 
+        private static Texture2D s_ring, s_diamond;
+
+        /// <summary>가운데가 빈 고리(적아 표식 — 드러난 잠수함).</summary>
+        public static Texture2D Ring => s_ring != null ? s_ring : s_ring = Build(32, p => Coverage(Mathf.Abs(Vector2.Distance(p, new Vector2(16f, 16f)) - 11f), 5f));
+
+        /// <summary>채운 마름모(적아 표식 — 아군 호위함).</summary>
+        public static Texture2D Diamond => s_diamond != null ? s_diamond : s_diamond = Build(32, p =>
+            Mathf.Clamp01(13.5f - (Mathf.Abs(p.x - 16f) + Mathf.Abs(p.y - 16f)) + 0.5f));
+
         private static float Coverage(float distance, float width) => Mathf.Clamp01(width * 0.5f + 0.5f - distance);
 
         private static float SegmentDistance(Vector2 p, Vector2 a, Vector2 b)
@@ -94,9 +103,9 @@ namespace Game.UI
 
         // ------------------------------------------------------------ 스킬 아이콘
 
-        public enum SkillIcon { Decoy, Jam, Repair, Smoke, Flank }
+        public enum SkillIcon { Decoy, Jam, Repair, Smoke, Flank, AirWing, Salvo, Charge, Sweep }   // 뒤 넷: 함정 고유 스킬(2026-10-11)
 
-        private static readonly Sprite[] s_skillIcons = new Sprite[5];
+        private static readonly Sprite[] s_skillIcons = new Sprite[System.Enum.GetValues(typeof(SkillIcon)).Length];
 
         /// <summary>스킬 아이콘(흰색 + 알파, 96px). Image의 원형 채우기에 쓰도록 스프라이트로 준다.</summary>
         public static Sprite SkillIconSprite(SkillIcon icon)
@@ -115,8 +124,63 @@ namespace Game.UI
             SkillIcon.Jam => JamShape,
             SkillIcon.Repair => WrenchShape,
             SkillIcon.Smoke => SmokeShape,
+            SkillIcon.AirWing => AirWingShape,
+            SkillIcon.Salvo => SalvoShape,
+            SkillIcon.Charge => ChargeShape,
+            SkillIcon.Sweep => SweepShape,
             _ => FlankShape,
         };
+
+        /// <summary>항공대 호출: 위에서 본 전투기(삼각 날개·꼬리) 둘이 비스듬히 편대.</summary>
+        private static bool AirWingShape(Vector2 p)
+        {
+            bool Jet(Vector2 q, float s)
+            {
+                q /= s;
+                if (Mathf.Abs(q.x) < 0.07f && q.y > -0.55f && q.y < 0.6f) return true;                    // 동체
+                if (q.y < 0.15f && q.y > -0.25f && Mathf.Abs(q.x) < 0.55f * (0.15f - q.y) / 0.4f + 0.05f) return true;   // 삼각 날개
+                return q.y < -0.4f && q.y > -0.58f && Mathf.Abs(q.x) < 0.22f;                              // 꼬리 날개
+            }
+            return Jet(p - new Vector2(-0.25f, 0.22f), 0.62f) || Jet(p - new Vector2(0.3f, -0.28f), 0.62f);
+        }
+
+        /// <summary>전탄 발사: 수직으로 솟는 미사일 셋과 아래 발사 불꽃.</summary>
+        private static bool SalvoShape(Vector2 p)
+        {
+            foreach (float x in new[] { -0.45f, 0f, 0.45f })
+            {
+                float top = x == 0f ? 0.72f : 0.5f;
+                Vector2 q = p - new Vector2(x, 0f);
+                if (Mathf.Abs(q.x) < 0.09f && q.y < top - 0.16f && q.y > top - 0.82f) return true;   // 동체
+                if (q.y >= top - 0.16f && q.y < top && Mathf.Abs(q.x) < 0.09f * (top - q.y) / 0.16f) return true;   // 탄두
+                if (q.y < top - 0.7f && q.y > top - 0.86f && Mathf.Abs(q.x) < 0.17f) return true;   // 꼬리 날개
+            }
+            return p.y < -0.62f && p.y > -0.74f && Mathf.Abs(p.x) < 0.7f;   // 발사대
+        }
+
+        /// <summary>돌격 기동: 앞으로 겹친 화살촉 셋(가운데가 가장 굵다).</summary>
+        private static bool ChargeShape(Vector2 p)
+        {
+            if (Mathf.Abs(p.x) > 0.7f) return false;
+            float[] tops = { 0.72f, 0.3f, -0.12f };
+            float[] widths = { 0.18f, 0.26f, 0.18f };
+            for (int i = 0; i < tops.Length; i++)
+            {
+                float v = tops[i] - Mathf.Abs(p.x) * 0.9f;
+                if (p.y <= v && p.y >= v - widths[i]) return true;
+            }
+            return p.y < -0.5f && p.y > -0.62f && Mathf.Abs(p.x) < 0.5f;   // 뱃머리 물결
+        }
+
+        /// <summary>광역 탐색: 레이더 화면 — 바깥 고리 둘, 스윕 부채꼴, 표적 점 둘.</summary>
+        private static bool SweepShape(Vector2 p)
+        {
+            float r = p.magnitude;
+            if ((r > 0.72f && r < 0.82f) || (r > 0.4f && r < 0.47f)) return true;
+            float a = Mathf.Atan2(p.y, p.x) * Mathf.Rad2Deg;
+            if (r < 0.72f && a > 20f && a < 62f) return true;   // 스윕
+            return (p - new Vector2(-0.38f, 0.22f)).magnitude < 0.1f || (p - new Vector2(0.2f, -0.45f)).magnitude < 0.1f;
+        }
 
         /// <summary>기만체: 발사 궤적(점 셋) 끝에서 터지는 채프 섬광.</summary>
         private static bool DecoyShape(Vector2 p)

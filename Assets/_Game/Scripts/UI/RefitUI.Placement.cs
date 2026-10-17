@@ -162,9 +162,10 @@ namespace Game.UI
 
         private void PlaceHeld()
         {
-            if (!CanPlaceHere()) return;
+            if (!CanPlaceHere()) { Game.Core.UiSound.Play(Game.Core.UiSound.Cue.Fail); return; }   // 놓을 수 없는 자리(점검 O06)
             var placed = factory.Install(_held, _cursor, _heldRotation, _heldWasInstalled ? _heldUpgrade : null);
-            if (placed == null) return;
+            if (placed == null) { Game.Core.UiSound.Play(Game.Core.UiSound.Cue.Fail); return; }
+            Game.Core.UiSound.Play(Game.Core.UiSound.Cue.Confirm);
             RestoreRaise(placed);
 
             if (_heldIsReward) _rewardUsed = true;
@@ -178,6 +179,7 @@ namespace Game.UI
         private void ReturnHeld()
         {
             if (_held == null || !_heldWasInstalled) return;
+            Game.Core.UiSound.Play(Game.Core.UiSound.Cue.Cancel);
 
             RestoreRaise(factory.Install(_held, _heldOrigin, _heldOriginRotation, _heldUpgrade));
             ClearHeld();

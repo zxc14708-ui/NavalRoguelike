@@ -188,20 +188,23 @@ namespace Game.Dev
             // 실제 발사: 강화 II 기관포 한 문만 켜고 멈춘 고속정을 쏜다
             foreach (var r in Object.FindObjectsByType<ModuleRuntime>(FindObjectsSortMode.None))
                 if (r is not IRadarSource) r.enabled = r == a.Runtime;
+            Game.Modules.Runtime.BridgeMachineGun.DevHoldFire = true;   // 함교 기관총이 같은 탄으로 표적을 먼저 격침하지 않게
             var target = CombatDevTools.SpawnRing("ene_fastboat", 3, 15f, 30f);   // 사격각이 어느 쪽이든 하나는 들어오게
             foreach (var e in target) e.DevFrozen = true;
             float shotDamage = -1f, t0 = Time.time;
             while (Time.time - t0 < 6f && shotDamage < 0f)
             {
                 foreach (var p in Object.FindObjectsByType<Projectile>(FindObjectsSortMode.None))
-                    if (p.isActiveAndEnabled && p.name.StartsWith("PRJ_Autocannon")) { shotDamage = Get<float>(p, "_damage"); break; }
+                    if (p.isActiveAndEnabled && p.name.StartsWith("PRJ_Autocannon") && p.StatsKey != "함교 기관총") { shotDamage = Get<float>(p, "_damage"); break; }
                 yield return null;
             }
             float eff = ac.TargetEfficiency.For(TargetCategory.SmallSurface);
+            Game.Modules.Runtime.BridgeMachineGun.DevHoldFire = false;
             _report.AppendLine($"- 실제 발사(기관포 II → 고속정): 탄 피해 {shotDamage:0.###} · 기대 {s0.Damage * 1.5f * eff:0.###}(기본 {s0.Damage} × 1.5 × 상성 {eff})");
             if (shotDamage < 0f || !Mathf.Approximately(shotDamage, s0.Damage * 1.5f * eff)) Fail("발사된 탄의 피해에 강화가 한 번만 적용되지 않음");
             CombatDevTools.ClearBattlefield();
             // 강화 II 기관포 A만 켜 둔다(꺼진 런타임은 설치·강화 이벤트를 받지 않아 탄약고 지원을 다시 잡지 않는다)
+            Game.Modules.Runtime.BridgeMachineGun.DevHoldFire = true;   // 함교 기관총이 같은 탄으로 표적을 먼저 격침하지 않게
             foreach (var r in Object.FindObjectsByType<ModuleRuntime>(FindObjectsSortMode.None)) if (r is not IRadarSource) r.enabled = r == a.Runtime;
             Put(a.Runtime, "_targeting", null);   // 표적이 남아 쏘지 않게(지원 배율만 본다)
 
@@ -404,19 +407,25 @@ namespace Game.Dev
             if (!both) Fail("무장 강화와 성장 카드가 한 번씩만 곱해지지 않음");
 
             // 4) 실제 발사 피해: 강화 I 기관포 한 문만 켜고 멈춘 고속정을 쏜다
+            Game.Modules.Runtime.BridgeMachineGun.DevHoldFire = true;   // 함교 기관총이 같은 탄으로 표적을 먼저 격침하지 않게
             foreach (var r in Object.FindObjectsByType<ModuleRuntime>(FindObjectsSortMode.None)) if (r is not IRadarSource) r.enabled = r == a.Runtime;
-            var target = CombatDevTools.SpawnRing("ene_fastboat", 3, 15f, 30f);
+            // 시험 장비 사이에 끼어 사격각이 좁을 수 있다 — 승강 거치대로 올리고 표적을 사방에 둔다
+            Object.FindFirstObjectByType<ModuleFactory>()?.SetRaised(a, true);
+            var target = CombatDevTools.SpawnRing("ene_fastboat", 8, 15f, 10f);
             foreach (var e in target) e.DevFrozen = true;
             float shotDamage = -1f, ts = Time.time;
             while (Time.time - ts < 6f && shotDamage < 0f)
             {
                 foreach (var p in Object.FindObjectsByType<Projectile>(FindObjectsSortMode.None))
-                    if (p.isActiveAndEnabled && p.name.StartsWith("PRJ_Autocannon")) { shotDamage = Get<float>(p, "_damage"); break; }
+                    if (p.isActiveAndEnabled && p.name.StartsWith("PRJ_Autocannon") && p.StatsKey != "함교 기관총") { shotDamage = Get<float>(p, "_damage"); break; }
                 yield return null;
             }
             float eff = ac.TargetEfficiency.For(TargetCategory.SmallSurface);
+            if (shotDamage < 0f)
+                _report.AppendLine($"  - 진단: 기관포 파괴 {Yes(a.IsDestroyed)} · 내구 {a.Hp:0}/{a.MaxHp:0} · 켜짐 {Yes(a.Runtime != null && a.Runtime.enabled)} · 위치 ({a.Origin.X},{a.Origin.Z}) · 이유 \"{Game.UI.WeaponDiagnosis.Explain(a, ship.GetComponentInChildren<TargetingSystem>()).Detail}\"");
             _report.AppendLine($"- 실제 발사: 탄 피해 {shotDamage:0.###}(기대 {A0.Damage * 1.5f * eff:0.###} = 기본 × 1.25 × 1.20 × 상성 {eff})");
             if (shotDamage < 0f || !Near(shotDamage, A0.Damage * 1.5f * eff, 0.005f)) Fail("발사된 탄의 피해에 강화·성장이 한 번씩만 적용되지 않음");
+            Game.Modules.Runtime.BridgeMachineGun.DevHoldFire = false;
             CombatDevTools.ClearBattlefield();
             foreach (var r in Object.FindObjectsByType<ModuleRuntime>(FindObjectsSortMode.None)) r.enabled = true;   // 켜면 스탯을 다시 계산한다
             yield return null;

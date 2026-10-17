@@ -13,6 +13,7 @@ namespace Game.Modules.Runtime
     ///   - 사거리 MinRange~Range(8~45). 폭뢰(0~22)와 VLS 대잠(16~48) 사이를 메운다.
     ///   - 좌현이나 우현이 트인 자리에만 놓이고(PlacementZone.SideOnly), 트인 현측의 정횡 ±75° 안으로만 쏜다.
     /// 어뢰는 VLS 대잠탄과 같은 AswTorpedo — 잠항 중인 잠수함에도 맞는다.
+    /// 강화(2026-10-11, UPG_TorpedoTube): I 피해 +20%·발사 간격·보급 −15%, II 피해 +40%·발사 간격·보급 −25%·사거리 +15%.
     /// </summary>
     public class TorpedoTubeModule : ModuleRuntime, IAmmoUser
     {
@@ -177,6 +178,27 @@ namespace Game.Modules.Runtime
             if (mount == null || dir.sqrMagnitude < 1e-4f) return;
             var want = Quaternion.LookRotation(dir, Vector3.up);
             mount.rotation = Quaternion.RotateTowards(mount.rotation, want, mountTurnRate * dt);
+        }
+
+        /// <summary>강화 외형(Visual_Level1~3)을 바꾼 뒤 새 선회대·발사점에 다시 연결한다.</summary>
+        public override void BindUpgradeVisual(Transform visualRoot)
+        {
+            var newMount = FindVisualPart(visualRoot, "TubeMount");
+            var points = new List<Transform>();
+            for (int i = 1; i <= 9; i++)
+            {
+                var lp = FindVisualPart(visualRoot, $"LaunchPoint_{i:00}");
+                if (lp == null) break;
+                points.Add(lp);
+            }
+            if (newMount == null || points.Count == 0)
+            {
+                Debug.LogError("[TorpedoTube] 강화 모델의 TubeMount/LaunchPoint_01~을 찾지 못했습니다.", this);
+                return;
+            }
+            if (mount != null) newMount.rotation = mount.rotation;   // 겨누던 방향 유지
+            mount = newMount;
+            launchPoints = points.ToArray();
         }
 
         private Transform NextTube()

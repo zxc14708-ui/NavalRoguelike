@@ -42,7 +42,10 @@ namespace Game.Modules.Runtime
             AudioManager.Play(Game.Data.SfxId.MissileLaunch, transform.position, 0.35f, 0.8f);
         }
 
-        public bool IsReady => _cooldown <= 0f && decoyPrefab != null && Instance != null && Instance.IsOperational;
+        /// <summary>기만체를 쏘는가. WWII 함교는 기만체가 없다(패치 A 9.1) — 기만체 스킬이 이 장비를 세지 않는다.</summary>
+        public virtual bool DecoyEnabled => true;
+
+        public bool IsReady => DecoyEnabled && _cooldown <= 0f && decoyPrefab != null && Instance != null && Instance.IsOperational;
 
         public float Readiness01 => Stats.ReloadTime > 0f
             ? 1f - Mathf.Clamp01(_cooldown / Stats.ReloadTime)

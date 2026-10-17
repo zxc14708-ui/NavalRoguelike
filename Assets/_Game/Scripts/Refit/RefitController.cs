@@ -40,6 +40,7 @@ namespace Game.Refit
             var choices = draft != null ? draft.DrawCards(cards, level) : null;
 
             if (ui == null) { Resume(); return; }
+            ui.SetReroll(draft != null ? () => draft.DrawCards(cards, level) : null);
             ui.Open(level, choices, Resume);
         }
 
@@ -55,8 +56,10 @@ namespace Game.Refit
 
             int cards = progression != null ? progression.CardCount : 3;
             var choices = draft != null ? draft.DrawCards(cards, level, bossReward: true) : null;
+            RefitDraft.GrantReroll();   // 보스 격침: 다시 뽑기 1회 회복
 
             if (ui == null) { Resume(); return; }
+            ui.SetReroll(draft != null ? () => draft.DrawCards(cards, level, bossReward: true) : null);
             ui.Open(level, choices, Resume, bossReward: true);
         }
 

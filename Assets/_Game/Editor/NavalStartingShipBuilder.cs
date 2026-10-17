@@ -475,8 +475,9 @@ namespace Game.EditorTools
             {
                 if(kind==3){M("vls",2,0);M("autocannon",-2,0,2);}
                 else {M("autocannon",2,0);M(kind==2?"autocannon":"ciws",-2,0,2);}
-                if(kind==0)M("radar",0,1);
-                else if(kind==1){Add(blocks[0],0,1);M("helideck",-3,0);}
+                // 2026-10-11: 함수·함미에 무기 하나씩 — 초계함·지휘함 함미 끝 기관포(NavalStarterArmament와 같은 자리)
+                if(kind==0){M("radar",0,1);M("autocannon",-3,0,2);}
+                else if(kind==1){Add(blocks[0],0,1);M("helideck",-3,0);M("autocannon",-3,-1,2);}
                 else if(kind==2)Add(blocks[1],0,1);
                 else {Add(blocks[2],0,1);Add(blocks[3],1,1);}
             }

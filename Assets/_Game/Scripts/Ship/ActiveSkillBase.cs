@@ -88,6 +88,14 @@ namespace Game.Ship
             {
                 if (m == null || !m.IsOperational || m.Runtime is not TSource source || !Provides(source)) continue;
 
+                // 횟수가 있는 스킬(응급 수리)은 남은 횟수 / 최대 횟수로 보인다
+                if (source is ISkillCharges charges)
+                {
+                    total += charges.MaxCharges;
+                    if (IsReady(source)) ready += charges.Charges;
+                    else soonest = Mathf.Max(soonest, Readiness01(source));
+                    continue;
+                }
                 total++;
                 if (IsReady(source)) ready++;
                 else soonest = Mathf.Max(soonest, Readiness01(source));
@@ -95,6 +103,13 @@ namespace Game.Ship
 
             RaiseStatus(ready, total, ready > 0 ? 1f : soonest);
         }
+    }
+
+    /// <summary>횟수로 쓰는 스킬(2026-10-11 응급 수리). HUD에 남은 횟수 / 최대 횟수로 보인다.</summary>
+    public interface ISkillCharges
+    {
+        int Charges { get; }
+        int MaxCharges { get; }
     }
 
     /// <summary>기만체·재밍 장비의 공통 상태.</summary>

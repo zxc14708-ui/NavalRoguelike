@@ -31,11 +31,19 @@ namespace Game.Core
             if (State == GameState.Playing) ElapsedTime += Time.deltaTime;
         }
 
-        /// <summary>상태 전환. 정지가 필요한 상태에서 timeScale을 0으로 만든다.</summary>
+        /// <summary>승리 또는 패배가 났다. 이후 상태는 바뀌지 않고, 새 판은 씬을 다시 연다(RunRestart).</summary>
+        public bool IsRunOver => State == GameState.Victory || State == GameState.GameOver;
+
+        /// <summary>
+        /// 상태 전환. 정지가 필요한 상태에서 timeScale을 0으로 만든다.
+        /// 승패가 난 뒤의 전환은 무시한다 — 기함과 마지막 보스가 같은 프레임에 격침돼도 먼저 난 결과가 남고,
+        /// 패배 뒤 레벨업·보스 보상이 정비 화면을 열지 못한다(2026-10-11 점검 B03).
+        /// </summary>
         public void SetState(GameState next)
         {
-            if (State == next) return;
+            if (State == next || IsRunOver) return;
             State = next;
+            if (IsRunOver) RunSave.OnRunEnded();   // 판이 끝났다 — 이어하기 기록을 지운다(훈련 제외)
             Time.timeScale = IsTimeStopped(next) ? 0f : 1f;
             GameEvents.RaiseStateChanged(next);
         }
@@ -50,6 +58,14 @@ namespace Game.Core
             TotalKills++;
             GameEvents.RaiseEnemyKilled(TotalKills);
             GameEvents.RaiseEnemyDefeated(def);
+        }
+
+        /// <summary>저장 불러오기: 작전 시간·격침 수를 이어 간다.</summary>
+        public void RestoreRun(float elapsed, int kills)
+        {
+            ElapsedTime = Mathf.Max(0f, elapsed);
+            TotalKills = Mathf.Max(0, kills);
+            GameEvents.RaiseEnemyKilled(TotalKills);
         }
 
         /// <summary>Hull HP가 0이 되면 ShipController가 호출한다.</summary>

@@ -42,6 +42,11 @@ namespace Game.Data
         [Tooltip("일제사격 발 사이 간격(초)")]
         [SerializeField, Min(0f)] private float salvoSpacing = 0.15f;
 
+        [Header("Group")]
+        [Tooltip("웨이브에서 한 번에 함께 나오는 수(편대). 1이면 혼자. 2 이상이면 첫 기체가 편대장, 나머지는 IFormationMember로 따라붙는다.")]
+        [SerializeField, Min(1)] private int groupSize = 1;
+        public int GroupSize => Mathf.Max(1, groupSize);
+
         [Header("Reward")]
         [Tooltip("격침 시 주는 경험치")]
         [SerializeField, Min(0)] private int xpReward = 1;

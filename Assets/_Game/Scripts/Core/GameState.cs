@@ -52,10 +52,11 @@ namespace Game.Core
     {
         ThrottleUp, ThrottleDown, RudderLeft, RudderRight, CenterRudder,
         Decoy, Jam, Repair, Smoke, Flank, VlsSelector, HelicopterSelector, ShipStatus,
-        Formation   // 편대 진형 전환(2026-10-03, 뒤에만 덧붙임)
+        Formation,  // 편대 진형 전환(2026-10-03, 뒤에만 덧붙임)
+        Signature   // 함정 고유 스킬(2026-10-11, 뒤에만 덧붙임)
     }
 
-    public enum SoundChannel { Master, Effects, Engine, Warning }
+    public enum SoundChannel { Master, Effects, Engine, Warning, Ui }   // Ui: 메뉴·알림음(2026-10-11 점검 O06, 맨 뒤에 덧붙임)
 
     /// <summary>플레이어 로컬 설정. 전투 조작과 음량을 PlayerPrefs에 저장한다.</summary>
     public static class GameSettings
@@ -65,11 +66,12 @@ namespace Game.Core
         private static readonly Key[] Defaults =
         {
             Key.W, Key.S, Key.A, Key.D, Key.X, Key.Q, Key.E, Key.R, Key.F,
-            Key.C, Key.V, Key.H, Key.Tab, Key.G   // 전속: Shift → C(2026-10-07, Shift+우클릭 = 항로 경유지 추가)
+            Key.C, Key.V, Key.H, Key.Tab, Key.G,  // 전속: Shift → C(2026-10-07, Shift+우클릭 = 항로 경유지 추가)
+            Key.T                                  // 함정 고유 스킬(2026-10-11)
         };
         private const string FlankKeyMigration = "Naval.Control.Migrated.FlankC";
         private static readonly Key[] Bindings = new Key[Defaults.Length];
-        private static readonly float[] Volumes = new float[4];
+        private static readonly float[] Volumes = new float[Enum.GetValues(typeof(SoundChannel)).Length];
         private static bool _loaded;
 
         private static void Load()
@@ -106,7 +108,10 @@ namespace Game.Core
         public static bool IsShiftKey(Key key) => key == Key.LeftShift || key == Key.RightShift;
 
         public static Key Binding(NavalControl control) { Load(); return Bindings[(int)control]; }
-        public static string BindingLabel(NavalControl control) => Binding(control) switch
+        public static string BindingLabel(NavalControl control) => KeyLabel(Binding(control));
+
+        /// <summary>키 이름(화면 표시용). WWII 조작키(Ww2Controls)도 같은 표기를 쓴다.</summary>
+        public static string KeyLabel(Key key) => key switch
         {
             Key.LeftShift => "SHIFT",
             Key.RightShift => "R-SHIFT",
@@ -116,7 +121,7 @@ namespace Game.Core
             Key.DownArrow => "DOWN",
             Key.Tab => "TAB",
             Key.Space => "SPACE",
-            _ => Binding(control).ToString().ToUpperInvariant()
+            _ => key.ToString().ToUpperInvariant()
         };
         public static bool Pressed(NavalControl control)
         {

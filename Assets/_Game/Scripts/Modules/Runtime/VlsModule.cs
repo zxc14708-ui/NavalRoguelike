@@ -83,8 +83,42 @@ namespace Game.Modules.Runtime
             public int Cell;
             public ITargetable Target;
             public PayloadMode Mode;
+            public bool Salvo;   // 전탄 발사: 표적이 사라졌으면 다른 표적을 고른다
         }
         private readonly System.Collections.Generic.List<PendingLaunch> _pending = new();
+
+        // --- 전탄 발사(미사일 구축함 고유 스킬, 2026-10-11)
+        private readonly System.Collections.Generic.List<(float at, int cell)> _scheduledHatches = new();
+        private float _salvoUntil = -1f;
+        /// <summary>전탄 발사 중(평소 사격은 멈춘다 — 같은 셀을 두 번 고르지 않게).</summary>
+        public bool IsSalvoing => Time.time < _salvoUntil;
+        public int SalvoLaunches { get; private set; }
+
+        /// <summary>
+        /// 남은 셀을 모두 표적들에 차례로 나눠 spacing초 간격으로 쏜다. 덮개가 1번 셀부터 차례로 열리고 열린 순서대로 솟는다.
+        /// 다 쓰면 탄창이 비어 평소처럼 전량 재장전에 들어간다. 항공기는 요격탄, 수상함은 대함탄. 예약한 수를 돌려준다.
+        /// </summary>
+        public int FireSalvo(System.Collections.Generic.IReadOnlyList<(ITargetable target, bool air)> targets, float spacing)
+        {
+            if (targets == null || targets.Count == 0 || Instance == null || !Instance.IsOperational || IsSalvoing) return 0;
+            if (!_ammo.Infinite && !_ammo.CanFire) return 0;
+            int per = Mathf.Max(1, _ammo.PerShot);
+            int n = hatches != null ? hatches.Length : 0;
+            int count = _ammo.Infinite ? Mathf.Max(1, n) : _ammo.Current / per;
+            int fired0 = _ammo.Infinite ? _nextHatch : _ammo.Capacity - _ammo.Current;
+            for (int k = 0; k < count; k++)
+            {
+                var (t, air) = targets[k % targets.Count];
+                int cell = n > 0 ? (fired0 + k) % n : -1;
+                float open = Time.time + k * spacing;
+                if (cell >= 0 && _hatchStates != null) _scheduledHatches.Add((open, cell));
+                _pending.Add(new PendingLaunch { At = open + hatchOpenSeconds, Cell = cell, Target = t,
+                                                 Mode = air ? PayloadMode.Air : PayloadMode.Surface, Salvo = true });
+            }
+            if (_ammo.Infinite) _nextHatch += count;
+            _salvoUntil = Time.time + count * spacing + hatchOpenSeconds + 0.1f;
+            return count;
+        }
 
         /// <summary>검증용: 지금 열려 있는(열리는 중 포함) 셀 수와 덮개가 들린 정도(0~1)의 최댓값, 지금까지 쏜 수.</summary>
         public int OpenHatchCount { get; private set; }
@@ -134,8 +168,11 @@ namespace Game.Modules.Runtime
         {
             weapon.Tick(dt);
             _ammo.Tick(dt);
+            for (int i = _scheduledHatches.Count - 1; i >= 0; i--)
+                if (Time.time >= _scheduledHatches[i].at) { OpenHatch(_scheduledHatches[i].cell); _scheduledHatches.RemoveAt(i); }
             UpdatePendingLaunches();
             AnimateHatches();
+            if (IsSalvoing) return;
             if (_switchRemaining > 0f) { _switchRemaining -= dt; return; }
             if (_targeting == null || missilePrefab == null) return;
             if (!_ammo.CanFire) return;   // 빈 셀: 장전될 때까지 표적도 고르지 않는다
@@ -181,11 +218,18 @@ namespace Game.Modules.Runtime
                 var p = _pending[i];
                 if (Time.time < p.At) continue;
                 _pending.RemoveAt(i);
-                // 덮개가 열리는 사이에 표적이 사라졌으면 쏘지 않는다(덮개는 그대로 닫힌다)
-                if (p.Target == null || p.Target.Transform == null || !p.Target.Transform.gameObject.activeInHierarchy) continue;
+                // 덮개가 열리는 사이에 표적이 사라졌으면 쏘지 않는다(덮개는 그대로 닫힌다). 전탄 발사는 다른 표적을 고른다.
+                bool gone = p.Target == null || p.Target.Transform == null || !p.Target.Transform.gameObject.activeInHierarchy || !p.Target.IsAlive;
+                if (gone && p.Salvo && _targeting != null)
+                {
+                    var other = _targeting.GetBest(transform.position, Stats.Range, TargetClass.Surface | TargetClass.Air, (t, sqr) => sqr);
+                    if (other != null) { p.Target = other; p.Mode = other is Game.Enemies.AirEnemy ? PayloadMode.Air : PayloadMode.Surface; gone = false; }
+                }
+                if (gone) continue;
                 if (!_ammo.CanFire) continue;
                 _ammo.Consume();
                 Launch(p.Target, p.Cell, p.Mode);
+                if (p.Salvo) SalvoLaunches++;
             }
         }
 

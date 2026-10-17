@@ -137,7 +137,7 @@ namespace Game.View
             light.transform.position = position;
             light.color = new Color(1f, 0.62f, 0.28f);
             light.range = 10f + 8f * size;
-            s_driver.Begin(light, 6f + 4f * size);
+            s_driver.Begin(light, (6f + 4f * size) * Game.Core.DisplaySettings.FlashScale);   // 번쩍임 줄이기
         }
 
         /// <summary>조명 세기를 짧게 줄인다.</summary>

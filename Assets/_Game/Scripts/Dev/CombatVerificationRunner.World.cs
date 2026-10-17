@@ -258,7 +258,14 @@ namespace Game.Dev
                 }
                 float frac = darker / (float)on.Length;
                 _report.AppendLine($"- 구름 켬/끔 비교: 그늘진 화면 {frac:P0} · 평균 밝기 {sumOn / Mathf.Max(1f, (float)sumOff):P0} (무늬 전체 그늘 비율 {Game.View.CloudShadows.ShadedFraction:P0})");
-                if (frac < 0.05f) Fail("구름 그림자가 화면에 그려지지 않음(쿠키 미적용)");
+                if (frac < 0.05f)
+                {
+                    var cl = clouds.GetComponent<Light>();
+                    int dirs = 0; string names = "";
+                    foreach (var l in Object.FindObjectsByType<Light>(FindObjectsSortMode.None)) if (l.type == LightType.Directional && l.isActiveAndEnabled) { dirs++; names += $"{l.name}({l.intensity:0.##}) "; }
+                    _report.AppendLine($"  - 진단: 해 {RenderSettings.sun?.name ?? "없음"} · 구름 붙은 빛 {cl?.name} 켜짐 {cl?.isActiveAndEnabled} 세기 {cl?.intensity:0.##} 쿠키 {(cl != null && cl.cookie != null ? cl.cookie.name : "없음")} · 켜진 방향광 {dirs}: {names}· _LIGHT_COOKIES {Shader.IsKeywordEnabled("_LIGHT_COOKIES")}");
+                    Fail("구름 그림자가 화면에 그려지지 않음(쿠키 미적용)");
+                }
             }
 
             // 3) 격침 잔해: 정지한 함선 앞쪽에 초계함·고속정·미사일정, 옆에 잠항 잠수함

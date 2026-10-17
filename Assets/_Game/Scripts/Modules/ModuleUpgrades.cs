@@ -99,6 +99,8 @@ namespace Game.Modules
             s.Damage *= M(m.damageMultiplier);
             s.Range *= M(m.rangeMultiplier);
             s.ReloadTime *= M(m.cooldownMultiplier);
+            s.SortieCooldown *= M(m.cooldownMultiplier);   // 헬기데크 출격 간격(다른 블록은 0)
+            s.HelicopterSpeed *= M(m.speedMultiplier);
             s.MagazineCapacity = ScaleCapacity(s.MagazineCapacity, M(m.magazineMultiplier), s.AmmoPerShot);
             s.AmmoReloadTime *= M(m.ammoReloadMultiplier);
             s.TurretTurnRate *= M(m.turnSpeedMultiplier);
@@ -115,6 +117,14 @@ namespace Game.Modules
         }
 
         private static float M(float v) => v > 0f ? v : 1f;
+
+        /// <summary>강화 단계의 최대 내구 배율(기본값 대비). 강화가 없으면 1.</summary>
+        public static float MaxHpMultiplier(ModuleDefinition def, int upgradeLevel)
+            => upgradeLevel > 0 && ProfileFor(def)?.GetStage(upgradeLevel) is { } stage ? M(stage.Modifier.maxHpMultiplier) : 1f;
+
+        /// <summary>강화 단계의 반동 피해 배율(충각, 기본값 대비). 강화가 없으면 1.</summary>
+        public static float SelfDamageMultiplier(ModuleDefinition def, int upgradeLevel)
+            => upgradeLevel > 0 && ProfileFor(def)?.GetStage(upgradeLevel) is { } stage ? M(stage.Modifier.selfDamageMultiplier) : 1f;
 
         /// <summary>
         /// 정수 탄창: 반올림(0.5는 올림)하고 최소 1발(또는 한 번 쏘는 양). 한 번에 여러 발 쓰는 무기(CIWS)는 그 배수로 맞춘다.

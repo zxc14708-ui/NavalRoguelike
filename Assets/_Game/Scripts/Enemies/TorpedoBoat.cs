@@ -137,7 +137,7 @@ namespace Game.Enemies
             var go = torpedoPrefab != null ? PoolManager.Instance?.Spawn(torpedoPrefab, from, transform.rotation) : null;
             if (go != null && go.TryGetComponent<Torpedo>(out var torpedo))
             {
-                torpedo.Launch(InterceptPoint(go.transform.position), Definition.AttackDamage);
+                torpedo.Launch(InterceptPoint(go.transform.position), Definition.AttackDamage, Game.Core.Ruleset.IsWw2 ? "어뢰정 어뢰" : null);   // WWII 판은 격침 원인·공격 기록에 이름을 남긴다
                 return;
             }
 
