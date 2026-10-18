@@ -50,7 +50,7 @@ namespace Game.WW2
         private Coroutine _salvo;
         private int _secondaryIndex;
         private Quaternion[] _turretRest;
-        private Vector3[] _turretRestDir;   // 쉬는 자세의 포신 방향(포탑 부모 공간, 수평) — 모델 포탑의 로컬 축을 믿지 않는다
+        private Vector3[] _turretRestDir;   // 쉬는 자세의 포신 방향(선체 공간, 수평) — 모델 포탑의 로컬 축을 믿지 않는다(Ww2Yaw)
 
         public bool Phase2 => HpFraction <= 0.5f;
         public int SalvosFired { get; private set; }
@@ -105,20 +105,17 @@ namespace Game.WW2
             _salvo = StartCoroutine(Salvo(predicted, Phase2));
         }
 
-        /// <summary>포탑 아래 포구가 있으면 "포탑 → 포구"(부모 공간, 수평), 없으면 로컬 +Z.</summary>
+        /// <summary>포탑 아래 포구가 있으면 "포탑 → 포구"(선체 공간, 수평), 없으면 포탑 앞.</summary>
         private Vector3 RestDirection(Transform turret)
         {
-            if (turret == null || turret.parent == null) return Vector3.forward;
+            if (turret == null) return Vector3.forward;
             foreach (var m in muzzles)
                 if (m != null && m.IsChildOf(turret))
                 {
-                    Vector3 d = turret.parent.InverseTransformDirection(m.position - turret.position);
-                    d.y = 0f;
-                    if (d.sqrMagnitude > 1e-4f) return d.normalized;
+                    Vector3 d = m.position - turret.position;
+                    if (Vector3.ProjectOnPlane(d, transform.up).sqrMagnitude > 1e-4f) return Ww2Yaw.Flat(transform, d);
                 }
-            Vector3 f = turret.localRotation * Vector3.forward;
-            f.y = 0f;
-            return f.sqrMagnitude > 1e-4f ? f.normalized : Vector3.forward;
+            return Ww2Yaw.Flat(transform, turret.forward);
         }
 
         /// <summary>착탄 시각에 기함이 있을 곳 — 지금 속력·선회를 유지한다고 본다(Ww2Aim).</summary>
@@ -131,13 +128,11 @@ namespace Game.WW2
             for (int i = 0; i < turrets.Length; i++)
             {
                 var t = turrets[i];
-                if (t == null || t.parent == null) continue;
-                Vector3 local = t.parent.InverseTransformPoint(point) - t.localPosition;
-                local.y = 0f;
-                if (local.sqrMagnitude < 0.01f) continue;
-                Vector3 rest = _turretRestDir != null && i < _turretRestDir.Length ? _turretRestDir[i] : _turretRest[i] * Vector3.forward;
-                rest.y = 0f;
-                var want = Quaternion.AngleAxis(Vector3.SignedAngle(rest, local, Vector3.up), Vector3.up) * _turretRest[i];
+                if (t == null) continue;
+                Vector3 to = point - t.position;
+                if (Vector3.ProjectOnPlane(to, transform.up).sqrMagnitude < 0.01f) continue;
+                Vector3 rest = _turretRestDir != null && i < _turretRestDir.Length ? _turretRestDir[i] : Vector3.forward;
+                var want = Ww2Yaw.Rotate(t, _turretRest[i], Ww2Yaw.Angle(rest, Ww2Yaw.Flat(transform, to)), transform);
                 t.localRotation = Quaternion.RotateTowards(t.localRotation, want, turretTurnRate * dt);
                 if (Quaternion.Angle(t.localRotation, want) < 20f) any = true;
             }

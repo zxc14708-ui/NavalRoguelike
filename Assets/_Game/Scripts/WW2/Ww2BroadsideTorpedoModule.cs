@@ -31,6 +31,7 @@ namespace Game.WW2
         private bool _portOpen, _starboardOpen;
         private float _mountYaw, _mountYawTarget;
         private Quaternion _mountRest;
+        private Vector3 _mountRestDir;   // 쉬는 자세의 발사관 앞(블록 공간, 수평) — 모델 노드의 로컬 축을 믿지 않는다(Ww2Yaw)
         private bool _restCaptured;
 
         public AmmoMagazine Ammo => _ammo;
@@ -50,7 +51,12 @@ namespace Game.WW2
             if (torpedoPrefab == null) Debug.LogError("[WW2 어뢰] torpedoPrefab 미할당.", this);
             _ammo.Configure(Stats);
             _ammo.Label = LogName;
-            if (mount != null && !_restCaptured) { _mountRest = mount.localRotation; _restCaptured = true; }
+            if (mount != null && !_restCaptured)
+            {
+                _mountRest = mount.localRotation;
+                _mountRestDir = Ww2Yaw.Flat(transform, RestFront());
+                _restCaptured = true;
+            }
             OnShipLayoutChanged();
         }
 
@@ -67,7 +73,17 @@ namespace Game.WW2
             _ammo.Tick(dt);
             if (mount == null) return;
             _mountYaw = Mathf.MoveTowardsAngle(_mountYaw, _mountYawTarget, mountTurnRate * dt);
-            mount.localRotation = Quaternion.AngleAxis(_mountYaw, Vector3.up) * _mountRest;
+            mount.localRotation = Ww2Yaw.Rotate(mount, _mountRest, _mountYaw, transform);
+        }
+
+        /// <summary>발사관 앞(월드): 발사점(LaunchPoint_*)들의 평균 쪽, 없으면(회색 상자) 발사관 묶음의 앞.</summary>
+        private Vector3 RestFront()
+        {
+            Vector3 sum = Vector3.zero;
+            int n = 0;
+            foreach (var t in mount.GetComponentsInChildren<Transform>(true))
+                if (t.name.StartsWith("LaunchPoint")) { sum += t.position; n++; }
+            return n > 0 ? sum / n - mount.position : mount.forward;
         }
 
         /// <summary>배 옆(정횡) 방향(월드, 수평).</summary>
@@ -145,11 +161,8 @@ namespace Game.WW2
         /// <summary>조준 중인 현측으로 발사관 묶음을 돌린다(보이는 신호).</summary>
         public void Train(Ww2Side side)
         {
-            if (mount == null || mount.parent == null) return;
-            Vector3 local = mount.parent.InverseTransformDirection(Beam(side));
-            Vector3 rest = _mountRest * Vector3.forward;
-            local.y = rest.y = 0f;
-            _mountYawTarget = Vector3.SignedAngle(rest, local, Vector3.up);   // 블록을 돌려 놓아도 현측을 향한다
+            if (mount == null || !_restCaptured) return;
+            _mountYawTarget = Ww2Yaw.Angle(_mountRestDir, Ww2Yaw.Flat(transform, Beam(side)));   // 블록을 돌려 놓아도 현측을 향한다
         }
 
         public static string SideName(Ww2Side side) => side == Ww2Side.Port ? "좌현" : "우현";

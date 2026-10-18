@@ -214,6 +214,17 @@ namespace Game.Dev
             if (maxDrift > 1f) Fail("어뢰가 발사 방향에서 벗어남(유도하면 안 됨)");
             if (dealt <= 0f) Fail("직진 어뢰가 정횡 표적을 맞히지 못함");
             if (reload < 10f) Fail("일제 발사 뒤 긴 재장전이 시작되지 않음");
+            {
+                // 2026-10-18 버그: 발사관이 옆으로 눕던 것 — 돈 뒤에도 선체 위가 발사관의 위로 남는가
+                var tubeNode = Get<Transform>(mount, "mount");
+                float tilt = tubeNode != null ? Ww2Tilt(tubeNode, Get<Quaternion>(mount, "_mountRest"), mount.transform) : -1f;
+                Vector3 tubeFront = Vector3.zero;
+                if (tubeNode != null) foreach (var lp in tubeNode.GetComponentsInChildren<Transform>().Where(x => x.name.StartsWith("LaunchPoint"))) tubeFront += lp.position - tubeNode.position;
+                tubeFront.y = 0f;
+                float toBeam = tubeFront.sqrMagnitude > 1e-4f ? Vector3.Angle(tubeFront, -right) : -1f;
+                _report.AppendLine($"- 발사관 선회: 기울어짐 {tilt:0.0}° · 발사관 앞 ↔ 좌현 정횡 {toBeam:0}°");
+                if (tilt < 0f || tilt > 2f) Fail("현측 어뢰 발사관이 돌면서 옆으로 기울어짐");
+            }
 
             bool okReload = control.TryFire(Ww2Side.Starboard, right, out string whyReload);
             _report.AppendLine($"- 재장전 중 우현 발사: 발사 {Yes(okReload)} · 이유 \"{whyReload}\"");
@@ -556,6 +567,13 @@ namespace Game.Dev
                     sbT.Append($" {t.name} 포신↔기함 {Vector3.Angle(barrel, toP):0}° 회전 {t.localEulerAngles:F0}");
                 }
                 _report.AppendLine($"  - 진단: 포탑 {ts?.Length ?? 0} · 포구 {ms?.Length ?? 0} ·{sbT} · 거리 {Vector3.Distance(cruiser.transform.position, ship.transform.position):0} · 남은 타이머 {boss1.NextAttack.seconds:0.0}");
+                // 2026-10-18 버그: 순양함 포탑이 옆으로 눕던 것
+                var rests = Get<Quaternion[]>(boss1, "_turretRest");
+                float maxTilt = 0f;
+                for (int i = 0; ts != null && rests != null && i < ts.Length && i < rests.Length; i++)
+                    if (ts[i] != null) maxTilt = Mathf.Max(maxTilt, Ww2Tilt(ts[i], rests[i], boss1.transform));
+                _report.AppendLine($"- 순양함 포탑 기울어짐 최대 {maxTilt:0.0}°");
+                if (rests == null || maxTilt > 2f) Fail("순양함 포탑이 돌면서 옆으로 기울어짐");
             }
             _report.AppendLine($"- 순양함: 일제 사격 {boss1?.SalvosFired ?? 0}회 · 경고 원 {markers} · 보스 막대 {Yes(bar != null && bar.Boss == cruiser)} · 단계 \"{boss1?.PhaseName}\"");
             if (boss1 == null || boss1.SalvosFired == 0 || markers == 0) Fail("순양함 주포 일제 사격에 경고 원이 없음");
@@ -588,6 +606,14 @@ namespace Game.Dev
             BridgeMachineGun.DevHoldFire = false;
             foreach (var b in off) if (b != null) b.enabled = true;
             if (field != null) Game.World.IslandField.Disabled = false;
+        }
+
+        /// <summary>쉬는 자세(restLocal)에서 위를 향하던 축이 지금 선체 위와 몇 도 어긋났나(수평 선회만 했으면 0).</summary>
+        private static float Ww2Tilt(Transform node, Quaternion restLocal, Transform hull)
+        {
+            Quaternion restWorld = (node.parent != null ? node.parent.rotation : Quaternion.identity) * restLocal;
+            Vector3 upInNode = Quaternion.Inverse(restWorld) * hull.up;
+            return Vector3.Angle(node.rotation * upInNode, hull.up);
         }
 
         /// <summary>
