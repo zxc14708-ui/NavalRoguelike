@@ -151,6 +151,7 @@ namespace Game.UI
             ModuleType.Nobong => 1,        // 기관포와 76mm 사이
             ModuleType.MineRail => 8,      // 대잠·후방 장비 옆에
             ModuleType.Ww2DualPurposeGun => 2,    // WWII(패치 B)
+            ModuleType.Ww2HeavyGun => 2,          // WWII(패치 C3a)
             ModuleType.Ww2QuadAa => 5,
             ModuleType.Ww2BroadsideTorpedo => 8,
             _ => 20,

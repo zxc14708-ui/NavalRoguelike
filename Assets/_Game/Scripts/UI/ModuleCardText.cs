@@ -134,6 +134,13 @@ namespace Game.UI
                     Row(sb, "발사 간격", $"{s.ReloadTime:0.0#} 초 · 선회 {s.TurretTurnRate:0}°/초 · 탄속 {s.ProjectileSpeed:0} m/초");
                     Ammo(sb, s);
                     break;
+                case ModuleType.Ww2HeavyGun:
+                    Row(sb, "교전 거리", $"수상 {s.MinRange:0} ~ {s.Range:0} m · 항공기는 쏘지 않음");
+                    Row(sb, "피해", $"{s.Damage:0.#} × 연장 동시 발사 · 큰 배에 강하고 작은 배에 약함");
+                    Row(sb, "발사 간격", $"{s.ReloadTime:0.0#} 초 · 선회 {s.TurretTurnRate:0}°/초 · 탄속 {s.ProjectileSpeed:0} m/초");
+                    Row(sb, "<color=" + Key + $">[{Game.Core.Ww2Controls.BindingLabel(Game.Core.Ww2Control.MainSalvo)}]</color> 주포 일제", "누르고 겨눔 · 떼면 준비된 주포가 함께(탄착 좁게)");
+                    Ammo(sb, s);
+                    break;
                 case ModuleType.Ww2QuadAa:
                     Row(sb, "교전 거리", $"대공 {s.Range:0} m · 경수상 {s.Range * Game.WW2.Ww2QuadAaModule.SurfaceRangeRatio:0} m");
                     Row(sb, "피해", $"{s.Damage:0.#} × 4연장 번갈아 · 근접신관 없음(직격)");
@@ -352,6 +359,7 @@ namespace Game.UI
             ModuleType.FireControlArray => "사격 통제",
             ModuleType.MissileLogistics => "미사일 보급",
             ModuleType.Ww2DualPurposeGun => "중거리 무장",
+            ModuleType.Ww2HeavyGun => "주포",
             ModuleType.Ww2QuadAa => "방공",
             ModuleType.Ww2BroadsideTorpedo => "대수상 어뢰",
             _ => "함체",
@@ -371,6 +379,7 @@ namespace Game.UI
             ModuleType.FireControlArray => "#8fd0ff",
             ModuleType.MissileLogistics => "#7fb8e0",
             ModuleType.Ww2DualPurposeGun => "#e0c05a",
+            ModuleType.Ww2HeavyGun => "#e0c05a",
             ModuleType.Ww2QuadAa => "#8fd0ff",
             ModuleType.Ww2BroadsideTorpedo => "#e0956a",
             _ => "#c8d4dc",
@@ -521,6 +530,7 @@ namespace Game.UI
             ModuleType.FireControlArray => "사격 통제 — 동시 추적과 유도 무장 사거리 증가",
             ModuleType.MissileLogistics => "미사일 발사와 셀 보급 대기 시간을 단축",
             ModuleType.Ww2DualPurposeGun => "수상함 우선 · 공격해 오는 항공기 보조 — 한 번에 한 표적",
+            ModuleType.Ww2HeavyGun => "큰 수상함을 멀리서 — 느리게 돌고 오래 장전, 주포 일제로 한꺼번에",
             ModuleType.Ww2QuadAa => "항공기 우선 · 가까운 경수상함 보조 — 구조물에 가리면 못 쏜다",
             ModuleType.Ww2BroadsideTorpedo => "현측으로 직진 어뢰 일제 발사 — 예측해서 쏘고 오래 재장전",
             _ => "",

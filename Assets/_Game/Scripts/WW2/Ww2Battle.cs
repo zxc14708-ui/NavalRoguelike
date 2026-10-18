@@ -23,6 +23,7 @@ namespace Game.WW2
         {
             Active = true;
             Ww2TorpedoControl.Attach(ship);
+            Ww2SalvoControl.Attach(ship);   // 주포 일제(패치 C3a) — 대구경 주포가 있을 때만 일한다
             if (hud != null)
             {
                 hud.ApplyWw2Hud();

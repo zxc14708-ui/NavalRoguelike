@@ -34,6 +34,8 @@ namespace Game.Data
         [SerializeField, Min(0)] private int halfBeam;
         [Tooltip("탑재 예산(t). 설치된 블록 톤수의 합이 이것을 넘을 수 없다. 0이면 제한 없음")]
         [SerializeField, Min(0f)] private float tonnageBudget;
+        [Tooltip("허용하는 가장 큰 포탑 마운트 등급(WWII 패치 C2). 구축함·순양함 = 중포탑, 전함 = 대구경 주포탑")]
+        [SerializeField] private Game.Modules.MountClass maxMountClass = Game.Modules.MountClass.Heavy;
 
         public float MaxSpeed => maxSpeed;
         public float TurnRate => turnRate;
@@ -45,5 +47,6 @@ namespace Game.Data
         public int HalfLength => halfLength;
         public int HalfBeam => halfBeam;
         public float TonnageBudget => tonnageBudget;
+        public Game.Modules.MountClass MaxMountClass => maxMountClass;
     }
 }

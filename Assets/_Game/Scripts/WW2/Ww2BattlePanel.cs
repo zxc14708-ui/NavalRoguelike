@@ -22,7 +22,7 @@ namespace Game.WW2
         public static Ww2BattlePanel Instance { get; private set; }
 
         private RectTransform _root;
-        private TMP_Text _header, _torpedo, _threats, _message;
+        private TMP_Text _header, _torpedo, _salvo, _threats, _message;
         private string _phase = "";
         private float _poll;
         private bool _shown = true;
@@ -49,7 +49,7 @@ namespace Game.WW2
         {
             root.anchorMin = root.anchorMax = root.pivot = new Vector2(0f, 1f);
             root.anchoredPosition = new Vector2(14f, -14f);
-            root.sizeDelta = new Vector2(430f, 150f);
+            root.sizeDelta = new Vector2(430f, 174f);
             var bg = root.gameObject.AddComponent<Image>();
             bg.color = Panel;
             bg.raycastTarget = false;
@@ -61,8 +61,9 @@ namespace Game.WW2
             _root = root;
             _header = Label(root, font, "Header", 16, Color.white, 8f, 24f);
             _torpedo = Label(root, font, "Torpedo", 15, new Color(1f, 0.9f, 0.7f), 34f, 24f);
-            _threats = Label(root, font, "Threats", 15, new Color(1f, 0.55f, 0.35f), 60f, 66f);
-            _message = Label(root, font, "Message", 13, new Color(0.8f, 0.85f, 0.88f), 126f, 20f);
+            _salvo = Label(root, font, "Salvo", 15, new Color(1f, 0.9f, 0.7f), 58f, 24f);
+            _threats = Label(root, font, "Threats", 15, new Color(1f, 0.55f, 0.35f), 84f, 66f);
+            _message = Label(root, font, "Message", 13, new Color(0.8f, 0.85f, 0.88f), 150f, 20f);
         }
 
         private static TMP_Text Label(RectTransform parent, TMP_FontAsset font, string name, float size, Color color, float top, float height)
@@ -111,6 +112,19 @@ namespace Game.WW2
             {
                 _torpedo.text = $"{Side(control, Ww2Side.Port, Ww2Control.TorpedoPort)}    {Side(control, Ww2Side.Starboard, Ww2Control.TorpedoStarboard)}";
                 _message.text = control.LastMessage != null && Time.unscaledTime - control.LastMessageTime < 4f ? control.LastMessage : "";
+            }
+            // 주포 일제(패치 C3a): 대구경 주포가 있을 때만
+            var salvo = Ww2SalvoControl.Instance;
+            if (salvo != null)
+            {
+                var (loaded, total, reload) = salvo.Status();
+                string k = $"<color=#e0c05a>[{Ww2Controls.BindingLabel(Ww2Control.MainSalvo)}]</color>";
+                _salvo.text = total == 0 ? "" : loaded > 0
+                    ? $"{k} 주포 일제 <b>{loaded}</b>/{total}문 준비" + (salvo.Aiming ? "  <color=#FFC870>겨누는 중 — 떼면 발사</color>" : "")
+                    : $"{k} 주포 <color=#ff8a6a>장전 {reload:0.0}초</color>";
+                if (salvo.LastMessage != null && Time.unscaledTime - salvo.LastMessageTime < 4f
+                    && (control == null || control.LastMessage == null || salvo.LastMessageTime > control.LastMessageTime))
+                    _message.text = salvo.LastMessage;
             }
 
             var sb = new StringBuilder();

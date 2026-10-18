@@ -112,6 +112,8 @@ namespace Game.Dev
         public bool Ww2Only;
         [Tooltip("WWII 시험 전투 한 판(-ww2BattleOnly): 조타 로봇이 기본 장비로 끝까지 — 균형 자료")]
         public bool Ww2BattleOnly;
+        [Tooltip("WWII 패치 C2·C3a(-ww2HeavyOnly): 마운트 등급 · 전함 · 대구경 주포 · 주포 일제")]
+        public bool Ww2HeavyOnly;
         [Tooltip("점검 B 묶음 검사만 돌린다(-bundleBOnly): 사전·무장 패널·대잠 카드·화면 설정·적아 표식·위협 묶음·첫 출격 훈련")]
         public bool BundleBOnly;
         [Tooltip("점검 C 묶음 검사만 돌린다(-bundleCOnly): 다시 뽑기·빌드 안내·항구/효과 품질·보스 막대·저장/이어하기·결과 분석. 씬을 다시 연다")]
@@ -150,13 +152,14 @@ namespace Game.Dev
                 Finish();
                 yield break;
             }
-            if (Ww2Only || Ww2BattleOnly)
+            if (Ww2Only || Ww2BattleOnly || Ww2HeavyOnly)
             {
                 // WWII 시험 전투(패치 B): 항구의 [WWII 시험 전투] 버튼부터 실제 흐름 그대로 — 검사 환경(PrepareSandbox)을 쓰지 않는다
                 if (Camera.main != null) Camera.main.aspect = 16f / 9f;
                 if (Ww2Only) yield return Ww2Check();
+                else if (Ww2HeavyOnly) yield return Ww2HeavyCheck();
                 else yield return Ww2BattleCheck();
-                SaveLog(Ww2Only ? "ww2" : "ww2battle");
+                SaveLog(Ww2Only ? "ww2" : Ww2HeavyOnly ? "ww2heavy" : "ww2battle");
                 Finish();
                 yield break;
             }

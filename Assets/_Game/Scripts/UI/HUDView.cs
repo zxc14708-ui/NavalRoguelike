@@ -675,8 +675,8 @@ namespace Game.UI
                 {
                     var hull=hulls[i];
                     if(hull==null) continue;
-                    string label=i==0?$"WWII 시험 전투 / {ShortHullName(hull)}":ShortHullName(hull);
-                    var ww2=MenuButton(ww2Panel,label,new Vector2(10+i*(w+6f),7),new Vector2(w,42),new Color(.42f,.3f,.12f,1f),hulls.Count>1?17:18);
+                    string label=hulls.Count>1?$"WWII {ShortHullName(hull)}":$"WWII 시험 전투  /  {ShortHullName(hull)} · 5~8분 (개발 중)";
+                    var ww2=MenuButton(ww2Panel,label,new Vector2(10+i*(w+6f),7),new Vector2(w,42),new Color(.42f,.3f,.12f,1f),hulls.Count>2?16:18);
                     ww2.name=i==0?"WW2 test start":"WW2 hull "+hull.Id.Replace("ww2_hull_","");   // 검사가 이름 앞부분으로 찾으므로 둘째부터는 "WW2 test start"로 시작하지 않게
                     ww2.onClick.AddListener(()=>
                     {

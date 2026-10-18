@@ -80,6 +80,14 @@ namespace Game.EditorTools
             var quadAa = BuildQuadAa(aaRound);
             var torpedoMount = BuildTorpedoMount(playerTorpedo);
             var bridge = BuildBridge();
+            // 패치 C3a(2026-10-18): 대구경 주포·전함 함교 — Codex 모델(요청 6-1)이 오기 전까지 회색 상자
+            var heavyShell = Clone("Prefabs/Projectiles/PRJ_Gun76.prefab", "PRJ_Ww2HeavyShell", root =>
+            {
+                root.transform.localScale = Vector3.one * 1.7f;   // 회색 상자 동안 크게 보이게(모델이 오면 SkinProjectile)
+                SkinProjectile(root, "PRJ_Ww2HeavyShell");
+            });
+            var heavyTurret = BuildHeavyTurret(heavyShell, flash);
+            var bridgeBattleship = BuildBattleshipBridge();
             // 선체 모양(v31): 구축함은 도장 강철판(목재판은 소형정·화물용 대안이라 쓰지 않음)
             var deckPlate = BuildHullPiece("HULL_Ww2DeckPlate_Steel", false);
             var sideSkirt = BuildHullPiece("HULL_Ww2SideSkirt", true);
@@ -119,6 +127,28 @@ namespace Game.EditorTools
                     s.Range = 75f; s.MinRange = 9f; s.Damage = 55f; s.ProjectileSpeed = 15f; s.FireArcDegrees = 60f;
                     s.AmmoFamily = AmmoFamily.Asw; s.MagazineCapacity = 4; s.AmmoPerShot = 1; s.AmmoReloadAmount = 0; s.AmmoReloadTime = 22f;
                 }, Eff(1f, 1f, 1f, 1f, 0f, 0f, 0f, 0f));
+            // 대구경 주포(패치 C3a): 2×2 · 마운트 Heavy(전함) · 수상 전용 · 연장 동시 발사 — 큰 배에 강하고 작은 배에 약하다
+            var defHeavy = ModuleDef("ww2_mod_heavy_gun", "대구경 주포",
+                "연장 대구경 주포탑(2×2칸). 수상함만 쏜다 — 큰 배를 먼저. 두 포신이 함께 쏘고, 느리게 돌며 오래 장전한다. [주포 일제] 키를 누르고 겨누면 자동 사격을 멈추고, 떼면 준비된 주포가 한꺼번에 좁게 쏜다. 전함에만 놓인다.",
+                ModuleType.Ww2HeavyGun, 2, 2, true, PlacementZone.Anywhere, ModuleHeight.Mid, 170f, Rarity.Rare, 0.7f, 7f, heavyTurret, s =>
+                {
+                    s.Range = 60f; s.MinRange = 10f; s.Damage = 48f; s.ReloadTime = 5.5f; s.ProjectileSpeed = 36f; s.FireArcDegrees = 360f; s.TurretTurnRate = 22f;
+                    s.AmmoFamily = AmmoFamily.Gun; s.MagazineCapacity = 12; s.AmmoPerShot = 1; s.AmmoReloadAmount = 2; s.AmmoReloadTime = 8f;
+                }, Eff(0.35f, 1f, 1.2f, 1.25f, 0f, 0f, 0f, 0f));
+            var defBridgeBattleship = ModuleDef("ww2_mod_bridge_battleship", "전함 함교",
+                "WWII 전함의 탑형 함교·연돌(3×2칸). 넓은 탐지·더 많은 추적·손상 통제·전속·연막. 기만체는 없다.",
+                ModuleType.Bridge, 3, 2, false, PlacementZone.Anywhere, ModuleHeight.High, 260f, Rarity.Common, 0f, 6f, bridgeBattleship, s =>
+                {
+                    s.DetectionRange = 52f; s.ExtraTrackedTargets = 3; s.HullRepairPerSecond = 0.7f; s.ModuleRepairPerSecond = 0.8f;
+                    s.DamageReduction = 0.08f; s.ReloadTime = 14f;
+                }, Eff(0, 0, 0, 0, 0, 0, 0, 0));
+            // 마운트 등급(패치 C2): 대공포 = 경 · 양용포 = 중 · 대구경 주포 = 대(함교·어뢰는 포탑이 아님)
+            Mount(defAa, MountClass.Light);
+            Mount(defGun, MountClass.Medium);
+            Mount(defHeavy, MountClass.Heavy);
+            Mount(defTorpedo, MountClass.None);
+            Mount(defBridge, MountClass.None);
+            Mount(defBridgeBattleship, MountClass.None);
 
             var eFast = EnemyDef("ww2_enemy_fast_gunboat", "소형 포함", TargetKind.Surface, BuildGunboat(true) ?? Load<GameObject>("Prefabs/Enemies/ENE_FastBoat.prefab"),
                 TargetCategory.SmallSurface, EnemyRank.Normal, 1, 0, hp: 14f, speed: 11f, turn: 190f, range: 7f, damage: 3.5f, cooldown: 1.7f, xp: 1);
@@ -137,9 +167,12 @@ namespace Game.EditorTools
             // --- 함종(패치 C1, 2026-10-18): 실제 이동·방호·격자·탑재 예산. 구축함은 B 시험 전투 값 그대로(기준), 순양함은 느리고 무겁고 단단하다.
             //     톤수: 함교 3 · 양용포 2 · 현측 어뢰 2 · 4연장 대공포 1
             var hullDestroyer = Hull("Hull_WW2_Destroyer", maxSpeed: 15.4333f, turn: 40f, accel: 7.7f, decel: 5.4f, response: 0.9f,
-                hp: 100f, armor: 0f, halfLength: 5, halfBeam: 1, budget: 14f);
+                hp: 100f, armor: 0f, halfLength: 5, halfBeam: 1, budget: 14f, maxMount: MountClass.Medium);
             var hullCruiser = Hull("Hull_WW2_Cruiser", maxSpeed: 13.4f, turn: 30f, accel: 5.8f, decel: 4.2f, response: 1.25f,
-                hp: 170f, armor: 0.1f, halfLength: 7, halfBeam: 2, budget: 26f);
+                hp: 170f, armor: 0.1f, halfLength: 7, halfBeam: 2, budget: 26f, maxMount: MountClass.Medium);
+            // 전함(패치 C3a): 가장 느리고 무겁게 돌지만 가장 단단하고 대구경 주포를 단다. 톤수: 전함 함교 6 · 대구경 주포 7
+            var hullBattleship = Hull("Hull_WW2_Battleship", maxSpeed: 11.3f, turn: 22f, accel: 4.2f, decel: 3.2f, response: 1.7f,
+                hp: 280f, armor: 0.2f, halfLength: 9, halfBeam: 3, budget: 48f, maxMount: MountClass.Heavy);
 
             var loadout = Loadout("Loadout_WW2_Destroyer",
                 (defBridge, -1, 0, 0), (defGun, 2, 0, 0), (defTorpedo, -2, 0, 0), (defAa, -3, 0, 2), (defGun, -4, 0, 2));
@@ -147,6 +180,10 @@ namespace Game.EditorTools
             var loadoutCruiser = Loadout("Loadout_WW2_Cruiser",
                 (defBridge, -1, 0, 0), (defGun, 2, 0, 0), (defGun, 3, 0, 0), (defGun, -2, 0, 2), (defGun, -3, 0, 2),
                 (defAa, 0, 1, 0), (defAa, 0, -1, 0), (defTorpedo, -2, -1, 0));
+            // 전함: 함교(3×2, 칸 Z 0~1) 앞 주포 A·B, 뒤 주포 X · 함교 양옆 양용포 2 · 대공포 4 (35 / 48t)
+            var loadoutBattleship = Loadout("Loadout_WW2_Battleship",
+                (defBridgeBattleship, -1, 0, 0), (defHeavy, 2, 0, 0), (defHeavy, 4, 0, 0), (defHeavy, -3, 0, 2),
+                (defGun, 0, -1, 0), (defGun, 0, 2, 0), (defAa, 1, -1, 0), (defAa, 1, 2, 0), (defAa, -4, 0, 2), (defAa, -4, 1, 2));
 
             var concept = CreateSO<StartingShipConcept>($"{DataDir}/ShipConcept_WW2_Destroyer.asset");
             Configure(concept, so =>
@@ -178,6 +215,22 @@ namespace Game.EditorTools
                 Set(so, "startSummary", "양용포 4 · 4연장 대공포 2 · 현측 어뢰 4연장 1 · 호위함 없음");
                 Set(so, "initialEscortCount", 0);
                 Set(so, "hullProfile", hullCruiser);
+            });
+
+            var conceptBattleship = CreateSO<StartingShipConcept>($"{DataDir}/ShipConcept_WW2_Battleship.asset");
+            Configure(conceptBattleship, so =>
+            {
+                Set(so, "id", "ww2_hull_battleship");
+                Set(so, "title", "전함 (WWII 시험)");
+                Set(so, "description", "WWII 기술의 전함. 대구경 주포 3기로 큰 배를 멀리서 부순다. 가장 느리고 무겁게 돌지만 선체·장갑이 가장 두껍다. 항공기·어뢰는 피하기 어렵다 — 대공포와 양용포로 막는다.");
+                Set(so, "kind", (int)StartShipKind.Ww2Battleship);
+                Set(so, "color", new Color(0.86f, 0.74f, 0.62f));
+                Set(so, "startLoadout", loadoutBattleship);
+                Set(so, "expandedLoadout", loadoutBattleship);
+                Set(so, "bridgeDefinition", defBridgeBattleship);
+                Set(so, "startSummary", "대구경 주포 3 · 양용포 2 · 4연장 대공포 4 · 호위함 없음");
+                Set(so, "initialEscortCount", 0);
+                Set(so, "hullProfile", hullBattleship);
             });
 
             var waves = CreateSO<RoundSet>($"{DataDir}/RoundSet_WW2_Test.asset");
@@ -222,11 +275,11 @@ namespace Game.EditorTools
             {
                 Set(so, "id", "ww2_v1");
                 Set(so, "schemaVersion", 1);
-                Set(so, "contentVersion", 5);   // 2026-10-17: 어뢰정 · 편대 · 웨이브 강화 → Codex 모델 v30 · 2026-10-18: v31(어뢰정 모델·선체·뇌격기 변형) → C1 함종(순양함·톤수)
+                Set(so, "contentVersion", 6);   // 2026-10-17: 어뢰정 · 편대 · 웨이브 강화 → Codex 모델 v30 · 2026-10-18: v31(어뢰정 모델·선체·뇌격기 변형) → C1 함종(순양함·톤수) → C2·C3a(마운트 등급·대구경 주포·전함)
                 Set(so, "title", "WWII 시험 전투");
                 Set(so, "idPrefix", "ww2_");
-                SetArray(so, "hulls", concept, conceptCruiser);
-                SetArray(so, "modules", defBridge, defGun, defAa, defTorpedo);
+                SetArray(so, "hulls", concept, conceptCruiser, conceptBattleship);
+                SetArray(so, "modules", defBridge, defBridgeBattleship, defGun, defAa, defTorpedo, defHeavy);
                 SetArray(so, "enemies", eFast, eGunboat, eTorpBoat, eTorpBomber, eDiveBomber, eBoss);
                 SetArray(so, "stages", waves);
                 var stats = so.FindProperty("allowedStats");
@@ -242,7 +295,8 @@ namespace Game.EditorTools
             });
 
             // 카드·사전 아이콘
-            foreach (var (def, prefab) in new[] { (defGun, dualGun), (defAa, quadAa), (defTorpedo, torpedoMount), (defBridge, bridge) })
+            foreach (var (def, prefab) in new[] { (defGun, dualGun), (defAa, quadAa), (defTorpedo, torpedoMount), (defBridge, bridge),
+                                                  (defHeavy, heavyTurret), (defBridgeBattleship, bridgeBattleship) })
             {
                 var icon = NavalIconBaker.Bake(prefab, def.Id);
                 if (icon != null) Configure(def, so => Set(so, "icon", icon));
@@ -297,7 +351,7 @@ namespace Game.EditorTools
         }
 
         private static HullProfile Hull(string name, float maxSpeed, float turn, float accel, float decel, float response,
-            float hp, float armor, int halfLength, int halfBeam, float budget)
+            float hp, float armor, int halfLength, int halfBeam, float budget, MountClass maxMount)
         {
             var hull = CreateSO<HullProfile>($"{DataDir}/{name}.asset");
             Configure(hull, so =>
@@ -312,9 +366,12 @@ namespace Game.EditorTools
                 Set(so, "halfLength", halfLength);
                 Set(so, "halfBeam", halfBeam);
                 Set(so, "tonnageBudget", budget);
+                Set(so, "maxMountClass", (int)maxMount);
             });
             return hull;
         }
+
+        private static void Mount(ModuleDefinition def, MountClass mount) => Configure(def, so => Set(so, "mountClass", (int)mount));
 
         private static StartingLoadout Loadout(string name, params (ModuleDefinition def, int x, int z, int rot)[] list)
         {
@@ -737,6 +794,109 @@ namespace Game.EditorTools
             });
             SetLayerRecursive(root, LayerEnemy);
             return Save(root);
+        }
+
+        // ------------------------------------------------------------ 패치 C3a 회색 상자(Codex 모델 요청 6-1이 오면 모델로)
+
+        /// <summary>
+        /// 대구경 주포탑(2×2칸 = 4×4m, 원점 = 발자국 가운데 바닥). 원형 바벳 위 각진 포탑, 굵고 긴 포신 2문, 지붕 측거의.
+        /// Codex 모델 MOD_Ww2HeavyTurret가 있으면 그것으로(TurretPivot/ElevationPivot/Muzzle_01~03).
+        /// </summary>
+        private static GameObject BuildHeavyTurret(GameObject shell, GameObject flash)
+        {
+            var root = new GameObject("MOD_Ww2HeavyTurret");
+            Transform turret, elevation, muzzle;
+            var muzzles = new List<Transform>();
+            if (Art("MOD_Ww2HeavyTurret") is { } art)
+            {
+                var model = MountArt(art, root.transform, "ModelPivot", "Muzzle", "ElevationPivot", true);
+                turret = Deep(model, "TurretPivot");
+                elevation = Deep(model, "ElevationPivot");
+                muzzle = Deep(model, "Muzzle");
+                for (int i = 1; i <= 3; i++) { var m = Deep(model, $"Muzzle_{i:00}"); if (m != null) muzzles.Add(m); }
+            }
+            else
+            {
+                var R = root.transform;
+                Disk("Barbette", R, new Vector3(0f, 0.18f, 0f), 3.3f, 0.36f, _gun);
+                Disk("Barbette_Ring", R, new Vector3(0f, 0.38f, 0f), 3.0f, 0.06f, _dark);
+                turret = Node("TurretPivot", R, new Vector3(0f, 0.4f, 0f));
+                Box("Gunhouse", turret, new Vector3(0f, 0.62f, -0.25f), new Vector3(2.6f, 1.25f, 3.0f), _hull);
+                Box("Gunhouse_Roof", turret, new Vector3(0f, 1.28f, -0.35f), new Vector3(2.4f, 0.1f, 2.6f), _gun);
+                Box("Gunhouse_Face", turret, new Vector3(0f, 0.62f, 1.28f), new Vector3(2.3f, 1.05f, 0.12f), _gun, new Vector3(-14f, 0f, 0f));
+                Box("Rangefinder", turret, new Vector3(0f, 1.45f, -0.95f), new Vector3(3.5f, 0.22f, 0.36f), _dark);
+                Box("Warning_Band", turret, new Vector3(0f, 1.34f, 0.35f), new Vector3(2.2f, 0.02f, 0.25f), _torpedoWarn);   // 위에서 주포로 읽히게
+                elevation = Node("ElevationPivot", turret, new Vector3(0f, 0.72f, 1.15f));
+                for (int s = -1; s <= 1; s += 2)
+                {
+                    Tube(s < 0 ? "Barrel_L" : "Barrel_R", elevation, new Vector3(s * 0.48f, 0f, 2.2f), 0.3f, 4.4f, _dark);
+                    Tube(s < 0 ? "Blast_Bag_L" : "Blast_Bag_R", elevation, new Vector3(s * 0.48f, 0f, 0.2f), 0.46f, 0.5f, _gun);
+                    muzzles.Add(Node(s < 0 ? "Muzzle_01" : "Muzzle_02", elevation, new Vector3(s * 0.48f, 0f, 4.45f)));
+                }
+                muzzle = Node("Muzzle", elevation, new Vector3(0f, 0f, 4.45f));
+            }
+            var comp = root.AddComponent<Ww2HeavyGunModule>();
+            Configure(comp, so =>
+            {
+                Set(so, "weapon.turret", turret);
+                Set(so, "weapon.elevationPivot", elevation);
+                Set(so, "weapon.muzzle", muzzle);
+                Set(so, "weapon.minElevation", -5f);
+                Set(so, "weapon.maxElevation", 30f);
+                Set(so, "weapon.aimTolerance", 3f);
+                Set(so, "projectilePrefab", shell);
+                Set(so, "muzzleFlash", flash);
+                SetArray(so, "muzzles", muzzles.ToArray());
+            });
+            return Save(root);
+        }
+
+        /// <summary>
+        /// 전함 함교(3×2칸 = 길이 6m × 폭 4m): 구축함 함교처럼 범용 초계함 함교(BridgeModule)를 복제해 겉모습만 바꾼다 — 기만체 끔 · 연막 켬.
+        /// 회색 상자: 넓은 상부 구조물 · 층층이 올린 탑형 함교 · 큰 연돌 · 삼각 마스트. Codex 모델 MOD_Ww2BridgeBattleship가 있으면 그것으로.
+        /// </summary>
+        private static GameObject BuildBattleshipBridge()
+        {
+            const string src = "Prefabs/StartingShips/Bridges/MOD_Bridge_Patrol.prefab";
+            return Clone(src, "MOD_Ww2BridgeBattleship", root =>
+            {
+                StripMeshes(root);
+                foreach (var r in root.GetComponentsInChildren<Renderer>(true))
+                {
+                    var mf = r.GetComponent<MeshFilter>();
+                    Object.DestroyImmediate(r);
+                    if (mf != null) Object.DestroyImmediate(mf);
+                }
+                var bm = root.GetComponent<BridgeModule>();
+                if (Art("MOD_Ww2BridgeBattleship") is { } art)
+                {
+                    var model = MountArt(art, root.transform, "Ww2Visual", "BridgeGunMount", "LaunchPoint_01", true);
+                    Configure(bm, so =>
+                    {
+                        Set(so, "radarAntenna", Deep(model, "RadarPivot"));
+                        Set(so, "launchPoint", Deep(model, "LaunchPoint_01"));
+                        Set(so, "decoyEnabled", false);
+                        Set(so, "smokeRounds", true);
+                    });
+                    return;
+                }
+                var R = Node("Ww2Visual", root.transform, Vector3.zero);
+                Box("Superstructure", R, new Vector3(0f, 0.6f, 0f), new Vector3(3.4f, 1.2f, 5.6f), _hull);
+                Box("Tower_1", R, new Vector3(0f, 1.6f, 1.2f), new Vector3(2.6f, 0.9f, 2.4f), _hull);
+                Box("Tower_2", R, new Vector3(0f, 2.4f, 1.35f), new Vector3(2.1f, 0.8f, 1.9f), _hull);
+                Box("Bridge_Top", R, new Vector3(0f, 3.1f, 1.5f), new Vector3(1.8f, 0.6f, 1.4f), _hull);
+                Box("Bridge_Windows", R, new Vector3(0f, 3.15f, 2.21f), new Vector3(1.6f, 0.16f, 0.04f), _dark);
+                Box("Director", R, new Vector3(0f, 3.62f, 1.4f), new Vector3(1.4f, 0.3f, 0.5f), _gun);
+                Box("Mast", R, new Vector3(0f, 4.4f, 0.9f), new Vector3(0.16f, 2.2f, 0.16f), _dark);
+                Box("Yard", R, new Vector3(0f, 5.0f, 0.9f), new Vector3(1.8f, 0.08f, 0.08f), _dark);
+                var funnel = Primitive("Funnel", PrimitiveType.Cylinder, new Vector3(1.3f, 1.1f, 1.7f), _hull, R);
+                funnel.transform.localPosition = new Vector3(0f, 2.0f, -1.6f);
+                funnel.transform.localRotation = Quaternion.Euler(-6f, 0f, 0f);
+                var cap = Primitive("FunnelCap", PrimitiveType.Cylinder, new Vector3(1.36f, 0.06f, 1.76f), _dark, R);
+                cap.transform.localPosition = new Vector3(0f, 3.1f, -1.72f);
+                cap.transform.localRotation = Quaternion.Euler(-6f, 0f, 0f);
+                Configure(bm, so => { Set(so, "decoyEnabled", false); Set(so, "smokeRounds", true); });
+            });
         }
 
         [MenuItem("Naval/WW2/Validate Ruleset")]

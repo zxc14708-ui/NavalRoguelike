@@ -37,6 +37,7 @@ namespace Game.Modules
         Ww2DualPurposeGun = 26,   // 양용포 — 수상 우선·항공 보조, 포탑 선회·탄 비행 시간
         Ww2QuadAa = 27,           // 40mm급 4연장 대공포 — 항공 우선·경수상 보조, 근접신관 없음
         Ww2BroadsideTorpedo = 28, // 현측 어뢰 발사관 — 수동 일제 발사, 직진(유도 없음), 긴 재장전
+        Ww2HeavyGun = 29,         // 대구경 주포(패치 C3a) — 2×2, 수상 전용, 연장 동시 발사, 주포 일제(수동)
     }
 
     /// <summary>

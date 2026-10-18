@@ -206,7 +206,8 @@ namespace Game.Combat
         /// <summary>주변 블록에 따라 사격각이 바뀌는 포탑형 무기인가(선회 금지 포함). VLS는 수직 발사라 제외.</summary>
         public static bool UsesNeighborArc(ModuleType type)
             => type == ModuleType.Autocannon || type == ModuleType.GuidedRocket || type == ModuleType.NavalGun
-               || type == ModuleType.Nobong || type == ModuleType.Ww2DualPurposeGun || type == ModuleType.Ww2QuadAa;
+               || type == ModuleType.Nobong || type == ModuleType.Ww2DualPurposeGun || type == ModuleType.Ww2QuadAa
+               || type == ModuleType.Ww2HeavyGun;
 
         /// <summary>사격 금지 구역이 있는 무기인가(정비 화면 표시용). CIWS는 상부 구조물만 적용.</summary>
         public static bool HasCutout(ModuleType type) => UsesNeighborArc(type) || type == ModuleType.Ciws;
@@ -277,22 +278,37 @@ namespace Game.Combat
             var self = grid.Get(origin);
             bool any = false;
 
-            // 1) 붙어 있는 블록(8칸). 상부 구조물은 2)에서 따로 처리한다.
+            // 여러 칸 무기(대구경 주포 2×2, 패치 C3a)는 발자국 가운데에서 재고, 발자국을 둘러싼 칸을 이웃으로 본다
+            float cx = origin.X, cz = origin.Z;
+            var foot = self != null && self.OccupiedCoords.Count > 1 ? new HashSet<GridCoord>(self.OccupiedCoords) : null;
+            if (foot != null)
+            {
+                float sx = 0f, sz = 0f;
+                foreach (var c in foot) { sx += c.X; sz += c.Z; }
+                cx = sx / foot.Count; cz = sz / foot.Count;
+            }
+
+            // 1) 붙어 있는 블록(1칸 무기는 8칸, 여러 칸은 발자국 둘레). 상부 구조물은 2)에서 따로 처리한다.
             if (includeNeighbors)
             {
-                for (int dx = -1; dx <= 1; dx++)
+                var ring = new HashSet<GridCoord>();
+                if (foot == null) foot = new HashSet<GridCoord> { origin };
+                foreach (var c in foot)
+                    for (int dx = -1; dx <= 1; dx++)
+                        for (int dz = -1; dz <= 1; dz++)
+                        {
+                            var p = new GridCoord(c.X + dx, c.Z + dz);
+                            if (!foot.Contains(p)) ring.Add(p);
+                        }
+                foreach (var p in ring)
                 {
-                    for (int dz = -1; dz <= 1; dz++)
-                    {
-                        if (dx == 0 && dz == 0) continue;
-                        var n = grid.Get(new GridCoord(origin.X + dx, origin.Z + dz));
-                        if (n?.Definition == null || n == self) continue;
-                        if (n.Definition.HeightClass == ModuleHeight.High) continue;
-                        if (!Blocks(n.EffectiveHeight, shooterHeight)) continue;
+                    var n = grid.Get(p);
+                    if (n?.Definition == null || n == self) continue;
+                    if (n.Definition.HeightClass == ModuleHeight.High) continue;
+                    if (!Blocks(n.EffectiveHeight, shooterHeight)) continue;
 
-                        AddCell(clearance, null, facing, dx, dz, TopOf(n), muzzle, cell);
-                        any = true;
-                    }
+                    AddCell(clearance, null, facing, p.X - cx, p.Z - cz, TopOf(n), muzzle, cell);
+                    any = true;
                 }
             }
 
@@ -302,7 +318,7 @@ namespace Game.Combat
                 if (m?.Definition == null || m == self || m.Definition.HeightClass != ModuleHeight.High) continue;
                 foreach (var c in m.OccupiedCoords)
                 {
-                    AddCell(clearance, noTrain, facing, c.X - origin.X, c.Z - origin.Z, TopOf(m), muzzle, cell);
+                    AddCell(clearance, noTrain, facing, c.X - cx, c.Z - cz, TopOf(m), muzzle, cell);
                     any = true;
                 }
             }
@@ -322,10 +338,10 @@ namespace Game.Combat
         }
 
         /// <summary>무기 중심에서 (dx, dz)칸이 차지하는 방향을 금지 구역으로 표시한다.</summary>
-        private static void AddCell(byte[] clearance, bool[] noTrain, float facing, int dx, int dz,
+        private static void AddCell(byte[] clearance, bool[] noTrain, float facing, float dx, float dz,
                                     float top, float muzzle, float cell)
         {
-            if (dx == 0 && dz == 0) return;
+            if (Mathf.Abs(dx) < 0.01f && Mathf.Abs(dz) < 0.01f) return;
 
             // 방향 폭: 칸의 네 모서리를 본 각도
             float centerYaw = Mathf.Atan2(dz, dx) * Mathf.Rad2Deg;

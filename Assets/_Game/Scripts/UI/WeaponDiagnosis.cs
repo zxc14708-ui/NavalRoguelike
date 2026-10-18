@@ -117,6 +117,7 @@ namespace Game.UI
                 case ModuleType.TorpedoTube: sub = true; return true;
                 case ModuleType.Ww2DualPurposeGun:
                 case ModuleType.Ww2QuadAa: surface = air = true; return true;
+                case ModuleType.Ww2HeavyGun: surface = true; return true;
                 default: return false;   // 현측 어뢰는 수동 발사라 "안 쏘는 이유"를 따지지 않는다
             }
         }

@@ -157,7 +157,8 @@ namespace Game.Modules
         public static bool IsWeapon(ModuleType t) => t is ModuleType.Autocannon or ModuleType.NavalGun or ModuleType.Vls
             or ModuleType.GuidedRocket or ModuleType.Ciws or ModuleType.SamLauncher or ModuleType.AswLauncher
             or ModuleType.TorpedoTube or ModuleType.Howitzer or ModuleType.RamBow or ModuleType.MineRail
-            or ModuleType.Nobong or ModuleType.Ww2DualPurposeGun or ModuleType.Ww2QuadAa or ModuleType.Ww2BroadsideTorpedo;
+            or ModuleType.Nobong or ModuleType.Ww2DualPurposeGun or ModuleType.Ww2QuadAa or ModuleType.Ww2BroadsideTorpedo
+            or ModuleType.Ww2HeavyGun;
 
         /// <summary>이 종류의 무장이 받는 공격력 배율.</summary>
         public static float DamageMultiplier(ModuleType t)

@@ -693,8 +693,11 @@ namespace Game.Dev
             yield return CloseShot("ww2_battle_ship_close", ship.transform, 18f);
             Time.timeScale = TimeScale;
             Vector3 home = ship.transform.position;
-            float started = Time.time, nextWeave = 0f, evadeUntil = 0f, nextTorpedo = 0f, nextShot = 30f;
-            int refits = 0, evasions = 0, salvos = 0;
+            float started = Time.time, nextWeave = 0f, evadeUntil = 0f, nextTorpedo = 0f, nextShot = 30f, nextMainSalvo = 0f;
+            int refits = 0, evasions = 0, salvos = 0, mainSalvos = 0;
+            var mainGuns = Ww2SalvoControl.Instance;
+            EnemyController holdTarget = null;
+            float holdUntil = 0f;
             var offered = new HashSet<string>();
             string phase = "";
             void OnPhase(int s, int i, int n, string title) => phase = $"{i}/{n} {title}";
@@ -783,6 +786,40 @@ namespace Game.Dev
                     }
                 }
 
+                // 주포 일제(전함, 패치 C3a): 사람처럼 — 큰 수상함(보스 먼저)을 겨누고 누르고 있다가(자동 사격 보류, 장전·선회를 기다림)
+                // 모든 주포가 준비되거나 6초가 지나면 뗀다
+                if (mainGuns != null && mainGuns.Guns.Count > 0)
+                {
+                    if (holdTarget != null)
+                    {
+                        Vector3 tp = holdTarget.transform.position;
+                        bool allReady = mainGuns.Guns.All(g => g == null || !g.Operational || g.CanSalvoAt(tp, out _));
+                        if (!holdTarget.IsAlive || Vector3.Distance(tp, pos) > 58f) { mainGuns.DevHold(null); holdTarget = null; nextMainSalvo = Time.time + 2f; }
+                        else if (allReady || Time.time > holdUntil)
+                        {
+                            if (mainGuns.DevSalvo(tp) > 0) mainSalvos++;
+                            holdTarget = null;
+                            nextMainSalvo = Time.time + 3f;
+                        }
+                        else mainGuns.DevHold(tp);
+                    }
+                    else if (Time.time > nextMainSalvo)
+                    {
+                        nextMainSalvo = Time.time + 1f;
+                        EnemyController best = null; float bestScore = float.MaxValue;
+                        foreach (var t in TargetRegistry.HostileTo(CombatFaction.Player, TargetKind.Surface))
+                        {
+                            if (t is not EnemyController e || !e.IsAlive || e.Definition == null) continue;
+                            if (e.Definition.Rank != EnemyRank.Boss && e.Definition.MaxHp < 30f) continue;   // 큰 배만(작은 배는 자동 사격·양용포에)
+                            float dist = Vector3.Distance(e.transform.position, pos);
+                            if (dist < 14f || dist > 52f) continue;
+                            float score = dist * (e.Definition.Rank == EnemyRank.Boss ? 0.2f : 1f);
+                            if (score < bestScore) { bestScore = score; best = e; }
+                        }
+                        if (best != null) { holdTarget = best; holdUntil = Time.time + 6f; mainGuns.DevHold(best.transform.position); }
+                    }
+                }
+
                 // 응급 수리
                 if (ship.HullHp < ship.HullMaxHp * 0.5f) GameEvents.RaiseSkillRequested(ActiveSkillId.Repair);
                 if (Time.time - started > nextShot) { nextShot += 60f; yield return ScreenShot($"ww2_battle_{(int)(Time.time - started)}"); }
@@ -793,7 +830,7 @@ namespace Game.Dev
             Time.timeScale = 1f;
 
             float seconds = Time.time - started;
-            _report.AppendLine($"- 결과: {gm.State} · {seconds:0}초 · 마지막 구간 {phase} · 선체 {ship.HullHp:0}/{ship.HullMaxHp:0} · 격침 {gm.TotalKills} · 정비 {refits}회 · 회피 조함 {evasions}회 · 로봇 어뢰 일제 발사 {salvos}회");
+            _report.AppendLine($"- 결과: {gm.State} · {seconds:0}초 · 마지막 구간 {phase} · 선체 {ship.HullHp:0}/{ship.HullMaxHp:0} · 격침 {gm.TotalKills} · 정비 {refits}회 · 회피 조함 {evasions}회 · 로봇 어뢰 일제 발사 {salvos}회" + (mainSalvos > 0 ? $" · 주포 일제 {mainSalvos}회" : ""));
             _report.AppendLine($"- 정비 카드로 나온 것: {string.Join(", ", offered)}");
             if (offered.Any(id => id != null && (id.StartsWith("mod_") || id.Contains("Fleet")))) Fail("WWII 정비 카드에 현대 블록·편대 카드가 나옴");
             _report.AppendLine("- 무기별 피해(적에게 실제로 깎은 체력):");

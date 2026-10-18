@@ -39,6 +39,8 @@ namespace Game.Modules
         [Header("Tonnage")]
         [Tooltip("톤수(t, WWII 패치 C1). 함종의 탑재 예산(HullProfile.TonnageBudget)에 센다. 0이면 세지 않는다(현대 블록)")]
         [SerializeField, Min(0f)] private float tonnage;
+        [Tooltip("포탑 마운트 등급(WWII 패치 C2). 함종이 허용하는 등급까지만 설치된다. None이면 제한 없음")]
+        [SerializeField] private MountClass mountClass;
 
         [Header("Visual")]
         [Tooltip("함선 위에 실제로 붙는 3D 프리팹. ModuleRuntime 파생 컴포넌트를 반드시 포함할 것.")]
@@ -70,6 +72,7 @@ namespace Game.Modules
         public Rarity Rarity => rarity;
         public float Weight => weight;
         public float Tonnage => tonnage;
+        public MountClass MountClass => mountClass;
 
         public GameObject Prefab => prefab;
         public ModuleStats Stats => stats;

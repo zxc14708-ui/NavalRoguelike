@@ -10,6 +10,7 @@ namespace Game.Core
     {
         TorpedoPort,       // 좌현 어뢰: 누르고 있으면 예상 경로, 떼면 발사
         TorpedoStarboard,  // 우현 어뢰
+        MainSalvo,         // 주포 일제(패치 C3a): 누르고 있으면 자동 사격 보류·겨눔, 떼면 준비된 주포가 함께
     }
 
     /// <summary>
@@ -22,7 +23,7 @@ namespace Game.Core
     public static class Ww2Controls
     {
         private const string Prefix = "Naval.WW2.Control.";
-        private static readonly Key[] Defaults = { Key.Q, Key.E };
+        private static readonly Key[] Defaults = { Key.Q, Key.E, Key.V };   // V: 현대 VLS 선택 자리(WWII에 없음)
         private static readonly Key[] Bindings = new Key[Defaults.Length];
         private static bool _loaded;
 
@@ -37,6 +38,7 @@ namespace Game.Core
         public static string Title(Ww2Control c) => c switch
         {
             Ww2Control.TorpedoPort => "좌현 어뢰(누르고 조준 · 떼면 발사)",
+            Ww2Control.MainSalvo => "주포 일제(누르고 겨눔 · 떼면 함께 발사)",
             _ => "우현 어뢰(누르고 조준 · 떼면 발사)",
         };
 

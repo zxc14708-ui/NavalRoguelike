@@ -24,6 +24,7 @@ namespace Game.Ship
 
         // 함종(HullProfile)이 바꾸는 값. 직렬화해 두어야 시작 배치 검증용 복제(JsonUtility)에도 따라간다.
         [SerializeField, HideInInspector] private float tonnageBudget;
+        [SerializeField, HideInInspector] private int maxMountClass;   // 0 = 제한 없음(현대)
         [SerializeField, HideInInspector] private int baseHalfLength = -1;
         [SerializeField, HideInInspector] private int baseHalfBeam = -1;
 
@@ -31,6 +32,8 @@ namespace Game.Ship
         public int MaxHalfBeam => maxHalfBeam;
         /// <summary>탑재 예산(t). 0이면 제한 없음(현대).</summary>
         public float TonnageBudget => tonnageBudget;
+        /// <summary>허용하는 가장 큰 마운트 등급. None이면 제한 없음(현대).</summary>
+        public MountClass MaxMountClass => (MountClass)maxMountClass;
 
         /// <summary>설치된 블록 톤수의 합.</summary>
         public float Tonnage
@@ -43,6 +46,11 @@ namespace Game.Ship
             }
         }
 
+        /// <summary>철거해서 자리를 만들어도 이 함종에는 절대 못 놓는 블록인가(마운트 등급 초과 · 블록 하나가 탑재 예산보다 무거움).</summary>
+        public bool NeverFits(ModuleDefinition def)
+            => def != null && ((maxMountClass > 0 && (int)def.MountClass > maxMountClass)
+                               || (tonnageBudget > 0f && def.Tonnage > tonnageBudget + 0.001f));
+
         /// <summary>
         /// 함종의 격자 크기·탑재 예산을 적용한다(WWII 패치 C1). null이면 씬에 정한 원래 크기·제한 없음으로 돌린다.
         /// 이미 놓인 블록은 건드리지 않는다 — 출항 전 시작 함정을 고를 때(빈 격자) 부른다.
@@ -53,6 +61,7 @@ namespace Game.Ship
             maxHalfLength = hull != null && hull.HalfLength > 0 ? hull.HalfLength : baseHalfLength;
             maxHalfBeam = hull != null && hull.HalfBeam > 0 ? hull.HalfBeam : baseHalfBeam;
             tonnageBudget = hull != null ? hull.TonnageBudget : 0f;
+            maxMountClass = hull != null ? (int)hull.MaxMountClass : 0;
         }
         public float CellSize => cellSize;
         public float DeckHeight => deckHeight;
@@ -118,6 +127,12 @@ namespace Game.Ship
             if (def.MaxCount > 0 && CountOf(def) >= def.MaxCount)
             {
                 reason = $"최대 {def.MaxCount}개까지만 설치할 수 있음";
+                return false;
+            }
+
+            if (maxMountClass > 0 && (int)def.MountClass > maxMountClass)
+            {
+                reason = $"마운트 등급 초과 — {MountClasses.Name(def.MountClass)}은 이 함종에 놓을 수 없음({MountClasses.Name(MaxMountClass)}까지)";
                 return false;
             }
 

@@ -46,6 +46,7 @@ namespace Game.Combat
             if (n.StartsWith("PRJ_Nobong")) return "노봉";
             if (n.StartsWith("PRJ_Ww2DualGun")) return "양용포";      // WWII(패치 B)
             if (n.StartsWith("PRJ_Ww2QuadAa")) return "4연장 대공포";
+            if (n.StartsWith("PRJ_Ww2HeavyShell")) return "대구경 주포";   // WWII(패치 C3a)
             return null;
         }
 

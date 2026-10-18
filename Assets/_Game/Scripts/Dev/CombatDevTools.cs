@@ -93,6 +93,7 @@ namespace Game.Dev
                 runner.RunFlowOnly = System.Array.IndexOf(args, "-runFlowOnly") >= 0;
                 runner.Ww2Only = System.Array.IndexOf(args, "-ww2Only") >= 0;           // WWII 패치 B 규칙 검사
                 runner.Ww2BattleOnly = System.Array.IndexOf(args, "-ww2BattleOnly") >= 0;   // WWII 시험 전투 한 판
+                runner.Ww2HeavyOnly = System.Array.IndexOf(args, "-ww2HeavyOnly") >= 0;     // WWII 패치 C2·C3a(마운트 등급·전함·주포)
                 runner.BundleBOnly = System.Array.IndexOf(args, "-bundleBOnly") >= 0;
                 runner.BundleCOnly = System.Array.IndexOf(args, "-bundleCOnly") >= 0;
                 runner.BundleDOnly = System.Array.IndexOf(args, "-bundleDOnly") >= 0;

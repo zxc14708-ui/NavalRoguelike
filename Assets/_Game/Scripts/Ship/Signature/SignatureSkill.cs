@@ -95,7 +95,7 @@ namespace Game.Ship
 
         private static ISignatureAbility Create(StartShipKind kind) => kind switch
         {
-            StartShipKind.Ww2Destroyer or StartShipKind.Ww2Cruiser => null,   // WWII 시험 전투: 현대 고유 스킬(미사일·항공대)을 쓰지 않는다(패치 A 4장)
+            StartShipKind.Ww2Destroyer or StartShipKind.Ww2Cruiser or StartShipKind.Ww2Battleship => null,   // WWII 시험 전투: 현대 고유 스킬(미사일·항공대)을 쓰지 않는다(패치 A 4장)
             StartShipKind.Command => new AirWingAbility(),
             StartShipKind.MissileDestroyer => new FullSalvoAbility(),
             StartShipKind.Assault => new AssaultRunAbility(),

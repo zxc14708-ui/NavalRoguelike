@@ -172,6 +172,7 @@ namespace Game.Refit
             {
                 if (def == null || used.Contains(def)) continue;
                 if (def.MaxCount > 0 && grid != null && grid.CountOf(def) >= def.MaxCount) continue;
+                if (grid != null && grid.NeverFits(def)) continue;   // 함종이 못 다는 블록(WWII 마운트 등급·탑재 예산, 패치 C2)
                 _installPool.Add(def);
             }
         }
