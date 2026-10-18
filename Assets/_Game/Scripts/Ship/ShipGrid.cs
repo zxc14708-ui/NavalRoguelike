@@ -22,8 +22,38 @@ namespace Game.Ship
         [SerializeField] private float cellSize = 2f;
         [SerializeField] private float deckHeight = 0.74f;
 
+        // 함종(HullProfile)이 바꾸는 값. 직렬화해 두어야 시작 배치 검증용 복제(JsonUtility)에도 따라간다.
+        [SerializeField, HideInInspector] private float tonnageBudget;
+        [SerializeField, HideInInspector] private int baseHalfLength = -1;
+        [SerializeField, HideInInspector] private int baseHalfBeam = -1;
+
         public int MaxHalfLength => maxHalfLength;
         public int MaxHalfBeam => maxHalfBeam;
+        /// <summary>탑재 예산(t). 0이면 제한 없음(현대).</summary>
+        public float TonnageBudget => tonnageBudget;
+
+        /// <summary>설치된 블록 톤수의 합.</summary>
+        public float Tonnage
+        {
+            get
+            {
+                float sum = 0f;
+                foreach (var m in _modules) if (m?.Definition != null) sum += m.Definition.Tonnage;
+                return sum;
+            }
+        }
+
+        /// <summary>
+        /// 함종의 격자 크기·탑재 예산을 적용한다(WWII 패치 C1). null이면 씬에 정한 원래 크기·제한 없음으로 돌린다.
+        /// 이미 놓인 블록은 건드리지 않는다 — 출항 전 시작 함정을 고를 때(빈 격자) 부른다.
+        /// </summary>
+        public void ApplyHull(Game.Data.HullProfile hull)
+        {
+            if (baseHalfLength < 0) { baseHalfLength = maxHalfLength; baseHalfBeam = maxHalfBeam; }
+            maxHalfLength = hull != null && hull.HalfLength > 0 ? hull.HalfLength : baseHalfLength;
+            maxHalfBeam = hull != null && hull.HalfBeam > 0 ? hull.HalfBeam : baseHalfBeam;
+            tonnageBudget = hull != null ? hull.TonnageBudget : 0f;
+        }
         public float CellSize => cellSize;
         public float DeckHeight => deckHeight;
 
@@ -88,6 +118,12 @@ namespace Game.Ship
             if (def.MaxCount > 0 && CountOf(def) >= def.MaxCount)
             {
                 reason = $"최대 {def.MaxCount}개까지만 설치할 수 있음";
+                return false;
+            }
+
+            if (tonnageBudget > 0f && def.Tonnage > 0f && Tonnage + def.Tonnage > tonnageBudget + 0.001f)
+            {
+                reason = $"탑재 예산 초과({Tonnage + def.Tonnage:0.#} / {tonnageBudget:0.#}t)";
                 return false;
             }
 

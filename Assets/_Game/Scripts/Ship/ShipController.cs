@@ -116,9 +116,32 @@ namespace Game.Ship
         public event System.Action ManualHelm;
 
         public ShipConfig Config => config;
+        /// <summary>함종 수치(WWII 패치 C1). null이면 ShipConfig 그대로(현대).</summary>
+        public HullProfile Hull => _hull;
+        private HullProfile _hull;
         /// <summary>기준 최고속력(성장 카드와 추진 지원 반영, 일시 전속 배율 제외).</summary>
-        public float BaseMaxSpeed => (config != null ? config.BaseMaxSpeed : 1f) * Game.Modules.RunUpgrades.SpeedMultiplier
+        public float BaseMaxSpeed => (_hull != null ? _hull.MaxSpeed : config != null ? config.BaseMaxSpeed : 1f) * Game.Modules.RunUpgrades.SpeedMultiplier
             * (systems != null ? systems.SpeedMultiplier : 1f);
+        /// <summary>최대 타각 선회율(°/초, 전속 배율 제외).</summary>
+        public float BaseTurnRate => _hull != null ? _hull.TurnRate : config != null ? config.BaseTurnRateDegPerSec : 20f;
+        /// <summary>함종 장갑: 받는 피해를 이 비율만큼 줄인다(DamageResolver).</summary>
+        public float HullArmor => _hull != null ? _hull.Armor : 0f;
+        private float Acceleration => _hull != null ? _hull.Acceleration : config.Acceleration;
+        private float Deceleration => _hull != null ? _hull.Deceleration : config.Deceleration;
+        private float TurnResponseTime => _hull != null ? _hull.TurnResponseTime : config.TurnResponseTime;
+
+        /// <summary>
+        /// 함종 수치를 적용한다(출항 전 시작 함정 선택 — ShipInitializer). 선체 최대치는 함종 기준 × 성장 배율, 선체는 가득.
+        /// null이면 ShipConfig로 돌린다.
+        /// </summary>
+        public void ApplyHull(HullProfile hull)
+        {
+            _hull = hull;
+            if (config == null) return;
+            HullMaxHp = (hull != null ? hull.HullHp : config.HullMaxHp) * _hullMultiplier;
+            HullHp = HullMaxHp;
+            GameEvents.RaiseHullHpChanged(HullHp, HullMaxHp);
+        }
         public float ReverseSpeedRatio => config != null ? config.ReverseSpeedRatio : 0.5f;
 
         /// <summary>마지막으로 선체가 피해를 받은 시각. 손상 통제가 교전 중 수리를 줄이는 데 쓴다.</summary>
@@ -333,7 +356,7 @@ namespace Game.Ship
         {
             if (config == null) return;
             float maxSpeed = BaseMaxSpeed;
-            float turnRate = config.BaseTurnRateDegPerSec;
+            float turnRate = BaseTurnRate;
             float accelBoost = 1f;
             if (IsFlanking)
             {
@@ -347,7 +370,7 @@ namespace Game.Ship
             float targetSpeed = throttle >= 0f ? throttle * maxSpeed : throttle * maxReverse;
             targetSpeed *= 1f - config.TurnSpeedLoss * Mathf.Clamp01(Mathf.Abs(yawRate) / Mathf.Max(1f, turnRate));
             bool speedingUp = Mathf.Abs(targetSpeed) > Mathf.Abs(speed) && Mathf.Sign(targetSpeed) == Mathf.Sign(speed == 0f ? targetSpeed : speed);
-            float accel = speedingUp ? config.Acceleration * accelBoost * (systems != null ? systems.AccelerationMultiplier : 1f) : config.Deceleration;
+            float accel = speedingUp ? Acceleration * accelBoost * (systems != null ? systems.AccelerationMultiplier : 1f) : Deceleration;
             speed = Mathf.MoveTowards(speed, targetSpeed, accel * dt);
 
             // --- 타: 물이 흐를 때만 듣는다. 정지 상태에서는 제자리 선회가 되지 않는다.
@@ -362,7 +385,7 @@ namespace Game.Ship
             float targetYaw = rudder * turnRate * effectiveness * direction;
 
             // 선회율은 타각을 곧바로 따르지 않는다(선체 관성)
-            float response = 1f - Mathf.Exp(-dt / Mathf.Max(0.01f, config.TurnResponseTime));
+            float response = 1f - Mathf.Exp(-dt / Mathf.Max(0.01f, TurnResponseTime));
             yawRate = Mathf.Lerp(yawRate, targetYaw, response);
         }
 

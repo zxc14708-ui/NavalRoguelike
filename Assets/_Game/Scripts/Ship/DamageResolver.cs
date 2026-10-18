@@ -33,6 +33,7 @@ namespace Game.Ship
 
             // 1) 손상 통제반이 함선 전체 피해를 먼저 줄인다
             if (systems != null) amount *= 1f - systems.DamageReduction;
+            amount *= 1f - ship.HullArmor;   // 함종 장갑(WWII 패치 C1, 현대는 0)
             // 강화 구획은 유폭에만 추가 방호. 직격탄은 막지 않는다.
             if (info.Source == DamageSource.CookOff && ModuleSynergy.ProtectedByRepair(grid, target))
                 amount *= 0.75f;

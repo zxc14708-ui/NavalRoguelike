@@ -668,28 +668,45 @@ namespace Game.UI
             if(onWw2!=null && Ruleset.Ww2Definition!=null && Ruleset.Ww2Definition.Hulls.Count>0)
             {
                 var ww2Panel=Panel(menu,"WW2 console",new Vector2(0,.5f),new Vector2(64,-334),new Vector2(520,56),new Color(.06f,.05f,.03f,.9f));
-                var ww2=MenuButton(ww2Panel,"WWII 시험 전투  /  구축함 · 5~8분 (개발 중)",new Vector2(10,7),new Vector2(500,42),new Color(.42f,.3f,.12f,1f),18);
-                ww2.name="WW2 test start";
-                ww2.onClick.AddListener(()=>
+                // 함종(패치 C1): 규칙 집합의 시작 함정마다 버튼 — 첫째(구축함)가 "WW2 test start", 둘째부터 "WW2 hull <id 끝>"(cruiser)
+                var hulls=Ruleset.Ww2Definition.Hulls;
+                float w=(500f-6f*(hulls.Count-1))/hulls.Count;
+                for(int i=0;i<hulls.Count;i++)
                 {
-                    if(!StartWw2Test()) return;
-                    onWw2();
-                });
+                    var hull=hulls[i];
+                    if(hull==null) continue;
+                    string label=i==0?$"WWII 시험 전투 / {ShortHullName(hull)}":ShortHullName(hull);
+                    var ww2=MenuButton(ww2Panel,label,new Vector2(10+i*(w+6f),7),new Vector2(w,42),new Color(.42f,.3f,.12f,1f),hulls.Count>1?17:18);
+                    ww2.name=i==0?"WW2 test start":"WW2 hull "+hull.Id.Replace("ww2_hull_","");   // 검사가 이름 앞부분으로 찾으므로 둘째부터는 "WW2 test start"로 시작하지 않게
+                    ww2.onClick.AddListener(()=>
+                    {
+                        if(!StartWw2Test(hull)) return;
+                        onWw2();
+                    });
+                }
             }
         }
 
-        /// <summary>WWII 시험 전투로 들어간다: 규칙 집합 → 구축함 선택 → 출항 잠금 → HUD를 WWII용으로. 실패하면 현대로 되돌리고 false.</summary>
-        public bool StartWw2Test()
+        /// <summary>"구축함 (WWII 시험)" → "구축함".</summary>
+        private static string ShortHullName(Game.Data.StartingShipConcept hull)
+        {
+            string t=hull.Title??hull.Id;
+            int p=t.IndexOf(" (");
+            return p>0?t.Substring(0,p):t;
+        }
+
+        /// <summary>WWII 시험 전투로 들어간다: 규칙 집합 → 함종 선택(없으면 첫째 — 구축함) → 출항 잠금 → HUD를 WWII용으로. 실패하면 현대로 되돌리고 false.</summary>
+        public bool StartWw2Test(Game.Data.StartingShipConcept hull=null)
         {
             var def=Ruleset.Ww2Definition;
-            var concept=def!=null&&def.Hulls.Count>0?def.Hulls[0]:null;
+            var concept=hull!=null?hull:def!=null&&def.Hulls.Count>0?def.Hulls[0]:null;
             if(concept==null||!Ruleset.Enter(Ruleset.Ww2)) { GameEvents.RaiseBanner("WWII 시험 전투 데이터가 없습니다"); return false; }
             var initializer=FindFirstObjectByType<Game.Ship.ShipInitializer>();
             if(initializer!=null&&!initializer.TrySelect(concept,out string reason))
             {
-                Debug.LogWarning($"[HUD] WWII 구축함 선택 실패: {reason}");
+                Debug.LogWarning($"[HUD] WWII {ShortHullName(concept)} 선택 실패: {reason}");
                 Ruleset.Enter(Ruleset.Modern);
-                GameEvents.RaiseBanner($"WWII 구축함을 띄우지 못했습니다 — {reason}");
+                GameEvents.RaiseBanner($"WWII {ShortHullName(concept)}을(를) 띄우지 못했습니다 — {reason}");
                 return false;
             }
             if(initializer!=null) initializer.LockForLaunch();

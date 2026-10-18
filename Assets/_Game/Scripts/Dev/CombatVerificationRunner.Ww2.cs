@@ -65,6 +65,45 @@ namespace Game.Dev
             var button = FindButton("WW2 test start");
             _report.AppendLine($"- 항구 [WWII 시험 전투] 버튼: {Yes(button != null)}");
             if (button == null) { Fail("항구에 WWII 시험 전투 버튼이 없음"); yield break; }
+
+            // ---- 0-1) 함종(패치 C1): 출항 전 순양함을 골라 실제 수치·탑재 예산을 본 뒤, 구축함 버튼으로 들어간다
+            {
+                var pShip = GameManager.Instance.Player;
+                var pInit = Object.FindFirstObjectByType<ShipInitializer>();
+                var pGrid = pShip.Grid;
+                _report.AppendLine($"- 현대 함정(출항 전): 함종 수치 {(pShip.Hull == null ? "없음" : pShip.Hull.name)} · 탑재 예산 {pGrid.TonnageBudget:0} · 격자 ±{pGrid.MaxHalfLength}/±{pGrid.MaxHalfBeam}");
+                if (pShip.Hull != null || pGrid.TonnageBudget > 0f) Fail("현대 함정에 WWII 함종 수치가 붙음");
+                var cruiserHull = def.Hulls.FirstOrDefault(h => h != null && h.Id == "ww2_hull_cruiser");
+                var cruiserButton = FindButton("WW2 hull cruiser");
+                _report.AppendLine($"- 함종 버튼: 순양함 {Yes(cruiserButton != null)} · 규칙 집합 함종 {string.Join(", ", def.Hulls.Select(h => h.Id))}");
+                if (cruiserHull == null || cruiserHull.HullProfile == null || cruiserButton == null) Fail("WWII 순양함 함종·버튼이 없음");
+                else
+                {
+                    Ruleset.Enter(Ruleset.Ww2);   // 실제 버튼과 같은 순서 — 설치가 사전 발견 기록을 쓰므로 현대 프로필에 WWII ID가 섞이지 않게
+                    bool sel = pInit.TrySelect(cruiserHull, out string whySel);
+                    var cHull = cruiserHull.HullProfile;
+                    _report.AppendLine($"- 순양함 선택: {Yes(sel)}{(sel ? "" : $"({whySel})")} · 최고속력 {pShip.BaseMaxSpeed:0.0}m/s · 선회 {pShip.BaseTurnRate:0}°/초 · 선체 {pShip.HullMaxHp:0} · 장갑 {pShip.HullArmor * 100f:0}% · 격자 ±{pGrid.MaxHalfLength}/±{pGrid.MaxHalfBeam} · 탑재 {pGrid.Tonnage:0.#}/{pGrid.TonnageBudget:0.#}t · 블록 {pGrid.Modules.Count}");
+                    if (!sel || pShip.Hull != cHull || !Mathf.Approximately(pShip.BaseTurnRate, cHull.TurnRate) || !Mathf.Approximately(pShip.HullMaxHp, cHull.HullHp)
+                        || pGrid.MaxHalfLength != cHull.HalfLength || pGrid.MaxHalfBeam != cHull.HalfBeam || !Mathf.Approximately(pGrid.TonnageBudget, cHull.TonnageBudget))
+                        Fail("순양함 함종 수치(선회·선체·격자·탑재 예산)가 함선에 적용되지 않음");
+                    // 탑재 예산: 양용포를 놓을 수 있는 만큼 놓은 뒤 하나 더는 "탑재 예산 초과"로 거부
+                    var pFactory = Object.FindFirstObjectByType<ModuleFactory>();
+                    var gunDefC = def.Modules.First(m => m.Type == ModuleType.Ww2DualPurposeGun);
+                    bool Room() => pGrid.Tonnage + gunDefC.Tonnage <= pGrid.TonnageBudget + 0.001f;
+                    int added = 0;
+                    for (int pass = 0; pass < 4 && Room(); pass++)
+                        for (int x = -pGrid.MaxHalfLength; x <= pGrid.MaxHalfLength && Room(); x++)
+                            for (int z = -pGrid.MaxHalfBeam; z <= pGrid.MaxHalfBeam && Room(); z++)
+                                if (pGrid.CanPlace(gunDefC, new GridCoord(x, z), 0, out _) && pFactory.Install(gunDefC, new GridCoord(x, z), 0) != null) added++;
+                    string overReason = null;
+                    for (int x = -pGrid.MaxHalfLength; x <= pGrid.MaxHalfLength && overReason == null; x++)
+                        for (int z = -pGrid.MaxHalfBeam; z <= pGrid.MaxHalfBeam && overReason == null; z++)
+                            if (pGrid.IsFree(new GridCoord(x, z)) && !pGrid.CanPlace(gunDefC, new GridCoord(x, z), 0, out string rr) && rr != null && rr.Contains("탑재 예산")) overReason = rr;
+                    _report.AppendLine($"- 탑재 예산: 양용포 {added}문 더 놓음 → {pGrid.Tonnage:0.#}/{pGrid.TonnageBudget:0.#}t · 하나 더: \"{overReason}\"");
+                    if (added == 0 || overReason == null || pGrid.Tonnage > pGrid.TonnageBudget + 0.001f) Fail("탑재 예산이 설치를 막지 않음");
+                }
+            }
+
             button.onClick.Invoke();
             yield return new WaitForSecondsRealtime(1.5f);
             var gm = GameManager.Instance;
@@ -76,6 +115,12 @@ namespace Game.Dev
             if (gm.State != GameState.Playing || !Ruleset.IsWw2 || director == null || !director.Ww2Test) { Fail("WWII 시험 전투로 들어가지 못함"); yield break; }
             if (init?.SelectedConcept?.Id != "ww2_hull_destroyer") Fail("WWII 구축함이 선택되지 않음");
             if (ship.Grid.Modules.Any(m => !m.Definition.Id.StartsWith("ww2_"))) Fail("WWII 구축함에 현대 블록이 있음");
+            {
+                var dh = init?.SelectedConcept?.HullProfile;
+                _report.AppendLine($"- 구축함 함종: 최고속력 {ship.BaseMaxSpeed:0.0}m/s · 선회 {ship.BaseTurnRate:0}°/초 · 선체 {ship.HullMaxHp:0} · 격자 ±{ship.Grid.MaxHalfLength}/±{ship.Grid.MaxHalfBeam} · 탑재 {ship.Grid.Tonnage:0.#}/{ship.Grid.TonnageBudget:0.#}t · 블록 {ship.Grid.Modules.Count}");
+                if (dh == null || ship.Hull != dh || ship.Grid.MaxHalfBeam != dh.HalfBeam || !Mathf.Approximately(ship.Grid.TonnageBudget, dh.TonnageBudget) || ship.Grid.Modules.Count != 5)
+                    Fail("구축함 함종 수치가 적용되지 않았거나 순양함 블록이 남음");
+            }
             yield return new WaitForSeconds(1f);
             yield return ScreenShot("ww2_start");
             yield return CloseShot("ww2_destroyer_close", ship.transform, 15f);   // Codex 모델 v30 조립 모습
@@ -629,8 +674,13 @@ namespace Game.Dev
             void OnLog(string m, string st, LogType t) { if (t == LogType.Exception) { exceptions++; if (exceptions <= 5) _report.AppendLine($"  - 예외: {m}"); } }
             Application.logMessageReceived += OnLog;
 
-            var button = FindButton("WW2 test start");
-            if (button == null) { Fail("항구에 WWII 시험 전투 버튼이 없음"); yield break; }
+            // 함종(패치 C1): -ww2Hull cruiser 이면 순양함 버튼(없으면 구축함)
+            var args = System.Environment.GetCommandLineArgs();
+            int hullArg = System.Array.IndexOf(args, "-ww2Hull");
+            string hullName = hullArg >= 0 && hullArg < args.Length - 1 ? args[hullArg + 1] : null;
+            var button = hullName != null ? FindButton("WW2 hull " + hullName) : FindButton("WW2 test start");
+            if (button == null) { Fail(hullName != null ? $"항구에 WWII 함종 버튼 '{hullName}'이 없음" : "항구에 WWII 시험 전투 버튼이 없음"); yield break; }
+            _report.AppendLine($"- 함종: {hullName ?? "destroyer"}");
             button.onClick.Invoke();
             yield return new WaitForSecondsRealtime(1.5f);
             var gm = GameManager.Instance;
@@ -639,6 +689,8 @@ namespace Game.Dev
             var refitController = Object.FindFirstObjectByType<RefitController>(FindObjectsInactive.Include);
             var refitUi = Object.FindFirstObjectByType<RefitUI>(FindObjectsInactive.Include);
             if (!Ruleset.IsWw2 || gm.State != GameState.Playing || control == null) { Fail("WWII 시험 전투로 들어가지 못함"); yield break; }
+            _report.AppendLine($"- 출항: {ship.Hull?.name ?? "함종 수치 없음"} · 최고속력 {ship.BaseMaxSpeed:0.0}m/s · 선회 {ship.BaseTurnRate:0}°/초 · 선체 {ship.HullMaxHp:0} · 장갑 {ship.HullArmor * 100f:0}% · 탑재 {ship.Grid.Tonnage:0.#}/{ship.Grid.TonnageBudget:0.#}t");
+            yield return CloseShot("ww2_battle_ship_close", ship.transform, 18f);
             Time.timeScale = TimeScale;
             Vector3 home = ship.transform.position;
             float started = Time.time, nextWeave = 0f, evadeUntil = 0f, nextTorpedo = 0f, nextShot = 30f;

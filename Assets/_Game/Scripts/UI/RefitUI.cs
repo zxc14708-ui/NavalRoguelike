@@ -389,7 +389,8 @@ namespace Game.UI
             if (statusText != null && systems != null)
             {
                 statusText.text = $"모듈 {grid.Modules.Count}   탐지 {systems.DetectionRange:0}   " +
-                                  $"피해 감소 {systems.DamageReduction * 100f:0}%";
+                                  $"피해 감소 {systems.DamageReduction * 100f:0}%" +
+                                  (grid.TonnageBudget > 0f ? $"   탑재 {grid.Tonnage:0.#}/{grid.TonnageBudget:0.#}t" : "");   // WWII 함종(패치 C1)
             }
 
             UpdateArcViews();

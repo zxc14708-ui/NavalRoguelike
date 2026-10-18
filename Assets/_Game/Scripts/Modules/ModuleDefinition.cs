@@ -36,6 +36,10 @@ namespace Game.Modules
         [SerializeField] private Rarity rarity = Rarity.Common;
         [SerializeField, Min(0f)] private float weight = 1f;
 
+        [Header("Tonnage")]
+        [Tooltip("톤수(t, WWII 패치 C1). 함종의 탑재 예산(HullProfile.TonnageBudget)에 센다. 0이면 세지 않는다(현대 블록)")]
+        [SerializeField, Min(0f)] private float tonnage;
+
         [Header("Visual")]
         [Tooltip("함선 위에 실제로 붙는 3D 프리팹. ModuleRuntime 파생 컴포넌트를 반드시 포함할 것.")]
         [SerializeField] private GameObject prefab;
@@ -65,6 +69,7 @@ namespace Game.Modules
 
         public Rarity Rarity => rarity;
         public float Weight => weight;
+        public float Tonnage => tonnage;
 
         public GameObject Prefab => prefab;
         public ModuleStats Stats => stats;

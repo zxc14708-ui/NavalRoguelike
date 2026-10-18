@@ -279,6 +279,7 @@ namespace Game.UI
             if (_held != null)
             {
                 _sb.AppendLine($"들고 있음: <b>{_held.DisplayName}</b>  {_held.Width}x{_held.Height}" +
+                               (grid != null && grid.TonnageBudget > 0f && _held.Tonnage > 0f ? $"  {_held.Tonnage:0.#}t" : "") +
                                (_heldWasInstalled ? $"   (원래 자리 {_heldOrigin} · 우클릭/Esc로 복귀)" : ""));
 
                 if (!grid.CanPlace(_held, _cursor, _heldRotation, out string reason) && reason != null)

@@ -93,28 +93,28 @@ namespace Game.EditorTools
 
             // --- 데이터
             var defBridge = ModuleDef("ww2_mod_bridge_destroyer", "구축함 함교", "WWII 구축함의 함교·기관실·연돌. 항해 레이더·손상 통제·전속·연막을 맡는다. 기만체는 없다(패치 A 9.1).",
-                ModuleType.Bridge, 3, 1, false, PlacementZone.Anywhere, ModuleHeight.High, 110f, Rarity.Common, 0f, bridge, s =>
+                ModuleType.Bridge, 3, 1, false, PlacementZone.Anywhere, ModuleHeight.High, 110f, Rarity.Common, 0f, 3f, bridge, s =>
                 {
                     s.DetectionRange = 46f; s.ExtraTrackedTargets = 2; s.HullRepairPerSecond = 0.5f; s.ModuleRepairPerSecond = 0.6f;
                     s.DamageReduction = 0.05f; s.ReloadTime = 14f;
                 }, Eff(0, 0, 0, 0, 0, 0, 0, 0));
             var defGun = ModuleDef("ww2_mod_dual_purpose_gun", "양용포",
                 "쌍열 양용포. 수상함을 주로 쏘고, 공격 방향을 정한 항공기가 가까우면 그쪽으로 돌린다. 한 번에 한 표적. 포탑이 느리게 돌고 탄이 날아가는 시간이 있다.",
-                ModuleType.Ww2DualPurposeGun, 1, 1, true, PlacementZone.Anywhere, ModuleHeight.Mid, 50f, Rarity.Uncommon, 1.1f, dualGun, s =>
+                ModuleType.Ww2DualPurposeGun, 1, 1, true, PlacementZone.Anywhere, ModuleHeight.Mid, 50f, Rarity.Uncommon, 1.1f, 2f, dualGun, s =>
                 {
                     s.Range = 46f; s.MinRange = 6f; s.Damage = 22f; s.ReloadTime = 2f; s.ProjectileSpeed = 42f; s.FireArcDegrees = 360f; s.TurretTurnRate = 45f;
                     s.AmmoFamily = AmmoFamily.Gun; s.MagazineCapacity = 24; s.AmmoPerShot = 1; s.AmmoReloadAmount = 3; s.AmmoReloadTime = 6f;
                 }, Eff(0.9f, 1f, 1f, 1f, 0f, 0.4f, 0.45f, 0f));
             var defAa = ModuleDef("ww2_mod_quad_aa", "40mm급 4연장 대공포",
                 "네 포신이 번갈아 쏘는 대공포. 항공기를 먼저(공격 방향을 정한 기체부터), 없으면 가까운 소형 수상함. 근접신관이 없어 직격해야 맞고, 큰 배에는 거의 듣지 않는다.",
-                ModuleType.Ww2QuadAa, 1, 1, true, PlacementZone.Anywhere, ModuleHeight.Mid, 35f, Rarity.Common, 1f, quadAa, s =>
+                ModuleType.Ww2QuadAa, 1, 1, true, PlacementZone.Anywhere, ModuleHeight.Mid, 35f, Rarity.Common, 1f, 1f, quadAa, s =>
                 {
                     s.Range = 32f; s.MinRange = 0f; s.Damage = 1.8f; s.ReloadTime = 0.09f; s.ProjectileSpeed = 70f; s.FireArcDegrees = 360f; s.TurretTurnRate = 140f;
                     s.AmmoFamily = AmmoFamily.Gun; s.MagazineCapacity = 160; s.AmmoPerShot = 1; s.AmmoReloadAmount = 16; s.AmmoReloadTime = 2f;
                 }, Eff(0.6f, 0.25f, 0.1f, 0.05f, 0f, 1f, 1f, 0f));
             var defTorpedo = ModuleDef("ww2_mod_broadside_torpedo", "현측 어뢰 발사관",
                 "4연장 발사관. 직접 쏜다 — 키를 누르고 있으면 현측 사격각(정횡 ±30°)과 예상 경로, 떼면 일제 발사. 어뢰는 곧게만 가고(유도 없음) 가까우면 불발. 재장전이 길다. 좌현이나 우현이 트인 자리에만 놓인다.",
-                ModuleType.Ww2BroadsideTorpedo, 1, 1, true, PlacementZone.SideOnly, ModuleHeight.Low, 30f, Rarity.Uncommon, 0.9f, torpedoMount, s =>
+                ModuleType.Ww2BroadsideTorpedo, 1, 1, true, PlacementZone.SideOnly, ModuleHeight.Low, 30f, Rarity.Uncommon, 0.9f, 2f, torpedoMount, s =>
                 {
                     s.Range = 75f; s.MinRange = 9f; s.Damage = 55f; s.ProjectileSpeed = 15f; s.FireArcDegrees = 60f;
                     s.AmmoFamily = AmmoFamily.Asw; s.MagazineCapacity = 4; s.AmmoPerShot = 1; s.AmmoReloadAmount = 0; s.AmmoReloadTime = 22f;
@@ -134,24 +134,19 @@ namespace Game.EditorTools
             var eBoss = EnemyDef("ww2_boss_gunnery_cruiser", "적 순양함(임시)", TargetKind.Surface, cruiser,
                 TargetCategory.Boss, EnemyRank.Boss, 10, 0, hp: 1080f, speed: 5.5f, turn: 30f, range: 36f, damage: 14f, cooldown: 0f, xp: 0);
 
-            var loadout = CreateSO<StartingLoadout>($"{DataDir}/Loadout_WW2_Destroyer.asset");
-            Configure(loadout, so =>
-            {
-                var entries = so.FindProperty("entries");
-                var list = new (ModuleDefinition def, int x, int z, int rot)[]
-                {
-                    (defBridge, -1, 0, 0), (defGun, 2, 0, 0), (defTorpedo, -2, 0, 0), (defAa, -3, 0, 2), (defGun, -4, 0, 2),
-                };
-                entries.arraySize = list.Length;
-                for (int i = 0; i < list.Length; i++)
-                {
-                    var e = entries.GetArrayElementAtIndex(i);
-                    e.FindPropertyRelative("Module").objectReferenceValue = list[i].def;
-                    e.FindPropertyRelative("Origin").FindPropertyRelative("X").intValue = list[i].x;
-                    e.FindPropertyRelative("Origin").FindPropertyRelative("Z").intValue = list[i].z;
-                    e.FindPropertyRelative("RotationSteps").intValue = list[i].rot;
-                }
-            });
+            // --- 함종(패치 C1, 2026-10-18): 실제 이동·방호·격자·탑재 예산. 구축함은 B 시험 전투 값 그대로(기준), 순양함은 느리고 무겁고 단단하다.
+            //     톤수: 함교 3 · 양용포 2 · 현측 어뢰 2 · 4연장 대공포 1
+            var hullDestroyer = Hull("Hull_WW2_Destroyer", maxSpeed: 15.4333f, turn: 40f, accel: 7.7f, decel: 5.4f, response: 0.9f,
+                hp: 100f, armor: 0f, halfLength: 5, halfBeam: 1, budget: 14f);
+            var hullCruiser = Hull("Hull_WW2_Cruiser", maxSpeed: 13.4f, turn: 30f, accel: 5.8f, decel: 4.2f, response: 1.25f,
+                hp: 170f, armor: 0.1f, halfLength: 7, halfBeam: 2, budget: 26f);
+
+            var loadout = Loadout("Loadout_WW2_Destroyer",
+                (defBridge, -1, 0, 0), (defGun, 2, 0, 0), (defTorpedo, -2, 0, 0), (defAa, -3, 0, 2), (defGun, -4, 0, 2));
+            // 순양함: 함수 양용포 2 · 함미 양용포 2 · 함교 양옆 대공포 2 · 좌현 현측 어뢰 1 (15 / 26t)
+            var loadoutCruiser = Loadout("Loadout_WW2_Cruiser",
+                (defBridge, -1, 0, 0), (defGun, 2, 0, 0), (defGun, 3, 0, 0), (defGun, -2, 0, 2), (defGun, -3, 0, 2),
+                (defAa, 0, 1, 0), (defAa, 0, -1, 0), (defTorpedo, -2, -1, 0));
 
             var concept = CreateSO<StartingShipConcept>($"{DataDir}/ShipConcept_WW2_Destroyer.asset");
             Configure(concept, so =>
@@ -166,6 +161,23 @@ namespace Game.EditorTools
                 Set(so, "bridgeDefinition", defBridge);
                 Set(so, "startSummary", "양용포 2 · 4연장 대공포 1 · 현측 어뢰 4연장 1 · 호위함 없음");
                 Set(so, "initialEscortCount", 0);
+                Set(so, "hullProfile", hullDestroyer);
+            });
+
+            var conceptCruiser = CreateSO<StartingShipConcept>($"{DataDir}/ShipConcept_WW2_Cruiser.asset");
+            Configure(conceptCruiser, so =>
+            {
+                Set(so, "id", "ww2_hull_cruiser");
+                Set(so, "title", "순양함 (WWII 시험)");
+                Set(so, "description", "WWII 기술의 순양함. 양용포 4문과 대공포 2문으로 포격·방공을 고루 맡는다. 구축함보다 느리고 무겁게 돌지만 선체가 단단하고 장갑이 있으며 더 크게 자란다.");
+                Set(so, "kind", (int)StartShipKind.Ww2Cruiser);
+                Set(so, "color", new Color(0.78f, 0.86f, 1f));
+                Set(so, "startLoadout", loadoutCruiser);
+                Set(so, "expandedLoadout", loadoutCruiser);
+                Set(so, "bridgeDefinition", defBridge);
+                Set(so, "startSummary", "양용포 4 · 4연장 대공포 2 · 현측 어뢰 4연장 1 · 호위함 없음");
+                Set(so, "initialEscortCount", 0);
+                Set(so, "hullProfile", hullCruiser);
             });
 
             var waves = CreateSO<RoundSet>($"{DataDir}/RoundSet_WW2_Test.asset");
@@ -210,10 +222,10 @@ namespace Game.EditorTools
             {
                 Set(so, "id", "ww2_v1");
                 Set(so, "schemaVersion", 1);
-                Set(so, "contentVersion", 4);   // 2026-10-17: 어뢰정 · 편대 · 웨이브 강화 → Codex 모델 v30 · 2026-10-18: v31(어뢰정 모델·선체·뇌격기 변형)
+                Set(so, "contentVersion", 5);   // 2026-10-17: 어뢰정 · 편대 · 웨이브 강화 → Codex 모델 v30 · 2026-10-18: v31(어뢰정 모델·선체·뇌격기 변형) → C1 함종(순양함·톤수)
                 Set(so, "title", "WWII 시험 전투");
                 Set(so, "idPrefix", "ww2_");
-                SetArray(so, "hulls", concept);
+                SetArray(so, "hulls", concept, conceptCruiser);
                 SetArray(so, "modules", defBridge, defGun, defAa, defTorpedo);
                 SetArray(so, "enemies", eFast, eGunboat, eTorpBoat, eTorpBomber, eDiveBomber, eBoss);
                 SetArray(so, "stages", waves);
@@ -249,7 +261,7 @@ namespace Game.EditorTools
             => new() { SmallSurface = small, MediumSurface = medium, LargeSurface = large, Boss = boss, Submarine = sub, Drone = drone, Air = air, Missile = missile };
 
         private static ModuleDefinition ModuleDef(string id, string name, string description, ModuleType type, int width, int height, bool canRotate,
-            PlacementZone zone, ModuleHeight heightClass, float hp, Rarity rarity, float weight, GameObject prefab, Action<ModuleStatsBox> stats, TargetEfficiency eff)
+            PlacementZone zone, ModuleHeight heightClass, float hp, Rarity rarity, float weight, float tonnage, GameObject prefab, Action<ModuleStatsBox> stats, TargetEfficiency eff)
         {
             var def = CreateSO<ModuleDefinition>($"{DataDir}/{id}.asset");
             var box = new ModuleStatsBox();
@@ -269,6 +281,7 @@ namespace Game.EditorTools
                 Set(so, "maxHp", hp);
                 Set(so, "rarity", (int)rarity);
                 Set(so, "weight", weight);
+                Set(so, "tonnage", tonnage);
                 Set(so, "prefab", prefab);
                 box.Write(so);
                 Set(so, "targetEfficiency.SmallSurface", eff.SmallSurface);
@@ -281,6 +294,45 @@ namespace Game.EditorTools
                 Set(so, "targetEfficiency.Missile", eff.Missile);
             });
             return def;
+        }
+
+        private static HullProfile Hull(string name, float maxSpeed, float turn, float accel, float decel, float response,
+            float hp, float armor, int halfLength, int halfBeam, float budget)
+        {
+            var hull = CreateSO<HullProfile>($"{DataDir}/{name}.asset");
+            Configure(hull, so =>
+            {
+                Set(so, "maxSpeed", maxSpeed);
+                Set(so, "turnRate", turn);
+                Set(so, "acceleration", accel);
+                Set(so, "deceleration", decel);
+                Set(so, "turnResponseTime", response);
+                Set(so, "hullHp", hp);
+                Set(so, "armor", armor);
+                Set(so, "halfLength", halfLength);
+                Set(so, "halfBeam", halfBeam);
+                Set(so, "tonnageBudget", budget);
+            });
+            return hull;
+        }
+
+        private static StartingLoadout Loadout(string name, params (ModuleDefinition def, int x, int z, int rot)[] list)
+        {
+            var loadout = CreateSO<StartingLoadout>($"{DataDir}/{name}.asset");
+            Configure(loadout, so =>
+            {
+                var entries = so.FindProperty("entries");
+                entries.arraySize = list.Length;
+                for (int i = 0; i < list.Length; i++)
+                {
+                    var e = entries.GetArrayElementAtIndex(i);
+                    e.FindPropertyRelative("Module").objectReferenceValue = list[i].def;
+                    e.FindPropertyRelative("Origin").FindPropertyRelative("X").intValue = list[i].x;
+                    e.FindPropertyRelative("Origin").FindPropertyRelative("Z").intValue = list[i].z;
+                    e.FindPropertyRelative("RotationSteps").intValue = list[i].rot;
+                }
+            });
+            return loadout;
         }
 
         /// <summary>ModuleStats를 이름으로 채우는 상자(쓰지 않은 칸은 0).</summary>

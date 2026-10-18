@@ -92,7 +92,7 @@ namespace Game.Ship
             if (concept == null || concept.StartLoadout == null || factory == null || grid == null)
             { reason = "시작 함선 또는 모듈 생성기 설정이 없습니다."; return false; }
             if (SelectedConcept == concept && _initialized) return true;
-            if (!ValidateLoadout(concept.StartLoadout, grid, out reason)) return false;
+            if (!ValidateLoadout(concept, grid, out reason)) return false;
 
             var previous = new List<ModuleInstance>(grid.Modules);
             foreach (var instance in previous)
@@ -103,17 +103,27 @@ namespace Game.Ship
             }
             loadout = concept.StartLoadout;
             SelectedConcept = concept;
+            ApplyHull(concept, grid, ship);
             InstallLoadout();
             return true;
         }
 
-        private static bool ValidateLoadout(StartingLoadout candidate, ShipGrid target, out string reason)
+        /// <summary>함종 수치(격자 크기·탑재 예산·속력·선회·선체·장갑)를 적용한다. 현대 함정은 HullProfile이 없어 원래 값으로 돌아간다.</summary>
+        private static void ApplyHull(StartingShipConcept concept, ShipGrid grid, ShipController ship)
+        {
+            grid.ApplyHull(concept.HullProfile);
+            if (ship != null) ship.ApplyHull(concept.HullProfile);
+        }
+
+        private static bool ValidateLoadout(StartingShipConcept concept, ShipGrid target, out string reason)
         {
             reason = null;
+            var candidate = concept.StartLoadout;
             var probeGo = new GameObject("Starting loadout validation") { hideFlags = HideFlags.HideAndDontSave };
             var probe = probeGo.AddComponent<ShipGrid>();
             // ShipGrid has only serialized extent/spacing settings; readonly occupancy is never copied.
             JsonUtility.FromJsonOverwrite(JsonUtility.ToJson(target), probe);
+            probe.ApplyHull(concept.HullProfile);
             try
             {
                 if (candidate.Entries.Count == 0) { reason = "시작 배치가 비어 있습니다."; return false; }

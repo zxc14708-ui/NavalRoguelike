@@ -208,7 +208,7 @@ namespace Game.Ship
             float h = heading * Mathf.Deg2Rad;
             Vector3 right = new(Mathf.Cos(h), 0f, -Mathf.Sin(h));
             float side = Vector3.Dot(to, right) >= 0f ? 1f : -1f;
-            float turnRate = _ship.Config != null ? _ship.Config.BaseTurnRateDegPerSec : 20f;
+            float turnRate = _ship.BaseTurnRate;
             float radius = Mathf.Abs(speed) / Mathf.Max(0.05f, turnRate * Mathf.Deg2Rad) * 1.15f;
             Vector3 center = pos + right * (side * radius);
             if (Vector3.Distance(target, center) < radius && Mathf.Abs(Mathf.DeltaAngle(heading, Heading(to))) > 20f)
@@ -231,7 +231,7 @@ namespace Game.Ship
             float off = Mathf.Abs(Mathf.DeltaAngle(heading, Heading(to)));
             if (off < 60f) leg.Approached = true;
             if (leg.Approached && off > 90f) return true;
-            float turnRate = _ship.Config != null ? _ship.Config.BaseTurnRateDegPerSec : 20f;
+            float turnRate = _ship.BaseTurnRate;
             float circle = 360f / Mathf.Max(1f, turnRate);   // 타 끝까지 한 바퀴 도는 데 걸리는 시간
             return leg.Time > circle * 1.3f + 4f && dist < Mathf.Abs(speed) / Mathf.Max(0.05f, turnRate * Mathf.Deg2Rad) * 2.2f;
         }
