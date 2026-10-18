@@ -92,3 +92,35 @@ v30(`ArtSource/WWII_ScaleReview_v30`) 14종을 모두 게임에 적용했다(`Na
 - **어뢰정**(`ww2_enemy_torpedo_boat`, 2차 조정에서 추가): WWII 모델이 없어 현대 경어뢰정 모델을 쓰고 있다. 소형 포함보다 조금 길고, 양현 고정 어뢰관 2기가 위에서 보이게. 소켓은 `ModelPivot`(원점 = 설계 수면선), `TurretPivot/ElevationPivot/Muzzle`(선수 기관총), `LaunchPoint_01/02`(좌·우 어뢰관 앞끝).
 - **선체**: 플레이어 구축함 선체는 블록 배치로 자동 생성(어두운 상자)이라 Codex 블록과 질감 차이가 크다. 블록 아래에 깔릴 "WWII 갑판 판재·현측 띠" 질감 또는 선체 생성 규칙 제안이 있으면 좋다(코드 쪽 작업 포함).
 - 뇌격기 편대 3기가 겹쳐 보이지 않게 기체마다 꼬리 번호·띠 색 변형(선택).
+
+## 6. WWII 패치 C — 대구경 주포 · 전함/순양함 함교 · 대잠·지원 블록 (2026-10-18 요청)
+
+C1(함종 수치·탑재 예산·순양함)을 적용했다. 다음 단계에서 쓸 모델을 미리 부탁한다. 코드는 Claude가 회색 상자로 먼저 짓고, 모델이 오면 바꾼다.
+규격은 0장과 v30(`ArtSource/WWII_ScaleReview_v30`)을 따른다: 한 칸 2m(받침 약 1.7m), 앞 = Blender +Y, 위 = +Z, FBX_SCALE_NONE, 재질은 WW2 팔레트 이름(`WW2 Hull`·`WW2 Deck`·`WW2 Gun`·`WW2 Dark` 등), 움직이는 부품 단위로 메시 병합, 블록 원점 = 블록 바닥 중심.
+**주의(2026-10-18 버그)**: 선회하는 노드(`TurretPivot`·`TubeMount` 등)는 회전 0인 빈 물체로 두고, 메시는 그 아래 자식으로. 게임은 이제 선체 위 축으로 돌리므로 노드 로컬 축은 상관없지만, 피벗 위치는 선회 중심에 정확히 둘 것.
+
+### 6-1. 먼저(C2+C3a): 대구경 주포 · 함교 2종
+
+| 파일 | 블록 크기 | 원하는 모습 | 필수 소켓 |
+|---|---|---|---|
+| `MOD_Ww2HeavyTurret` | **2×2칸**(4×4m) | 연장 대구경 주포탑. 양용포(1칸)보다 확실히 크고 둔중하게 — 원형 바벳 위 각진 포탑, 굵고 긴 포신 2문(포구까지 약 5m), 포탑 지붕 측거의. 전함·순양함 주포 | `TurretPivot`(바벳 중심) / `ElevationPivot` / `Muzzle_01`·`Muzzle_02` / `Muzzle`(두 포구 가운데) |
+| `MOD_Ww2HeavyTurret_Triple`(선택) | 2×2칸 | 같은 포탑의 3연장 | 위 + `Muzzle_03` |
+| `MOD_Ww2BridgeCruiser` | **3×1칸** | 순양함 함교: 구축함 함교보다 높은 탑형 함교 + 사격지휘소 + 연돌 2개 | `RadarPivot` · `BridgeGunMount` · `LaunchPoint_01`(연막) |
+| `MOD_Ww2BridgeBattleship` | **3×2칸** | 전함 함교: 높은 탑형 상부 구조(층층이) · 큰 연돌 · 삼각 마스트. 위에서 봐도 "전함 중심부"로 읽히게 | `RadarPivot` · `BridgeGunMount` · `LaunchPoint_01` |
+
+비교 이미지: 구축함(v30 블록 조립)·순양함(양용포 4문)·전함 시안(주포 3기 + 전함 함교)을 나란히, 전투 카메라 시점과 비스듬히.
+
+### 6-2. 다음(C3b·C3c): 대잠 · 기뢰 · 지원
+
+| 파일 | 블록 | 원하는 모습 | 필수 소켓 |
+|---|---|---|---|
+| `MOD_Ww2DepthChargeRack` | 1×1 · 선미 | 선미 투하궤(경사 레일 위 폭뢰 6발) | `DropPoint`(레일 끝) |
+| `MOD_Ww2DepthChargeThrower` | 1×1 | 현측 투사기(K포 형) 2기 · 예비 폭뢰 받침 | `LaunchPoint_P`·`LaunchPoint_S`(좌·우 발사구) |
+| `PRJ_Ww2DepthCharge` | 탄 | 드럼형 폭뢰(지름 약 0.45m) | `ImpactPoint`(앞) |
+| `MOD_Ww2MineRail` | 1×1 · 선미 | 기뢰 레일 + 구형 기뢰 4발 | `DropPoint` |
+| `MOD_Ww2FireControl` | 1×1 · 높음 | 사격지휘소: 측거의 달린 회전 지휘탑 | `RadarPivot`(회전부) |
+| `MOD_Ww2Magazine` | 1×1 · 낮음 | 장갑 탄약고 해치·환기구(낮고 단단하게) | 없음 |
+| `MOD_Ww2DamageControl` | 1×1 · 낮음 | 손상통제반: 펌프·호스 릴·공구함 | 없음 |
+| `ENE_Ww2Submarine` | 적 | WWII 잠수함(수상 항해·잠항 모두 — 함교탑·갑판포) 길이 약 10m | `ModelPivot`(원점 = 설계 수면선) · `TurretPivot/ElevationPivot/Muzzle`(갑판포) · `TorpedoLaunchPoint_01/02`(선수) |
+
+결과물 위치: `ArtSource/WWII_RequestPack_v32/`(blend · build/validate 스크립트 · manifest · 미리보기) + `Models/*.fbx`. 게임 Assets·프리팹·코드는 건드리지 않는다.
