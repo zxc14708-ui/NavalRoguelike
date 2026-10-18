@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.RulesetDefinition
   id: ww2_v1
   schemaVersion: 1
-  contentVersion: 3
+  contentVersion: 4
   title: "WWII \uC2DC\uD5D8 \uC804\uD22C"
   idPrefix: ww2_
   hulls:
@@ -36,3 +36,7 @@ MonoBehaviour:
   allowedStats: 000000000100000003000000050000000600000008000000
   allowsEscorts: 0
   saveFile: naval_run_ww2_v1.json
+  hullDeckPlate: {fileID: 909936280966304744, guid: 927dd4bee700cc443aed8aee95ee8118, type: 3}
+  hullSideSkirt: {fileID: 2107116281533270152, guid: 629035bff4402b74db5815ba9f4c7ae8, type: 3}
+  hullBowDeck: {fileID: 2100000, guid: 1392b593cb9a6904aaf7650aad2a4061, type: 2}
+  hullBowSide: {fileID: 2100000, guid: f83ed44a8daddb04481a7353b89ea014, type: 2}

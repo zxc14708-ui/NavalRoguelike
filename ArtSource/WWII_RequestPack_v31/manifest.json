@@ -1,0 +1,291 @@
+[
+  {
+    "asset": "ENE_Ww2TorpedoBoat",
+    "kind": "enemy",
+    "bounds": [
+      [
+        -0.972000002861023,
+        -3.422499895095825,
+        -0.3499999940395355
+      ],
+      [
+        0.972000002861023,
+        3.4000000953674316,
+        1.5907177925109863
+      ]
+    ],
+    "triangles": 1530,
+    "meshes": 3,
+    "materials": [
+      "WW2 Dark",
+      "WW2 Enemy",
+      "WW2 Enemy Deck",
+      "WW2 Enemy Red",
+      "WW2 Glass",
+      "WW2 Gun",
+      "WW2 Hull",
+      "WW2 White"
+    ],
+    "sockets": [
+      "ENE_Ww2TorpedoBoat",
+      "ModelPivot",
+      "LaunchPoint_01",
+      "LaunchPoint_02",
+      "TorpedoLaunchPoint_01",
+      "TorpedoLaunchPoint_02",
+      "TurretPivot",
+      "ElevationPivot",
+      "Muzzle"
+    ],
+    "notes": {
+      "content_id": "ww2_enemy_torpedo_boat",
+      "draft_m": 0.35,
+      "reference": "NHHC U.S. Navy PT Boats; fictional compact 2-tube configuration"
+    }
+  },
+  {
+    "asset": "HULL_Ww2DeckPlate_Steel",
+    "kind": "modular_hull",
+    "bounds": [
+      [
+        -1.0,
+        -1.0,
+        -0.07999999821186066
+      ],
+      [
+        1.0,
+        1.0,
+        0.09350000321865082
+      ]
+    ],
+    "triangles": 180,
+    "meshes": 1,
+    "materials": [
+      "WW2 Deck",
+      "WW2 Gun"
+    ],
+    "sockets": [
+      "HULL_Ww2DeckPlate_Steel"
+    ],
+    "notes": {
+      "cell_m": 2,
+      "surface_z": 0.09,
+      "use": "painted steel destroyer deck"
+    }
+  },
+  {
+    "asset": "HULL_Ww2DeckPlate_Timber",
+    "kind": "modular_hull",
+    "bounds": [
+      [
+        -1.0,
+        -1.0,
+        -0.07999999821186066
+      ],
+      [
+        1.0,
+        1.0,
+        0.09000000357627869
+      ]
+    ],
+    "triangles": 252,
+    "meshes": 1,
+    "materials": [
+      "WW2 Deck",
+      "WW2 Enemy Deck",
+      "WW2 Gun"
+    ],
+    "sockets": [
+      "HULL_Ww2DeckPlate_Timber"
+    ],
+    "notes": {
+      "cell_m": 2,
+      "surface_z": 0.09,
+      "use": "optional timber deck for boats/cargo areas"
+    }
+  },
+  {
+    "asset": "HULL_Ww2SideSkirt",
+    "kind": "modular_hull",
+    "bounds": [
+      [
+        -1.0,
+        -0.30000001192092896,
+        -1.5199999809265137
+      ],
+      [
+        1.0,
+        0.08150000125169754,
+        0.07999999821186066
+      ]
+    ],
+    "triangles": 36,
+    "meshes": 1,
+    "materials": [
+      "WW2 Dark",
+      "WW2 Gun",
+      "WW2 Hull"
+    ],
+    "sockets": [
+      "HULL_Ww2SideSkirt"
+    ],
+    "notes": {
+      "cell_m": 2,
+      "outward_axis": "Blender +Y",
+      "top_z": 0.08,
+      "bottom_z": -1.52
+    }
+  },
+  {
+    "asset": "ENE_Ww2TorpedoBomber_01",
+    "kind": "aircraft_variant",
+    "bounds": [
+      [
+        -1.8011177778244019,
+        -1.2999999523162842,
+        -0.34299999475479126
+      ],
+      [
+        1.8011177778244019,
+        1.4119999408721924,
+        0.4399999976158142
+      ]
+    ],
+    "triangles": 1460,
+    "meshes": 2,
+    "materials": [
+      "WW2 Air Dark",
+      "WW2 Dark",
+      "WW2 Glass",
+      "WW2 Gun",
+      "WW2 Olive",
+      "WW2 Orange",
+      "WW2 White"
+    ],
+    "sockets": [
+      "ENE_Ww2TorpedoBomber_01",
+      "Propeller",
+      "TorpedoDropPoint"
+    ],
+    "notes": {
+      "number": "01",
+      "band_material": "WW2 White"
+    }
+  },
+  {
+    "asset": "ENE_Ww2TorpedoBomber_02",
+    "kind": "aircraft_variant",
+    "bounds": [
+      [
+        -1.8011177778244019,
+        -1.2999999523162842,
+        -0.34299999475479126
+      ],
+      [
+        1.8011177778244019,
+        1.4119999408721924,
+        0.4399999976158142
+      ]
+    ],
+    "triangles": 1476,
+    "meshes": 2,
+    "materials": [
+      "WW2 Air Dark",
+      "WW2 Dark",
+      "WW2 Glass",
+      "WW2 Gun",
+      "WW2 Olive",
+      "WW2 Orange",
+      "WW2 White"
+    ],
+    "sockets": [
+      "ENE_Ww2TorpedoBomber_02",
+      "Propeller",
+      "TorpedoDropPoint"
+    ],
+    "notes": {
+      "number": "02",
+      "band_material": "WW2 Orange"
+    }
+  },
+  {
+    "asset": "ENE_Ww2TorpedoBomber_03",
+    "kind": "aircraft_variant",
+    "bounds": [
+      [
+        -1.8011177778244019,
+        -1.2999999523162842,
+        -0.34299999475479126
+      ],
+      [
+        1.8011177778244019,
+        1.4119999408721924,
+        0.4399999976158142
+      ]
+    ],
+    "triangles": 1482,
+    "meshes": 2,
+    "materials": [
+      "WW2 Air Dark",
+      "WW2 Dark",
+      "WW2 Glass",
+      "WW2 Gun",
+      "WW2 Hull",
+      "WW2 Olive",
+      "WW2 Orange",
+      "WW2 White"
+    ],
+    "sockets": [
+      "ENE_Ww2TorpedoBomber_03",
+      "Propeller",
+      "TorpedoDropPoint"
+    ],
+    "notes": {
+      "number": "03",
+      "band_material": "WW2 Hull"
+    }
+  },
+  {
+    "asset": "ENE_CoastalBattery_Art",
+    "kind": "repair",
+    "bounds": [
+      [
+        -2.7750000953674316,
+        -2.7750000953674316,
+        -1.899999976158142
+      ],
+      [
+        2.7750000953674316,
+        3.069999933242798,
+        2.309999942779541
+      ]
+    ],
+    "triangles": 1892,
+    "meshes": 3,
+    "materials": [
+      "ENV_Concrete",
+      "ENV_RockStrata",
+      "WW2 Dark",
+      "WW2 Enemy Red",
+      "WW2 Glass",
+      "WW2 Gun",
+      "WW2 Hull"
+    ],
+    "sockets": [
+      "ENE_CoastalBattery_Art",
+      "CutStoneFoundation",
+      "ObserverRoof",
+      "TurretPivot",
+      "ElevationPivot",
+      "Muzzle"
+    ],
+    "notes": {
+      "source": "CoastalBatteryAngular_v27",
+      "old_barrel_end": 2.4600000381469727,
+      "new_barrel_end": 2.74,
+      "mouth_outer_start": 2.71,
+      "overlap_m": 0.03,
+      "footing_bottom_z": -1.9
+    }
+  }
+]

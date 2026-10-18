@@ -86,6 +86,8 @@
 
 ## 5. WWII 시험 전투 (2026-10-17 — v29/v30 적용 후)
 
+> **2026-10-18 적용 완료**(`ArtSource/WWII_RequestPack_v31`): 어뢰정 `ENE_Ww2TorpedoBoat` · 갑판판(강철)·현측 띠 → WWII 규칙 집합의 선체 모양 · 뇌격기 꼬리 번호 01~03(편대 자리마다) · 해안포 수정본(현대 공용, 바위 받침 제거). 목재판은 임포트만 하고 아직 쓰지 않는다. 연결 내용은 `ARCHITECTURE.md` "Codex 모델 v31".
+
 v30(`ArtSource/WWII_ScaleReview_v30`) 14종을 모두 게임에 적용했다(`NavalWw2Builder.Art`). 다음 시안에서 부탁할 것:
 - **어뢰정**(`ww2_enemy_torpedo_boat`, 2차 조정에서 추가): WWII 모델이 없어 현대 경어뢰정 모델을 쓰고 있다. 소형 포함보다 조금 길고, 양현 고정 어뢰관 2기가 위에서 보이게. 소켓은 `ModelPivot`(원점 = 설계 수면선), `TurretPivot/ElevationPivot/Muzzle`(선수 기관총), `LaunchPoint_01/02`(좌·우 어뢰관 앞끝).
 - **선체**: 플레이어 구축함 선체는 블록 배치로 자동 생성(어두운 상자)이라 Codex 블록과 질감 차이가 크다. 블록 아래에 깔릴 "WWII 갑판 판재·현측 띠" 질감 또는 선체 생성 규칙 제안이 있으면 좋다(코드 쪽 작업 포함).

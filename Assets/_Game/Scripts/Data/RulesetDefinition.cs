@@ -38,6 +38,14 @@ namespace Game.Data
         [Tooltip("중단·재개 저장 파일 이름(패치 B는 한 판짜리라 저장하지 않는다 — 자리만)")]
         [SerializeField] private string saveFile = "naval_run_ww2_v1.json";
 
+        [Header("Hull Look")]
+        [Tooltip("이 규칙 집합에서 ShipHullBuilder가 칸마다 까는 갑판판(2×2m, 윗면 +0.09). 비면 씬의 기본 조각")]
+        [SerializeField] private GameObject hullDeckPlate;
+        [Tooltip("트인 면에 세우는 현측 띠(원점 = 칸 외곽선, +Z = 바깥). 비면 씬의 기본 조각")]
+        [SerializeField] private GameObject hullSideSkirt;
+        [SerializeField] private Material hullBowDeck;
+        [SerializeField] private Material hullBowSide;
+
         public string Id => id;
         public int SchemaVersion => schemaVersion;
         public int ContentVersion => contentVersion;
@@ -50,6 +58,10 @@ namespace Game.Data
         public IReadOnlyList<RunStat> AllowedStats => allowedStats;
         public bool AllowsEscorts => allowsEscorts;
         public string SaveFile => saveFile;
+        public GameObject HullDeckPlate => hullDeckPlate;
+        public GameObject HullSideSkirt => hullSideSkirt;
+        public Material HullBowDeck => hullBowDeck;
+        public Material HullBowSide => hullBowSide;
 
         public bool Contains(StartingShipConcept concept) => concept != null && Array.IndexOf(hulls, concept) >= 0;
         public bool Contains(ModuleDefinition module) => module != null && Array.IndexOf(modules, module) >= 0;

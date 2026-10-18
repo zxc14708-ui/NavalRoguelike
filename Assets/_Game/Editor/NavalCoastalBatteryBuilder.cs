@@ -19,7 +19,7 @@ namespace Game.EditorTools
         private const string PrefabPath = Root + "/Prefabs/Enemies/ENE_CoastalBattery.prefab";
         private const string DefPath = Root + "/Resources/Enemies/ene_coastal_battery.asset";
         private const string MatDir = Root + "/Art/Models/Materials";
-        /// <summary>Codex 해안포대 모델(2026-10-13 v27 각형). 있으면 기본 도형 대신 이것을 쓴다(NavalCoastalSupplyArt가 넣는다).</summary>
+        /// <summary>Codex 해안포대 모델(2026-10-13 v27 각형 → 2026-10-18 v31 수정본). 있으면 기본 도형 대신 이것을 쓴다(NavalCoastalSupplyArt가 넣는다).</summary>
         public const string ModelPath = Root + "/Art/Models/Coastal/ENE_CoastalBattery_Art.fbx";
 
         [MenuItem("Naval/Enemies/Build Coastal Battery", priority = 60)]
@@ -75,15 +75,23 @@ namespace Game.EditorTools
                 var visual = new GameObject("Visual").transform;
                 visual.SetParent(root.transform, false);
 
-                // Codex 모델(v27): 진지 바닥(다듬은 돌 기초)을 수면(y −0.9) 바로 위 y −0.55에 두어 바다에서 솟은 요새처럼,
-                // 그 아래 바위 받침은 거의 물속(y −3 ~ −0.5) — 둥근 바위가 네모 진지 밑에 드러나 보이지 않게
+                // Codex 모델: 진지 바닥(다듬은 돌 기초, 모델 원점)을 수면(y −0.9) 바로 위 y −0.55에 두어 바다에서 솟은 요새처럼.
+                //   v31: 물속 기초(원점 아래 1.9m)가 모델에 들어 있다 — 원점 기준으로 놓고 바위 받침을 따로 만들지 않는다.
+                //   v27: 기초가 없어 바닥을 0에 맞추고 그 아래 바위 받침을 거의 물속(y −3 ~ −0.5)에 둔다 — 둥근 바위가 네모 진지 밑에 드러나 보이지 않게
                 var art = AssetDatabase.LoadAssetAtPath<GameObject>(ModelPath);
                 if (art != null)
                 {
                     col.center = new Vector3(0f, 0.75f, 0f);
-                    Part(visual, "Rock plinth", PrimitiveType.Cylinder, new Vector3(0f, -1.75f, 0f), new Vector3(5.9f, 1.25f, 5.9f), rock);
-                    var model = NavalPlayerAviationArt.Mount(art, visual, "ModelPivot", 1f, "ObserverRoof", "CutStoneFoundation", "Muzzle", "TurretPivot");
+                    var model = NavalPlayerAviationArt.Mount(art, visual, "ModelPivot", 1f, "ObserverRoof", "CutStoneFoundation", "Muzzle", "TurretPivot", groundAtZero: false);
+                    float bottom = MinY(visual, model);
+                    bool footing = bottom < -1f;
+                    if (!footing)
+                    {
+                        model.parent.localPosition += Vector3.up * -bottom;
+                        Part(visual, "Rock plinth", PrimitiveType.Cylinder, new Vector3(0f, -1.75f, 0f), new Vector3(5.9f, 1.25f, 5.9f), rock);
+                    }
                     model.parent.localPosition += Vector3.down * 0.55f;
+                    Debug.Log($"[Coastal Battery] 모델 바닥 {bottom:0.00}m → {(footing ? "물속 기초 포함(v31), 받침 없음" : "기초 없음(v27), 바위 받침")} · 모델 원점 y {model.parent.localPosition.y:0.00}");
                     var turretArt = NavalPlayerAviationArt.Deep(model, "TurretPivot");
                     var elevationArt = NavalPlayerAviationArt.Deep(model, "ElevationPivot");
                     var muzzleArt = NavalPlayerAviationArt.Deep(model, "Muzzle");
@@ -208,6 +216,23 @@ namespace Game.EditorTools
             var (newLo, newHi) = Span(tube);
             tube.position += fwd * (tubeLo - newLo);
             Debug.Log($"[Coastal Battery] 포신-포구 틈 {mouthLo - tubeHi:0.00}m를 메움(포신 {tubeHi - tubeLo:0.00} → {newHi - newLo:0.00}m)");
+        }
+
+        /// <summary>모델 메시의 가장 낮은 점(space 기준).</summary>
+        private static float MinY(Transform space, Transform model)
+        {
+            float min = float.MaxValue;
+            foreach (var mf in model.GetComponentsInChildren<MeshFilter>(true))
+            {
+                if (mf.sharedMesh == null) continue;
+                var b = mf.sharedMesh.bounds;
+                for (int i = 0; i < 8; i++)
+                {
+                    var c = b.center + Vector3.Scale(b.extents, new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1));
+                    min = Mathf.Min(min, space.InverseTransformPoint(mf.transform.TransformPoint(c)).y);
+                }
+            }
+            return min == float.MaxValue ? 0f : min;
         }
 
         private static Transform Part(Transform parent, string name, PrimitiveType shape, Vector3 position, Vector3 scale, Material mat)

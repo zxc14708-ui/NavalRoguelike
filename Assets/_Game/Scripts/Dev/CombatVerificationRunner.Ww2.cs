@@ -80,6 +80,25 @@ namespace Game.Dev
             yield return ScreenShot("ww2_start");
             yield return CloseShot("ww2_destroyer_close", ship.transform, 15f);   // Codex 모델 v30 조립 모습
 
+            // 선체 모양(Codex v31): WWII 판에서는 규칙 집합의 갑판판·현측 띠·뱃머리 재질
+            {
+                var hullRoot = ship.transform.Find("Model/HullRoot");
+                int plates = 0, skirts = 0, oldPieces = 0;
+                string bowMats = "";
+                if (hullRoot != null)
+                    foreach (Transform t in hullRoot)
+                    {
+                        if (t.name.StartsWith("HULL_Ww2DeckPlate")) plates++;
+                        else if (t.name.StartsWith("HULL_Ww2SideSkirt")) skirts++;
+                        else if (t.name.StartsWith("HULL_DeckPlate") || t.name.StartsWith("HULL_SideSkirt")) oldPieces++;
+                        else if (t.name == "Bow" && t.TryGetComponent<MeshRenderer>(out var br)) bowMats = string.Join("·", br.sharedMaterials.Select(m => m != null ? m.name : "null"));
+                    }
+                int cells = ship.Grid.OccupiedCells.Count;
+                _report.AppendLine($"- WWII 선체: 칸 {cells} · 갑판판 {plates} · 현측 띠 {skirts} · 현대 조각 {oldPieces} · 뱃머리 재질 {bowMats} (규칙 집합 조각 {Yes(def.HullDeckPlate != null && def.HullSideSkirt != null)})");
+                if (def.HullDeckPlate == null || def.HullSideSkirt == null) Fail("규칙 집합에 WWII 선체 조각이 없음");
+                else if (plates != cells || skirts == 0 || oldPieces > 0 || !bowMats.Contains("WW2 Deck")) Fail("WWII 판의 선체가 WWII 갑판판·현측 띠·뱃머리 재질로 만들어지지 않음");
+            }
+
             // 이제부터는 규칙 검사: 웨이브를 멈추고 함선을 튼튼하게
             director.enabled = false;
             EnemySpawner.Instance?.ClearAll();
@@ -430,6 +449,16 @@ namespace Game.Dev
                 if (committed.Count != 3) Fail("뇌격기 편대가 함께 확정하지 않음");
                 if (meetSpread < 10f) Fail("뇌격기 편대 어뢰가 부채로 벌어지지 않음");
                 if (dropped < 3) Fail("뇌격기 편대가 어뢰 3발을 떨어뜨리지 않음");
+                // 겉모습(Codex v31): 편대 자리마다 꼬리 번호가 다른 모델 하나만 켜짐
+                var shown = flight.Select(b =>
+                {
+                    var vs = Get<GameObject[]>(b, "variants");
+                    if (vs == null || vs.Length == 0) return "없음";
+                    var on = vs.Where(v => v != null && v.activeSelf).ToList();
+                    return on.Count == 1 ? on[0].name : $"켜짐{on.Count}";
+                }).ToList();
+                _report.AppendLine($"- 뇌격기 편대 겉모습: {string.Join(", ", shown)}");
+                if (shown.Distinct().Count() != flight.Count || shown.Any(x => x == "없음" || x.StartsWith("켜짐"))) Fail("뇌격기 편대 3기가 서로 다른 꼬리 번호 모델로 보이지 않음");
                 yield return new WaitForSeconds(4f);
                 CombatDevTools.ClearBattlefield();
             }
@@ -451,6 +480,26 @@ namespace Game.Dev
             var torpBoat = def.Enemies.FirstOrDefault(e => e.Id == "ww2_enemy_torpedo_boat");
             _report.AppendLine($"- 데이터: 순양함 체력 {bossDef.MaxHp:0}(900 +20%) · 뇌격기 편대 {torpedoBomber.GroupSize} · 급강하 편대 {diveBomber.GroupSize} · 어뢰정 {Yes(torpBoat != null)}");
             if (!Mathf.Approximately(bossDef.MaxHp, 1080f) || torpedoBomber.GroupSize != 3 || diveBomber.GroupSize != 2 || torpBoat == null) Fail("플레이 피드백 데이터(보스 체력·편대·어뢰정)가 반영되지 않음");
+
+            // 어뢰정 모델(Codex v31): WWII 전용 프리팹 · 양현 고정 어뢰관 2기가 선수 쪽 · 선수 기관총
+            if (torpBoat != null)
+            {
+                fwd = ship.transform.forward; fwd.y = 0f; fwd.Normalize();
+                var tb = EnemySpawner.Instance.SpawnAt(torpBoat, ship.transform.position + fwd * 22f, Quaternion.LookRotation(-fwd)) as TorpedoBoat;
+                yield return new WaitForSeconds(0.5f);
+                if (tb != null) yield return CloseShot("ww2_torpedo_boat_close", tb.transform, 9f);
+                var tbTubes = tb != null ? Get<Transform[]>(tb, "launchPoints") : null;
+                int forward = tbTubes?.Count(t => t != null && tb.transform.InverseTransformPoint(t.position).z > 0.5f) ?? 0;
+                int port = tbTubes?.Count(t => t != null && tb.transform.InverseTransformPoint(t.position).x < -0.3f) ?? 0;
+                int stbd = tbTubes?.Count(t => t != null && tb.transform.InverseTransformPoint(t.position).x > 0.3f) ?? 0;
+                var gunTurret = tb != null ? tb.GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == "TurretPivot") : null;
+                string prefabName = torpBoat.Prefab != null ? torpBoat.Prefab.name : "없음";
+                _report.AppendLine($"- 어뢰정 모델: 프리팹 {prefabName} · 어뢰관 {tbTubes?.Length ?? 0}(앞쪽 {forward} · 좌 {port} · 우 {stbd}) · 선수 기관총 {Yes(gunTurret != null)}");
+                if (prefabName != "ENE_Ww2TorpedoBoat" || tbTubes == null || tbTubes.Length != 2 || forward != 2 || port != 1 || stbd != 1 || gunTurret == null)
+                    Fail("WWII 어뢰정이 Codex 모델·양현 어뢰관 2기·선수 기관총으로 연결되지 않음");
+                CombatDevTools.ClearBattlefield();
+                yield return new WaitForSeconds(1f);
+            }
 
             // 무장 켠 채: 양용포가 진입 기체로 돌리는가
             foreach (var b in off) if (b != null) b.enabled = true;

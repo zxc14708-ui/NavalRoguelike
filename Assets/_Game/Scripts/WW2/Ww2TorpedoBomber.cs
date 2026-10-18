@@ -17,6 +17,7 @@ namespace Game.WW2
     /// 편대장이 확정하면 같은 순간 함께 확정해 <b>어뢰 부채</b>를 만든다 — 편대장은 예상 위치, 두 번째는 그 앞(속력을 올리면 있을 곳),
     /// 세 번째는 그 뒤(속력을 줄이면 있을 곳)를 노린다. 속력만 바꿔서는 다 피하기 어렵고 어뢰와 나란히 돌아야 한다.
     /// 편대장이 떨어지면 남은 기체는 각자 공격한다.
+    /// 겉모습(Codex v31): 꼬리 번호·식별 띠가 다른 모델 3종을 편대 자리 순서로 보여 준다(편대장·혼자 = 01, 2번기 02, 3번기 03).
     /// </summary>
     public class Ww2TorpedoBomber : Ww2StrikeAircraft, IFormationMember
     {
@@ -38,6 +39,8 @@ namespace Game.WW2
         [SerializeField] private float formationSpacing = 7f;
         [Tooltip("편대 어뢰 부채: 기체마다 노리는 곳을 기함 예상 침로를 따라 이만큼씩 앞뒤로 벌린다(m)")]
         [SerializeField] private float spreadAlongTrack = 10f;
+        [Tooltip("편대 자리별 겉모습(0 = 편대장·혼자). 하나만 켠다. 비면 그대로")]
+        [SerializeField] private GameObject[] variants;
 
         private float _side = 1f;
         private Vector3 _meet;
@@ -62,6 +65,7 @@ namespace Game.WW2
             _leader = null;
             _slot = 0;
             _wingmen.Clear();
+            ShowVariant(0);
             if (torpedoPrefab != null && torpedoPrefab.TryGetComponent<Torpedo>(out var t)) torpedoSpeed = t.Speed;
         }
 
@@ -71,7 +75,16 @@ namespace Game.WW2
             _leader = lead;
             _slot = slot;
             _side = lead._side;
+            ShowVariant(slot);
             if (!lead._wingmen.Contains(this)) lead._wingmen.Add(this);
+        }
+
+        private void ShowVariant(int slot)
+        {
+            if (variants == null || variants.Length == 0) return;
+            int pick = slot % variants.Length;
+            for (int i = 0; i < variants.Length; i++)
+                if (variants[i] != null) variants[i].SetActive(i == pick);
         }
 
         private float RunInDistance => RunInSpeed * runInTime + dropRange;

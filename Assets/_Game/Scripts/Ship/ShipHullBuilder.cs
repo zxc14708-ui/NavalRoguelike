@@ -19,6 +19,7 @@ namespace Game.Ship
     ///      (앞줄에 틈이나 계단이 있어도 하나의 뱃머리로 덮인다)
     ///   4. 껍질 가장자리에서 아래로 내려가며 안쪽으로 좁아지고 뒤로 물러나는 옆면을 세운다.
     /// 시각 전용이다 — 격자 칸도, 체력도, 충돌도 없고 사격각도 가리지 않는다.
+    /// 규칙 집합 정의(WWII 등)에 선체 조각·재질이 있으면 그 판에서는 그것을 쓴다(<see cref="Ruleset.Active"/>, 2026-10-18 Codex v31).
     /// </summary>
     public class ShipHullBuilder : MonoBehaviour
     {
@@ -65,12 +66,14 @@ namespace Game.Ship
         {
             GameEvents.ModuleInstalled += OnModuleChanged;
             GameEvents.ModuleRemoved += OnModuleChanged;
+            Ruleset.Changed += Rebuild;
         }
 
         private void OnDisable()
         {
             GameEvents.ModuleInstalled -= OnModuleChanged;
             GameEvents.ModuleRemoved -= OnModuleChanged;
+            Ruleset.Changed -= Rebuild;
         }
 
         private void OnDestroy()
@@ -81,6 +84,12 @@ namespace Game.Ship
         private void Start() => Rebuild();
 
         private void OnModuleChanged(ModuleInstance _) => Rebuild();
+
+        // 지금 규칙 집합의 선체 모양(없으면 씬에 연결된 기본 조각)
+        private GameObject DeckPlate => Ruleset.Active is { HullDeckPlate: { } p } ? p : deckPlatePrefab;
+        private GameObject SideSkirt => Ruleset.Active is { HullSideSkirt: { } p } ? p : sideSkirtPrefab;
+        private Material BowDeck => Ruleset.Active is { HullBowDeck: { } m } ? m : bowDeckMaterial;
+        private Material BowSide => Ruleset.Active is { HullBowSide: { } m } ? m : bowSideMaterial;
 
         /// <summary>선체를 통째로 다시 만든다. 배치가 바뀔 때만 불리므로 비용은 문제되지 않는다.</summary>
         public void Rebuild()
@@ -93,12 +102,14 @@ namespace Game.Ship
             _spawned.Clear();
 
             float cell = grid.CellSize;
+            var deckPlate = DeckPlate;
+            var sideSkirt = SideSkirt;
 
             foreach (var c in grid.OccupiedCells)
             {
                 Vector3 center = grid.CoordToLocal(c);
 
-                Spawn(deckPlatePrefab, center, Quaternion.identity);
+                Spawn(deckPlate, center, Quaternion.identity);
 
                 // 이웃이 없는 방향에는 뱃전을 세운다
                 foreach (var d in GridCoord.Neighbors)
@@ -109,7 +120,7 @@ namespace Game.Ship
                     var offset = new Vector3(d.Z * cell * 0.5f, 0f, d.X * cell * 0.5f);
                     var facing = Quaternion.LookRotation(new Vector3(d.Z, 0f, d.X), Vector3.up);
 
-                    Spawn(sideSkirtPrefab, center + offset, facing);
+                    Spawn(sideSkirt, center + offset, facing);
                 }
             }
 
@@ -292,7 +303,7 @@ namespace Game.Ship
             go.layer = hullRoot.gameObject.layer;   // 정비 화면 카메라에도 보이게
             go.transform.SetParent(hullRoot, false);
             go.GetComponent<MeshFilter>().sharedMesh = _bowMesh;
-            go.GetComponent<MeshRenderer>().sharedMaterials = new[] { bowDeckMaterial, bowSideMaterial };
+            go.GetComponent<MeshRenderer>().sharedMaterials = new[] { BowDeck, BowSide };
             _spawned.Add(go);
         }
 

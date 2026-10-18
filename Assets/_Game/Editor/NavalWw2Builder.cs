@@ -20,7 +20,8 @@ namespace Game.EditorTools
     ///     양용포탄·대공포탄·플레이어 직진 어뢰·급강하 폭탄. 기존 탄(76mm·기관포·적 어뢰·보스 포탄)을 복제해 고친다.
     ///   - Data/WW2: 블록 4·적 5·시작 배치·시작 함정(구축함)·시험 전투 웨이브. 모든 ID는 ww2_로 시작한다.
     ///   - Resources/Rulesets/ww2_v1: 규칙 집합 정의(현대 드래프트·사전은 이것을 읽지 않는다).
-    /// 고속정·포격함은 현대 프리팹(ENE_FastBoat·ENE_ArtilleryBoat)을 그대로 쓰고 데이터만 WWII ID로 따로 둔다.
+    /// 고속정·포격함·어뢰정은 현대 프리팹(ENE_FastBoat·ENE_ArtilleryBoat·ENE_TorpedoBoat)의 행동을 복제하고 Codex 모델이 있으면 겉모습만 바꾼다(NavalWw2Builder.Art).
+    /// 규칙 집합에는 WWII 선체 모양(갑판판·현측 띠·뱃머리 재질)도 담는다 — ShipHullBuilder가 WWII 판에서 쓴다.
     /// 배치 실행: -executeMethod Game.EditorTools.NavalWw2Builder.Run
     /// </summary>
     public static partial class NavalWw2Builder
@@ -79,6 +80,11 @@ namespace Game.EditorTools
             var quadAa = BuildQuadAa(aaRound);
             var torpedoMount = BuildTorpedoMount(playerTorpedo);
             var bridge = BuildBridge();
+            // 선체 모양(v31): 구축함은 도장 강철판(목재판은 소형정·화물용 대안이라 쓰지 않음)
+            var deckPlate = BuildHullPiece("HULL_Ww2DeckPlate_Steel", false);
+            var sideSkirt = BuildHullPiece("HULL_Ww2SideSkirt", true);
+            var bowDeck = deckPlate != null ? AssetDatabase.LoadAssetAtPath<Material>($"{ArtMaterialDir}/WW2 Deck.mat") : null;
+            var bowSide = sideSkirt != null ? AssetDatabase.LoadAssetAtPath<Material>($"{ArtMaterialDir}/WW2 Hull.mat") : null;
 
             // --- 적
             var torpedoBomber = BuildTorpedoBomber(airTorpedo);
@@ -123,7 +129,7 @@ namespace Game.EditorTools
                 TargetCategory.Air, EnemyRank.Normal, 2, 6, hp: 12f, speed: 22f, turn: 90f, range: 0f, damage: 30f, cooldown: 0f, xp: 3, group: 3);
             var eDiveBomber = EnemyDef("ww2_enemy_dive_bomber", "급강하폭격기", TargetKind.Aircraft, diveBomber,
                 TargetCategory.Air, EnemyRank.Normal, 2, 4, hp: 11f, speed: 24f, turn: 110f, range: 0f, damage: 22f, cooldown: 0f, xp: 3, group: 2);
-            var eTorpBoat = EnemyDef("ww2_enemy_torpedo_boat", "어뢰정", TargetKind.Surface, Load<GameObject>("Prefabs/Enemies/ENE_TorpedoBoat.prefab"),
+            var eTorpBoat = EnemyDef("ww2_enemy_torpedo_boat", "어뢰정", TargetKind.Surface, BuildTorpedoBoat() ?? Load<GameObject>("Prefabs/Enemies/ENE_TorpedoBoat.prefab"),
                 TargetCategory.SmallSurface, EnemyRank.Normal, 2, 3, hp: 26f, speed: 10f, turn: 110f, range: 40f, damage: 24f, cooldown: 13f, xp: 3);
             var eBoss = EnemyDef("ww2_boss_gunnery_cruiser", "적 순양함(임시)", TargetKind.Surface, cruiser,
                 TargetCategory.Boss, EnemyRank.Boss, 10, 0, hp: 1080f, speed: 5.5f, turn: 30f, range: 36f, damage: 14f, cooldown: 0f, xp: 0);
@@ -204,7 +210,7 @@ namespace Game.EditorTools
             {
                 Set(so, "id", "ww2_v1");
                 Set(so, "schemaVersion", 1);
-                Set(so, "contentVersion", 3);   // 2026-10-17: 어뢰정 · 편대 · 웨이브 강화 → Codex 모델 v30
+                Set(so, "contentVersion", 4);   // 2026-10-17: 어뢰정 · 편대 · 웨이브 강화 → Codex 모델 v30 · 2026-10-18: v31(어뢰정 모델·선체·뇌격기 변형)
                 Set(so, "title", "WWII 시험 전투");
                 Set(so, "idPrefix", "ww2_");
                 SetArray(so, "hulls", concept);
@@ -217,6 +223,10 @@ namespace Game.EditorTools
                 for (int i = 0; i < allowed.Length; i++) stats.GetArrayElementAtIndex(i).enumValueIndex = (int)allowed[i];
                 Set(so, "allowsEscorts", false);
                 Set(so, "saveFile", "naval_run_ww2_v1.json");
+                Set(so, "hullDeckPlate", deckPlate);
+                Set(so, "hullSideSkirt", sideSkirt);
+                Set(so, "hullBowDeck", bowDeck);
+                Set(so, "hullBowSide", bowSide);
             });
 
             // 카드·사전 아이콘

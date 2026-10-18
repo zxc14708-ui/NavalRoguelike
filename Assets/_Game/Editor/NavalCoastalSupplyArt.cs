@@ -13,20 +13,22 @@ namespace Game.EditorTools
     ///     물속까지 이어지는 바위 받침 위에 진지를 올린다. 적 데이터 값은 빌더가 쓰는 값 그대로.
     ///   - 보급선: `Resources/TaskForce/SupplyShip.prefab`(모델 + 앞 = +Z, 원점 = 수면선)을 만든다. 게임은 보급선이 생길 때
     ///     이것을 불러 0.75배로 붙인다(없으면 예전 상자 모델).
+    /// 2026-10-18: 해안포대는 v31 수정본(`ArtSource/WWII_RequestPack_v31` — 포신-포구 틈을 메시에서 메움, 물속 기초 포함, 고정·선회·고각 3묶음,
+    /// 재질은 WW2·환경 팔레트)으로 바꿨다. 포신 늘리기 보정·바위 받침은 이 모델에서 자동으로 빠진다.
     /// 다른 적·프리팹·씬은 건드리지 않는다. 배치 실행: -executeMethod Game.EditorTools.NavalCoastalSupplyArt.Run
     /// </summary>
     public static class NavalCoastalSupplyArt
     {
         private static readonly (string folder, string name)[] Sources =
         {
-            ("ArtSource/CoastalBatteryAngular_v27/Models", "ENE_CoastalBattery_Art"),
+            ("ArtSource/WWII_RequestPack_v31/Models", "ENE_CoastalBattery_Art"),
             ("ArtSource/SupplyShipAngular_v28/Models", "ALLY_SupplyShip_Art"),
         };
         private const string ModelDir = Root + "/Art/Models/Coastal";
         private const string SupplyModel = ModelDir + "/ALLY_SupplyShip_Art.fbx";
         private const string SupplyPrefab = Root + "/Resources/TaskForce/SupplyShip.prefab";
 
-        [MenuItem("Naval/Art/Apply Coastal Battery v27 · Supply Ship v28")]
+        [MenuItem("Naval/Art/Apply Coastal Battery v31 · Supply Ship v28")]
         public static void Run()
         {
             string project = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
@@ -44,7 +46,7 @@ namespace Game.EditorTools
             NavalCoastalBatteryBuilder.Run();
             var supply = BuildSupplyPrefab();
             AssetDatabase.SaveAssets();
-            Debug.Log($"[Coastal·Supply] 해안포대 v27 프리팹 다시 만듦 · 보급선 v28 {(supply != null ? "O" : "X")}");
+            Debug.Log($"[Coastal·Supply] 해안포대 v31 프리팹 다시 만듦 · 보급선 v28 {(supply != null ? "O" : "X")}");
         }
 
         private static GameObject BuildSupplyPrefab()
