@@ -30,6 +30,55 @@ namespace Game.Dev
     /// </summary>
     public partial class CombatVerificationRunner
     {
+        /// <summary>
+        /// 항구 [출항] → 함선 선택(정박지 독): 출항 콘솔 옆 WWII 패널이 함께 숨는가, [〉]·→가 화면 오른쪽 배로 가는가,
+        /// [돌아가기] 뒤 WWII 패널이 다시 보이는가.
+        /// </summary>
+        private IEnumerator HarborSelectorCheck()
+        {
+            var harbor = Game.UI.NavalBaseMenu.Active;
+            var ww2Button = FindButton("WW2 test start");
+            UnityEngine.UI.Button launch = null;
+            foreach (var b in Object.FindObjectsByType<UnityEngine.UI.Button>(FindObjectsSortMode.None))
+                if (b.name.StartsWith("출항") && b.interactable && b.gameObject.activeInHierarchy) { launch = b; break; }
+            if (harbor == null || ww2Button == null || launch == null) { Fail("항구 함선 선택 검사: 항구·출항·WWII 버튼을 찾지 못함"); yield break; }
+            bool ww2Before = ww2Button.gameObject.activeInHierarchy;
+            launch.onClick.Invoke();
+            yield return null;
+            var selector = Object.FindFirstObjectByType<Game.UI.StartingShipSelectorUI>();
+            bool ww2Hidden = !ww2Button.gameObject.activeInHierarchy;
+            if (selector == null) { Fail("항구 함선 선택 화면이 열리지 않음"); yield break; }
+
+            // 화면 방향: 확대가 끝난 카메라의 오른쪽 기준으로 [〉] 뒤의 배가 오른쪽에 있어야 한다
+            var cam = Get<Camera>(harbor, "_camera");
+            var centers = Get<List<Vector3>>(harbor, "_centers");
+            bool directionOk = true;
+            string moves = "";
+            int count = centers != null ? centers.Count : 0;
+            // 가운데 정박지에서 시작해야 끝에서 넘어가지 않고 방향을 잴 수 있다
+            if (count > 2) typeof(Game.UI.StartingShipSelectorUI).GetMethod("Select", Inst)?.Invoke(selector, new object[] { 1 });
+            for (int n = 0; n < 2 && count > 1 && cam != null; n++)
+            {
+                for (float t = 0f; t < 4f && !harbor.CameraSettled; t += Time.unscaledDeltaTime) yield return null;
+                int before = harbor.SelectedIndex;
+                Vector3 right = cam.transform.right;
+                selector.Navigate(n == 0 ? 1 : -1);
+                int after = harbor.SelectedIndex;
+                bool wrapped = Mathf.Abs(after - before) > 1;
+                float dx = Vector3.Dot(right, centers[after] - centers[before]) * (n == 0 ? 1f : -1f);
+                moves += $"{(n == 0 ? "〉" : "〈")} {before}→{after}({(wrapped ? "끝에서 넘어감" : dx > 0f ? "화면 방향 맞음" : "반대")}) ";
+                if (!wrapped && dx <= 0f) directionOk = false;
+            }
+            typeof(Game.UI.StartingShipSelectorUI).GetMethod("Cancel", Inst)?.Invoke(selector, null);
+            yield return null;
+            bool ww2Back = ww2Button.gameObject.activeInHierarchy;
+            _report.AppendLine($"- 항구 함선 선택: WWII 패널 출항 전 {Yes(ww2Before)} → 선택 화면 숨김 {Yes(ww2Hidden)} → 돌아가기 뒤 {Yes(ww2Back)} · " +
+                               $"정박지 화면 순서 {(harbor.BerthsRunLeftward ? "오른쪽→왼쪽" : "왼쪽→오른쪽")} · {moves}");
+            if (!ww2Hidden) Fail("현대 출항의 함선 선택 화면에 WWII 버튼이 남아 있음");
+            if (!ww2Back) Fail("함선 선택에서 돌아간 뒤 WWII 버튼이 다시 보이지 않음");
+            if (!directionOk) Fail("함선 선택 좌우 화살표가 화면 방향과 반대로 움직임");
+        }
+
         private IEnumerator Ww2Check()
         {
             _report.AppendLine("\n## WWII 패치 B — 시험 전투");
@@ -60,6 +109,9 @@ namespace Game.Dev
             string modernProfile = File.Exists(modernProfilePath) ? File.ReadAllText(modernProfilePath) : null;
             var modernKeys = new int[15];
             for (int i = 0; i < modernKeys.Length; i++) modernKeys[i] = PlayerPrefs.GetInt("Naval.Control." + i, -1);
+
+            // ---- 0-0) 현대 출항의 함선 선택 화면(2026-10-19): WWII 패널은 숨고, 좌우 화살표는 화면 방향대로, 돌아가면 다시 보인다
+            yield return HarborSelectorCheck();
 
             // ---- 1) 항구 버튼으로 들어간다
             var button = FindButton("WW2 test start");

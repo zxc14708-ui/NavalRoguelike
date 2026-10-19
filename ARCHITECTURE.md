@@ -678,6 +678,7 @@ ECS 미사용, 외부 유료 플러그인 미사용.
 - 잠수함은 소나 범위·헬기·폭뢰·어뢰 발사로 드러나야 일반 무기로 조준 가능.
 - 잠수함 공통(`SubmarineBase`): 잠항/부상 깊이, 노출 시간, 소나·헬기·폭뢰의 `Reveal`. 어뢰 잠수함(`Submarine`)과 순항미사일 잠수함(`CruiseMissileSubmarine`)은 공격만 다르다. 드러난 잠수함은 소나 범위 밖이어도 추적된다.
 - **어뢰 잠수함 엘리트 패치(2026-10-01)**: 체력 30→70, 어뢰 피해 42→55, 공격 간격 10→16초, 경험치 4→10, 동시 최대 1척, 웨이브 가중치 0.35→0.175(×0.5). 사격 규칙: **40m보다 가까우면 쏘지 않고**(코앞에 나오면 선회로 거리를 벌린다) 70m까지, 선회 거리 30→52m, 경고(사격 제원 결정)→발사 1.2→2.0초, 등장 직후 공격 간격의 60%를 기다린 뒤 첫 발, **모든 잠수함 합쳐 동시 어뢰(준비 중+비행 중) 최대 2발**(`Submarine.TorpedoesInPlay`). 어뢰 속도 12m/s라 최소 거리에서도 경고 2초 + 비행 3초 이상 대응 시간이 있다.
+- **적 도색**(`View/EnemyPaint`, 2026-10-19 시안 D): 적이 바다(청회색)·아군(회색)에 묻히지 않게 위에서 보이는 갑판만 적갈색(테라코타 0.64·0.29·0.22, 키로프급 느낌)으로 칠한다. 선체 옆면·상부 구조·무장은 원래 색(어두운 옆면이 실루엣). 잠수함은 동체 윗면(`Submarine green`), 항공기는 동체·날개(`Enemy hull grey`·`Naval Blue Grey`·`WW2 Air Dark`·`WW2 Olive`)까지. `EnemyController.Setup`에서 적대 진영만, 사전 미리보기(`CodexPreview`)도 같게. 재질 이름으로 고르고 원본 재질마다 칠한 사본을 한 번만 만들어 함께 쓴다(모델·프리팹·재질 원본은 그대로, 풀 재사용에도 겹쳐 칠하지 않음). 해안포·기뢰는 칠할 갑판이 없어 그대로. 색은 무장 사거리 원(노랑)·위험 원(밝은 빨강)·엘리트 표식(호박색)과 구별되는 차분한 적갈. 검사 `-enemyOnly` 첫 항목.
 - **엘리트 표식**(`View/EliteMarker`, 레이더 `Echo.Elite`): 엘리트 등급 적에 수면 호박색(주황) 맥박 고리 + 머리 위 호박색 마름모(카메라를 향함)를 단다. 잠항 중이라 드러나지 않은 잠수함은 숨긴다(위치 노출 방지). 레이더에서는 엘리트 에코가 주황 호박색에 1.45배 크기(무장 사거리 노란 원과 구별되는 색). 보스는 제외.
 - 추가 적 프리팹·데이터만 다시 만들 때: 메뉴 **Naval/Add Stage 2 Enemies (Cruise Sub, PCC)** (다른 프리팹·씬은 건드리지 않음). 모델: `EnemyCruiseSubmarine.fbx`(MissileLaunchPoint_01~03, PeriscopeStem/Head, MissileCap), `EnemyPccCorvette.fbx`(ForeGun01·02, AftGun01·02, 각 `…_Muzzle_01/02` — 쌍열포는 포구 가운데에 조준 기준점 `…_AimRef`를 둔다).
 - 항공기(`TargetKind.Aircraft`)는 레이더 탐지 범위 안에서만 잡힌다. 대공 가능: 기관포·76mm·CIWS·함대공. VLS·유도로켓·폭뢰는 노리지 않는다.
@@ -774,7 +775,7 @@ UI/           HUDView(+Pause 일시정지 · Display 화면 설정), HudTextures
                 .Upgrade 장비 개량 선택 / .Placement 격자 배치 / .Overlay 배지·시너지·사격각·정보), ModuleStatusUI, MissileWarningUI,
               RadarScopeUI(+RadarSweepGraphic), ShipStatusPanelUI(+ShipDiagramGraphic), WeaponStatusPanelUI, SkillBarUI,
               VlsModePanelUI, TaskForcePanelUI, FormationSelectorUI, CodexUI(+CodexCatalog, CodexPreview), ResultScreenUI, BossBarUI, BuildGuide, AchievementTracker, RecordsUI(출격 기록·도전 과제 화면), SeaRegionCardUI(해역 안내 카드)
-View/         QuarterViewCamera, ShipVisualSway, OceanSurface, ShipWake, EliteMarker, Explosions, DecoyFx,
+View/         QuarterViewCamera, ShipVisualSway, OceanSurface, ShipWake, EliteMarker, EnemyPaint, Explosions, DecoyFx,
               장식(DecorFx, ShipWreck, FunnelSmoke, CloudShadows, SeaLife), SeaAtmosphere(해역 물색·안개)
 World/        Islands, IslandField(+.Banks 수로 기슭), IslandBuilder(+.Art, .Decor, .Bank 부분 클래스), EnvironmentArt, SeaRegion(해역 프로필·물길)
 WW2/          WWII 시험 전투(패치 B) — Ww2Battle(시작 준비), Ww2BattlePanel(안내판·위험 지점 표식), Ww2BattleLog(공격 단계 기록),
@@ -867,6 +868,8 @@ WWII         NavalWw2Builder(패치 B 프리팹·데이터·규칙 집합, Naval
 
 | 날짜 | 변경 | 이유 |
 |---|---|---|
+| 2026-10-19 | **항구 함선 선택 화면 수정**: 현대 [출항] 뒤 함선 선택 화면에 WWII 함종 버튼(·이어하기 패널)이 남던 것을 출항 콘솔과 함께 숨기고 [돌아가기] 때 되살림(`HUDView` sidePanels). 정박지가 화면에서 오른쪽→왼쪽으로 늘어서(확대 카메라가 바다 쪽에서 봄) 좌우 화살표·←/→가 반대로 움직이던 것을 화면 방향대로(`NavalBaseMenu.BerthsRunLeftward`, 위 탭 순서도 화면과 같게). `-ww2Only` 첫 항목에 검사(실제 카메라 오른쪽 기준) 통과 | 사용자 플레이: 현대 모드에서 WWII UI가 뜸 · 좌우 화살표 반대 |
+| 2026-10-19 | **적 도색(시인성)**: 현대·WWII 모든 적의 갑판을 적갈색으로(`View/EnemyPaint`, 선체 옆면·무장은 그대로), 잠수함 동체 윗면·항공기 동체까지. 사전 미리보기도 같게. `-enemyOnly`에 도색 검사(갑판만 · 겹쳐 칠하지 않음 · 플레이어 제외) 통과 | 사용자: 적 시인성 부족 → 시안 비교 후 D(갑판만 붉게) 선택 |
 | 2026-10-18 | **WWII 패치 C2+C3a — 마운트 등급·대구경 주포·전함**: `MountClass`(경·중·대)와 함종 한도(구축함·순양함 중, 전함 대), 대구경 주포(2×2, 수상 전용, 연장 동시)·주포 일제([V] 누르고 겨눔 → 떼면 준비된 포만 좁게), 전함 함종·함교(3×2)·시작 배치, 여러 칸 무기 사격각(발자국 가운데), 정비 카드에서 못 다는 블록 제외. 회색 상자(Codex 요청 6-1 대기). 검사 `-ww2HeavyOnly` 신설, 봇 `-ww2Hull battleship` | 사용자: C2+C3a 진행, 모델 오기 전까지 회색 상자 |
 | 2026-10-18 | **WWII 패치 C1 — 함종 수치**: `HullProfile`(최고속력·선회·가감속·선회 관성·선체·장갑·격자 크기·탑재 예산)을 시작 함정에 연결, 블록 톤수와 탑재 예산 설치 거부·정비 표시, 순양함 함종(`StartShipKind.Ww2Cruiser` = 5, 끝에 추가)·항구 함종 버튼. 현대 함정은 그대로. 검사 `-ww2Only`에 함종·예산, `-ww2BattleOnly -ww2Hull cruiser` | 사용자: B 플레이 검증 통과, C 진행 |
 | 2026-10-18 | **WWII 포탑 눕는 버그 수정**: Codex 모델의 `Model` 노드가 Blender 축 변환(X 90°)을 품어 안쪽 노드의 로컬 위가 수평이라, 현측 어뢰 발사관·순양함 포탑을 로컬 위 둘레로 돌리면 옆으로 누웠다 → `WW2/Ww2Yaw`(선체 공간 수평면에서 각도를 재고 선체 위 축 둘레로 돌림)로 바꿈. `-ww2Only`에 발사관·포탑 기울어짐 검사(0.0°) | 사용자 플레이: 어뢰 발사대·보스 포탑이 옆으로 눕는다 |

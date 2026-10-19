@@ -608,10 +608,14 @@ namespace Game.UI
             Label(content,"Header",captainTitle!=null?$"NAVAL COMMAND  /  모항   ·   「{captainTitle}」":"NAVAL COMMAND  /  모항",new Vector2(28,478),new Vector2(464,30),18,captainTitle!=null?Gold:ConsoleText);
             Label(content,"Title","NAVAL\nROGUELIKE",new Vector2(26,320),new Vector2(472,142),52,Color.white);
             Label(content,"Subtitle","함선을 선택하고 작전 해역으로 출항하세요.",new Vector2(28,267),new Vector2(462,44),20,ConsoleText);
+            // 출항 콘솔 옆 패널(이어하기·저장 문제·WWII 시험 전투): 함선 선택 화면에서는 콘솔과 함께 숨긴다
+            var sidePanels=new System.Collections.Generic.List<GameObject>();
+            void ShowConsoles(bool on){content.gameObject.SetActive(on);foreach(var panel in sidePanels) if(panel!=null) panel.SetActive(on);}
             // 이어하기(점검 O01): 스테이지 경계 저장이 있으면 콘솔 위에 따로 띄운다. 새로 출항하면 그 기록은 지워진다.
             if(onResume!=null && RunSave.TryLoad(out var saved))
             {
                 var resumePanel=Panel(menu,"Resume console",new Vector2(0,.5f),new Vector2(64,282),new Vector2(520,118),new Color(.03f,.09f,.06f,.92f));
+                sidePanels.Add(resumePanel.gameObject);
                 Label(resumePanel,"Header","이어하기  /  RESUME",new Vector2(20,84),new Vector2(480,26),17,ConsoleText);
                 Label(resumePanel,"Saved",RunSave.Describe(saved),new Vector2(20,60),new Vector2(480,24),16,Color.white);
                 var resume=MenuButton(resumePanel,"이어하기  /  저장된 스테이지 처음부터",new Vector2(20,10),new Vector2(480,44),new Color(.55f,.42f,.12f,1f),19);
@@ -630,6 +634,7 @@ namespace Game.UI
             if(RunSave.LastProblem!=null)
             {
                 var problem=Panel(menu,"Save problem",new Vector2(0,.5f),new Vector2(64,282),new Vector2(520,40),new Color(.12f,.04f,.03f,.9f));
+                sidePanels.Add(problem.gameObject);
                 Label(problem,"Text",RunSave.LastProblem,new Vector2(16,8),new Vector2(490,24),15,new Color(1f,.65f,.5f));
                 RunSave.ClearProblem();
             }
@@ -637,11 +642,11 @@ namespace Game.UI
             var launch=MenuButton(content,dangerStart?"출항  /  고난도 출항":"출항  /  작전 시작",new Vector2(28,200),new Vector2(464,52),dangerStart?new Color(.55f,.2f,.12f,1f):ConsoleActive,24);
             launch.onClick.AddListener(()=>
             {
-                content.gameObject.SetActive(false);
+                ShowConsoles(false);
                 var initializer=FindFirstObjectByType<Game.Ship.ShipInitializer>();
                 void Complete(){_menu.SetActive(false);_combatGroup.alpha=1;_combatGroup.blocksRaycasts=true;onLaunch?.Invoke();}
-                if(!StartingShipSelectorUI.Show(menu,_navalFont,initializer,Complete,()=>{harbor.ShowOverview();content.gameObject.SetActive(true);}))
-                    content.gameObject.SetActive(true);
+                if(!StartingShipSelectorUI.Show(menu,_navalFont,initializer,Complete,()=>{harbor.ShowOverview();ShowConsoles(true);}))
+                    ShowConsoles(true);
             });
             if(onTraining!=null)
             {
@@ -668,6 +673,7 @@ namespace Game.UI
             if(onWw2!=null && Ruleset.Ww2Definition!=null && Ruleset.Ww2Definition.Hulls.Count>0)
             {
                 var ww2Panel=Panel(menu,"WW2 console",new Vector2(0,.5f),new Vector2(64,-334),new Vector2(520,56),new Color(.06f,.05f,.03f,.9f));
+                sidePanels.Add(ww2Panel.gameObject);
                 // 함종(패치 C1): 규칙 집합의 시작 함정마다 버튼 — 첫째(구축함)가 "WW2 test start", 둘째부터 "WW2 hull <id 끝>"(cruiser)
                 var hulls=Ruleset.Ww2Definition.Hulls;
                 float w=(500f-6f*(hulls.Count-1))/hulls.Count;

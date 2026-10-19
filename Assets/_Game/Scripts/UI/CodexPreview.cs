@@ -103,6 +103,9 @@ namespace Game.UI
                 holder.SetActive(false);
                 var source = Instantiate(prefab, holder.transform);
                 source.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+                // 적은 전투에서와 같은 도색으로(갑판 적갈색)
+                if (source.TryGetComponent<Game.Enemies.EnemyController>(out var enemy) && enemy.Faction == Game.Combat.CombatFaction.Hostile)
+                    Game.View.EnemyPaint.Apply(source, enemy.Kind == Game.Combat.TargetKind.Aircraft);
                 Transform only = string.IsNullOrEmpty(onlyChild) ? null : FindDeep(source.transform, onlyChild);
                 foreach (var r in source.GetComponentsInChildren<Renderer>(true))
                 {

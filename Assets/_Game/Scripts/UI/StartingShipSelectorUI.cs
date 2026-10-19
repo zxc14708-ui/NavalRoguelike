@@ -22,6 +22,8 @@ namespace Game.UI
         private int _selected;
         private NavalBaseMenu _harbor;
         private bool _confirmedOnce;
+        /// <summary>화면 오른쪽 화살표가 목록에서 움직이는 방향(정박지가 화면 오른쪽 → 왼쪽으로 놓였으면 −1).</summary>
+        private int _screenStep = 1;
         public int SelectedIndex => _selected;
 
         public static bool Show(Transform parent, TMP_FontAsset font, ShipInitializer initializer, Action confirmed, Action cancelled)
@@ -114,12 +116,14 @@ namespace Game.UI
             _message=Label(content,"← / →  함선 이동     Enter  출항     Esc  돌아가기",new Vector2(24,16),new Vector2(730,32),17,new Color(.56f,.8f,.8f));
             Button(content,"돌아가기",new Vector2(140,46),new Vector2(754,24),new Color(.12f,.2f,.24f),19).onClick.AddListener(Cancel);
             Button(content,"선택 확정 · 출항",new Vector2(292,58),new Vector2(754,84),new Color(.08f,.39f,.31f),23).onClick.AddListener(Confirm);
+            // 정박지가 화면에서 오른쪽 → 왼쪽으로 놓였으면 탭·화살표도 화면 순서대로(왼쪽 탭 = 화면 왼쪽 배)
+            _screenStep=_harbor.BerthsRunLeftward?-1:1;
             var tabs=Panel(transform,"Berth tabs",new Vector2(1080,58),new Vector2(0,-30),Color.clear);
             tabs.anchorMin=tabs.anchorMax=new Vector2(.5f,1);tabs.pivot=new Vector2(.5f,1);
             for(int i=0;i<_ships.Count;i++)
             {
                 int index=i;
-                var b=Button(tabs,_ships[i].Title,new Vector2(258,52),new Vector2(i*274,0),new Color(.06f,.12f,.15f,.88f),21);
+                var b=Button(tabs,_ships[i].Title,new Vector2(258,52),new Vector2((_screenStep<0?_ships.Count-1-i:i)*274,0),new Color(.06f,.12f,.15f,.88f),21);
                 _choices.Add(b.GetComponent<Image>()); b.onClick.AddListener(()=>Select(index));
             }
             foreach(int direction in new[]{-1,1})
@@ -131,10 +135,11 @@ namespace Game.UI
             Select(Mathf.Max(0,_ships.IndexOf(_initializer.SelectedConcept)));
         }
 
+        /// <summary>direction: 화면 기준 −1 왼쪽 · +1 오른쪽.</summary>
         public void Navigate(int direction)
         {
             if(_confirmedOnce || _ships.Count==0)return;
-            Select((_selected+direction+_ships.Count)%_ships.Count);
+            Select((_selected+direction*_screenStep+_ships.Count)%_ships.Count);
         }
         private void Cancel()
         {

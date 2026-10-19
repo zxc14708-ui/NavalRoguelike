@@ -112,6 +112,8 @@ namespace Game.Enemies
 
             // 엘리트 표식(황금 고리·마름모): 엘리트 등급 적에게만
             Game.View.EliteMarker.Apply(this);
+            // 적 도색: 위에서 보이는 갑판만 적갈색(시인성 — 바다·아군과 구별)
+            Game.View.EnemyPaint.Apply(this);
 
             if (player != null)
             {

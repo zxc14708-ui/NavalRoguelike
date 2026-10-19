@@ -304,7 +304,21 @@ namespace Game.UI
             if(_ships.Count==0)return;
             SelectedIndex=Mathf.Clamp(index,0,_ships.Count-1);
             _lookAt=_centers[SelectedIndex]+Vector3.up*1.4f;
-            _destination=_lookAt+new Vector3(0,20,18); _fov=38;
+            _destination=_lookAt+FocusOffset; _fov=38;
+        }
+        static readonly Vector3 FocusOffset=new(0,20,18);
+        /// <summary>
+        /// 정박지 순서(0, 1, 2…)가 화면에서 오른쪽 → 왼쪽으로 놓였는가. 함선 확대 카메라는 바다 쪽(+Z)에서 부두를 보므로
+        /// 섬 +X로 늘어선 정박지가 화면에서는 왼쪽으로 간다 — 좌우 화살표·위 탭 순서를 화면에 맞추는 데 쓴다.
+        /// </summary>
+        public bool BerthsRunLeftward
+        {
+            get
+            {
+                if(_centers.Count<2) return false;
+                Vector3 right=Vector3.Cross(Vector3.up,-FocusOffset);
+                return Vector3.Dot(right,_centers[_centers.Count-1]-_centers[0])<0f;
+            }
         }
         Vector3 OrbitPoint()
         {
