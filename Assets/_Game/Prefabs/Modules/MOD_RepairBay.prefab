@@ -30,7 +30,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 6369217959860053083}
+  - {fileID: 4964524585819618976}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &6208791509294351387
@@ -50,7 +50,7 @@ MonoBehaviour:
     repairRadiusCells: 3
     underFireWindow: 3
     underFireHullRepairRatio: 0.25
---- !u!1 &5989670625323035641
+--- !u!1 &8786088511195347979
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -58,7 +58,7 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 6369217959860053083}
+  - component: {fileID: 4964524585819618976}
   m_Layer: 0
   m_Name: ModelPivot
   m_TagString: Untagged
@@ -66,29 +66,29 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &6369217959860053083
+--- !u!4 &4964524585819618976
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5989670625323035641}
+  m_GameObject: {fileID: 8786088511195347979}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 1, z: 0, w: -0.00000004371139}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 1221749538518875309}
+  - {fileID: 1829036227930749569}
   m_Father: {fileID: 5955771074759623305}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1001 &1692860629864897350
+--- !u!1001 &2227227649889836394
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 6369217959860053083}
+    m_TransformParent: {fileID: 4964524585819618976}
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: a0c8ed604a0560049b6b2a88695407ce, type: 3}
       propertyPath: m_LocalPosition.x
@@ -139,8 +139,8 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: a0c8ed604a0560049b6b2a88695407ce, type: 3}
---- !u!4 &1221749538518875309 stripped
+--- !u!4 &1829036227930749569 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: a0c8ed604a0560049b6b2a88695407ce, type: 3}
-  m_PrefabInstance: {fileID: 1692860629864897350}
+  m_PrefabInstance: {fileID: 2227227649889836394}
   m_PrefabAsset: {fileID: 0}
