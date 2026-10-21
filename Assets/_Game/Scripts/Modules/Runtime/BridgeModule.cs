@@ -13,7 +13,7 @@ namespace Game.Modules.Runtime
     /// 전용 모듈보다 모두 약하다(수치는 데이터에서). 함교가 부서지면 셋 다 잃는다.
     ///
     /// 기관실이므로 전속 스킬[Shift]을 제공한다. 내장 발사기에는 연막탄이 없다(전용 기만체 발사기만).
-    /// 지붕에 약한 원격 기관총(<see cref="BridgeMachineGun"/>, 2026-10-11)을 얹어, 무기 블록이 없어도 소형정·드론에 반격한다.
+    /// (지붕 원격 기관총은 2026-10-21 삭제 — 기관포·CIWS가 근접 방어를 맡는다.)
     ///
     /// 손상 통제 중심(2026-10-11 개편): 선체 자동 회복과 응급 수리[R]를 함교가 맡고, 손상통제반 수(작동 중)로 커진다.
     ///   - 자동 회복 상한: 50% + 손상통제반마다 (50% ÷ 최대 3개) → 50 / 67 / 83 / 100%. 상한을 넘으면 고치지 않는다.
@@ -38,10 +38,6 @@ namespace Game.Modules.Runtime
         [Tooltip("응급 수리를 연달아 쓰지 않게 두는 간격(초)")]
         [SerializeField] private float burstGap = 4f;
         [SerializeField] private GameObject burstEffect;
-
-        [Header("Machine Gun")]
-        [SerializeField] private BridgeMachineGun machineGun = new();
-        public BridgeMachineGun MachineGun => machineGun;
 
         [Header("Ruleset (WWII 패치 A 9.1)")]
         [Tooltip("내장 발사기로 기만체를 쏘는가. WWII 함교는 끈다(현대 함교 프리팹은 그대로 켜 둔다).")]
@@ -138,7 +134,6 @@ namespace Game.Modules.Runtime
         protected override void OnInitialized()
         {
             base.OnInitialized();
-            machineGun.Init(this);
             RecountRepairBays();
             GameEvents.BossDefeated += RefillCharges;   // 스테이지를 깨면 응급 수리 가득
         }
@@ -152,7 +147,6 @@ namespace Game.Modules.Runtime
         protected override void Tick(float dt)
         {
             base.Tick(dt);
-            machineGun.Tick(dt, Ship != null ? Ship.transform : transform);
             if (_flankCooldown > 0f) _flankCooldown -= dt * RunUpgrades.SkillRate;   // 성장 카드: 스킬 회복 속도
             if (_burstGapLeft > 0f) _burstGapLeft -= dt;
             crew.Tick(Ship, Grid, Instance, HullRepairRate, Stats.ModuleRepairPerSecond, dt, HullRepairCap);

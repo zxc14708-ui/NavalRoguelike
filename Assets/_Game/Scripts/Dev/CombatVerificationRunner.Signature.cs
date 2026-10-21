@@ -22,6 +22,75 @@ namespace Game.Dev
         /// 3) 고유 스킬 넷: 광역 탐색(표적 지시·잠수함 노출·피해 +25%), 돌격 기동(속력·피해 감소·충돌), 전탄 발사(남은 셀 전부),
         ///    항공대 호출(전투기 3 + 조기경보기 1, 기총 공격·레이더 고리·이탈). 장면마다 찍는다.
         /// </summary>
+        /// <summary>
+        /// 예광탄(2026-10-21): 기관포는 4발에 1발, CIWS는 5발에 1발 — 꼬리가 길고 굵은 주황, 탄두가 빛난다.
+        /// 풀에서 다시 나온 탄은 보통 탄(꼬리·크기·재질)으로 돌아와야 한다.
+        /// </summary>
+        private IEnumerator TracerCheck()
+        {
+            _report.AppendLine("\n## 예광탄(기관포 · CIWS)");
+            var ship = GameManager.Instance.Player;
+            int placed = ResetLoadout(M("mod_autocannon"), M("mod_ciws", 2, 0));
+            yield return new WaitForSeconds(0.5f);
+            CombatDevTools.ClearBattlefield();
+            var boats = CombatDevTools.SpawnRing("ene_fastboat", 6, 18f);
+            foreach (var b in boats) b.DevFrozen = true;
+            CombatDevTools.SpawnRing("ene_drone", 4, 34f, 45f);
+
+            // 발 수: 풀이 같은 탄 오브젝트를 다시 쓰므로, 오브젝트가 새로 발사될 때(나이가 줄어들 때)마다 한 발로 센다
+            var tracers = new Dictionary<string, int>();
+            var normals = new Dictionary<string, int>();
+            var lastAge = new Dictionary<Projectile, float>();
+            int badTracer = 0, badReset = 0;
+            bool shot = false;
+            Projectile flying = null;
+            for (float t = 0f; t < 6f; t += Time.deltaTime)
+            {
+                foreach (var p in Object.FindObjectsByType<Projectile>(FindObjectsSortMode.None))
+                {
+                    string kind = p.name.StartsWith("PRJ_Autocannon") ? "기관포" : p.name.StartsWith("PRJ_Ciws") ? "CIWS" : null;
+                    if (kind == null || !p.isActiveAndEnabled) continue;
+                    var trail = Get<TrailRenderer>(p, "_trail");
+                    float baseTime = Get<float>(p, "tracerTime");
+                    Vector3 baseScale = Get<Vector3>(p, "_baseScale");
+                    bool big = p.transform.localScale.x > baseScale.x * 1.2f;
+                    float age = Get<float>(p, "_age");
+                    bool fresh = !lastAge.TryGetValue(p, out float before) || age < before;
+                    lastAge[p] = age;
+                    if (!fresh) continue;
+                    var counts = p.IsTracerRound ? tracers : normals;
+                    counts[kind] = counts.TryGetValue(kind, out int n) ? n + 1 : 1;
+                    var head = p.GetComponent<MeshRenderer>();
+                    bool glow = head == null || (head.sharedMaterial != null && head.sharedMaterial.name.StartsWith("Tracer round head"));
+                    if (p.IsTracerRound) { if (trail == null || trail.time < baseTime * 2f || !big || !glow) badTracer++; if (flying == null && kind == "기관포") flying = p; }
+                    else if (big || (trail != null && baseTime > 0f && trail.time > baseTime * 1.5f)) badReset++;
+                }
+                // 날아가는 기관포 예광탄을 멈춰 세우고 찍는다(가까이 · 전투 화면)
+                if (!shot && t > 1f && flying != null && flying.isActiveAndEnabled && flying.IsTracerRound && Get<float>(flying, "_age") > 0.04f)
+                {
+                    shot = true;
+                    float scale = Time.timeScale;
+                    Time.timeScale = 0f;
+                    yield return CloseShot("tracer_round_close", flying.transform, 5f);
+                    yield return ScreenShot("tracer_rounds");
+                    Time.timeScale = scale;
+                }
+                if (flying != null && (!flying.isActiveAndEnabled || !flying.IsTracerRound)) flying = null;
+                yield return null;
+            }
+            int Count(string k) => tracers.TryGetValue(k, out int c) ? c : 0;
+            int Normal(string k) => normals.TryGetValue(k, out int n) ? n : 0;
+            _report.AppendLine($"- 설치 {placed} · 6초 관찰: 기관포 예광탄 {Count("기관포")} / 보통 탄 {Normal("기관포")}발 · CIWS 예광탄 {Count("CIWS")} / 보통 탄 {Normal("CIWS")}발 · " +
+                               $"예광탄 모양 이상 {badTracer} · 풀 재사용 뒤 되돌아오지 않은 탄 {badReset}");
+            if (Count("기관포") == 0) Fail("기관포가 예광탄을 쏘지 않음");
+            if (Count("CIWS") == 0) Fail("CIWS가 예광탄을 쏘지 않음");
+            if (Normal("기관포") == 0 || Normal("CIWS") == 0) Fail("보통 탄이 보이지 않음(모든 탄이 예광탄)");
+            if (badTracer > 0) Fail("예광탄의 꼬리·탄두가 보통 탄과 다르지 않음");
+            if (badReset > 0) Fail("풀에서 다시 나온 탄이 예광탄 모양으로 남음");
+            CombatDevTools.ClearBattlefield();
+            yield return new WaitForSeconds(0.3f);
+        }
+
         private IEnumerator SignatureCheck()
         {
             _report.AppendLine("\n## 시작 무장 · 손상통제 · 함정 고유 스킬");
@@ -71,12 +140,15 @@ namespace Game.Dev
             var off = DisableWeapons(r => r is BridgeModule);
             {
                 var boat = Frozen(boatDef, ship.transform.position + ship.transform.right * 12f);
-                int s0 = bridge.MachineGun.Shots; float hp0 = boat != null ? boat.CurrentHp : 0f;
+                // 함교 원격 기관총은 2026-10-21 삭제 — 무기 블록 없이 함교만 있으면 가까운 고속정에도 쏘지 않아야 한다
+                float hp0 = boat != null ? boat.CurrentHp : 0f;
                 yield return new WaitForSeconds(4f);
                 float lost = boat != null ? hp0 - (boat.IsAlive ? boat.CurrentHp : 0f) : 0f;
-                _report.AppendLine($"- 함교 원격 기관총: 있음 {Yes(bridge.MachineGun.HasGun)} · 12m 고속정에 4초 {bridge.MachineGun.Shots - s0}발 · 피해 {lost:0.#}");
-                if (!bridge.MachineGun.HasGun || bridge.MachineGun.Shots - s0 < 5 || lost < 3f) Fail("함교 기관총이 가까운 적을 쏘지 않음");
-                yield return CloseShot("signature_bridge_mg", bridge.MachineGun.Mount != null ? bridge.MachineGun.Mount : bridge.transform, 6f);
+                bool mount = false;
+                foreach (var t in bridge.GetComponentsInChildren<Transform>(true)) if (t.name == "BridgeMG") mount = true;
+                _report.AppendLine($"- 함교 원격 기관총(삭제): 12m 고속정에 4초 피해 {lost:0.#} · 기관총 모델 {(mount ? "남음" : "없음")}");
+                if (lost > 0f) Fail("함교만 있는데 가까운 적이 피해를 입음(삭제한 함교 기관총이 남아 있음)");
+                if (mount) Fail("함교 위에 기관총 모델이 남아 있음");
                 CombatDevTools.ClearBattlefield();
                 yield return new WaitForSeconds(0.5f);
             }

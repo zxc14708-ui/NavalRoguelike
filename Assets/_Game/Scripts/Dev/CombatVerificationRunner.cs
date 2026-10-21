@@ -248,6 +248,7 @@ namespace Game.Dev
             }
             if (SignatureOnly)
             {
+                yield return TracerCheck();
                 yield return SignatureCheck();
                 SaveLog("signature");
                 Finish();

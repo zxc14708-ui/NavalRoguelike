@@ -17,6 +17,9 @@ namespace Game.Modules.Runtime
     {
         [SerializeField] private WeaponController weapon = new();
         [SerializeField] private GameObject projectilePrefab;
+        [Tooltip("몇 발에 한 발씩 예광탄(밝고 긴 주황 꼬리)을 쏘는가. 0이면 없음")]
+        [SerializeField, Min(0)] private int tracerEvery = 4;
+        private int _roundCount;
         [Tooltip("탄 퍼짐(도)")]
         [SerializeField] private float spreadDegrees = 1.2f;
         [Tooltip("포구 연기. 속사라 매 발이 아니라 몇 발에 한 번 뿜는다")]
@@ -127,7 +130,11 @@ namespace Game.Modules.Runtime
             var go = PoolManager.Instance?.Spawn(projectilePrefab, muzzle.position, Quaternion.LookRotation(dir));
             if (go == null) return;
 
-            go.GetComponent<Projectile>()?.Launch(dir, Stats.ProjectileSpeed, damage, DamageSource.Gun);
+            if (go.TryGetComponent<Projectile>(out var round))
+            {
+                round.Launch(dir, Stats.ProjectileSpeed, damage, DamageSource.Gun);
+                if (tracerEvery > 0 && ++_roundCount % tracerEvery == 0) round.MakeTracerRound();   // 몇 발에 한 발씩 예광탄
+            }
 
             AudioManager.Play(Game.Data.SfxId.AutocannonShot, muzzle.position);
             if (_muzzleVfx == null) _muzzleVfx = gameObject.AddComponent<MuzzleBurstVfx>();

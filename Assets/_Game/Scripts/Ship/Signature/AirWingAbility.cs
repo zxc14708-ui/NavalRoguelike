@@ -10,7 +10,7 @@ namespace Game.Ship
     /// <summary>
     /// 지휘함 고유 스킬 — 항공대 호출(2026-10-11). 함재 전투기 3기와 조기경보기(E-2) 1기가 편대로 날아와 20초 동안 함께 싸운다.
     ///   - 전투기: 뒤쪽 하늘에서 편대로 진입 → 함선 둘레 60m 안의 적(수상함·항공기)을 기총으로 훑고 지나가며 공격(한 번 지날 때 8발,
-    ///     발당 3 — 함교 기관총과 같은 탄) → 시간이 다 되면 상승하며 이탈.
+    ///     발당 3 — 기관포 탄) → 시간이 다 되면 상승하며 이탈.
     ///   - 조기경보기: 함선 둘레를 높이 크게 돌며 레이더돔이 돌고, 3초마다 레이더 고리를 뿌려 70m 안의 잠수함을 4초씩 드러낸다.
     /// 연출: 날개 끝 비행운, 후기연소 불꽃, 항법등, 진입 안내 띠, 조기경보 레이더 고리. 항공기는 적의 표적이 되지 않는다.
     /// </summary>
@@ -33,10 +33,8 @@ namespace Game.Ship
         {
             Flight.RemoveAll(a => a == null);
             var ship = owner.Ship;
-            GameObject round = null;
-            if (ship.Grid != null)
-                foreach (var m in ship.Grid.Modules)
-                    if (m?.Runtime is BridgeModule b && b.MachineGun != null && b.MachineGun.Projectile != null) { round = b.MachineGun.Projectile; break; }
+            // 전투기 기총: 기관포 탄(호위함 무장 데이터의 경탄 — 함교 기관총이 없어진 뒤 2026-10-21)
+            GameObject round = Game.TaskForce.EscortArmory.Instance != null ? Game.TaskForce.EscortArmory.Instance.lightRound : null;
 
             Vector3 fwd = ship.transform.forward; fwd.y = 0f; fwd.Normalize();
             Vector3 right = Vector3.Cross(Vector3.up, fwd);

@@ -98,7 +98,6 @@ namespace Game.Dev
             typeof(ShipController).GetProperty(nameof(ShipController.HullHp))?.GetSetMethod(true)?.Invoke(ship, new object[] { 100000f });
             var healer = StartCoroutine(KeepModulesHealthy());
             var off = DisableWeapons(r => r is Ww2HeavyGunModule);
-            BridgeMachineGun.DevHoldFire = true;
             ship.SetEngineOrder(0f);
             ship.DevRudderOverride = 0f;
             yield return new WaitForSeconds(3f);
@@ -178,7 +177,6 @@ namespace Game.Dev
             CombatDevTools.ClearBattlefield();
             if (healer != null) StopCoroutine(healer);
             foreach (var b in off) if (b != null) b.enabled = true;
-            BridgeMachineGun.DevHoldFire = false;
             if (field != null) Game.World.IslandField.Disabled = false;
             Application.logMessageReceived -= OnLog;
             if (exceptions > 0) Fail($"예외 {exceptions}건");

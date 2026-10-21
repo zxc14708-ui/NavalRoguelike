@@ -27,7 +27,6 @@ namespace Game.Dev
         /// </summary>
         private IEnumerator EscortCheck()
         {
-            Game.Modules.Runtime.BridgeMachineGun.DevHoldFire = true;   // 2026-10-11 함교 기관총: 표적 선택 검사의 적을 먼저 격침하지 않게
             _report.AppendLine("\n## 편대(카드 · 생존성 · 자율 능력)");
             var ship = GameManager.Instance.Player;
             var formation = Object.FindFirstObjectByType<Game.TaskForce.TaskForceEscortFormation>();
@@ -564,7 +563,6 @@ namespace Game.Dev
 
         private IEnumerator FormationCheck()
         {
-            Game.Modules.Runtime.BridgeMachineGun.DevHoldFire = true;
             _report.AppendLine("\n## 편대 진형·조함");
             var ship = GameManager.Instance.Player;
             var formation = Object.FindFirstObjectByType<Game.TaskForce.TaskForceEscortFormation>();

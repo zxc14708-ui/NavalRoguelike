@@ -54,7 +54,6 @@ namespace Game.Dev
             var director = Object.FindFirstObjectByType<StageDirector>();
             director.enabled = false;   // 웨이브는 끄고(검사 중 적이 섞이지 않게), 저장·재개는 직접 부른다
             EnemySpawner.Instance.enabled = false;
-            BridgeMachineGun.DevHoldFire = true;
             CombatDevTools.ClearBattlefield();
             if (Get<Transform>(EnemySpawner.Instance, "_player") == null) Put(EnemySpawner.Instance, "_player", ship.transform);
 
@@ -242,7 +241,6 @@ namespace Game.Dev
                 if (!savedBeforeLoss || !saveGone) Fail("패배 뒤 이어하기 기록이 지워지지 않음(O01)");
                 yield return ScreenShot("bundlec_result");
             }
-            BridgeMachineGun.DevHoldFire = false;
         }
 
         /// <summary>저장·이어하기 비교용 요약: 블록(종류·자리·단계)·성장·편대·교리·레벨·선체.</summary>

@@ -248,7 +248,7 @@ namespace Game.UI
                 foreach (var m in order) parts.Add(Link(m.Id, m.DisplayName) + (counts[m] > 1 ? $" ×{counts[m]}" : ""));
                 if (parts.Count > 0) Row(sb, "시작 블록", string.Join(" · ", parts));
             }
-            Row(sb, "모든 함정 공통", "함교 기관총(지붕 · 18 m) · 응급 수리 1회 · 기만체 · 전속");
+            Row(sb, "모든 함정 공통", "응급 수리 1회 · 기만체 · 전속");
             e.Body = sb.ToString().TrimEnd();
             if (c.StartPreviewPrefab != null) e.Models.Add(new CodexModel("시작 배치", c.StartPreviewPrefab));
             return e;

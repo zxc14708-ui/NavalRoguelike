@@ -29,7 +29,6 @@ namespace Game.Dev
                 Put(EnemySpawner.Instance, "_player", ship.transform);
             ship.DevRudderOverride = 0f;
             ship.SetEngineOrder(0f);
-            BridgeMachineGun.DevHoldFire = true;
             var hud = Object.FindFirstObjectByType<HUDView>();
 
             // ---- B07 · G03: 무장 패널 — 일부 파괴 표기, 안 쏘는 이유, 줄 눌러 펼치기
@@ -359,7 +358,6 @@ namespace Game.Dev
                 yield return ScreenShot("bundleb_training_done");
             }
 
-            BridgeMachineGun.DevHoldFire = false;
             if (field != null) Game.World.IslandField.Disabled = false;
             ship.DevRudderOverride = null;
         }

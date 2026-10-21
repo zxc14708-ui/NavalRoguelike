@@ -265,7 +265,6 @@ namespace Game.Dev
             var diveBomber = def.Enemies.First(e => e.Id == "ww2_enemy_dive_bomber");
             var boss = def.Enemies.First(e => e.Id == "ww2_boss_gunnery_cruiser");
             var off = DisableWeapons(r => r is Ww2BroadsideTorpedoModule);
-            BridgeMachineGun.DevHoldFire = true;
 
             Vector3 fwd = ship.transform.forward; fwd.y = 0f; fwd.Normalize();
             Vector3 right = Vector3.Cross(Vector3.up, fwd);
@@ -611,7 +610,6 @@ namespace Game.Dev
 
             // 무장 켠 채: 양용포가 진입 기체로 돌리는가
             foreach (var b in off) if (b != null) b.enabled = true;
-            BridgeMachineGun.DevHoldFire = false;
             int airMode = 0, cancelled0 = Ww2BattleLog.Get(Ww2BattleLog.TorpedoBomber).Cancelled + Ww2BattleLog.Get(Ww2BattleLog.DiveBomber).Cancelled;
             int released0 = Ww2BattleLog.Get(Ww2BattleLog.TorpedoBomber).Released + Ww2BattleLog.Get(Ww2BattleLog.DiveBomber).Released;
             fwd = ship.transform.forward; fwd.y = 0f; fwd.Normalize(); right = Vector3.Cross(Vector3.up, fwd);
@@ -634,7 +632,6 @@ namespace Game.Dev
             ship.DevRudderOverride = 0f;
             yield return new WaitForSeconds(4f);
             off = DisableWeapons(null);
-            BridgeMachineGun.DevHoldFire = true;
             fwd = ship.transform.forward; fwd.y = 0f; fwd.Normalize();
             var cruiser = EnemySpawner.Instance.SpawnAt(boss, ship.transform.position + fwd * 40f, Quaternion.LookRotation(-fwd));
             yield return new WaitForSeconds(1f);
@@ -700,7 +697,6 @@ namespace Game.Dev
             if (exceptions > 0) Fail($"예외 {exceptions}건");
             Application.logMessageReceived -= OnLog;
             File.Delete(runPath);
-            BridgeMachineGun.DevHoldFire = false;
             foreach (var b in off) if (b != null) b.enabled = true;
             if (field != null) Game.World.IslandField.Disabled = false;
         }

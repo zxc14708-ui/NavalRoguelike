@@ -44,6 +44,21 @@ namespace Game.Combat
         private static readonly Collider[] SplashHits = new Collider[24];
         private static Material s_tracerMaterial;
 
+        // 예광탄(2026-10-21): 기관포·CIWS가 몇 발에 한 발씩 쏜다(MakeTracerRound). 꼬리가 길고 굵고 진한 주황, 탄두가 빛난다(블룸).
+        private const float TracerRoundTrailScale = 3.5f, TracerRoundWidthScale = 1.8f, TracerRoundHeadScale = 1.6f;
+        private static readonly Color TracerRoundColor = new(1f, 0.5f, 0.12f, 1f);
+        private static readonly Color TracerRoundGlow = new(3.2f, 1.3f, 0.3f, 1f);
+        private static Material s_tracerHead;
+        private static Gradient s_tracerRoundGradient;
+        private Gradient _trailGradient;
+        private AnimationCurve _trailWidth;
+        private MeshRenderer _head;
+        private Material _headMaterial;
+        private Vector3 _baseScale;
+        private bool _tracerRound;
+        /// <summary>이 발이 예광탄인가(검증용).</summary>
+        public bool IsTracerRound => _tracerRound;
+
         /// <summary>수면 높이. 바다 평면은 -0.9지만 함정 피벗·흘수선이 0이다.</summary>
         private const float SeaLevel = 0f;
 
@@ -53,7 +68,7 @@ namespace Game.Combat
         private DamageSource _source;
         private string _statsKey;
 
-        /// <summary>결과 분석·통계에서 쓰는 무장 이름. 같은 탄을 쓰는 호위함·함교 기관총·항공대는 발사 뒤 따로 이름을 붙인다(RunReport).</summary>
+        /// <summary>결과 분석·통계에서 쓰는 무장 이름. 같은 탄을 쓰는 호위함·항공대는 발사 뒤 따로 이름을 붙인다(RunReport).</summary>
         public string StatsKey { get => _statsKey; set => _statsKey = value; }
         private TrailRenderer _trail;
         private float _maxTravel, _traveled;
@@ -70,8 +85,15 @@ namespace Game.Combat
         private void Awake()
         {
             Owner = Factions.OwnerFromHitMask(hitMask.value);
+            _baseScale = transform.localScale;
+            _head = GetComponent<MeshRenderer>();
+            if (_head != null) _headMaterial = _head.sharedMaterial;
             if (tracerTime <= 0f) return;
+            SetupTrail();
+        }
 
+        private void SetupTrail()
+        {
             _trail = GetComponent<TrailRenderer>();
             if (_trail == null) _trail = gameObject.AddComponent<TrailRenderer>();
             if (s_tracerMaterial == null)
@@ -90,6 +112,59 @@ namespace Game.Combat
             g.SetKeys(new[] { new GradientColorKey(tracerColor, 0f), new GradientColorKey(tracerColor, 1f) },
                       new[] { new GradientAlphaKey(tracerColor.a, 0f), new GradientAlphaKey(0f, 1f) });
             _trail.colorGradient = g;
+            _trailGradient = g;
+            _trailWidth = _trail.widthCurve;
+        }
+
+        /// <summary>
+        /// 이 발을 예광탄으로 만든다(Launch 바로 뒤에 부른다). 꼬리를 길고 굵고 진한 주황으로, 탄두를 빛나게.
+        /// 풀에서 다시 나오면 Launch가 보통 탄으로 되돌린다.
+        /// </summary>
+        public void MakeTracerRound()
+        {
+            if (_trail == null) SetupTrail();
+            if (_trail == null) return;
+            _tracerRound = true;
+            _trail.enabled = true;
+            _trail.time = Mathf.Max(tracerTime, 0.05f) * TracerRoundTrailScale;
+            _trail.widthCurve = AnimationCurve.Linear(0f, tracerWidth * TracerRoundWidthScale, 1f, 0f);
+            if (s_tracerRoundGradient == null)
+            {
+                s_tracerRoundGradient = new Gradient();
+                s_tracerRoundGradient.SetKeys(new[] { new GradientColorKey(new Color(1f, 0.85f, 0.55f), 0f), new GradientColorKey(TracerRoundColor, 0.25f), new GradientColorKey(TracerRoundColor, 1f) },
+                                              new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(0.85f, 0.4f), new GradientAlphaKey(0f, 1f) });
+            }
+            _trail.colorGradient = s_tracerRoundGradient;
+            _trail.Clear();
+            if (_head != null)
+            {
+                if (s_tracerHead == null)
+                {
+                    var shader = Shader.Find("Universal Render Pipeline/Unlit");
+                    if (shader != null) { s_tracerHead = new Material(shader) { name = "Tracer round head (runtime)" }; s_tracerHead.SetColor("_BaseColor", TracerRoundGlow); }
+                }
+                if (s_tracerHead != null) _head.sharedMaterial = s_tracerHead;
+                transform.localScale = _baseScale * TracerRoundHeadScale;
+            }
+        }
+
+        /// <summary>예광탄으로 바꿨던 것을 보통 탄으로 되돌린다(풀 재사용).</summary>
+        private void ResetTracerRound()
+        {
+            if (!_tracerRound) return;
+            _tracerRound = false;
+            if (_trail != null)
+            {
+                if (tracerTime > 0f)
+                {
+                    _trail.time = tracerTime;
+                    _trail.widthCurve = _trailWidth;
+                    _trail.colorGradient = _trailGradient;
+                }
+                else _trail.enabled = false;
+            }
+            if (_head != null) _head.sharedMaterial = _headMaterial;
+            transform.localScale = _baseScale;
         }
 
         /// <summary>발사 직후 1회 설정한다. 방향은 포신 방향이어야 한다(탄 생성 위치 = Muzzle).</summary>
@@ -102,6 +177,7 @@ namespace Game.Combat
             _age = 0f;
             _splashMultiplier = 1f;
 
+            ResetTracerRound();
             if (_trail != null) _trail.Clear();
             _maxTravel = 0f;
             _traveled = 0f;

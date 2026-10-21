@@ -16,16 +16,15 @@ namespace Game.EditorTools
     ///   1. 시작 배치: 함수·함미에 무기가 하나씩 있게 — 범용 초계함 함미 끝(−3, 0)·지휘함 헬기갑판 좌현 옆(−3, −1)에 기관포(뒤를 봄 — 헬기갑판은 뒤가 트여야 한다).
     ///      강습함(함수·함미 기관포)·미사일 구축함(함수 VLS·함미 기관포)은 이미 그렇다.
     ///   2. 시작 화면 미리보기 조립품(SHIP_Patrol_Start·SHIP_Command_Start)만 같은 방식(NavalStartingShipBuilder.Assemble)으로 다시 만든다.
-    ///   3. 함교 프리팹 다섯(시작 함선 넷 + 예전 MOD_Bridge)에 원격 기관총 탄(기관포 탄)과 응급 수리 이펙트(FX_RepairPulse)를 연결한다.
+    ///   3. 함교 프리팹 다섯(시작 함선 넷 + 예전 MOD_Bridge)에 응급 수리 이펙트(FX_RepairPulse)를 연결한다(원격 기관총은 2026-10-21 삭제).
     ///   4. 손상통제반 설명 문구(손상통제 개편 — 선체 회복·응급 수리는 함교가, 블록은 함교를 키운다).
     /// 배치 실행: -executeMethod Game.EditorTools.NavalStarterArmament.Run
     /// </summary>
     public static class NavalStarterArmament
     {
         private const string Data = Root + "/Data/StartingShips";
-        private const string ProjectilePath = Root + "/Prefabs/Projectiles/PRJ_Autocannon.prefab";
 
-        [MenuItem("Naval/Starting Ships/Add Stern Guns + Bridge MG", priority = 46)]
+        [MenuItem("Naval/Starting Ships/Add Stern Guns + Bridge Repair FX", priority = 46)]
         public static void Run()
         {
             // 새 장면을 연 뒤에 불러온다 — 장면을 새로 열면 참조 없는 에셋이 내려가 앞서 불러온 참조가 비어 버린다
@@ -35,7 +34,6 @@ namespace Game.EditorTools
             Patch(0, "Patrol", gun, new GridCoord(-3, 0));
             Patch(1, "Command", gun, new GridCoord(-3, -1));   // 헬기갑판은 뒤가 트여야 해서 그 옆(좌현 함미)
 
-            var projectile = FindAutocannonProjectile();
             var repairFx = AssetDatabase.LoadAssetAtPath<GameObject>(Root + "/Prefabs/VFX/FX_RepairPulse.prefab");
             foreach (var path in new[]
             {
@@ -53,11 +51,10 @@ namespace Game.EditorTools
                     if (bridge == null) { Debug.LogWarning($"[Starter] {path}: BridgeModule 없음"); continue; }
                     Configure(bridge, so =>
                     {
-                        Set(so, "machineGun.projectile", projectile);
                         if (repairFx != null) Set(so, "burstEffect", repairFx);
                     });
                     PrefabUtility.SaveAsPrefabAsset(root, path);
-                    Debug.Log($"[Starter] {System.IO.Path.GetFileName(path)}: 원격 기관총 탄 연결");
+                    Debug.Log($"[Starter] {System.IO.Path.GetFileName(path)}: 응급 수리 이펙트 연결");
                 }
                 finally { PrefabUtility.UnloadPrefabContents(root); }
             }
@@ -97,18 +94,6 @@ namespace Game.EditorTools
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(loadout);
             Debug.Log($"[Starter] {code}: 함미 기관포 ({at.X},{at.Z}) 추가");
-        }
-
-        private static GameObject FindAutocannonProjectile()
-        {
-            var cannon = AssetDatabase.LoadAssetAtPath<GameObject>(Root + "/Prefabs/Modules/MOD_Autocannon.prefab");
-            var module = cannon != null ? cannon.GetComponent<AutocannonModule>() : null;
-            if (module != null)
-            {
-                var p = new SerializedObject(module).FindProperty("projectilePrefab");
-                if (p != null && p.objectReferenceValue is GameObject g) return g;
-            }
-            return AssetDatabase.LoadAssetAtPath<GameObject>(ProjectilePath) ?? throw new Exception("기관포 탄 프리팹 없음");
         }
     }
 }

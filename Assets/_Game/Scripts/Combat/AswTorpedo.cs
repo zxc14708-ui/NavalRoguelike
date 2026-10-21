@@ -25,7 +25,7 @@ namespace Game.Combat
         private bool _fromTube;   // 발사관: 입수하는 동안에도 발사 방향으로 미끄러져 나간다
         private string _statsKey;
 
-        /// <summary>결과 분석·통계에서 쓰는 무장 이름. 같은 탄을 쓰는 호위함·함교 기관총·항공대는 발사 뒤 따로 이름을 붙인다(RunReport).</summary>
+        /// <summary>결과 분석·통계에서 쓰는 무장 이름. 같은 탄을 쓰는 호위함·항공대는 발사 뒤 따로 이름을 붙인다(RunReport).</summary>
         public string StatsKey { get => _statsKey; set => _statsKey = value; }
 
         private void Awake()
