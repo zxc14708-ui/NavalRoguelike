@@ -195,6 +195,22 @@ namespace Game.Dev
                 yield return new WaitForSeconds(0.2f);
                 _report.AppendLine($"- 응급 수리 [R]: 선체 {before:0} → {ship.HullHp:0} · 남은 {bridge.Charges}/{bridge.MaxCharges}회");
                 if (bridge.Charges != 1 || ship.HullHp <= before) Fail("응급 수리가 1회 줄며 선체를 고치지 않음");
+                // 쿨타임 충전(2026-10-21): 모자라면 정해진 시간마다 1회씩 다시 찬다 — 기다리는 시간만 줄여 확인
+                {
+                    float full = bridge.ChargeRechargeSeconds, left0 = bridge.ChargeRechargeLeft;
+                    int c0 = bridge.Charges;
+                    typeof(BridgeModule).GetField("_burstGapLeft", Inst)?.SetValue(bridge, 0f);   // 연속 사용 간격(4초)만 건너뛴다
+                    GameEvents.RaiseSkillRequested(ActiveSkillId.Repair);   // 남은 1회도 쓴다 → 0회, 진행도 표시
+                    yield return new WaitForSeconds(0.2f);
+                    int empty = bridge.Charges;
+                    float shown = bridge.BurstReadiness01;
+                    typeof(BridgeModule).GetField("_rechargeLeft", Inst)?.SetValue(bridge, 0.4f);
+                    yield return new WaitForSeconds(1.0f);
+                    int after = bridge.Charges;
+                    _report.AppendLine($"- 응급 수리 쿨타임: 1회 {full:0}초 · 사용 직후 남은 시간 {left0:0.#}초 · 다 쓴 뒤 {empty}회(표시 진행도 {shown:0.00}) → 충전 시간이 지나자 {after}/{bridge.MaxCharges}회");
+                    if (full <= 0f || left0 <= 0f || left0 > full + 0.01f) Fail("응급 수리를 쓴 뒤 충전 시간이 돌지 않음");
+                    if (empty != c0 - 1 || after != empty + 1) Fail("응급 수리가 충전 시간이 지나도 1회 다시 차지 않음");
+                }
                 GameEvents.RaiseBossDefeated();
                 yield return null;
                 _report.AppendLine($"- 보스 격침 뒤 응급 수리 {bridge.Charges}/{bridge.MaxCharges}회");
@@ -307,6 +323,60 @@ namespace Game.Dev
                 var wing = skill.Ability as AirWingAbility;
                 yield return new WaitForSeconds(2.5f);
                 yield return ScreenShot("signature_airwing_ingress");
+                // 크기(2026-10-21): 전투기 길이 약 3.4(슈퍼호넷 모델) · 조기경보기 길이 약 3.4 — 시작 함선(약 15)의 1/4 안팎.
+                // 이 검사의 함선은 블록을 덜어 낸 작은 배라 함선 길이는 참고로만 적는다
+                {
+                    static Vector3 Size(Component a)
+                    {
+                        var model = a.transform.GetChild(0);
+                        var keep = model.localRotation; model.localRotation = Quaternion.identity;
+                        var inv = a.transform.rotation; a.transform.rotation = Quaternion.identity;
+                        var b = new Bounds(); bool any = false;
+                        foreach (var r in a.GetComponentsInChildren<MeshRenderer>()) { if (!any) { b = r.bounds; any = true; } else b.Encapsulate(r.bounds); }
+                        a.transform.rotation = inv; model.localRotation = keep;
+                        return b.size;
+                    }
+                    float shipLen = 0f;
+                    { var b = new Bounds(); bool any = false; foreach (var r in ship.GetComponentsInChildren<MeshRenderer>()) { if (r.bounds.size.magnitude > 40f) continue; if (!any) { b = r.bounds; any = true; } else b.Encapsulate(r.bounds); } shipLen = Mathf.Max(b.size.x, b.size.z); }
+                    Vector3 fighter = Vector3.zero, aewSize = Vector3.zero; bool hornet = false, hawkeye = false;
+                    if (wing != null)
+                        foreach (var a in wing.Flight)
+                        {
+                            if (a == null) continue;
+                            if (a.IsAew) { aewSize = Size(a); hawkeye = FindChild(a.transform, "AIR_Hawkeye(Clone)") != null; }
+                            else { fighter = Size(a); hornet |= FindChild(a.transform, "AIR_SuperHornet(Clone)") != null; }
+                        }
+                    // 로토돔: 기체 위축으로 돌아야 한다(돔 윗면이 기울지 않음)
+                    float domeTilt = -1f, domeTurn = 0f;
+                    if (wing != null)
+                        foreach (var a in wing.Flight)
+                        {
+                            if (a == null || !a.IsAew) continue;
+                            var dome = FindChild(a.transform, "Rotodome");
+                            var model = a.transform.GetChild(0);
+                            if (dome == null) break;
+                            var normal = dome.GetComponent<Renderer>().localBounds.extents;   // 돔은 납작한 원판 — 가장 얇은 자기 축이 돔의 위
+                            Vector3 localUp = normal.x < normal.y && normal.x < normal.z ? Vector3.right : normal.y < normal.z ? Vector3.up : Vector3.forward;
+                            Vector3 up0 = dome.TransformDirection(localUp), fwd0 = dome.TransformDirection(localUp == Vector3.forward ? Vector3.up : Vector3.forward);
+                            Vector3 flat0 = Vector3.ProjectOnPlane(fwd0, model.up);
+                            float t0 = Time.time;
+                            yield return new WaitForSeconds(0.5f);
+                            if (dome == null || model == null) break;
+                            domeTilt = Vector3.Angle(dome.TransformDirection(localUp), model.up);
+                            domeTilt = Mathf.Min(domeTilt, 180f - domeTilt);
+                            domeTurn = Vector3.Angle(flat0, Vector3.ProjectOnPlane(dome.TransformDirection(localUp == Vector3.forward ? Vector3.up : Vector3.forward), model.up));
+                            break;
+                        }
+                    _report.AppendLine($"- 항공대 크기: 함선 길이 {shipLen:0.0} · 전투기(슈퍼호넷 {Yes(hornet)}) 길이 {fighter.z:0.0} 날개폭 {fighter.x:0.0} · " +
+                                       $"조기경보기(호크아이 {Yes(hawkeye)}) 길이 {aewSize.z:0.0} 날개폭 {aewSize.x:0.0} · 로토돔 기울기 {domeTilt:0.0}° · 0.5초 회전 {domeTurn:0}°");
+                    if (!hornet) Fail("항공대 전투기가 슈퍼호넷 모델이 아님");
+                    if (!hawkeye) Fail("항공대 조기경보기가 호크아이 모델이 아님");
+                    if (domeTilt < 0f || domeTilt > 3f || domeTurn < 10f) Fail("호크아이 로토돔이 기체 위축으로 돌지 않음");
+                    if (fighter.z < 2.8f || fighter.z > 4.2f || aewSize.z < 2.8f || aewSize.z > 4.2f) Fail("항공대 기체 길이가 3.4 안팎이 아님(함선에 비해 너무 크거나 작음)");
+                    FriendlyAircraft lead = null;
+                    if (wing != null) foreach (var a in wing.Flight) if (a != null && !a.IsAew) { lead = a; break; }
+                    if (lead != null) yield return CloseShot("signature_airwing_hornet", lead.transform, 6f);
+                }
                 yield return new WaitForSeconds(6f);
                 yield return ScreenShot("signature_airwing_attack");
                 yield return new WaitForSeconds(6f);

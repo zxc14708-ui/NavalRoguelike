@@ -40,12 +40,12 @@ namespace Game.Ship
             Vector3 right = Vector3.Cross(Vector3.up, fwd);
             Vector3 entry = ship.transform.position - fwd * 150f;
             // 쐐기 대형: 선두기 · 좌우 윙맨 · 뒤 위에 조기경보기
-            var slots = new[] { (Vector3.zero, false), (-right * 9f - fwd * 8f, false), (right * 9f - fwd * 8f, false), (-fwd * 26f + Vector3.up * 3f, true) };
+            var slots = new[] { (Vector3.zero, false), (-right * 6f - fwd * 5f, false), (right * 6f - fwd * 5f, false), (-fwd * 18f + Vector3.up * 3f, true) };
             for (int i = 0; i < slots.Length; i++)
             {
                 var (offset, aew) = slots[i];
-                // 전투 카메라가 위에서 비스듬히 보므로 높이 날면 화면에 너무 크게 보인다 — 낮게(전투기 11m, 조기경보기 14m)
-                var a = FriendlyAircraft.Spawn(aew, ship, entry + offset + Vector3.up * (aew ? 14f : 11f), fwd, round, Duration, i);
+                // 전투 카메라가 위에서 비스듬히 보므로 높이 날면 화면에 너무 크게 보인다 — 낮게(전투기 8m, 조기경보기 10m)
+                var a = FriendlyAircraft.Spawn(aew, ship, entry + offset + Vector3.up * (aew ? 10f : 8f), fwd, round, Duration, i);
                 Flight.Add(a);
             }
             AudioManager.Play(Game.Data.SfxId.MissileLaunch, ship.transform.position, 0.5f, 0.6f);
@@ -74,7 +74,10 @@ namespace Game.Ship
         private int _burst;
         private ITargetable _target;
         private Transform _rotodome;
-        private Renderer _burner;
+        private Vector3 _domeAxis = Vector3.up;
+        private readonly System.Collections.Generic.List<(Transform t, Vector3 axis)> _props = new();
+        private readonly System.Collections.Generic.List<(Transform t, Vector3 scale)> _burners = new();
+        private Transform _gunPort;
 
         public static FriendlyAircraft Spawn(bool aew, ShipController ship, Vector3 at, Vector3 heading, GameObject round, float duration, int index)
         {
@@ -87,7 +90,7 @@ namespace Game.Ship
             a._until = Time.time + duration;
             a._speed = aew ? 22f : 34f;
             a._turn = aew ? 35f : 120f;
-            a._altitude = aew ? 14f : 11f;
+            a._altitude = aew ? 10f : 8f;
             a._orbitAngle = index * 120f;
             a._pingTimer = 1.5f;
             if (aew) a.BuildAew(); else a.BuildFighter();
@@ -121,8 +124,10 @@ namespace Game.Ship
             else goal = FighterGoal(shipPos, dt, ref wantAlt);
 
             Steer(goal, wantAlt, dt);
-            if (_rotodome != null) _rotodome.Rotate(Vector3.up, 90f * dt, Space.Self);
-            if (_burner != null) _burner.transform.localScale = Vector3.one * (0.55f + 0.15f * Mathf.PerlinNoise(Time.time * 18f, GetInstanceID()));
+            if (_rotodome != null) _rotodome.Rotate(_domeAxis, 90f * dt, Space.Self);
+            for (int i = 0; i < _props.Count; i++) _props[i].t.Rotate(_props[i].axis, 1100f * dt, Space.Self);
+            for (int i = 0; i < _burners.Count; i++)
+                _burners[i].t.localScale = _burners[i].scale * (0.8f + 0.35f * Mathf.PerlinNoise(Time.time * 18f, GetInstanceID() + i * 7));
         }
 
         /// <summary>전투기: 표적을 향해 낮게 내려가 기총을 쏘며 지나가고, 지나치면 잠깐 빠졌다가 다시 들어온다.</summary>
@@ -165,7 +170,7 @@ namespace Game.Ship
 
         private void Fire(Vector3 aim)
         {
-            Vector3 from = transform.position + transform.forward * 3f - transform.up * 0.3f;
+            Vector3 from = _gunPort != null ? _gunPort.position + transform.forward * 0.3f : transform.position + transform.forward * 2f - transform.up * 0.2f;
             Vector3 dir = (aim - from).normalized;
             dir = Quaternion.AngleAxis(Random.Range(-1.2f, 1.2f), Vector3.up) * dir;
             var go = PoolManager.Instance?.Spawn(_round, from, Quaternion.LookRotation(dir));
@@ -227,10 +232,20 @@ namespace Game.Ship
         private static readonly Color Hull = new(0.55f, 0.6f, 0.66f);
         private static readonly Color Dark = new(0.2f, 0.23f, 0.27f);
 
+        // 크기(2026-10-21): 함선(길이 약 15)에 맞춘 실제 비율 — 전투기 길이 3.4(실제 18.3m), 조기경보기 길이 3.4 · 날개폭 4.8(실제 17.6 · 24.6m).
+        // 예전 도형은 전투기 6.3 · 조기경보기 6.8 × 12로 함선 절반만 했다.
+        private const float LegacyFighterScale = 0.55f, AewScale = 0.5f;
+        private static GameObject s_hornet, s_hawkeye;
+        private static bool s_hornetLoaded, s_hawkeyeLoaded;
+
         private void BuildFighter()
         {
             var m = new GameObject("Model").transform;
             m.SetParent(transform, false);
+            if (!s_hornetLoaded) { s_hornetLoaded = true; s_hornet = Resources.Load<GameObject>("Aviation/AIR_SuperHornet"); }
+            if (s_hornet != null) { BuildHornet(m); return; }
+
+            m.localScale = Vector3.one * LegacyFighterScale;   // 모델이 없을 때만: 예전 도형을 같은 크기로
             var body = SignatureFx.Lit(Hull);
             Part(PrimitiveType.Cylinder, m, new Vector3(0f, 0f, 0f), new Vector3(0.7f, 2.6f, 0.7f), body, new Vector3(90f, 0f, 0f));   // 동체(길이 5.2)
             Part(PrimitiveType.Sphere, m, new Vector3(0f, 0f, 2.7f), new Vector3(0.62f, 0.55f, 1.6f), body);                            // 기수
@@ -243,22 +258,81 @@ namespace Game.Ship
                 var tip = new GameObject("Wingtip").transform;
                 tip.SetParent(m, false);
                 tip.localPosition = new Vector3(s * 2.7f, -0.05f, -0.9f);
-                Trail(tip, 0.18f, 0.9f);
+                Trail(tip, 0.18f * LegacyFighterScale, 0.9f);
                 Part(PrimitiveType.Sphere, m, new Vector3(s * 2.75f, 0f, -0.85f), Vector3.one * 0.18f,
                      SignatureFx.Lit(s < 0 ? Color.red : Color.green, 0.5f, s < 0 ? new Color(2f, 0.2f, 0.2f) : new Color(0.2f, 2f, 0.3f)));   // 항법등
             }
-            _burner = Part(PrimitiveType.Sphere, m, new Vector3(0f, 0f, -2.75f), new Vector3(0.5f, 0.5f, 0.9f),
-                           SignatureFx.Lit(new Color(1f, 0.6f, 0.2f), 0.2f, new Color(4f, 1.8f, 0.4f))).GetComponent<Renderer>();
+            var burner = Part(PrimitiveType.Sphere, m, new Vector3(0f, 0f, -2.75f), new Vector3(0.5f, 0.5f, 0.9f),
+                              SignatureFx.Lit(new Color(1f, 0.6f, 0.2f), 0.2f, new Color(4f, 1.8f, 0.4f)));
+            _burners.Add((burner, burner.localScale));
+        }
+
+        /// <summary>
+        /// F/A-18F 슈퍼호넷(Resources/Aviation/AIR_SuperHornet — 기수 +Z, 길이 3.4). 소켓에 날개끝 비행운·항법등(좌 빨강·우 초록),
+        /// 쌍발 노즐 불꽃, 기총 위치(GunPort)를 붙인다.
+        /// </summary>
+        private void BuildHornet(Transform m)
+        {
+            var model = Instantiate(s_hornet, m, false).transform;
+            foreach (var r in model.GetComponentsInChildren<Renderer>(true)) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            foreach (var (tag, s) in new[] { ("L", -1f), ("R", 1f) })
+            {
+                var tip = FindDeep(model, "Wingtip" + tag);
+                if (tip != null)
+                {
+                    Trail(tip, 0.07f, 0.8f);
+                    Part(PrimitiveType.Sphere, tip, Vector3.zero, Vector3.one * 0.08f,
+                         SignatureFx.Lit(s < 0 ? Color.red : Color.green, 0.5f, s < 0 ? new Color(2f, 0.2f, 0.2f) : new Color(0.2f, 2f, 0.3f)));   // 항법등
+                }
+                var nozzle = FindDeep(model, "Nozzle" + tag);
+                if (nozzle != null)
+                {
+                    var burner = Part(PrimitiveType.Sphere, m, m.InverseTransformPoint(nozzle.position), new Vector3(0.14f, 0.14f, 0.3f),
+                                      SignatureFx.Lit(new Color(1f, 0.6f, 0.2f), 0.2f, new Color(4f, 1.8f, 0.4f)));
+                    _burners.Add((burner, burner.localScale));
+                }
+            }
+            _gunPort = FindDeep(model, "GunPort");
+        }
+
+        /// <summary>
+        /// E-2D 호크아이(Resources/Aviation/AIR_Hawkeye — 기수 +Z, 길이 3.3 · 날개폭 4.6). 로토돔은 기체 위축으로, 8엽 프로펠러 둘은 기체 앞축으로 돈다.
+        /// 임포트한 부품의 자기 축은 기체 축과 다를 수 있어(축 변환) 기체 위·앞을 부품 자기 좌표로 바꿔 둔다. 날개끝에 비행운.
+        /// </summary>
+        private void BuildHawkeye(Transform m)
+        {
+            var model = Instantiate(s_hawkeye, m, false).transform;
+            foreach (var r in model.GetComponentsInChildren<Renderer>(true)) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            _rotodome = FindDeep(model, "Rotodome");
+            if (_rotodome != null) _domeAxis = _rotodome.InverseTransformDirection(m.up);
+            foreach (var tag in new[] { "L", "R" })
+            {
+                var prop = FindDeep(model, "Prop" + tag);
+                if (prop != null) _props.Add((prop, prop.InverseTransformDirection(m.forward)));
+                var tip = FindDeep(model, "Wingtip" + tag);
+                if (tip != null) Trail(tip, 0.05f, 0.6f);
+            }
+        }
+
+        private static Transform FindDeep(Transform t, string name)
+        {
+            if (t.name == name) return t;
+            foreach (Transform c in t) { var f = FindDeep(c, name); if (f != null) return f; }
+            return null;
         }
 
         private void BuildAew()
         {
             var m = new GameObject("Model").transform;
             m.SetParent(transform, false);
+            if (!s_hawkeyeLoaded) { s_hawkeyeLoaded = true; s_hawkeye = Resources.Load<GameObject>("Aviation/AIR_Hawkeye"); }
+            if (s_hawkeye != null) { BuildHawkeye(m); return; }
+
+            m.localScale = Vector3.one * AewScale;   // 모델이 없을 때만: 예전 도형을 같은 크기로
             var body = SignatureFx.Lit(new Color(0.78f, 0.8f, 0.82f));
             Part(PrimitiveType.Cylinder, m, Vector3.zero, new Vector3(1.1f, 3.4f, 1.1f), body, new Vector3(90f, 0f, 0f));        // 동체(길이 6.8)
             Part(PrimitiveType.Sphere, m, new Vector3(0f, 0f, 3.4f), new Vector3(1.05f, 1f, 1.6f), body);
-            Part(PrimitiveType.Cube, m, new Vector3(0f, 0.55f, 0.4f), new Vector3(12f, 0.16f, 1.3f), body);                      // 고익
+            Part(PrimitiveType.Cube, m, new Vector3(0f, 0.55f, 0.4f), new Vector3(9.6f, 0.16f, 1.3f), body);                     // 고익
             foreach (float s in new[] { -1f, 1f })
             {
                 Part(PrimitiveType.Cylinder, m, new Vector3(s * 2.4f, 0.35f, 1.1f), new Vector3(0.45f, 0.7f, 0.45f), body, new Vector3(90f, 0f, 0f));   // 엔진
@@ -267,12 +341,12 @@ namespace Game.Ship
                 Part(PrimitiveType.Cube, m, new Vector3(s * 0.45f, 0.9f, -3.1f), new Vector3(0.08f, 1.1f, 0.8f), body);
                 var tip = new GameObject("Wingtip").transform;
                 tip.SetParent(m, false);
-                tip.localPosition = new Vector3(s * 6f, 0.55f, 0.2f);
-                Trail(tip, 0.12f, 0.6f);
+                tip.localPosition = new Vector3(s * 4.8f, 0.55f, 0.2f);
+                Trail(tip, 0.06f, 0.6f);
             }
             Part(PrimitiveType.Cube, m, new Vector3(0f, 0.75f, -3.1f), new Vector3(3f, 0.08f, 0.8f), body);                     // 수평 꼬리
             Part(PrimitiveType.Cylinder, m, new Vector3(0f, 1.25f, -0.6f), new Vector3(0.2f, 0.35f, 0.2f), body);              // 레이더돔 기둥
-            _rotodome = Part(PrimitiveType.Cylinder, m, new Vector3(0f, 1.65f, -0.6f), new Vector3(3.4f, 0.18f, 3.4f), SignatureFx.Lit(new Color(0.92f, 0.93f, 0.95f)));
+            _rotodome = Part(PrimitiveType.Cylinder, m, new Vector3(0f, 1.65f, -0.6f), new Vector3(2.9f, 0.18f, 2.9f), SignatureFx.Lit(new Color(0.92f, 0.93f, 0.95f)));
             Part(PrimitiveType.Cube, _rotodome, new Vector3(0f, 1.1f, 0f), new Vector3(0.9f, 0.6f, 0.06f), SignatureFx.Lit(Dark));   // 돔 무늬(도는 게 보이게)
         }
 

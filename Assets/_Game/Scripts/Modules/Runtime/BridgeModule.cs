@@ -18,7 +18,8 @@ namespace Game.Modules.Runtime
     /// 손상 통제 중심(2026-10-11 개편): 선체 자동 회복과 응급 수리[R]를 함교가 맡고, 손상통제반 수(작동 중)로 커진다.
     ///   - 자동 회복 상한: 50% + 손상통제반마다 (50% ÷ 최대 3개) → 50 / 67 / 83 / 100%. 상한을 넘으면 고치지 않는다.
     ///   - 자동 회복 속도: Stats.HullRepairPerSecond × (1 + 0.5 × 손상통제반 수) × 성장 카드 수리 효율.
-    ///   - 응급 수리 횟수: 1 + 손상통제반 수. 쓰면 1회 줄고(연달아 쓰지 않게 4초 간격), 스테이지 보스를 격침하면 가득 찬다.
+    ///   - 응급 수리 횟수: 1 + 손상통제반 수. 쓰면 1회 줄고(연달아 쓰지 않게 4초 간격), 모자라면 40초마다 1회씩 다시 찬다
+    ///     (2026-10-21 — 예전에는 스테이지 보스를 격침할 때만 찼다. 성장 카드 스킬 회복 속도가 함께 듣는다). 보스를 격침하면 지금처럼 가득 찬다.
     ///     손상통제반을 새로 놓으면 늘어난 만큼 바로 생기고, 잃으면 최대치에 맞춰 줄어든다. 응급 수리는 상한과 상관없이 고친다.
     /// </summary>
     public class BridgeModule : DecoyLauncherModule, IFlankSource, IRadarSource, IRepairBurstSource, ISkillCharges
@@ -37,6 +38,8 @@ namespace Game.Modules.Runtime
         [SerializeField, Range(0f, 1f)] private float burstModuleRatio = 0.4f;
         [Tooltip("응급 수리를 연달아 쓰지 않게 두는 간격(초)")]
         [SerializeField] private float burstGap = 4f;
+        [Tooltip("응급 수리 1회가 다시 차는 시간(초). 횟수가 가득이면 멈춘다. 0이면 보스 격침 때만 찬다")]
+        [SerializeField] private float chargeRecharge = 40f;
         [SerializeField] private GameObject burstEffect;
 
         [Header("Ruleset (WWII 패치 A 9.1)")]
@@ -59,6 +62,7 @@ namespace Game.Modules.Runtime
         private float _flankCooldown;
         private int _repairBays, _maxCharges = -1, _charges;
         private float _burstGapLeft;
+        private float _rechargeLeft;
 
         // --- 손상 통제(함교가 중심)
         public int RepairBays => _repairBays;
@@ -67,7 +71,13 @@ namespace Game.Modules.Runtime
         public int Charges => _charges;
         public int MaxCharges => 1 + _repairBays;
         public bool BurstReady => _charges > 0 && _burstGapLeft <= 0f && Ship != null && Instance != null && Instance.IsOperational;
-        public float BurstReadiness01 => _charges <= 0 ? 0f : burstGap > 0f ? 1f - Mathf.Clamp01(_burstGapLeft / burstGap) : 1f;
+        /// <summary>남은 횟수가 없으면 다음 1회가 차는 진행도, 있으면 연속 사용 간격의 진행도.</summary>
+        public float BurstReadiness01 => _charges <= 0
+            ? (chargeRecharge > 0f ? 1f - Mathf.Clamp01(_rechargeLeft / chargeRecharge) : 0f)
+            : burstGap > 0f ? 1f - Mathf.Clamp01(_burstGapLeft / burstGap) : 1f;
+        /// <summary>응급 수리 1회가 다시 차는 시간(초)과 다음 1회까지 남은 시간(검증·HUD용).</summary>
+        public float ChargeRechargeSeconds => chargeRecharge;
+        public float ChargeRechargeLeft => _rechargeLeft;
 
         public void Burst()
         {
@@ -78,6 +88,7 @@ namespace Game.Modules.Runtime
                     if (m != null && !m.IsDestroyed) m.Repair(m.MaxHp * burstModuleRatio);
             _charges--;
             _burstGapLeft = burstGap;
+            if (_rechargeLeft <= 0f) _rechargeLeft = chargeRecharge;   // 이미 차고 있던 1회는 그대로 이어서
             PooledEffect.Spawn(burstEffect, Ship.transform.position);
             AudioManager.Play(Game.Data.SfxId.SonarPing, transform.position, 0.6f, 0.8f);
             CombatLog.Add("응급 수리", $"선체 +{burstHull:0} · 모듈 {burstModuleRatio * 100f:0}% · 남은 {_charges}/{MaxCharges}회");
@@ -96,12 +107,27 @@ namespace Game.Modules.Runtime
             else if (max > _maxCharges) _charges += max - _maxCharges;  // 새로 놓은 손상통제반
             _charges = Mathf.Clamp(_charges, 0, max);
             _maxCharges = max;
+            if (_charges >= max) _rechargeLeft = 0f;
+            else if (_rechargeLeft <= 0f) _rechargeLeft = chargeRecharge;
         }
 
         private void RefillCharges()
         {
             if (this == null) { GameEvents.BossDefeated -= RefillCharges; return; }
             _charges = MaxCharges;
+            _rechargeLeft = 0f;
+        }
+
+        /// <summary>모자란 응급 수리를 시간이 지나면 1회씩 다시 채운다(성장 카드 스킬 회복 속도가 듣는다).</summary>
+        private void TickRecharge(float dt)
+        {
+            if (chargeRecharge <= 0f || _charges >= MaxCharges) { _rechargeLeft = 0f; return; }
+            if (_rechargeLeft <= 0f) _rechargeLeft = chargeRecharge;
+            _rechargeLeft -= dt * RunUpgrades.SkillRate;
+            if (_rechargeLeft > 0f) return;
+            _charges++;
+            _rechargeLeft = _charges < MaxCharges ? chargeRecharge : 0f;
+            CombatLog.Add("응급 수리", $"1회 다시 참 · {_charges}/{MaxCharges}회");
         }
         private readonly RadarAntennaTracker _radar = new();
 
@@ -149,6 +175,7 @@ namespace Game.Modules.Runtime
             base.Tick(dt);
             if (_flankCooldown > 0f) _flankCooldown -= dt * RunUpgrades.SkillRate;   // 성장 카드: 스킬 회복 속도
             if (_burstGapLeft > 0f) _burstGapLeft -= dt;
+            TickRecharge(dt);
             crew.Tick(Ship, Grid, Instance, HullRepairRate, Stats.ModuleRepairPerSecond, dt, HullRepairCap);
 
             if (radarAntenna != null) radarAntenna.Rotate(Vector3.up, antennaRpm * 6f * dt, Space.World);

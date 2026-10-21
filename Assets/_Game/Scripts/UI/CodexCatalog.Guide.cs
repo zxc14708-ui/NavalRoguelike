@@ -298,7 +298,7 @@ namespace Game.UI
 
             sb.Clear();
             Row(sb, "<b>자동 회복</b>", "함교가 선체를 0.5/초씩 50%까지 고친다. 맞은 뒤 3초 동안은 25%로 줄어든다.");
-            Row(sb, $"<b>응급 수리 {K(NavalControl.Repair)}</b>", "선체 +30(상한 무시) · 부서지지 않은 모든 블록 최대 내구 40% 수리. 1회 + 손상통제반 수, 보스를 격침할 때마다 가득.");
+            Row(sb, $"<b>응급 수리 {K(NavalControl.Repair)}</b>", "선체 +30(상한 무시) · 부서지지 않은 모든 블록 최대 내구 40% 수리. 1회 + 손상통제반 수. 모자라면 40초마다 1회씩 다시 차고(스킬 회복 속도 카드가 줄인다), 보스를 격침하면 가득.");
             Row(sb, "<b>손상통제반</b>", $"{LinkTo(ModuleType.RepairBay) ?? "손상통제반"} 하나마다 회복 상한 +17%p(3개면 100%) · 속도 +50% · 응급 수리 +1회.");
             Row(sb, "그 밖", "레벨업마다 선체 8, 보스 뒤 보급 항로를 고르면 선체 40을 고친다.");
             yield return Term("term_damage", "손상 통제 · 응급 수리", "생존", CodexRole.Support, sb.ToString().TrimEnd());
