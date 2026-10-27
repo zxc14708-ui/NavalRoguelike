@@ -43,7 +43,7 @@ namespace Game.Combat
             if (n.StartsWith("MIS_PlayerSam")) return "SAM";
             if (n.StartsWith("DC_Player")) return "폭뢰";
             if (n.StartsWith("PRJ_Howitzer")) return "곡사포";
-            if (n.StartsWith("PRJ_Nobong")) return "노봉";
+            if (n.StartsWith("PRJ_Nobong")) return "40mm 쌍열포";
             if (n.StartsWith("PRJ_Ww2DualGun")) return "양용포";      // WWII(패치 B)
             if (n.StartsWith("PRJ_Ww2QuadAa")) return "4연장 대공포";
             if (n.StartsWith("PRJ_Ww2HeavyShell")) return "대구경 주포";   // WWII(패치 C3a)

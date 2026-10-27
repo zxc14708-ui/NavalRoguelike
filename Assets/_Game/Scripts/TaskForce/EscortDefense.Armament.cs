@@ -209,9 +209,7 @@ namespace Game.TaskForce
             }
             if (pick == null) { _strikeAt = Time.time + 0.5f; return; }
 
-            // 발사관을 표적 쪽으로 돌리고(연출), 발사점마다 한 발씩 0.25초 간격
-            for (int i = 0; i < rig.Mounts(EscortTurrets.MountKind.Strike); i++)
-                rig.EngageMount(EscortTurrets.MountKind.Strike, i, pick.Transform.position, out _, out _, 2.5f);
+            // 고정 발사관(2026-10-27): 발사관은 돌리지 않는다 — 발사점마다 한 발씩 0.25초 간격, 나간 뒤 낮게 곧장(직사) 표적으로
             float damage = StrikeDamage(tier) * 0.5f * RunUpgrades.DamageMultiplier(ModuleType.Vls);
             points.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
             for (int k = 0; k < points.Count; k++) _strikeQueue.Add((Time.time + 0.35f + k * 0.25f, points[k], pick, damage));
@@ -231,7 +229,7 @@ namespace Game.TaskForce
                 _strikeQueue.RemoveAt(i);
                 if (armory == null || q.point == null || q.target == null || !q.target.IsAlive || q.target.Transform == null) continue;
                 var go = PoolManager.Instance?.Spawn(armory.strikeMissile, q.point.position, Quaternion.LookRotation(q.point.forward));
-                if (go != null && go.TryGetComponent<Missile>(out var strike)) { strike.Launch(q.target.Transform, q.damage); strike.StatsKey = EscortKey; }
+                if (go != null && go.TryGetComponent<Missile>(out var strike)) { strike.Launch(q.target.Transform, q.damage); strike.FlyDirect(); strike.StatsKey = EscortKey; }
                 StrikeLaunches++;
                 SurfaceStrikes++;
                 Explosions.Spawn(q.point.position, 0.25f, Explosions.Kind.Air);

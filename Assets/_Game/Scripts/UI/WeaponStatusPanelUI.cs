@@ -28,7 +28,7 @@ namespace Game.UI
         private static readonly (ModuleType type, string name)[] Order =
         {
             (ModuleType.Autocannon, "기관포"),
-            (ModuleType.Nobong, "노봉"),
+            (ModuleType.Nobong, "40mm"),
             (ModuleType.NavalGun, "76mm"),
             (ModuleType.Howitzer, "곡사포"),
             (ModuleType.GuidedRocket, "유도로켓"),

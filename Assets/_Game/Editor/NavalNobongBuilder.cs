@@ -47,7 +47,7 @@ namespace Game.EditorTools
             }
             NavalWeaponUpgradeVisuals.ReapplyAfterRebuild("mod_nobong");   // 그레이박스로 다시 만들어도 Codex 강화 외형(Visual_Level1~3)을 다시 넣는다
             AssetDatabase.SaveAssets();
-            Debug.Log($"[Nobong] 노봉 40mm 쌍열포 블록을 만들었습니다: {PrefabPath}, {DefPath}, {ShellPath}");
+            Debug.Log($"[Nobong] 40mm 쌍열포 블록을 만들었습니다: {PrefabPath}, {DefPath}, {ShellPath}");
         }
 
         private static GameObject BuildShell(GameObject baseShell, GameObject gun76Shell)
@@ -144,7 +144,7 @@ namespace Game.EditorTools
             Configure(def, so =>
             {
                 Set(so, "id", "mod_nobong");
-                Set(so, "displayName", "노봉 40mm 쌍열포");
+                Set(so, "displayName", "40mm 쌍열포");
                 Set(so, "description", Description);
                 Set(so, "type", (int)ModuleType.Nobong);
                 Set(so, "width", 1);

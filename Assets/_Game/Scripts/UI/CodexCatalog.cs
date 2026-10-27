@@ -173,7 +173,7 @@ namespace Game.UI
                 };
                 AddRanges(e, def);
                 var sb = new StringBuilder();
-                if (!string.IsNullOrEmpty(def.Description)) sb.AppendLine(def.Description).AppendLine();
+                // 사전은 사양만(2026-10-27) — 설명 문단(def.Description)은 정비 카드에만 쓴다
                 // 카드 표(<pos=44%>)는 값이 길면 왼쪽 끝으로 줄이 넘어간다 — 사전에서는 넘어간 줄도 값 칸에 맞춘다
                 foreach (var raw in ModuleCardText.BuildStats(def).Split('\n'))
                     if (raw.TrimEnd('\r') is var line)
@@ -285,25 +285,24 @@ namespace Game.UI
                         _ => CodexRole.Surface,
                     },
                 };
+                // 사양만(2026-10-27 사전 간략화)
                 var sb = new StringBuilder();
-                sb.AppendLine($"<color={Muted}>{TaskForceEscortFormation.RoleSummary(role)}.</color>").AppendLine();
-                Row(sb, "얻는 법", role == EscortRole.None
-                    ? $"편대 배치 카드 — 1척 합류(최대 {TaskForceEscortFormation.MaxEscorts}척)"
-                    : "고속정에 편대 강화 카드 → 역할 지정(T0), 다시 강화하면 T1~T3");
-                // 2026-10-11 호위함 실제 무장: 모델에 실린 무장이 각자 실제 탄·미사일을 쏜다
-                Row(sb, "함포(모든 함)", $"포탑마다 따로 — 주포·후방포·현측포 76mm 탄({EscortDefense.HeavyRange:0} m · {EscortDefense.HeavyInterval:0.0#}초), " +
-                                       $"기관총 기관포 탄({EscortDefense.LightRange:0} m · {EscortDefense.LightInterval:0.0#}초). 사격각 안의 가장 가까운 적");
+                Row(sb, "획득", role == EscortRole.None
+                    ? $"편대 배치 카드 · 최대 {TaskForceEscortFormation.MaxEscorts}척"
+                    : "편대 강화 카드 · T0 → T3");
+                Row(sb, "76mm", $"{EscortDefense.HeavyRange:0} m · {EscortDefense.HeavyInterval:0.0#}초");
+                Row(sb, "기관포", $"{EscortDefense.LightRange:0} m · {EscortDefense.LightInterval:0.0#}초");
                 string ability = role switch
                 {
-                    EscortRole.AirDefense => $"VLS·함대공 발사기에서 함대공 미사일({EscortDefense.SamRange:0} m, 기함에 가장 급한 미사일부터) · CIWS 탄막({EscortDefense.CiwsRange:0} m, CIWS를 단 개량형)",
-                    EscortRole.AntiSubmarine => "대잠 헬기(잠수함 위에서 디핑 소나로 접촉 확정 → 폭뢰, 수상함엔 유도로켓 · 착함 뒤 18 − 3×단계 초 재출격) · 표적 쪽 현측 어뢰관 경어뢰 · T3 대잠 로켓",
-                    EscortRole.ElectronicWarfare => $"근접 교란 반경 {EscortDefense.JamRange:0} m — 교란되지 않은 적 미사일 하나",
-                    EscortRole.SurfaceStrike => $"미사일 발사관마다 대함 미사일 한 발씩(0.25초 간격, {EscortDefense.StrikeRange:0} m) — 개량형일수록 발사관이 많다",
+                    EscortRole.AirDefense => $"함대공 {EscortDefense.SamRange:0} m · CIWS {EscortDefense.CiwsRange:0} m(개량형)",
+                    EscortRole.AntiSubmarine => "대잠 헬기 · 경어뢰 · 대잠 로켓(T3)",
+                    EscortRole.ElectronicWarfare => $"교란 {EscortDefense.JamRange:0} m · 미사일 1발",
+                    EscortRole.SurfaceStrike => $"대함 미사일(고정 발사관) {EscortDefense.StrikeRange:0} m · 발사관당 1발",
                     _ => null,
                 };
                 if (ability != null) Row(sb, "역할 무장", ability);
                 e.Ranges.Add(new CodexRange("76mm", 0f, EscortDefense.HeavyRange));
-                e.Ranges.Add(new CodexRange("기관총", 0f, EscortDefense.LightRange));
+                e.Ranges.Add(new CodexRange("기관포", 0f, EscortDefense.LightRange));
                 switch (role)
                 {
                     case EscortRole.AirDefense: e.Ranges.Add(new CodexRange("함대공", 0f, EscortDefense.SamRange)); break;
@@ -319,10 +318,9 @@ namespace Game.UI
                 int tiers = role == EscortRole.None ? 0 : maxTier;
                 for (int t = 0; t <= tiers; t++)
                     Row(sb, $"T{t}", $"{TaskForceEscortFormation.TierDescription(role, t)} · 선체 {TaskForceEscortFormation.MaxHullFor(t):0}");
-                sb.AppendLine().AppendLine($"<color={Key}><b>생존</b></color>");
-                Row(sb, "적의 표적", $"기함보다 덜 노림(우선도 {TaskForceEscortFormation.EscortTargetPriority:0.#}) · 한 척에 최대 {TaskForceEscortFormation.EscortMaxAttackers}척");
-                Row(sb, "전투 불능", $"뒤로 이탈 → {TaskForceEscortFormation.RecoverSeconds:0}초 뒤 선체 {TaskForceEscortFormation.RecoverHull * 100f:0}%로 복귀 · 정비 때 전부 수리");
-                Row(sb, "진형", "G키로 복렬진·종렬진·단열진·사열진·능형진 전환");
+                sb.AppendLine();
+                Row(sb, "피격 우선도", $"{TaskForceEscortFormation.EscortTargetPriority:0.#} · 최대 {TaskForceEscortFormation.EscortMaxAttackers}척");
+                Row(sb, "전투 불능", $"{TaskForceEscortFormation.RecoverSeconds:0}초 뒤 선체 {TaskForceEscortFormation.RecoverHull * 100f:0}% 복귀");
                 e.Body = sb.ToString().TrimEnd();
 
                 if (role == EscortRole.None)
@@ -401,9 +399,8 @@ namespace Game.UI
                     Roles = CounterRoles(def),
                 };
                 if (def.PreferredRange > 0f) e.Ranges.Add(new CodexRange("교전", 0f, def.PreferredRange));
-                var (about, counter) = Lore(def);
+                // 사양만(2026-10-27 사전 간략화) — 설명·대응 문단 없이 수치와 관련 무장 링크
                 var sb = new StringBuilder();
-                sb.AppendLine($"<color={Muted}>{about}</color>").AppendLine();
                 Row(sb, "체력", $"{def.MaxHp:0}");
                 Row(sb, "속력", $"{def.MoveSpeed:0.#} m/s ({def.MoveSpeed * Knots:0}노트) · 선회 {def.TurnRateDegPerSec:0}°/초");
                 if (def.PreferredRange > 0f) Row(sb, "교전 거리", $"{def.PreferredRange:0} m");
@@ -415,13 +412,10 @@ namespace Game.UI
                         : $"피해 {def.AttackDamage:0.#} (충돌)");
                 }
                 else Row(sb, "공격", "없음");
-                if (def.MissilePrefab != null) Row(sb, "무장", "대함미사일 — CIWS·함대공 요격, 기만체·재밍에 속음");
-                if (def.Kind == Game.Combat.TargetKind.Submarine)
-                    Row(sb, "은밀", $"잠항 중엔 소나·헬기·폭뢰로 드러나야 조준 가능 · 드러나면 {def.RevealDuration:0}초 노출");
+                if (def.MissilePrefab != null) Row(sb, "무장", "대함미사일");
+                if (def.Kind == Game.Combat.TargetKind.Submarine) Row(sb, "잠항", $"탐지 뒤 {def.RevealDuration:0}초 노출");
                 Row(sb, "경험치", def.XpReward > 0 ? $"{def.XpReward}" : "없음");
                 if (def.MaxAlive > 0) Row(sb, "동시 최대", $"{def.MaxAlive}척");
-                if (!string.IsNullOrEmpty(counter))
-                    sb.AppendLine().AppendLine($"<color={Key}><b>대응</b></color>").AppendLine(counter);
                 CounterLinks(sb, def);
                 e.Body = sb.ToString().TrimEnd();
                 e.Models.Add(new CodexModel("모델", def.Prefab));

@@ -80,7 +80,7 @@ namespace Game.Modules
             new() { Stat = RunStat.Defense, Name = "방어력", Scope = "함선", Effect = "받는 피해가 줄어든다", Values = new[] { 0.03f, 0.06f, 0.12f }, Weight = 0.9f, InverseDisplay = true },
             new() { Stat = RunStat.Repair, Name = "수리 효율", Scope = "손상 통제반", Effect = "선체·모듈 수리 속도가 빨라진다", Values = new[] { 0.10f, 0.20f, 0.40f }, Weight = 0.7f, RequiresAny = new[] { ModuleType.RepairBay } },
             new() { Stat = RunStat.Detection, Name = "탐지 거리", Scope = "레이더·소나", Effect = "탐지 거리가 늘어난다", Values = new[] { 0.08f, 0.16f, 0.32f }, Weight = 0.6f },
-            new() { Stat = RunStat.GunDamage, Name = "함포계 공격력", Scope = "기관포 · 노봉 · 76mm 함포", Effect = "포탄 무장의 한 발 피해가 크게 늘어난다", Values = new[] { 0.08f, 0.16f, 0.32f }, Weight = 0.8f, RequiresAny = GunTypes },
+            new() { Stat = RunStat.GunDamage, Name = "함포계 공격력", Scope = "기관포 · 40mm 쌍열포 · 76mm 함포", Effect = "포탄 무장의 한 발 피해가 크게 늘어난다", Values = new[] { 0.08f, 0.16f, 0.32f }, Weight = 0.8f, RequiresAny = GunTypes },
             new() { Stat = RunStat.MissileDamage, Name = "미사일계 공격력", Scope = "VLS · 유도로켓", Effect = "미사일 무장의 한 발 피해가 크게 늘어난다", Values = new[] { 0.08f, 0.16f, 0.32f }, Weight = 0.8f, RequiresAny = MissileTypes },
             new() { Stat = RunStat.AirDefenseRate, Name = "방공계 연사력", Scope = "CIWS · 함대공", Effect = "방공 무장의 발사 간격이 짧아진다", Values = new[] { 0.08f, 0.16f, 0.32f }, Weight = 0.7f, RequiresAny = AirDefenseTypes },
         };

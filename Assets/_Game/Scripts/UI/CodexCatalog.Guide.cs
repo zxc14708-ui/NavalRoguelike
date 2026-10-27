@@ -148,10 +148,10 @@ namespace Game.UI
             if (!Synergies.TryGetValue(type, out var list)) return;
             var lines = new List<string>();
             foreach (var (with, why) in list)
-                if (LinkTo(with) is { } link) lines.Add($"{link}  <color={Muted}>{why}</color>");
+                if (LinkTo(with) is { } link) lines.Add(link);   // 사전 간략화(2026-10-27): 이유 설명 없이 링크만
             if (lines.Count == 0) return;
             sb.AppendLine().AppendLine($"<color={Key}><b>함께 쓰기</b></color>");
-            foreach (var l in lines) sb.AppendLine(l);
+            sb.AppendLine(string.Join("  ·  ", lines));
         }
 
         /// <summary>적 본문 끝: 대응에 쓰는 무장(누르면 그 무장으로).</summary>

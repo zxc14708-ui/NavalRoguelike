@@ -59,8 +59,8 @@ namespace Game.EditorTools
         public static void AddWeaponPackProfiles()
         {
             Make("UPG_Nobong", "mod_nobong",
-                Stage("노봉 강화 I", "피해 +25% · 탄창 +25%", m => { m.damageMultiplier = 1.25f; m.magazineMultiplier = 1.25f; }),
-                Stage("노봉 강화 II", "피해 +50% · 탄창 +50% · 사거리 +15%", m => { m.damageMultiplier = 1.5f; m.magazineMultiplier = 1.5f; m.rangeMultiplier = 1.15f; }));
+                Stage("40mm 쌍열포 강화 I", "피해 +25% · 탄창 +25%", m => { m.damageMultiplier = 1.25f; m.magazineMultiplier = 1.25f; }),
+                Stage("40mm 쌍열포 강화 II", "피해 +50% · 탄창 +50% · 사거리 +15%", m => { m.damageMultiplier = 1.5f; m.magazineMultiplier = 1.5f; m.rangeMultiplier = 1.15f; }));
             Make("UPG_Howitzer", "mod_howitzer",
                 Stage("곡사포 강화 I", "한 번에 2발(적 진행 방향 앞뒤로 벌려 떨어짐)", m => { }),
                 Stage("곡사포 강화 II", "한 번에 3발(삼각형으로 벌려 떨어짐) · 사거리 +15%", m => { m.rangeMultiplier = 1.15f; }));

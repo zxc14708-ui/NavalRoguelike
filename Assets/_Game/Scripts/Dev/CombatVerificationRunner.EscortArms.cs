@@ -73,9 +73,44 @@ namespace Game.Dev
                 }
                 var hp0 = new List<float>(); foreach (var b in boats) hp0.Add(b.CurrentHp);
                 int g0 = stk.GunShots, s0 = stk.StrikeLaunches, cg0 = cap.GunShots, ag0 = asw.GunShots;
-                yield return new WaitForSeconds(4f);
-                yield return CloseShot("escortarms_strike", stk.transform, 14f);
-                yield return new WaitForSeconds(6f);
+                // 고정 발사관 · 직사(2026-10-27): 발사관 피벗이 돌지 않고, 대함 미사일이 솟구치지 않고 낮게 곧장 간다. 터지는 순간을 찍는다
+                var banks = new List<(Transform t, Quaternion rest)>();
+                foreach (var tr in stk.GetComponentsInChildren<Transform>(true))
+                    if (tr.name.StartsWith("MissileBank") && tr.name.EndsWith("Pivot")) banks.Add((tr, tr.localRotation));
+                float maxAlt = 0f, bankTurn = 0f; int seen = 0; bool blastShot = false;
+                var flying = new Dictionary<Missile, Vector3>();
+                bool closeShot = false;
+                for (float t = 0f; t < 10f; t += Time.deltaTime)
+                {
+                    foreach (var b in banks) bankTurn = Mathf.Max(bankTurn, Quaternion.Angle(b.rest, b.t.localRotation));
+                    foreach (var m in Object.FindObjectsByType<Missile>(FindObjectsSortMode.None))
+                    {
+                        if (!m.isActiveAndEnabled || m.StatsKey != Game.TaskForce.EscortDefense.EscortKey) continue;
+                        if (!flying.ContainsKey(m)) seen++;
+                        flying[m] = m.transform.position;
+                        maxAlt = Mathf.Max(maxAlt, m.transform.position.y);
+                    }
+                    // 방금 사라진 대함 미사일 = 터진 자리 — 그 순간을 찍는다(한 번)
+                    if (!blastShot)
+                        foreach (var kv in flying)
+                            if (kv.Key == null || !kv.Key.isActiveAndEnabled)
+                            {
+                                blastShot = true;
+                                var at = new GameObject("BlastShotTarget").transform; at.position = kv.Value;
+                                yield return CloseShot("escortarms_missile_blast", at, 12f);
+                                yield return ScreenShot("escortarms_missile_blast_game");
+                                Object.Destroy(at.gameObject);
+                                break;
+                            }
+                    var gone = new List<Missile>(); foreach (var kv in flying) if (kv.Key == null || !kv.Key.isActiveAndEnabled) gone.Add(kv.Key);
+                    foreach (var g in gone) flying.Remove(g);
+                    if (!closeShot && t >= 4f) { closeShot = true; yield return CloseShot("escortarms_strike", stk.transform, 14f); }
+                    yield return null;
+                }
+                _report.AppendLine($"- 대함 미사일(고정 발사관 · 직사): 관측 {seen}발 · 최고 고도 {maxAlt:0.0} m · 발사관 피벗 회전 {bankTurn:0.0}° · 폭발 사진 {Yes(blastShot)}");
+                if (banks.Count == 0) Fail("미사일 호위함 발사관 피벗(MissileBank*Pivot)을 찾지 못함");
+                if (bankTurn > 0.5f) Fail("미사일 호위함 발사관이 표적 쪽으로 돈다(고정이어야 함)");
+                if (seen > 0 && maxAlt > 4f) Fail("미사일 호위함 대함 미사일이 높이 솟는다(직사여야 함)");
                 float lost = 0f; for (int i = 0; i < boats.Count; i++) lost += hp0[i] - (boats[i] != null && boats[i].IsAlive ? boats[i].CurrentHp : 0f);
                 _report.AppendLine($"- 수상전 10초: 미사일 호위함 함포 {stk.GunShots - g0}발 · 대함 미사일 {stk.StrikeLaunches - s0}발 · 방공 함포 {cap.GunShots - cg0} · 대잠 함포 {asw.GunShots - ag0} · 적 피해 {lost:0}");
                 if (stk.GunShots - g0 < 3 || stk.StrikeLaunches - s0 < 2 || lost <= 0f) Fail("미사일 호위함이 함포·대함 미사일을 실제로 쏘지 않음");
