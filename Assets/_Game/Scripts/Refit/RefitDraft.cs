@@ -164,6 +164,7 @@ namespace Game.Refit
             {
                 if (def == null || used.Contains(def)) continue;
                 if (grid != null && !grid.HasAnyValidPlacement(def)) continue;
+                if (BridgeCovers(def, grid)) continue;               // 함교가 이미 같은 효과를 낸다(함급 패시브, 2026-10-23)
                 _installPool.Add(def);
             }
             if (_installPool.Count > 0) return;
@@ -173,6 +174,7 @@ namespace Game.Refit
                 if (def == null || used.Contains(def)) continue;
                 if (def.MaxCount > 0 && grid != null && grid.CountOf(def) >= def.MaxCount) continue;
                 if (grid != null && grid.NeverFits(def)) continue;   // 함종이 못 다는 블록(WWII 마운트 등급·탑재 예산, 패치 C2)
+                if (BridgeCovers(def, grid)) continue;               // 함교가 이미 같은 효과를 낸다(함급 패시브, 2026-10-23)
                 _installPool.Add(def);
             }
         }
@@ -303,6 +305,29 @@ namespace Game.Refit
 
         private static readonly ModuleType[] AntiSubOrder = { ModuleType.AswLauncher, ModuleType.TorpedoTube, ModuleType.HelicopterDeck };
         private static bool IsAntiSub(ModuleType t) => System.Array.IndexOf(AntiSubOrder, t) >= 0;
+
+        /// <summary>
+        /// 함교가 이미 같은 효과를 내는 함급 블록인가(2026-10-23 함급 패시브 — 통신 중계·흡기·사격통제·재장전 구획).
+        /// 효과는 겹치지 않고(큰 값 하나) 블록은 1개 한도라, 함교가 그만큼 내면 카드로 낼 까닭이 없다. 다른 함급은 그대로 얻는다.
+        /// </summary>
+        public static bool BridgeCovers(ModuleDefinition def, ShipGrid grid)
+        {
+            if (def == null || grid == null) return false;
+            foreach (var m in grid.Modules)
+            {
+                if (m?.Definition == null || m.Definition.Type != ModuleType.Bridge) continue;
+                var b = m.Definition.Stats; var d = def.Stats;
+                return def.Type switch
+                {
+                    ModuleType.FleetRelay => b.EscortFireRateBonus > 0f && b.EscortFireRateBonus >= d.EscortFireRateBonus,
+                    ModuleType.TurboIntake => b.SpeedBonus > 0f && b.SpeedBonus >= d.SpeedBonus && b.AccelerationBonus >= d.AccelerationBonus,
+                    ModuleType.FireControlArray => b.GuidedRangeBonus > 0f && b.GuidedRangeBonus >= d.GuidedRangeBonus,
+                    ModuleType.MissileLogistics => b.MissileReloadReduction > 0f && b.MissileReloadReduction >= d.MissileReloadReduction,
+                    _ => false,
+                };
+            }
+            return false;
+        }
 
         /// <summary>
         /// 내밀 대잠 블록(2026-10-11 점검 B04): 지금 놓을 자리가 있는 것을 폭뢰 → 경어뢰 → 헬기갑판 순으로.

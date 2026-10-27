@@ -91,6 +91,92 @@ namespace Game.Dev
             yield return new WaitForSeconds(0.3f);
         }
 
+        /// <summary>
+        /// 함급 패시브(2026-10-23): 시작 배치는 한 줄(옆칸 없음) · 함급 블록(레이더·통신 중계·흡기·사격통제·재장전 구획) 없음,
+        /// 지휘함 7칸(헬기데크가 맨 뒤) · 나머지 6칸. 함교를 넷으로 차례로 바꿔 끼워 실제 함선 수치와 카드 제외를 본다.
+        /// </summary>
+        private IEnumerator ClassBridgeCheck()
+        {
+            var ship = GameManager.Instance.Player;
+            ModuleType[] classBlocks = { ModuleType.Radar, ModuleType.FleetRelay, ModuleType.TurboIntake, ModuleType.FireControlArray, ModuleType.MissileLogistics };
+            foreach (var concept in StartingShipCatalog.All)
+            {
+                if (concept == null || concept.StartLoadout == null) continue;
+                int minX = int.MaxValue, maxX = int.MinValue; bool line = true, hasClass = false;
+                string order = "";
+                var entries = new List<StartingLoadout.Entry>(concept.StartLoadout.Entries);
+                entries.Sort((a, b) => b.Origin.X.CompareTo(a.Origin.X));
+                foreach (var e in entries)
+                {
+                    minX = Mathf.Min(minX, e.Origin.X); maxX = Mathf.Max(maxX, e.Origin.X + Mathf.Max(0, e.Module.Width - 1));
+                    if (e.Origin.Z != 0) line = false;
+                    if (System.Array.IndexOf(classBlocks, e.Module.Type) >= 0) hasClass = true;
+                    order += (order.Length > 0 ? " – " : "") + e.Module.DisplayName;
+                }
+                int cells = maxX - minX + 1;
+                bool command = concept.Kind == StartShipKind.Command;
+                _report.AppendLine($"- 시작 배치 {concept.Title}: {order} · {cells}칸 · 한 줄 {Yes(line)} · 함급 블록 {(hasClass ? "있음" : "없음")}");
+                if (!line) Fail($"{concept.Title}: 시작 배치가 한 줄이 아님");
+                if (hasClass) Fail($"{concept.Title}: 시작 배치에 함급 블록이 남음(함교 패시브로 옮겼어야 함)");
+                if (cells != (command ? 7 : 6)) Fail($"{concept.Title}: 시작 배치 길이가 {(command ? 7 : 6)}칸이 아님");
+                if (command && entries[entries.Count - 1].Module.Type != ModuleType.HelicopterDeck) Fail("지휘함 헬기데크가 맨 뒤가 아님");
+            }
+
+            // 함교를 바꿔 끼우며 실제 수치(블록 없이 함교만)
+            ResetLoadout();
+            yield return null;
+            ModuleInstance Bridge() { foreach (var m in ship.Grid.Modules) if (m?.Definition != null && m.Definition.Type == ModuleType.Bridge) return m; return null; }
+            var original = Bridge();
+            string originalId = original != null ? original.Definition.Id : null;
+            GridCoord at = original != null ? original.Origin : new GridCoord(-1, 0);
+            var blocks = new[] { ("mod_fleetrelay", ModuleType.FleetRelay), ("mod_turbointake", ModuleType.TurboIntake), ("mod_firecontrolarray", ModuleType.FireControlArray), ("mod_missilelogistics", ModuleType.MissileLogistics) };
+            int baseTracks = -1;
+            foreach (var (id, expect) in new[] { ("mod_bridge_patrol", ""), ("mod_bridge_command", "FleetRelay"), ("mod_bridge_assault", "TurboIntake"), ("mod_bridge_missile", "FireControlArray MissileLogistics") })
+            {
+                var old = Bridge();
+                if (old != null) CombatDevTools.RemoveModule(old);
+                var placedBridge = CombatDevTools.InstallModuleNear(id, at, 2);
+                ship.Systems?.Recalculate();
+                yield return null;
+                if (placedBridge == null) { Fail($"함교 {id}를 끼우지 못함"); continue; }
+                var s = ship.Systems;
+                string covered = "";
+                foreach (var (blockId, type) in blocks)
+                {
+                    var def = CombatDevTools.FindModule(blockId);
+                    if (def != null && Game.Refit.RefitDraft.BridgeCovers(def, ship.Grid)) covered += (covered.Length > 0 ? " " : "") + type;
+                }
+                int tracks = s.MaxTrackedTargets;
+                _report.AppendLine($"- 함교 패시브 {placedBridge.Definition.DisplayName}: 탐지 {s.DetectionRange:0} · 추적 {tracks} · 호위함 재사용 ×{s.EscortFireRateMultiplier:0.00} · " +
+                                   $"속력 ×{s.SpeedMultiplier:0.00} · 가속 ×{s.AccelerationMultiplier:0.00} · 유도 사거리 ×{s.GuidedWeaponRangeMultiplier:0.00} · 미사일 장전 ×{s.MissileReloadMultiplier:0.00} · 카드 제외 [{covered}]");
+                if (covered != expect) Fail($"{placedBridge.Definition.DisplayName}: 카드에서 빼는 함급 블록이 [{expect}]가 아님");
+                switch (id)
+                {
+                    case "mod_bridge_patrol":
+                        baseTracks = tracks - 4;
+                        if (s.DetectionRange < 51.9f) Fail("범용 초계함 함교에 레이더 탐지(52)가 없음");
+                        break;
+                    case "mod_bridge_command":
+                        if (Mathf.Abs(s.EscortFireRateMultiplier - 1.15f) > 0.001f) Fail("지휘함 함교에 통신 중계(+15%)가 없음");
+                        if (baseTracks >= 0 && tracks != baseTracks + 1) Fail("지휘함 함교 추적 수가 기본(+1)이 아님");
+                        break;
+                    case "mod_bridge_assault":
+                        if (Mathf.Abs(s.SpeedMultiplier - 1.1f) > 0.001f || Mathf.Abs(s.AccelerationMultiplier - 1.15f) > 0.001f) Fail("고속 강습함 함교에 흡기(속력 +10% · 가속 +15%)가 없음");
+                        break;
+                    case "mod_bridge_missile":
+                        if (Mathf.Abs(s.GuidedWeaponRangeMultiplier - 1.1f) > 0.001f || Mathf.Abs(s.MissileReloadMultiplier - 0.85f) > 0.001f || s.DetectionRange < 47.9f)
+                            Fail("미사일 구축함 함교에 사격통제·재장전 구획(유도 사거리 +10% · 장전 −15%) · 탐지 48이 없음");
+                        if (baseTracks >= 0 && tracks != baseTracks + 3) Fail("미사일 구축함 함교 추적 수가 +3(기본 1 + 사격통제 2)이 아님");
+                        break;
+                }
+            }
+            // 원래 함교로 되돌린다
+            var now = Bridge();
+            if (now != null && now.Definition.Id != originalId) { CombatDevTools.RemoveModule(now); if (originalId != null) CombatDevTools.InstallModuleNear(originalId, at, 2); }
+            ship.Systems?.Recalculate();
+            yield return null;
+        }
+
         private IEnumerator SignatureCheck()
         {
             _report.AppendLine("\n## 시작 무장 · 손상통제 · 함정 고유 스킬");
@@ -118,19 +204,22 @@ namespace Game.Dev
             foreach (var concept in StartingShipCatalog.All)
             {
                 if (concept == null || concept.StartLoadout == null) continue;
+                static bool IsWeapon(ModuleType t) => t is ModuleType.Autocannon or ModuleType.Vls or ModuleType.NavalGun or ModuleType.Nobong;
                 int minX = int.MaxValue, maxX = int.MinValue;
-                foreach (var e in concept.StartLoadout.Entries) { minX = Mathf.Min(minX, e.Origin.X); maxX = Mathf.Max(maxX, e.Origin.X + Mathf.Max(0, e.Module.Width - 1)); }
+                foreach (var e in concept.StartLoadout.Entries)
+                    if (IsWeapon(e.Module.Type)) { minX = Mathf.Min(minX, e.Origin.X); maxX = Mathf.Max(maxX, e.Origin.X + Mathf.Max(0, e.Module.Width - 1)); }
                 string bow = "-", stern = "-";
                 foreach (var e in concept.StartLoadout.Entries)
                 {
-                    bool weapon = e.Module.Type is ModuleType.Autocannon or ModuleType.Vls or ModuleType.NavalGun or ModuleType.Nobong;
-                    if (!weapon) continue;
+                    if (!IsWeapon(e.Module.Type)) continue;
                     if (e.Origin.X == maxX) bow = e.Module.DisplayName;
                     if (e.Origin.X == minX) stern = e.Module.DisplayName;
                 }
                 _report.AppendLine($"- {concept.Title}: 함수 {bow} · 함미 {stern} (블록 {concept.StartLoadout.Entries.Count}개)");
                 if (bow == "-" || stern == "-") Fail($"{concept.Title}: 함수·함미 무기가 하나씩이 아님");
             }
+
+            yield return ClassBridgeCheck();
 
             int placed = ResetLoadout(M("mod_radar"));
             yield return new WaitForSeconds(0.5f);

@@ -31,8 +31,7 @@ namespace Game.EditorTools
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             var gun = AssetDatabase.LoadAssetAtPath<ModuleDefinition>(Root + "/Data/Modules/mod_autocannon.asset");
             if (gun == null) throw new Exception("mod_autocannon 없음");
-            Patch(0, "Patrol", gun, new GridCoord(-3, 0));
-            Patch(1, "Command", gun, new GridCoord(-3, -1));   // 헬기갑판은 뒤가 트여야 해서 그 옆(좌현 함미)
+            // 2026-10-23: 시작 배치(함미 기관포 포함)는 NavalClassBridgePassives가 한 줄로 정한다 — 여기서는 더 넣지 않는다
 
             var repairFx = AssetDatabase.LoadAssetAtPath<GameObject>(Root + "/Prefabs/VFX/FX_RepairPulse.prefab");
             foreach (var path in new[]

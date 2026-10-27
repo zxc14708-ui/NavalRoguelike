@@ -15,6 +15,10 @@ namespace Game.Modules.Runtime
     /// 기관실이므로 전속 스킬[Shift]을 제공한다. 내장 발사기에는 연막탄이 없다(전용 기만체 발사기만).
     /// (지붕 원격 기관총은 2026-10-21 삭제 — 기관포·CIWS가 근접 방어를 맡는다.)
     ///
+    /// 함급 패시브(2026-10-23): 하나만 있으면 끝인 함급 블록의 효과를 각 함교가 낸다(값은 함교 데이터, 없으면 0 — 겹치면 큰 값 하나).
+    ///   범용 초계함 = 레이더(탐지 52 · 추적 +3), 지휘함 = 전투단 통신 중계, 고속 강습함 = 강습 추진 흡기,
+    ///   미사일 구축함 = 다중 표적 사격통제 + 미사일 재장전 구획(탐지 48). 그 효과를 이미 내는 함교에는 같은 블록 카드가 나오지 않는다(RefitDraft).
+    ///
     /// 손상 통제 중심(2026-10-11 개편): 선체 자동 회복과 응급 수리[R]를 함교가 맡고, 손상통제반 수(작동 중)로 커진다.
     ///   - 자동 회복 상한: 50% + 손상통제반마다 (50% ÷ 최대 3개) → 50 / 67 / 83 / 100%. 상한을 넘으면 고치지 않는다.
     ///   - 자동 회복 속도: Stats.HullRepairPerSecond × (1 + 0.5 × 손상통제반 수) × 성장 카드 수리 효율.
@@ -155,6 +159,11 @@ namespace Game.Modules.Runtime
             systems.AddDamageReduction(Stats.DamageReduction);
             systems.RaiseDetectionRange(Stats.DetectionRange);
             systems.AddTrackedTargets(Stats.ExtraTrackedTargets);
+            // 함급 패시브(예전 함급 블록과 같은 경로)
+            systems.RaiseEscortFireRateBonus(Stats.EscortFireRateBonus);
+            systems.RaisePropulsionBonuses(Stats.SpeedBonus, Stats.AccelerationBonus, Stats.MovingGunDamageBonus);
+            systems.RaiseFireControl(0, Stats.GuidedRangeBonus);
+            systems.RaiseMissileLogistics(Stats.MissileReloadReduction);
         }
 
         protected override void OnInitialized()
