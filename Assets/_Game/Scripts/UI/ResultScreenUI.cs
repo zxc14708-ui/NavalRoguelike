@@ -123,6 +123,16 @@ namespace Game.UI
                 if (news.Count > 2) sb.Append($" 외 {news.Count - 2}");
                 sb.Append("</size>");
             }
+
+            // 작전 포인트(2026-10-28 군항 건물): 판 보상 + 이번 판 도전 과제. 훈련·WWII 시험 전투는 받지 않는다
+            var director = FindFirstObjectByType<StageDirector>();
+            if (director != null && !director.Training && !director.Ww2Test)
+            {
+                bool won = GameManager.Instance != null && GameManager.Instance.State == GameState.Victory;
+                int run = PlayerProfile.RunPoints(director.StageNumber, won, director.DangerStartRun);
+                int ach = news.Count * PlayerProfile.AchievementPoints;
+                sb.Append($"\n<size=88%><color=#e0c05a>작전 포인트 +{run + ach}</color> <color=#9fb3c0>(판 {run}{(ach > 0 ? $" · 도전 과제 {ach}" : "")}) — 군항 연구소·정비창에서 쓴다</color></size>");
+            }
             return sb.ToString();
         }
 

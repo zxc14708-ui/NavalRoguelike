@@ -691,6 +691,13 @@ namespace Game.UI
                     });
                 }
             }
+            // 군항 건물(2026-10-28): 기능 건물 이름표 · 확대 패널(기록실은 기록 화면) · 작전 포인트. 출항 콘솔이 보일 때만
+            if(harbor!=null)
+            {
+                var blockers=new System.Collections.Generic.List<RectTransform>{content};
+                foreach(var panel in sidePanels) if(panel!=null) blockers.Add((RectTransform)panel.transform);
+                HarborBuildingsUI.Create(menu,harbor,_navalFont,()=>content.gameObject.activeSelf,ShowConsoles,ShowRecords,()=>blockers);
+            }
         }
 
         /// <summary>"구축함 (WWII 시험)" → "구축함".</summary>

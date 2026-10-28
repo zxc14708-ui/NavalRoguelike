@@ -102,6 +102,8 @@ namespace Game.Dev
         public bool WeaponPackOnly;
         [Tooltip("시작 화면 비행장(전투기 경로·계단 현상) 검사만 돌린다(-harborAAOnly)")]
         public bool HarborAAOnly;
+        [Tooltip("군항 건물 1단계 검사만 돌린다(-harborBuildingsOnly): 이름표·건물 확대·기록실·작전 포인트")]
+        public bool HarborBuildingsOnly;
         [Tooltip("시작 무장·손상통제·함정 고유 스킬 검사만 돌린다(-signatureOnly)")]
         public bool SignatureOnly;
         [Tooltip("호위함 실제 무장·v17 모델 검사만 돌린다(-escortArmsOnly)")]
@@ -142,6 +144,14 @@ namespace Game.Dev
             if (BundleCOnly)
             {
                 yield return BundleCCheck();
+                Finish();
+                yield break;
+            }
+            if (HarborBuildingsOnly)
+            {
+                // 군항 건물(2026-10-28): 시작 화면 그대로 — 검사 환경(PrepareSandbox)을 쓰지 않는다
+                yield return HarborBuildingsCheck();
+                SaveLog("harborbuildings");
                 Finish();
                 yield break;
             }

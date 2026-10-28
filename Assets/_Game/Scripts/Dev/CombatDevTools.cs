@@ -88,6 +88,7 @@ namespace Game.Dev
                 runner.BlockHitOnly = System.Array.IndexOf(args, "-blockHitOnly") >= 0;
                 runner.WeaponPackOnly = System.Array.IndexOf(args, "-weaponPackOnly") >= 0;
                 runner.HarborAAOnly = System.Array.IndexOf(args, "-harborAAOnly") >= 0;
+                runner.HarborBuildingsOnly = System.Array.IndexOf(args, "-harborBuildingsOnly") >= 0;
                 runner.SignatureOnly = System.Array.IndexOf(args, "-signatureOnly") >= 0;
                 runner.EscortArmsOnly = System.Array.IndexOf(args, "-escortArmsOnly") >= 0;
                 runner.RunFlowOnly = System.Array.IndexOf(args, "-runFlowOnly") >= 0;

@@ -16,7 +16,7 @@ namespace Game.UI
         public int TrafficCount => _traffic.Count;
         public Camera ViewCamera => _camera;
         // 개관 시점은 섬을 계속 돌므로 따라가는 지연만큼 여유를 둔다
-        public bool CameraSettled => (_camera.transform.position-_destination).sqrMagnitude < (SelectedIndex<0 ? 16f : .02f);
+        public bool CameraSettled => (_camera.transform.position-_destination).sqrMagnitude < (SelectedIndex<0 && !FocusingBuilding ? 16f : .02f);
         const int Layer = 28;
         Transform _stage, _island;
         Camera _camera;
@@ -296,17 +296,39 @@ namespace Game.UI
 
         public void ShowOverview()
         {
-            SelectedIndex=-1;
+            SelectedIndex=-1; FocusingBuilding=false;
             _destination=OrbitPoint(); _lookAt=_island.TransformPoint(OrbitCenter); _fov=25;
         }
         public void FocusShip(int index)
         {
             if(_ships.Count==0)return;
+            FocusingBuilding=false;
             SelectedIndex=Mathf.Clamp(index,0,_ships.Count-1);
             _lookAt=_centers[SelectedIndex]+Vector3.up*1.4f;
             _destination=_lookAt+FocusOffset; _fov=38;
         }
         static readonly Vector3 FocusOffset=new(0,20,18);
+
+        /// <summary>건물을 확대해 보는 중(2026-10-28 군항 건물). 개관 회전은 멈춘다.</summary>
+        public bool FocusingBuilding { get; private set; }
+        /// <summary>
+        /// 건물 확대: 섬 좌표(m, 빌더와 같은 좌표)의 건물을 바다 쪽(북서) 위에서 비스듬히 내려다본다. viewSize는 섬 좌표의 거리 기준.
+        /// </summary>
+        public void FocusBuilding(Vector3 islandLocal, float viewSize)
+        {
+            SelectedIndex=-1; FocusingBuilding=true;
+            _lookAt=_island.TransformPoint(islandLocal);
+            _destination=_island.TransformPoint(islandLocal+new Vector3(-.45f,.9f,1.1f)*viewSize); _fov=34;
+        }
+        /// <summary>섬 좌표 → 화면 비율 좌표(0~1, 렌더 텍스처 = 화면 전체). 카메라 뒤면 false.</summary>
+        public bool TryProject(Vector3 islandLocal, out Vector2 viewport)
+        {
+            viewport=default;
+            if(_camera==null||_island==null) return false;
+            var vp=_camera.WorldToViewportPoint(_island.TransformPoint(islandLocal));
+            viewport=new Vector2(vp.x,vp.y);
+            return vp.z>0f;
+        }
         /// <summary>
         /// 정박지 순서(0, 1, 2…)가 화면에서 오른쪽 → 왼쪽으로 놓였는가. 함선 확대 카메라는 바다 쪽(+Z)에서 부두를 보므로
         /// 섬 +X로 늘어선 정박지가 화면에서는 왼쪽으로 간다 — 좌우 화살표·위 탭 순서를 화면에 맞추는 데 쓴다.
@@ -362,7 +384,7 @@ namespace Game.UI
                 traffic.Item.localPosition=Vector3.Lerp(a,b,time/traffic.Times[segment]);
                 if((b-a).sqrMagnitude>.01f)traffic.Item.localRotation=Quaternion.Slerp(traffic.Item.localRotation,Quaternion.LookRotation(b-a),1-Mathf.Exp(-dt*2));
             }
-            if(SelectedIndex<0) { _orbit=(_orbit+dt*OrbitDegreesPerSecond)%360f; _destination=OrbitPoint(); }
+            if(SelectedIndex<0 && !FocusingBuilding) { _orbit=(_orbit+dt*OrbitDegreesPerSecond)%360f; _destination=OrbitPoint(); }
             EnsureTexture();
             float blend=1-Mathf.Exp(-cameraDt*3.2f);
             _camera.transform.position=Vector3.Lerp(_camera.transform.position,_destination,blend);

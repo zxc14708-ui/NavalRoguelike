@@ -57,6 +57,8 @@ namespace Game.Core
             public bool dangerStart;
             public List<string> favorites = new();    // 사전 즐겨찾기(점검 C05) — 항목 id
             public List<string> discovered = new();   // 사전 발견 기록: 만난 적·설치한 블록·합류/역할을 받은 호위함의 항목 id
+            public int opPoints;         // 작전 포인트(2026-10-28 군항 건물) — 지금 쓸 수 있는 것
+            public int opPointsEarned;   // 지금까지 받은 합계(기록실 표시)
         }
 
         private static Data s_data;
@@ -98,6 +100,46 @@ namespace Game.Core
         }
 
         public static bool Has(string id) => Current.achievements.Exists(a => a.id == id);
+
+        // ------------------------------------------------------------ 작전 포인트(2026-10-28 군항 건물 — 연구소·정비창에 쓴다)
+        // 규칙 집합마다 따로 쌓인다(프로필 파일이 현대 / WWII 따로). 훈련·WWII 시험 전투는 판 기록을 남기지 않으므로 받지 않는다.
+        public const int StagePoints = 1, BossPoints = 2, AchievementPoints = 3;
+        public const float DangerPointScale = 1.5f;
+        public static int OpPoints => Current.opPoints;
+        public static int OpPointsEarned => Current.opPointsEarned;
+
+        /// <summary>한 판 보상: 도달한 스테이지마다 1 + 격침한 보스마다 2, 고난도 출항이면 ×1.5(올림). 도전 과제 보상은 따로(달성할 때).</summary>
+        public static int RunPoints(int stageNumber, bool victory, bool dangerStart)
+        {
+            int stages = Mathf.Max(1, stageNumber);
+            int bosses = Mathf.Max(0, victory ? stages : stages - 1);
+            int p = stages * StagePoints + bosses * BossPoints;
+            return dangerStart ? Mathf.CeilToInt(p * DangerPointScale) : p;
+        }
+
+        private static void AddPoints(int n)
+        {
+            if (n <= 0) return;
+            Current.opPoints += n;
+            Current.opPointsEarned += n;
+        }
+
+        /// <summary>작전 포인트를 쓴다(연구·정비). 모자라면 false.</summary>
+        public static bool SpendPoints(int n)
+        {
+            if (n < 0 || Current.opPoints < n) return false;
+            Current.opPoints -= n;
+            Save();
+            return true;
+        }
+
+        /// <summary>되돌린 연구·정비의 포인트를 돌려준다(받은 합계는 그대로).</summary>
+        public static void RefundPoints(int n)
+        {
+            if (n <= 0) return;
+            Current.opPoints += n;
+            Save();
+        }
         public static Achievement? Find(string id) { foreach (var a in Catalog) if (a.Id == id) return a; return null; }
 
         /// <summary>고른 칭호(달성한 과제의 칭호만). 없으면 null.</summary>
@@ -113,6 +155,7 @@ namespace Game.Core
         {
             if (Has(id) || Find(id) is not { } a) return false;
             Current.achievements.Add(new Unlocked { id = id, date = DateTime.Now.ToString("yyyy-MM-dd") });
+            AddPoints(AchievementPoints);
             if (string.IsNullOrEmpty(Current.title)) Current.title = id;   // 첫 칭호는 바로 단다
             NewThisRun.Add(id);
             Save();
@@ -143,6 +186,7 @@ namespace Game.Core
                 r.fastestWin = r.fastestWin <= 0f ? seconds : Mathf.Min(r.fastestWin, seconds);
             }
             else r.lastDeath = deathCause;
+            AddPoints(RunPoints(stageNumber, victory, dangerStart));
             Save();
             Unlock("first_run");
             if (victory)
