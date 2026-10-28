@@ -102,8 +102,13 @@ namespace Game.Modules
 
         // ------------------------------------------------------------ 누적 값
 
-        /// <summary>누적 보너스 비율(0.15 = +15%).</summary>
-        public static float Get(RunStat stat) => Bonus[(int)stat];
+        /// <summary>
+        /// 누적 보너스 비율(0.15 = +15%) = 이번 판 성장 카드 + 해군 기술연구소 연구(MetaResearch — 판 밖의 기본 보너스, 2026-10-28).
+        /// </summary>
+        public static float Get(RunStat stat) => Bonus[(int)stat] + MetaResearch.Bonus(stat);
+
+        /// <summary>이번 판 성장 카드만의 누적(연구 제외).</summary>
+        public static float CardBonus(RunStat stat) => Bonus[(int)stat];
 
         public static bool Any
         {
@@ -144,6 +149,20 @@ namespace Game.Modules
             // 새 게임: 씬이 처음부터 다시 열리면(Single) 성장도 0부터
             SceneManager.sceneLoaded -= OnSceneLoaded;
             SceneManager.sceneLoaded += OnSceneLoaded;
+            // 연구·규칙 집합(현대 / WWII 프로필)이 바뀌면 연구 보너스를 다시 읽고 모듈·선체·탐지를 다시 계산한다
+            MetaResearch.Changed -= OnResearchChanged;
+            MetaResearch.Changed += OnResearchChanged;
+            MetaWorkshop.Changed -= OnResearchChanged;   // 정비창 함교 강화 — 함교 최종 수치를 다시 계산
+            MetaWorkshop.Changed += OnResearchChanged;
+            Game.Core.Ruleset.Changed -= OnRulesetChanged;
+            Game.Core.Ruleset.Changed += OnRulesetChanged;
+        }
+
+        private static void OnResearchChanged() => Changed?.Invoke();
+        private static void OnRulesetChanged()
+        {
+            MetaResearch.Invalidate();
+            Changed?.Invoke();
         }
 
         private static void OnSceneLoaded(Scene scene, LoadSceneMode mode)

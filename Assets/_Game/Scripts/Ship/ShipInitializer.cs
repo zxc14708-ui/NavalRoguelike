@@ -83,7 +83,8 @@ namespace Game.Ship
         }
 
         /// <summary>Only pre-launch changes are allowed. Validate the complete replacement before removing anything.</summary>
-        public bool TrySelect(StartingShipConcept concept, out string reason)
+        /// <param name="workshop">정비창 개조안을 쓴다(훈련은 기본형으로 — false).</param>
+        public bool TrySelect(StartingShipConcept concept, out string reason, bool workshop = true)
         {
             reason = null;
             if (SelectionLocked) { reason = "출항한 뒤에는 시작 함선을 변경할 수 없습니다."; return false; }
@@ -91,8 +92,9 @@ namespace Game.Ship
             var grid = ship != null ? ship.Grid : GetComponentInChildren<ShipGrid>();
             if (concept == null || concept.StartLoadout == null || factory == null || grid == null)
             { reason = "시작 함선 또는 모듈 생성기 설정이 없습니다."; return false; }
-            if (SelectedConcept == concept && _initialized) return true;
-            if (!ValidateLoadout(concept, grid, out reason)) return false;
+            var start = workshop ? MetaWorkshop.ResolveLoadout(concept) : concept.StartLoadout;
+            if (SelectedConcept == concept && loadout == start && _initialized) return true;
+            if (!ValidateLoadout(concept, start, grid, out reason)) return false;
 
             var previous = new List<ModuleInstance>(grid.Modules);
             foreach (var instance in previous)
@@ -101,7 +103,7 @@ namespace Game.Ship
                 if (instance.Runtime != null) instance.Runtime.gameObject.SetActive(false);
                 factory.Uninstall(instance);
             }
-            loadout = concept.StartLoadout;
+            loadout = start;
             SelectedConcept = concept;
             ApplyHull(concept, grid, ship);
             InstallLoadout();
@@ -115,10 +117,9 @@ namespace Game.Ship
             if (ship != null) ship.ApplyHull(concept.HullProfile);
         }
 
-        private static bool ValidateLoadout(StartingShipConcept concept, ShipGrid target, out string reason)
+        private static bool ValidateLoadout(StartingShipConcept concept, StartingLoadout candidate, ShipGrid target, out string reason)
         {
             reason = null;
-            var candidate = concept.StartLoadout;
             var probeGo = new GameObject("Starting loadout validation") { hideFlags = HideFlags.HideAndDontSave };
             var probe = probeGo.AddComponent<ShipGrid>();
             // ShipGrid has only serialized extent/spacing settings; readonly occupancy is never copied.

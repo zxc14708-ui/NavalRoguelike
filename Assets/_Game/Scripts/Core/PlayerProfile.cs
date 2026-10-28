@@ -45,6 +45,8 @@ namespace Game.Core
 
         [Serializable] public class ShipRecord { public string ship; public int runs, wins, bestStage, bestKills; public float fastestWin; public string lastDeath; }
         [Serializable] public class Unlocked { public string id; public string date; }
+        /// <summary>해군 기술연구소 연구 단계(2026-10-28 — MetaResearch).</summary>
+        [Serializable] public class ResearchLevel { public string id; public int level; }
 
         [Serializable]
         public class Data
@@ -59,6 +61,9 @@ namespace Game.Core
             public List<string> discovered = new();   // 사전 발견 기록: 만난 적·설치한 블록·합류/역할을 받은 호위함의 항목 id
             public int opPoints;         // 작전 포인트(2026-10-28 군항 건물) — 지금 쓸 수 있는 것
             public int opPointsEarned;   // 지금까지 받은 합계(기록실 표시)
+            public List<ResearchLevel> research = new();   // 연구소 연구(MetaResearch)
+            public List<ResearchLevel> workshop = new();   // 정비창: 함교 강화 단계 · 연 개조안(MetaWorkshop)
+            public List<ResearchLevel> startLayout = new();   // 정비창: 함급별 고른 시작 배치(0 = 기본형)
         }
 
         private static Data s_data;

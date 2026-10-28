@@ -658,7 +658,7 @@ namespace Game.UI
                 {
                     var initializer=FindFirstObjectByType<Game.Ship.ShipInitializer>();
                     var patrol=Game.Data.StartingShipCatalog.Get(Game.Data.StartShipKind.Patrol);
-                    if(initializer!=null&&patrol!=null&&!initializer.TrySelect(patrol,out string reason)) Debug.LogWarning($"[HUD] 훈련 함정 선택 실패: {reason}");
+                    if(initializer!=null&&patrol!=null&&!initializer.TrySelect(patrol,out string reason,workshop:false)) Debug.LogWarning($"[HUD] 훈련 함정 선택 실패: {reason}");
                     if(initializer!=null) initializer.LockForLaunch();
                     _menu.SetActive(false);_combatGroup.alpha=1;_combatGroup.blocksRaycasts=true;
                     onTraining();

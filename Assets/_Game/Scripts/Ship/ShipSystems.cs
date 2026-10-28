@@ -86,11 +86,13 @@ namespace Game.Ship
             GameEvents.ModuleRemoved += OnModuleChanged;
             GameEvents.ModuleUpgraded += OnModuleChanged;
             RunUpgrades.Changed += Recalculate;   // 성장 카드(탐지 거리)
+            MetaWorkshop.Changed += Recalculate;  // 정비창 함교 강화 — 블록 수치가 먼저 바뀐 뒤(RunUpgrades 경유) 한 번 더
         }
 
         private void OnDisable()
         {
             RunUpgrades.Changed -= Recalculate;
+            MetaWorkshop.Changed -= Recalculate;
             GameEvents.ModuleInstalled -= OnModuleChanged;
             GameEvents.ModuleDestroyed -= OnModuleChanged;
             GameEvents.ModuleRemoved -= OnModuleChanged;

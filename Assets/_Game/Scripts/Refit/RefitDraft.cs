@@ -293,7 +293,9 @@ namespace Game.Refit
         public static bool ForceAntiSubOnce;
 
         /// <summary>카드 다시 뽑기(2026-10-11 점검 K02): 한 판에 이만큼. 보스를 격침할 때마다 1회 더(최대 RerollsPerRun).</summary>
-        public const int RerollsPerRun = 3;
+        public const int BaseRerolls = 3;
+        /// <summary>한 판의 다시 뽑기: 기본 3 + 해군 기술연구소 "작전 기획"(2026-10-28, 최대 +2).</summary>
+        public static int RerollsPerRun => BaseRerolls + Game.Modules.MetaResearch.ExtraRerolls;
         public static int RerollsLeft { get; private set; } = RerollsPerRun;
         public static bool TryUseReroll() { if (RerollsLeft <= 0) return false; RerollsLeft--; return true; }
         public static void GrantReroll() => RerollsLeft = Mathf.Min(RerollsPerRun, RerollsLeft + 1);
@@ -301,7 +303,20 @@ namespace Game.Refit
         public static void SetRerolls(int left) => RerollsLeft = Mathf.Clamp(left, 0, RerollsPerRun);
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetStatics() { ForceAntiSubOnce = false; RerollsLeft = RerollsPerRun; }
+        private static void ResetStatics() { ForceAntiSubOnce = false; RerollsLeft = BaseRerolls; }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]
+        private static void HookNewRun()
+        {
+            // 새 판(씬을 처음부터 다시 연다): 다시 뽑기를 한 판 몫(연구 포함)으로 — 이어하기는 그 뒤 RunSave가 저장된 값으로 덮는다
+            UnityEngine.SceneManagement.SceneManager.sceneLoaded -= OnSceneLoaded;
+            UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnSceneLoaded;
+        }
+
+        private static void OnSceneLoaded(UnityEngine.SceneManagement.Scene scene, UnityEngine.SceneManagement.LoadSceneMode mode)
+        {
+            if (mode == UnityEngine.SceneManagement.LoadSceneMode.Single) RerollsLeft = RerollsPerRun;
+        }
 
         private static readonly ModuleType[] AntiSubOrder = { ModuleType.AswLauncher, ModuleType.TorpedoTube, ModuleType.HelicopterDeck };
         private static bool IsAntiSub(ModuleType t) => System.Array.IndexOf(AntiSubOrder, t) >= 0;

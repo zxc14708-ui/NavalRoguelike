@@ -19,6 +19,7 @@ namespace Game.UI
         public bool CameraSettled => (_camera.transform.position-_destination).sqrMagnitude < (SelectedIndex<0 && !FocusingBuilding ? 16f : .02f);
         const int Layer = 28;
         Transform _stage, _island;
+        HarborCraneMotion _cranes;
         Camera _camera;
         RenderTexture _texture;
         RawImage _image;
@@ -117,6 +118,8 @@ namespace Game.UI
             _stage=new GameObject("Harbor menu stage").transform; _stage.position=new Vector3(10000,-2000,10000);
             _island=Instantiate(prefab,_stage).transform;
             _island.localPosition=new Vector3(0,-.9f,0);
+            HarborFacilityArt.Attach(_island);
+            _cranes=new HarborCraneMotion(_island.Find("HarborFacilityDetails"));
             _camera=new GameObject("Harbor menu camera",typeof(Camera)).GetComponent<Camera>();
             _camera.transform.SetParent(_stage,false); _camera.cullingMask=1<<Layer;
             _camera.clearFlags=CameraClearFlags.SolidColor; _camera.backgroundColor=new Color(.42f,.65f,.77f);
@@ -296,12 +299,14 @@ namespace Game.UI
 
         public void ShowOverview()
         {
+            _cranes?.Stop();
             SelectedIndex=-1; FocusingBuilding=false;
             _destination=OrbitPoint(); _lookAt=_island.TransformPoint(OrbitCenter); _fov=25;
         }
         public void FocusShip(int index)
         {
             if(_ships.Count==0)return;
+            _cranes?.Stop();
             FocusingBuilding=false;
             SelectedIndex=Mathf.Clamp(index,0,_ships.Count-1);
             _lookAt=_centers[SelectedIndex]+Vector3.up*1.4f;
@@ -316,6 +321,7 @@ namespace Game.UI
         /// </summary>
         public void FocusBuilding(Vector3 islandLocal, float viewSize)
         {
+            _cranes?.FocusAt(islandLocal);
             SelectedIndex=-1; FocusingBuilding=true;
             _lookAt=_island.TransformPoint(islandLocal);
             _destination=_island.TransformPoint(islandLocal+new Vector3(-.45f,.9f,1.1f)*viewSize); _fov=34;
@@ -375,6 +381,7 @@ namespace Game.UI
             bool still=Game.Core.DisplaySettings.HarborStill;
             float cameraDt=Paused ? 0f : Time.unscaledDeltaTime;
             float dt=Paused || still ? 0f : Time.unscaledDeltaTime; _clock+=dt;
+            _cranes?.Tick(dt);
             foreach(var traffic in _traffic)
             {
                 if(traffic.Total<=0) foreach(float duration in traffic.Times)traffic.Total+=duration;

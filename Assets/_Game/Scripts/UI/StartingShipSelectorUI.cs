@@ -100,9 +100,19 @@ namespace Game.UI
             for (int i=0;i<_choices.Count;i++)
                 _choices[i].color = i==index ? Color.Lerp(new Color(.06f,.12f,.15f),ship.Color,.28f) : new Color(.06f,.12f,.15f);
             _title.text = ship.Title;
-            _summary.text = ship.StartSummary;
+            _summary.text = ship.StartSummary + WorkshopNote(ship);
             if(_harbor!=null)_harbor.FocusShip(index);
             else _preview.Show(ship.StartPreviewPrefab,null);
+        }
+
+        /// <summary>함정 정비창(군항 3단계)에서 고른 개조안 · 함교 강화 — 출항하면 이대로 시작한다.</summary>
+        private static string WorkshopNote(StartingShipConcept ship)
+        {
+            if (!Game.Modules.MetaWorkshop.Active) return "";
+            var v = Game.Modules.MetaWorkshop.SelectedVariant(ship.Kind);
+            int level = Game.Modules.MetaWorkshop.BridgeLevel(ship.Kind);
+            if (v == null && level <= 0) return "";
+            return $"\n<color=#e0c05a>정비창: {(v != null ? $"{v.Name} — {v.Change}" : "기본형")}{(level > 0 ? $" · 함교 강화 {level}단계" : "")}</color>";
         }
 
         private void BuildDock()

@@ -71,6 +71,7 @@ namespace Game.Modules
             var stage = upgradeLevel > 0 ? ProfileFor(def)?.GetStage(upgradeLevel) : null;
             if (stage != null) ApplyStage(ref s, stage);
             ApplyRunUpgrades(def.Type, ref s);
+            MetaWorkshop.ApplyBridge(def, ref s);   // 정비창 함교 강화(함급 함교만)
             return s;
         }
 

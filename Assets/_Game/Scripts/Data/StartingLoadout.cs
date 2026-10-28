@@ -24,5 +24,15 @@ namespace Game.Data
         [SerializeField] private List<Entry> entries = new();
 
         public IReadOnlyList<Entry> Entries => entries;
+
+        /// <summary>원본을 바꾸지 않고 항목을 바꾼 실행 중 사본(정비창 개조안 — 에셋으로 저장되지 않는다).</summary>
+        public static StartingLoadout CreateRuntime(string name, IEnumerable<Entry> entries)
+        {
+            var loadout = CreateInstance<StartingLoadout>();
+            loadout.name = name;
+            loadout.hideFlags = HideFlags.DontSave;
+            loadout.entries = new List<Entry>(entries);
+            return loadout;
+        }
     }
 }
