@@ -1,6 +1,6 @@
 # 시작 함선 4종 · 실제 장비 적용 인수인계
 
-작성 기준: 2026-10-07. 대상 프로젝트: C:/Users/최병욱/UnityProjects/NavalRoguelike/NavalRoguelike.
+작성 기준: 2026-10-07, 시작 구성·출항 흐름은 2026-10-29 현황으로 갱신(아래 1·2·6장). 대상 프로젝트: C:/Users/최병욱/UnityProjects/NavalRoguelike/NavalRoguelike.
 
 이 문서는 시작 함선 선택과 신규 블록의 실제 적용 범위를 기록한다. 함선 디자인 문서의 예정 능력치와 현재 동작을 구분해서 읽는다. 검증 결과는 [live_validation.txt](C:/Users/최병욱/Documents/Codex/2026-09-29/referenced-chatgpt-conversation-this-is-an/outputs/starting_ship_concepts/live_validation.txt)를 확인한다. 여기에서는 진행 중인 검증을 성공으로 미리 단정하지 않는다.
 
@@ -8,12 +8,18 @@
 
 모든 함교는 3×1이며 기존 BridgeModule을 재사용한다. 내장 항해 레이더, 기만체, 손상 통제, 전속 기능을 유지한다. 다른 시작 블록은 1×1이다.
 
-| 시작 함선 | 실제 시작 모듈 | 모듈 / 점유 칸 | 출항 시 호위함 |
-|---|---|---|---|
-| 범용 초계함 / Patrol | 전용 함교 + 기관포 + CIWS + 레이더 | 4개 / 6칸 | 0척 |
-| 지휘함 / Command | 전용 함교 + 기관포 + CIWS + 편대 통신 중계 + 헬기데크 | 5개 / 7칸 | 역할 없는 기본 고속정 2척 |
-| 고속 강습함 / Assault | 전용 함교 + 기관포 2개 + 강습 추진 흡기 | 4개 / 6칸 | 0척 |
-| 미사일 구축함 / MissileDestroyer | 전용 함교 + VLS + 기관포 + 다중 표적 사격 통제 + 미사일 재장전 구획 | 5개 / 7칸 | 0척 |
+2026-10-23부터 함급 블록(레이더·통신 중계·흡기·사격통제·재장전 구획)은 시작 배치에서 빠지고 그 효과를 각 전용 함교가 패시브로 낸다(`NavalClassBridgePassives`). 시작 배치는 앞 → 뒤 한 줄이다.
+
+| 시작 함선 | 실제 시작 배치(앞 → 뒤) | 함교 패시브 | 모듈 / 점유 칸 | 출항 시 호위함 |
+|---|---|---|---|---|
+| 범용 초계함 / Patrol | 기관포 · 함교 · CIWS · 기관포 | 레이더(탐지 52 · 동시 추적 +3) | 4개 / 6칸 | 0척 |
+| 지휘함 / Command | 기관포 · 함교 · CIWS · 기관포 · 헬기데크 | 통신 중계(호위함 능력 재사용 +15%) | 5개 / 7칸 | 역할 없는 기본 고속정 2척 |
+| 고속 강습함 / Assault | 기관포 · 함교 · 탄약고 · 기관포 | 흡기(속력 +10% · 가속 +15% · 항해 중 실탄 피해 +10%) | 4개 / 6칸 | 0척 |
+| 미사일 구축함 / MissileDestroyer | VLS · 함교 · VLS · 기관포 | 사격통제 + 재장전 구획(추적 +2 · 유도 사거리 +10% · 미사일 장전 −15% · 탐지 48) | 4개 / 6칸 | 0척 |
+
+함교가 부서지면 패시브도 잃는다. 그 효과를 이미 내는 함교에는 같은 블록 카드가 나오지 않고(`RefitDraft.BridgeCovers`), 다른 함급은 카드로 얻을 수 있다. 아래 3장의 블록 4종 표는 블록으로 설치했을 때의 값이다(함교 패시브도 같은 값).
+
+**함정 정비창(2026-10-28, 군항 3단계)**: 작전 포인트로 함급별 함교 패시브를 3단계까지 강화하고(`MetaWorkshop.ApplyBridge`), 시작 배치 한 칸을 바꾼 개조안(함급마다 2종)을 열어 고를 수 있다. 원본 StartLoadout은 바꾸지 않고 실행 중 사본을 설치한다. 개조안 목록은 `ARCHITECTURE.md` 1장 군항 건물 절.
 
 시작 배치는 Assets/_Game/Data/StartingShips/Loadout_{Patrol,Command,Assault,Missile}_Start.asset에 있다. 성장 구성은 같은 위치의 Expanded.asset이며 성장 후 조합을 보여 주는 디자인 자료다. 선택 확정 시에는 StartLoadout만 설치한다.
 
@@ -25,13 +31,13 @@
 
 확정 흐름은 다음과 같다.
 
-1. ShipInitializer.TrySelect(concept, out reason) 호출.
+1. ShipInitializer.TrySelect(concept, out reason, workshop = true) 호출. 설치할 배치는 `MetaWorkshop.ResolveLoadout(concept)` — 정비창에서 고른 개조안이 있으면 그 칸만 바꾼 실행 중 사본, 없으면 원본 StartLoadout. 훈련은 `workshop:false`(늘 기본형), 이어하기는 이후 RunSave가 저장된 블록으로 다시 놓는다.
 2. 빈 검증용 ShipGrid에서 전체 배치, 범위, 중복, 연결, 회전, 배치 규칙, ModuleRuntime 프리팹을 검증.
-3. 기존 모듈을 비활성화·철거하고 선택한 StartLoadout을 ModuleFactory로 설치.
+3. 기존 모듈을 비활성화·철거하고 그 배치를 ModuleFactory로 설치.
 4. ShipInitializer.LockForLaunch() 호출.
 5. 지휘함의 InitialEscortCount=2를 기본 고속정으로 배치하고 실제 게임 출항 처리.
 
-공개 API는 Game.Ship.ShipInitializer.SelectedConcept, SelectionLocked, TrySelect(StartingShipConcept, out string), LockForLaunch()이다. LockForLaunch는 반복 호출해도 추가 호위함을 생성하지 않는다. GameState.Playing 진입 시에도 잠금을 보장한다. 출항 후 TrySelect는 false를 반환하며 이유를 알려 준다.
+공개 API는 Game.Ship.ShipInitializer.SelectedConcept, SelectionLocked, TrySelect(StartingShipConcept, out string, bool workshop = true), LockForLaunch()이다. LockForLaunch는 반복 호출해도 추가 호위함을 생성하지 않는다. GameState.Playing 진입 시에도 잠금을 보장한다. 출항 후 TrySelect는 false를 반환하며 이유를 알려 준다.
 
 카탈로그는 Resources/StartingShips/Catalog.asset이다. 네 원본 StartingShipConcept 에셋은 Data/StartingShips에 있으며 카탈로그가 이를 참조한다. Game.Data.StartingShipCatalog.All과 Get(StartShipKind)로 조회한다.
 
@@ -94,11 +100,11 @@ ShipSystems 공개 조회값은 EscortFireRateMultiplier, SpeedMultiplier, Accel
 
 StartingShipConcept의 HP·방어·속력·선회·실탄·미사일·헬기 배율과 AllowedWeapons, EscortMax는 후속 설계 자료다. MechanicsImplemented는 false이며 전체 함급 특성이 구현되었다는 뜻으로 바꾸지 않는다.
 
-현재 함선별 차이는 전용 함교 외형, 시작 설치 장비, 출항 시 기본 호위함 수에서 발생한다. TurboIntake 같은 장비의 실제 보너스는 적용하지만 함급 자체의 추가 고정 배율을 더 적용하지 않았다.
+현재 함선별 차이는 전용 함교 외형·함교 패시브, 시작 설치 장비, 출항 시 기본 호위함 수(그리고 정비창 함교 강화·개조안)에서 발생한다. TurboIntake 같은 장비의 실제 보너스는 적용하지만 함급 자체의 추가 고정 배율을 더 적용하지 않았다.
 
 지휘함의 고정 고체력·고방어·저속, 헬기 피해·쿨타임 특성, 무장 제한, 최종 6척은 미구현이다. 강습함의 함급 전용 미사일 금지와 실탄 전반의 고정 피해·사거리·연사력 배율도 미구현이다. 다른 함급의 고정 특성·제한도 동일하다.
 
-Expanded 배치와 완성형 캡처는 성장 목표를 검토하는 자료다. 그 배치 전체를 플레이 시작 시 지급하지 않는다. 신규 지원 블록의 별도 장비 강화 단계는 이번에 추가하지 않았다.
+시작 화면 정박지 모형(SHIP_*_Start)은 기본형이며 정비창 개조안을 반영하지 않는다. Expanded 배치와 완성형 캡처는 성장 목표를 검토하는 자료다. 그 배치 전체를 플레이 시작 시 지급하지 않는다. 신규 지원 블록의 별도 장비 강화 단계는 이번에 추가하지 않았다.
 
 ## 7. 검증 자료와 재실행 방법
 

@@ -806,10 +806,18 @@ WWII         NavalWw2Builder(패치 B 프리팹·데이터·규칙 집합, Naval
 
 ## 5. 남은 일 / 알려진 한계
 
+### 진행 현황 (2026-10-29 확인)
+
+- **최근 반영(커밋·푸시 완료, 브랜치 `ww2/codex-v31-models`)**: 예광탄 · 함교 원격 기관총 삭제(10-21) → 항공대 슈퍼호넷·호크아이 모델, 응급 수리 쿨타임 충전 → 함교 패시브 · 한 줄 시작 배치(10-23) → 미사일 호위함 고정 발사관·직사, 미사일 폭발 연출, 사전 간략화, 40mm 쌍열포 이름 → 군항 건물 1단계(건물 이름 · 기능 건물 · 작전 포인트) → 2·3단계(해군 기술연구소 연구 · 함정 정비창 함교 강화/시작 배치 개조) + Codex 시설 외형·크레인 움직임(`c4e462f`).
+- **최근 검사(개별 실행, 모두 통과)**: `-harborBuildingsOnly`(창 모드 — 이름표·카메라·기록실·포인트·연구·정비창), `-signatureOnly`, `-runFlowOnly`, `-bundleDOnly`, `-escortArmsOnly`, `-codexOnly`, `-nobongOnly`. 전체 회귀(`QA_RESULTS.md`)는 2026-10-18 이후 다시 돌리지 않았다.
+- **작업 폴더에 남은 미커밋(의도적으로 보류)**: Codex 기본 무장 시안(`StarterWeapons_v1` 아트·`StarterWeaponArtBuilder` — 게임 미연결, 아래 블록 전직 절), 블록 전직 계획 `Docs/BLOCK_EVOLUTION_PLAN_2026-10-27.md`, `CODEX_MODEL_REQUESTS.md` 6장 파일 현황 메모, 에디터 재저장분(프리팹 7·KoreanFont·호크아이 재질·Prototype_Main), `Assets/_Recovery`, 시설 외형 작업 Unity 로그 5개(`ArtSource/HarborFacilityDetails/*.log`).
+- **다음 후보**: 블록 전직(기본 함포 / 다목적 기관총 → 분기 — 기획 확정 필요), 정박지 모형에 정비창 개조안 반영, 함급 고정 배율·무장 제한(`LIVE_STARTING_SHIPS.md` S01·S02), 전체 회귀 재실행과 QA 결과표 갱신, WWII 패치 C 모델(Codex 요청 6장 대기).
+
 ### 군항 기능 시설 외형 (2026-10-28)
 
 - 연구소는 창틀·옥상 실험실·관측 장비, 기록실은 유리탑·출입부, 정비창은 부유 독 난간·장비·갠트리 크레인을 보강했다. 기존 기지의 합쳐진 메시와 클릭 위치는 바꾸지 않고 `Resources/Environment/HarborFacilityDetails` 외형 프리팹을 시작 화면의 섬에 한 번 붙인다(`HarborFacilityArt.Attach`, `NavalBaseMenu.Initialize`). 기지 배경을 다시 만들어도 별도 프리팹은 유지된다.
-- 공용 군항 재질, 시설/재질별 병합 메시 20개·2,956 tris·콜라이더 없음. 생성 메뉴 `Naval/Art/Build Interactive Harbor Facility Details`(`HarborFacilityDetailsBuilder`), 위치·재질·리소스 중복 부착 검사와 실제 시설 확대 카메라 전후 캡처는 `ArtSource/HarborFacilityDetails/`. 별도 Unity 프로젝트에서 아트·로드 경로를 확인했으며 전체 군항 UI 플레이 검증을 새로 수행한 것은 아니다.
+- 정비창은 기존 부유 독 둘레에 육지와 이어진 매립 작업장·진입로, 정비동·자재 적치장, 빨간 대형·노란 소형 문형 크레인. 정비창을 확대해 보는 동안만 두 크레인의 운반 장치가 좌우로 움직이고 고리가 오르내린다(`HarborCraneMotion`, `NavalBaseMenu`가 `FocusBuilding`·`ShowOverview`·`Tick`에서 구동 — 개관·다른 시설·배경 정지 설정·일시정지에서는 멈춤).
+- 공용 군항 재질, 시설/재질별 병합 메시 33개·3,604 tris·콜라이더 없음. 생성 메뉴 `Naval/Art/Build Interactive Harbor Facility Details`(`HarborFacilityDetailsBuilder`), 위치·재질·리소스 중복 부착·크레인 움직임 검사와 실제 시설 확대 카메라 전후 캡처는 `ArtSource/HarborFacilityDetails/`. 2026-10-28 본 게임 검증 빌드의 `-harborBuildingsOnly`(창 모드)에서 세 시설 확대·이름표·패널과 함께 실제 화면에 붙은 것을 확인했다(`harbor_building_*.png`, `harbor_workshop.png`).
 
 ### 블록 전직 및 1단계 아트 현황 (2026-10-28 확인)
 
@@ -821,7 +829,7 @@ WWII         NavalWw2Builder(패치 B 프리팹·데이터·규칙 집합, Naval
 ### 시작 함선 4종과 실제 지원 블록 (2026-10-07)
 
 - 범용 초계함·지휘함·고속 강습함·미사일 구축함의 함교 4종, 기본/성장 `StartingLoadout` 8개, 정적 조립 프리팹 8개. `Data/StartingShips`, `Prefabs/StartingShips`, `Art/StartingShips`에 저장.
-- `StartingShipCatalog`(Resources/StartingShips/Catalog) → 출항 전 `StartingShipSelectorUI` → `ShipInitializer.TrySelect` → 실제 `ModuleFactory` 설치. 출항 후 함종 변경 금지. 초계/강습 4모듈·6칸, 지휘/미사일 5모듈·7칸. 지휘함 출항 시 역할 없는 기본 고속정 2척을 멱등 생성한다. 조립 프리팹은 미리보기용이며 전투 기함에는 쓰지 않는다.
+- `StartingShipCatalog`(Resources/StartingShips/Catalog) → 출항 전 `StartingShipSelectorUI` → `ShipInitializer.TrySelect` → 실제 `ModuleFactory` 설치. 출항 후 함종 변경 금지. 초계·강습·미사일 4모듈·6칸, 지휘 5모듈·7칸(2026-10-23 한 줄 시작 배치 기준). 지휘함 출항 시 역할 없는 기본 고속정 2척을 멱등 생성한다. 조립 프리팹은 미리보기용이며 전투 기함에는 쓰지 않는다.
 - 지원 블록 4종은 enum 끝(17~20)에 추가, Resources/Modules 정의·전용 런타임·아이콘·레벨업 설치 카드·장비 현황·사전에 연결. 중계=자율 호위함 재사용 속도 +15%, 흡기=속력 +10%/가속 +15%/항해 중 실탄 피해 +10%, 사격통제=추적 +2/유도 사거리 +10%, 보급=VLS·로켓 발사/셀 보급 시간 -15%. 최대 1개·동종 최강만, 파괴/철거 원복, 원본 SO 불변. 신규 블록 강화 I/II는 아직 없다.
 - **함교 패시브 · 한 줄 시작 배치(2026-10-23)**: 하나만 있으면 끝인 함급 블록의 효과를 각 함교가 낸다(`BridgeModule.ContributeToShipSystems` — 함교 데이터의 `EscortFireRateBonus`·`SpeedBonus`·`AccelerationBonus`·`MovingGunDamageBonus`·`GuidedRangeBonus`·`MissileReloadReduction`). 범용 초계함 = 레이더(탐지 52 · 추적 +3), 지휘함 = 통신 중계, 고속 강습함 = 흡기, 미사일 구축함 = 사격통제 + 재장전 구획 + 탐지 48(VLS 사거리). 함교가 부서지면 함께 잃는다. 블록은 남기되 그 효과를 이미 내는 함교에는 카드로 나오지 않는다(`RefitDraft.BridgeCovers`), 다른 함급은 그대로 얻는다. 시작 배치는 한 줄(앞 → 뒤): 초계 기관포·함교·CIWS·기관포(6칸), 지휘 기관포·함교·CIWS·기관포·헬기데크(7칸, 헬기데크는 선미만 — 함미 기관포의 뒤쪽 사격각은 헬기데크에 일부 가림), 강습 기관포·함교·탄약고·기관포, 미사일 VLS·함교·VLS·기관포. 메뉴 **Naval/Starting Ships/Class Bridge Passives + Line Start**(`NavalClassBridgePassives`)가 함교 수치·시작 배치·시작 화면 문구·미리보기(SHIP_*_Start)를 만든다. 예전 시작 무장 보강 도구는 시작 배치를 더 건드리지 않는다.
 - **함급별 고정 능력치 배율·무기 제한·최종 6척은 미적용**(`MechanicsImplemented=false`). 현재 편대 최대 4척을 유지한다. 지원 스킬/CP는 현행 구조에서 다시 추가하지 않는다.
@@ -887,6 +895,7 @@ WWII         NavalWw2Builder(패치 B 프리팹·데이터·규칙 집합, Naval
 
 | 날짜 | 변경 | 이유 |
 |---|---|---|
+| 2026-10-29 | **문서 현황 정리**: 5장에 진행 현황(최근 반영 · 최근 검사 · 의도적으로 남긴 미커밋 · 다음 후보), 시설 외형 절을 실제 수치(병합 메시 33 · 3,604 tris)·크레인 움직임·본 게임 확인으로 갱신. `LIVE_STARTING_SHIPS.md` 1·2·6장을 한 줄 시작 배치·함교 패시브·정비창 개조안 경로(`TrySelect(…, workshop)`)로 갱신 | 사용자: 진행 현황 확인해서 문서 업데이트 |
 | 2026-10-28 | **군항 건물 3단계 · 함정 정비창**: 함급 탭 넷, 함교 강화(함급 패시브 3단계 · 비용 3·5·8, `ModuleUpgrades.Compute` → `MetaWorkshop.ApplyBridge`), 시작 배치 개조안 8종(함급마다 2 — 한 칸 교체, 열면 계속 · 기본형 무료 전환, 원본은 그대로 실행 중 사본 `StartingLoadout.CreateRuntime` → `ShipInitializer.TrySelect`, 훈련은 기본형), 출항 선택 문구, 두 번 눌러 되돌리기(포인트 반환). 자동 검증에서는 끔. `-harborBuildingsOnly`에 정비창 검사(강화 비용 8 · 실제 탐지 52 → 60 · 화력형 선수 76mm · 원본 그대로 · 훈련 기본형 · 개조안 8종 실제 설치 · 포인트 0이면 막힘 · 되돌리기 반환 +50) · `-signatureOnly`·`-runFlowOnly` 통과 | 사용자: Codex 정비창 외형 확인하고 다음 단계(정비창) |
 | 2026-10-28 | **군항 상호작용 시설 외형 보강**: 연구소·기록실·정비창의 독립 외형 프리팹과 병합 메시를 추가하고 시작 화면에서 섬에 부착. 기존 기지 프리팹·상호작용·진행 기능은 그대로. 별도 Unity 프로젝트에서 리소스 로드·중복 방지·시설 위치·실제 확대 카메라 전후 렌더 검사 | 사용자: 군항에서 상호작용되는 건물 디테일 업데이트 |
 | 2026-10-28 | **문서 현황 동기화**: 두 기본 무장 시안의 제작·Unity 아트 검증·전투 미연결 상태 및 최신 2기본형/4분기 제안을 기록하고, 76mm·함대공·전자전 아트, 스테이지 3, 보스 포탑과 연돌 연기의 오래된 남은 일 표를 정정. 전직 구현·전투 테스트는 이번 문서 작업 범위에 포함하지 않음 | 사용자: 작업 현황 확인 후 문서 업데이트 |
