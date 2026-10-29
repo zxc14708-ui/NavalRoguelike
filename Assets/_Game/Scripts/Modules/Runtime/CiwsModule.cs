@@ -98,6 +98,8 @@ namespace Game.Modules.Runtime
         public int MaxSimultaneousTargets => maxSimultaneousTargets;
         public int ShotsFired => _shotCount;
         public bool HasTarget => _current != null;
+        /// <summary>이 세계 좌표를 사격 금지 구역에 걸리지 않고 쏠 수 있는가(검증용).</summary>
+        public bool CoversPoint(Vector3 worldPoint) => weapon.IsInFireArc(worldPoint);
         public bool InBurst => _inBurst;
         /// <summary>개발용: 끝난 점사 수와 점사당 평균 탄약 소모.</summary>
         public int BurstCount { get; private set; }

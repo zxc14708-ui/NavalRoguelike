@@ -505,6 +505,8 @@ namespace Game.Dev
 
             var ship = GameManager.Instance.Player;
             const int Trials = 6;
+            float center = ClearCiwsBearing(new[] { ciws }, 30f, 40f);
+            _report.AppendLine($"- 보내는 방위 {center:0}°(±20°, 이 CIWS의 사격 금지 구역 밖)");
             foreach (bool drone in new[] { false, true })
             {
                 int kills = 0, engaged = 0;
@@ -520,7 +522,7 @@ namespace Game.Dev
                     CombatStats.Reset();
                     int ammo0 = ciws.Ammo.Current, bursts0 = ciws.BurstCount, shots0 = ciws.ShotsFired;
 
-                    float angle = -20f + 40f * trial / (Trials - 1);
+                    float angle = center - 20f + 40f * trial / (Trials - 1);
                     ITargetable target = null;
                     if (drone)
                     {
@@ -571,6 +573,36 @@ namespace Game.Dev
             CombatDevTools.ClearBattlefield();
         }
 
+        /// <summary>
+        /// 미사일·드론을 보낼 세계 방위(북 = 0°): 함선 둘레 radius·그 절반 거리에서 ±spread/2 부채꼴 전체를
+        /// 사격 금지 구역 없이 쏠 수 있는 CIWS가 가장 많은 쪽, 같으면 0°에 가까운 쪽.
+        /// 한 줄 시작 배치(2026-10-23) 뒤로 CIWS가 함교 바로 뒤라 앞쪽이 함교에 가린다.
+        /// </summary>
+        private static float ClearCiwsBearing(IList<CiwsModule> mounts, float radius, float spreadDeg)
+        {
+            Vector3 ship = GameManager.Instance.Player.transform.position;
+            float best = 0f, bestDev = float.MaxValue;
+            int bestScore = -1;
+            for (int b = 0; b < 360; b += 5)
+            {
+                int score = 0;
+                foreach (var m in mounts)
+                {
+                    bool all = true;
+                    for (float o = -spreadDeg * 0.5f; all && o <= spreadDeg * 0.5f + 0.01f; o += 5f)
+                    {
+                        float a = (b + o) * Mathf.Deg2Rad;
+                        var dir = new Vector3(Mathf.Sin(a), 0f, Mathf.Cos(a));
+                        all = m.CoversPoint(ship + dir * radius + Vector3.up * 3f) && m.CoversPoint(ship + dir * radius * 0.5f + Vector3.up * 3f);
+                    }
+                    if (all) score++;
+                }
+                float dev = Mathf.Abs(Mathf.DeltaAngle(b, 0f));
+                if (score > bestScore || (score == bestScore && dev < bestDev)) { best = b; bestScore = score; bestDev = dev; }
+            }
+            return best;
+        }
+
         // ------------------------------------------------------------ 방어(2차)
 
         /// <summary>CIWS만 켜 두고 미사일을 쏘아 요격·피격을 센다. 방향은 사격 금지 구역이 없는 앞쪽 부채꼴로 모은다.</summary>
@@ -584,14 +616,15 @@ namespace Game.Dev
             foreach (var (_, u) in AmmoUsers()) u.Ammo.Refill();
             CombatStats.Reset();
 
-            // 앞쪽(±spread/2)에서 동시에 날아오게: 한 발씩 각도를 나눠 쏜다
-            for (int i = 0; i < missiles; i++)
-            {
-                float a = missiles == 1 ? 0f : -spreadDeg * 0.5f + spreadDeg * i / (missiles - 1);
-                CombatDevTools.MissileVolley(1, 30f, a, damageOverride: 0.2f);
-            }
             var mounts = new List<CiwsModule>();
             foreach (var c in Object.FindObjectsByType<CiwsModule>(FindObjectsSortMode.None)) if (c.Instance != null && c.enabled) mounts.Add(c);
+            // 사격 금지 구역 밖 부채꼴(±spread/2)에서 동시에 날아오게: 한 발씩 각도를 나눠 쏜다
+            float center = ClearCiwsBearing(mounts, 30f, spreadDeg);
+            for (int i = 0; i < missiles; i++)
+            {
+                float a = center + (missiles == 1 ? 0f : -spreadDeg * 0.5f + spreadDeg * i / (missiles - 1));
+                CombatDevTools.MissileVolley(1, 30f, a, damageOverride: 0.2f);
+            }
             var shots0 = new List<int>();
             foreach (var c in mounts) shots0.Add(c.ShotsFired);
             var bursts0 = new List<int>();
@@ -615,7 +648,7 @@ namespace Game.Dev
             int intercepted = CombatStats.Threats.TryGetValue(ThreatOutcome.Intercepted, out var ie) ? ie.Count : 0;
             int hit = CombatStats.Threats.TryGetValue(ThreatOutcome.HitShip, out var he) ? he.Count : 0;
             int fired = CombatStats.Weapons.TryGetValue("CIWS", out var we) ? we.Fired : 0;
-            _report.AppendLine($"- {label}: 미사일 {missiles}발 → 요격 {intercepted} · 피격 {hit} (CIWS {fired}발)");
+            _report.AppendLine($"- {label}: 방위 {center:0}° · 미사일 {missiles}발 → 요격 {intercepted} · 피격 {hit} (CIWS {fired}발)");
             _report.AppendLine($"  - 문별: {diag}");
             results.Add((label, intercepted, hit));
             foreach (var d in disabled) if (d != null) d.enabled = true;
