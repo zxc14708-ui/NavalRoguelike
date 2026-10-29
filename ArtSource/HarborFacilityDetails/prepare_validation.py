@@ -45,7 +45,8 @@ start = [PROJECT / 'Assets/_Game/Resources/Environment/NavalBaseMenu.prefab',
          PROJECT / 'Assets/_Game/Resources/Environment/HarborFacilityDetails.prefab']
 for key in ('wall_white','wall_beige','roof_slate','glass_blue','steel','steel_dark',
             'safety_yellow','dock_grey','roof_white','box_blue','box_white','crane_red','flag_navy',
-            'concrete','concrete_light','road','mark_white','wall_grey','roof_blue'):
+            'concrete','concrete_light','road','mark_white','wall_grey','roof_blue','rubber',
+            'hull_black','hull_red','box_red','box_green','box_orange','box_teal','rope'):
     start.append(PROJECT / f'Assets/_Game/Art/NavalBase/MAT_base_{key}.mat')
 
 queue = deque(start)
@@ -74,7 +75,8 @@ while queue:
 
 for source in ('Assets/_Game/Editor/HarborFacilityDetailsBuilder.cs',
                'Assets/_Game/Scripts/UI/HarborFacilityArt.cs',
-               'Assets/_Game/Scripts/UI/HarborCraneMotion.cs'):
+               'Assets/_Game/Scripts/UI/HarborCraneMotion.cs',
+               'Assets/_Game/Scripts/UI/HarborFacilityMotion.cs'):
     src = PROJECT / source
     dst = REVIEW / source
     dst.parent.mkdir(parents=True, exist_ok=True)

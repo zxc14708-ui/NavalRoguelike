@@ -95,6 +95,8 @@ v30(`ArtSource/WWII_ScaleReview_v30`) 14종을 모두 게임에 적용했다(`Na
 
 ## 6. WWII 패치 C — 대구경 주포 · 전함/순양함 함교 · 대잠·지원 블록 (2026-10-18 요청)
 
+> **2026-10-28 파일 현황 확인**: 아래 6-1의 `MOD_Ww2HeavyTurret`, `MOD_Ww2BridgeCruiser`, `MOD_Ww2BridgeBattleship` FBX와 `ArtSource/WWII_RequestPack_v32` 산출물은 현재 확인되지 않았다. 대구경 주포와 전함 함교는 `NavalWw2Builder`의 회색 상자 대체·모델 연결 경로가 있다. 순양함 함교는 모델뿐 아니라 연결 경로 확인이 필요하다. 3연장 주포는 원래 **선택** 항목이다. 아래 6-2는 후속 단계 요청으로, 제작·게임 연결을 완료한 것으로 보지 않는다.
+
 C1(함종 수치·탑재 예산·순양함)을 적용했다. 다음 단계에서 쓸 모델을 미리 부탁한다. 코드는 Claude가 회색 상자로 먼저 짓고, 모델이 오면 바꾼다.
 규격은 0장과 v30(`ArtSource/WWII_ScaleReview_v30`)을 따른다: 한 칸 2m(받침 약 1.7m), 앞 = Blender +Y, 위 = +Z, FBX_SCALE_NONE, 재질은 WW2 팔레트 이름(`WW2 Hull`·`WW2 Deck`·`WW2 Gun`·`WW2 Dark` 등), 움직이는 부품 단위로 메시 병합, 블록 원점 = 블록 바닥 중심.
 **주의(2026-10-18 버그)**: 선회하는 노드(`TurretPivot`·`TubeMount` 등)는 회전 0인 빈 물체로 두고, 메시는 그 아래 자식으로. 게임은 이제 선체 위 축으로 돌리므로 노드 로컬 축은 상관없지만, 피벗 위치는 선회 중심에 정확히 둘 것.

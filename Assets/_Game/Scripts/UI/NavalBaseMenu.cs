@@ -20,6 +20,7 @@ namespace Game.UI
         const int Layer = 28;
         Transform _stage, _island;
         HarborCraneMotion _cranes;
+        HarborFacilityMotion _facilityMotion;
         Camera _camera;
         RenderTexture _texture;
         RawImage _image;
@@ -27,6 +28,9 @@ namespace Game.UI
         float _fov=25, _clock, _orbit;
         readonly List<Transform> _ships = new();
         readonly List<Vector3> _centers = new();
+        // 정비창 개조안(2026-10-29): 정박지 모형의 그 칸 블록을 고른 개조안 블록으로 바꿔 보인다
+        readonly List<StartingShipConcept> _moored = new();
+        readonly Dictionary<Transform,(Transform original,GameObject replacement)> _swaps = new();
         readonly List<Light> _mutedLights = new();
         readonly List<Traffic> _traffic = new();
         AmbientMode _ambientMode;
@@ -120,6 +124,7 @@ namespace Game.UI
             _island.localPosition=new Vector3(0,-.9f,0);
             HarborFacilityArt.Attach(_island);
             _cranes=new HarborCraneMotion(_island.Find("HarborFacilityDetails"));
+            _facilityMotion=new HarborFacilityMotion(_island.Find("HarborFacilityDetails"));
             _camera=new GameObject("Harbor menu camera",typeof(Camera)).GetComponent<Camera>();
             _camera.transform.SetParent(_stage,false); _camera.cullingMask=1<<Layer;
             _camera.clearFlags=CameraClearFlags.SolidColor; _camera.backgroundColor=new Color(.42f,.65f,.77f);
@@ -204,10 +209,79 @@ namespace Game.UI
                 ship.position+=target-bounds.center;
                 bounds=BoundsOf(ship.gameObject); ship.position+=Vector3.up*(_island.position.y-.28f-bounds.min.y);
                 foreach(var t in ship.GetComponentsInChildren<Transform>(true)) t.gameObject.layer=Layer;
-                _ships.Add(ship); _centers.Add(BoundsOf(ship.gameObject).center);
+                _ships.Add(ship); _centers.Add(BoundsOf(ship.gameObject).center); _moored.Add(concept);
                 i++;
             }
+            ApplyWorkshopLayouts();
+            Game.Modules.MetaWorkshop.Changed-=ApplyWorkshopLayouts;
+            Game.Modules.MetaWorkshop.Changed+=ApplyWorkshopLayouts;
         }
+
+        /// <summary>
+        /// 정박지 모형(미리 조립한 SHIP_*_Start)에 정비창 개조안을 입힌다: 그 칸의 블록 모형(ModuleRoot의 "이름_(x,z)")을 숨기고
+        /// 개조안 블록의 전투 프리팹을 겉모습만(동작·충돌·입자 제거) 같은 자리에 놓는다. 정비창에서 바꾸면 다시 맞춘다.
+        /// </summary>
+        void ApplyWorkshopLayouts()
+        {
+            if(this==null) { Game.Modules.MetaWorkshop.Changed-=ApplyWorkshopLayouts; return; }
+            for(int i=0;i<_ships.Count && i<_moored.Count;i++)
+            {
+                var ship=_ships[i]; if(ship==null) continue;
+                if(_swaps.TryGetValue(ship,out var old))
+                {
+                    if(old.replacement!=null) Destroy(old.replacement);
+                    if(old.original!=null) old.original.gameObject.SetActive(true);
+                    _swaps.Remove(ship);
+                }
+                var v=Game.Modules.MetaWorkshop.Active?Game.Modules.MetaWorkshop.SelectedVariant(_moored[i].Kind):null;
+                if(v==null) continue;
+                var def=Game.Modules.MetaWorkshop.FindModule(v.ModuleId);
+                var root=ship.Find("ModuleRoot");
+                string cell=$"_({v.X},{v.Z})";
+                Transform original=null;
+                if(root!=null) foreach(Transform t in root) if(t.name.EndsWith(cell)) { original=t; break; }
+                if(def==null || def.Prefab==null || original==null) { Debug.LogWarning($"[Harbor] 정박지 모형에 개조안 {v.Id}를 입히지 못함"); continue; }
+                var visual=MooredVisual(def.Prefab,root);
+                visual.name=def.DisplayName+cell+"_Workshop";
+                visual.transform.localPosition=original.localPosition;
+                visual.transform.localRotation=Quaternion.Euler(0,v.Rotation*90,0);
+                visual.transform.localScale=original.localScale;
+                original.gameObject.SetActive(false);
+                _swaps[ship]=(original,visual);
+            }
+        }
+
+        /// <summary>블록 전투 프리팹의 겉모습만: 꺼 둔 채 만들어 동작(MonoBehaviour)·충돌·물리·입자를 지운 뒤 모형에 붙인다(조립 빌더의 StripBehavior와 같은 순서).</summary>
+        static GameObject MooredVisual(GameObject prefab,Transform parent)
+        {
+            var holder=new GameObject("Moored visual holder"); holder.SetActive(false);
+            var go=Instantiate(prefab,holder.transform);
+            foreach(var c in go.GetComponentsInChildren<MonoBehaviour>(true)) DestroyImmediate(c);
+            foreach(var c in go.GetComponentsInChildren<Collider>(true)) DestroyImmediate(c);
+            foreach(var c in go.GetComponentsInChildren<Rigidbody>(true)) DestroyImmediate(c);
+            foreach(var c in go.GetComponentsInChildren<ParticleSystem>(true)) if(c!=null) DestroyImmediate(c.gameObject);
+            foreach(var c in go.GetComponentsInChildren<AudioSource>(true)) c.enabled=false;
+            go.transform.SetParent(parent,false);
+            Destroy(holder);
+            foreach(var t in go.GetComponentsInChildren<Transform>(true)) t.gameObject.layer=Layer;
+            foreach(var r in go.GetComponentsInChildren<Renderer>(true))
+                if(r.bounds.size.magnitude<SmallCaster) r.shadowCastingMode=ShadowCastingMode.Off;
+            return go;
+        }
+
+        /// <summary>검증용: 이 함급 정박지 모형의 (x, z) 칸에 지금 보이는 블록 모형 이름(없으면 null).</summary>
+        public string MooredModuleAt(StartShipKind kind,int x,int z)
+        {
+            int i=_moored.FindIndex(c=>c!=null && c.Kind==kind);
+            var root=i>=0 && i<_ships.Count && _ships[i]!=null ? _ships[i].Find("ModuleRoot") : null;
+            if(root==null) return null;
+            string cell=$"_({x},{z})";
+            foreach(Transform t in root) if(t.gameObject.activeSelf && (t.name.EndsWith(cell) || t.name.EndsWith(cell+"_Workshop"))) return t.name;
+            return null;
+        }
+
+        /// <summary>검증용: 정박지 순서(시작 함정 목록 순서)에서 이 함급의 번호.</summary>
+        public int BerthIndex(StartShipKind kind) => _moored.FindIndex(c=>c!=null && c.Kind==kind);
 
         void BuildTraffic()
         {
@@ -300,6 +374,7 @@ namespace Game.UI
         public void ShowOverview()
         {
             _cranes?.Stop();
+            _facilityMotion?.Stop();
             SelectedIndex=-1; FocusingBuilding=false;
             _destination=OrbitPoint(); _lookAt=_island.TransformPoint(OrbitCenter); _fov=25;
         }
@@ -307,6 +382,7 @@ namespace Game.UI
         {
             if(_ships.Count==0)return;
             _cranes?.Stop();
+            _facilityMotion?.Stop();
             FocusingBuilding=false;
             SelectedIndex=Mathf.Clamp(index,0,_ships.Count-1);
             _lookAt=_centers[SelectedIndex]+Vector3.up*1.4f;
@@ -322,6 +398,7 @@ namespace Game.UI
         public void FocusBuilding(Vector3 islandLocal, float viewSize)
         {
             _cranes?.FocusAt(islandLocal);
+            _facilityMotion?.FocusAt(islandLocal);
             SelectedIndex=-1; FocusingBuilding=true;
             _lookAt=_island.TransformPoint(islandLocal);
             _destination=_island.TransformPoint(islandLocal+new Vector3(-.45f,.9f,1.1f)*viewSize); _fov=34;
@@ -382,6 +459,7 @@ namespace Game.UI
             float cameraDt=Paused ? 0f : Time.unscaledDeltaTime;
             float dt=Paused || still ? 0f : Time.unscaledDeltaTime; _clock+=dt;
             _cranes?.Tick(dt);
+            _facilityMotion?.Tick(dt);
             foreach(var traffic in _traffic)
             {
                 if(traffic.Total<=0) foreach(float duration in traffic.Times)traffic.Total+=duration;
@@ -432,6 +510,7 @@ namespace Game.UI
         void OnDestroy()
         {
             if(Active==this)Active=null;
+            Game.Modules.MetaWorkshop.Changed-=ApplyWorkshopLayouts;
             if(_stage!=null)Destroy(_stage.gameObject);
             if(_texture!=null){_texture.Release();Destroy(_texture);}
         }

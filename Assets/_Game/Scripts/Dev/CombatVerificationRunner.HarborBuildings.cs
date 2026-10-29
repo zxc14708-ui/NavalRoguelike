@@ -220,6 +220,8 @@ namespace Game.Dev
             bool chosen = Game.Modules.MetaWorkshop.SelectedVariant(Game.Data.StartShipKind.Patrol)?.Id == "patrol_gun" && (ui.WorkshopLayoutText(1) ?? "").Contains("사용 중");
             init.TrySelect(patrol, out why);
             yield return null;
+            var harbor = NavalBaseMenu.Active;
+            string mooredBow = harbor != null ? harbor.MooredModuleAt(Game.Data.StartShipKind.Patrol, 2, 0) : null;
             var bow = ModuleAt(ship, 2, 0);
             int count = ship.Grid.Modules.Count;
             bool assetIntact = false;
@@ -232,6 +234,7 @@ namespace Game.Dev
             init.TrySelect(patrol, out why);
             yield return null;
             var baseBow = ModuleAt(ship, 2, 0);
+            string mooredBase = harbor != null ? harbor.MooredModuleAt(Game.Data.StartShipKind.Patrol, 2, 0) : null;
             bool reselect = (ui.WorkshopLayoutText(1) ?? "").Contains("선택");
             _report.AppendLine($"- 개조안 줄 {Yes(rowOk)} \"{row1}\"");
             _report.AppendLine($"- 화력형 개조: 포인트 {p1} → {p2} · 고름 {Yes(chosen)} · 출항 배치 선수 {Name(bow)} · 블록 {count}개 · 원본 시작 배치 그대로 {Yes(assetIntact)} · 훈련 선수 {Name(trainingBow)} · " +
@@ -242,6 +245,9 @@ namespace Game.Dev
             if (!assetIntact) Fail("개조안이 원본 시작 배치 데이터를 바꿈");
             if (trainingBow == null || trainingBow.Definition.Type != Game.Modules.ModuleType.Autocannon) Fail("훈련(workshop:false)이 기본형으로 시작하지 않음");
             if (p3 != p2 || baseBow == null || baseBow.Definition.Type != Game.Modules.ModuleType.Autocannon || !reselect) Fail("기본형으로 다시 고르기가 안 되거나 포인트가 빠짐");
+            _report.AppendLine($"- 정박지 모형 초계함 선수: 화력형 \"{mooredBow}\" → 기본형 \"{mooredBase}\"");
+            if (mooredBow == null || !mooredBow.StartsWith("76mm") || !mooredBow.EndsWith("_Workshop")) Fail("화력형을 골라도 정박지 모형 선수가 76mm로 바뀌지 않음");
+            if (mooredBase == null || mooredBase.EndsWith("_Workshop") || mooredBase.StartsWith("76mm")) Fail("기본형으로 돌려도 정박지 모형 선수가 기관포로 돌아오지 않음");
 
             // 개조안 8종 모두 실제로 설치된다
             var installed = new System.Text.StringBuilder();
@@ -260,6 +266,31 @@ namespace Game.Dev
             }
             _report.AppendLine($"- 개조안 8종 실제 설치: {installed}");
             if (!allOk) Fail("설치되지 않는 시작 배치 개조안이 있음");
+            var moored = new System.Text.StringBuilder();
+            bool mooredOk = harbor != null;
+            foreach (var kind in new[] { Game.Data.StartShipKind.Patrol, Game.Data.StartShipKind.Command, Game.Data.StartShipKind.Assault, Game.Data.StartShipKind.MissileDestroyer })
+            {
+                var v = Game.Modules.MetaWorkshop.SelectedVariant(kind);
+                string seen = harbor != null && v != null ? harbor.MooredModuleAt(kind, v.X, v.Z) : null;
+                var def = v != null ? Game.Modules.MetaWorkshop.FindModule(v.ModuleId) : null;
+                bool ok = seen != null && def != null && seen.StartsWith(def.DisplayName) && seen.EndsWith("_Workshop");
+                mooredOk &= ok;
+                moored.Append($"{kind} {v?.Name} \"{seen}\" {(ok ? "○" : "×")} · ");
+            }
+            _report.AppendLine($"- 정박지 모형 4척(각 함급 둘째 개조안): {moored}");
+            if (!mooredOk) Fail("정박지 모형에 고른 개조안 블록이 보이지 않음");
+            // 화력형 초계함을 정박지에서 확대해 찍는다
+            Game.Modules.MetaWorkshop.SelectLayout(Game.Data.StartShipKind.Patrol, "patrol_gun");
+            if (harbor != null)
+            {
+                ui.Back();
+                harbor.FocusShip(harbor.BerthIndex(Game.Data.StartShipKind.Patrol));
+                for (float t = 0f; t < 6f && !harbor.CameraSettled; t += Time.unscaledDeltaTime) yield return null;
+                yield return HarborShot("harbor_moored_patrol_gun");
+                harbor.ShowOverview();
+                ui.Focus(workshop);
+                yield return null;
+            }
 
             // 모자라면 못 한다(지휘함 함교)
             PlayerProfile.SpendPoints(PlayerProfile.OpPoints);

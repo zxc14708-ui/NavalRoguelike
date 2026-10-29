@@ -280,7 +280,7 @@ namespace Game.UI
                 _layoutRows.Add((info, button, bt, rowImage));
                 y += 70f;
             }
-            var note = Text(_workshop, "고른 배치는 다음 출항부터 씁니다. 정박지 모형은 기본형으로 보입니다. 훈련은 늘 기본형.", 15f, TextAlignmentOptions.TopLeft, Muted);
+            var note = Text(_workshop, "고른 배치는 다음 출항부터 씁니다(정박지 모형에도 바로 보임). 훈련은 늘 기본형.", 15f, TextAlignmentOptions.TopLeft, Muted);
             Place(note.rectTransform, 24f, y + 4f, w - 48f, 24f);
             y += 40f;
 

@@ -264,7 +264,7 @@ namespace Game.Modules
             return runtime;
         }
 
-        private static ModuleDefinition FindModule(string id)
+        public static ModuleDefinition FindModule(string id)
         {
             foreach (var def in Game.UI.CodexCatalog.CollectModules()) if (def != null && def.Id == id) return def;
             foreach (var def in UnityEngine.Resources.LoadAll<ModuleDefinition>("Modules")) if (def != null && def.Id == id) return def;
