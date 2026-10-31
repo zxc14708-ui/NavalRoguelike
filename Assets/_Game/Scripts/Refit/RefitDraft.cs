@@ -296,7 +296,10 @@ namespace Game.Refit
         public const int BaseRerolls = 3;
         /// <summary>한 판의 다시 뽑기: 기본 3 + 해군 기술연구소 "작전 기획"(2026-10-28, 최대 +2).</summary>
         public static int RerollsPerRun => BaseRerolls + Game.Modules.MetaResearch.ExtraRerolls;
-        public static int RerollsLeft { get; private set; } = RerollsPerRun;
+        // 초기값에 RerollsPerRun(연구 → 프로필 파일)을 쓰면 안 된다: 정적 생성자가 MonoBehaviour 생성 중(씬 불러오기)에 돌면
+        // Application.persistentDataPath가 예외를 던지고 이 형식 전체가 그 실행 동안 망가져, 첫 레벨업에서 정비 화면이 안 열리고
+        // 게임이 정비 상태(시간 정지)로 멈췄다(2026-10-31). 한 판 몫은 씬을 연 뒤 OnSceneLoaded가 채운다.
+        public static int RerollsLeft { get; private set; } = BaseRerolls;
         public static bool TryUseReroll() { if (RerollsLeft <= 0) return false; RerollsLeft--; return true; }
         public static void GrantReroll() => RerollsLeft = Mathf.Min(RerollsPerRun, RerollsLeft + 1);
         /// <summary>저장 불러오기용.</summary>

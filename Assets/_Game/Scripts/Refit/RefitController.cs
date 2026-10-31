@@ -37,11 +37,13 @@ namespace Game.Refit
             if (ship != null && progression != null) ship.RepairHull(progression.HullRepairOnLevelUp);
 
             int cards = progression != null ? progression.CardCount : 3;
-            var choices = draft != null ? draft.DrawCards(cards, level) : null;
-
-            if (ui == null) { Resume(); return; }
-            ui.SetReroll(draft != null ? () => draft.DrawCards(cards, level) : null);
-            ui.Open(level, choices, Resume);
+            OpenSafely(() =>
+            {
+                var choices = draft != null ? draft.DrawCards(cards, level) : null;
+                if (ui == null) { Resume(); return; }
+                ui.SetReroll(draft != null ? () => draft.DrawCards(cards, level) : null);
+                ui.Open(level, choices, Resume);
+            });
         }
 
         /// <summary>
@@ -55,12 +57,28 @@ namespace Game.Refit
             GameManager.Instance.SetState(GameState.Refit);
 
             int cards = progression != null ? progression.CardCount : 3;
-            var choices = draft != null ? draft.DrawCards(cards, level, bossReward: true) : null;
-            RefitDraft.GrantReroll();   // 보스 격침: 다시 뽑기 1회 회복
+            OpenSafely(() =>
+            {
+                var choices = draft != null ? draft.DrawCards(cards, level, bossReward: true) : null;
+                RefitDraft.GrantReroll();   // 보스 격침: 다시 뽑기 1회 회복
+                if (ui == null) { Resume(); return; }
+                ui.SetReroll(draft != null ? () => draft.DrawCards(cards, level, bossReward: true) : null);
+                ui.Open(level, choices, Resume, bossReward: true);
+            });
+        }
 
-            if (ui == null) { Resume(); return; }
-            ui.SetReroll(draft != null ? () => draft.DrawCards(cards, level, bossReward: true) : null);
-            ui.Open(level, choices, Resume, bossReward: true);
+        /// <summary>
+        /// 정비 화면 열기. 카드 뽑기·화면 준비 중 예외가 나면 정비 상태(시간 정지)에 갇히지 않게 기록만 남기고 전투로 돌아간다
+        /// (2026-10-31: 레벨업 때 예외로 게임이 멈춘 채 남던 문제의 안전장치).
+        /// </summary>
+        private void OpenSafely(Action open)
+        {
+            try { open(); }
+            catch (Exception e)
+            {
+                Debug.LogException(e, this);
+                Resume();
+            }
         }
 
         /// <summary>재개 버튼. 전투로 돌아간다.</summary>

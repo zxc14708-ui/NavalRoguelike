@@ -902,6 +902,7 @@ WWII         NavalWw2Builder(패치 B 프리팹·데이터·규칙 집합, Naval
 
 | 날짜 | 변경 | 이유 |
 |---|---|---|
+| 2026-10-31 | **레벨업 때 게임이 멈추던 버그**: `RefitDraft.RerollsLeft`의 정적 초기값이 `RerollsPerRun`(→ `MetaResearch.ExtraRerolls` → 프로필 파일 → `Application.persistentDataPath`)이라, 에디터가 씬을 불러오며 `RefitDraft`(MonoBehaviour)를 만들 때 정적 생성자가 예외 → 그 실행 내내 `RefitDraft` 형식이 망가짐 → 첫 레벨업에서 상태만 정비(시간 정지)로 바뀌고 카드 뽑기가 예외로 끊겨 화면이 안 열린 채 멈춤. 10-28 연구(작전 기획) 추가 때 생김. 자동 검증은 연구를 꺼 두고(`MetaResearch.Active`) 플레이어 빌드는 생성 순서가 달라 드러나지 않았다. 초기값을 `BaseRerolls`로(한 판 몫은 씬을 연 뒤 `OnSceneLoaded`가 채움), `RefitController`는 정비 화면을 열다 예외가 나면 기록하고 전투로 돌아가게(`OpenSafely`). `-runFlowOnly` · `-growthOnly` 통과 | 사용자: 게임이 혼자 멈춤 |
 | 2026-10-31 | **함체 명중 폭발 불덩이 교체**: `Naval/BlastFire` 디졸브 파티클 셰이더(노이즈 갈라짐 · 타오르는 가장자리 · 식어 가는 색) + `DecorFx.BlastFire` 채널, `Explosions` 명중(`Impact`)만 사용. 새 검사 `-blastOnly`(전후 사진·재질·입자 확인) 통과, `-lifeOnly` 폭발 수 그대로 통과. GitHub `game-effects` 주제·Unity 효과 저장소 검토 결과 NovaShader(MIT)가 가장 맞았으나 외부 패키지 추가 대신 같은 방식을 자체 셰이더로 | 사용자: 폭발 하나만 우선 바꿔 보기 |
 | 2026-10-30 | **구름 그림자 다시 보이게**: 바다 `_CloudShade` 0.16 → 0.4(`MAT_ocean`·셰이더 기본값). 원인은 키워드가 아니라 너무 약한 수면 감광. 장식 검사: 켬/끔 비교 그림 저장, 맑은 틈이면 무늬 반 장 옮겨 재측정(검증용 `CloudShadows.Nudge`), 흐름 거리 되감기 보정 | 사용자: 구름 그림자 수정 |
 | 2026-10-30 | **전체 회귀 · CIWS 검사 방위**: 기본 회귀 + 따로 도는 검사 20종 실행, `QA_RESULTS.md` 갱신. CIWS 점사·방어 검사가 한 줄 시작 배치 뒤 함교에 가린 앞쪽으로만 미사일을 보내 0발 사격으로 실패 → 사격 금지 구역 밖 방위를 골라 보내게(`ClearCiwsBearing`, 검증용 `CiwsModule.CoversPoint`). 남은 실패 판정(구름 그림자 기존 · 호위함 표적 불안정)은 5장 진행 현황 | 사용자: 전체 회귀로 현재 상태 확정 |
