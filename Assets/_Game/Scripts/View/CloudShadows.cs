@@ -13,7 +13,7 @@ namespace Game.View
     public class CloudShadows : MonoBehaviour
     {
         private const int Resolution = 256;
-        private const float TileSize = 260f;     // m. 구름 하나 ≈ 40~80m
+        public const float TileSize = 260f;      // m. 구름 하나 ≈ 40~80m
         private const float Darkness = 0.5f;
         private const float Coverage = 0.51f;    // 클수록 구름이 적다(그늘 면적 약 35~40%)
 
@@ -26,6 +26,13 @@ namespace Game.View
         /// <summary>검증용: 지금 적용 중인가, 흐른 거리(m).</summary>
         public bool Applied => _light != null && _texture != null && _light.cookie == _texture;
         public Vector2 Offset => _offset;
+        /// <summary>검증용: 구름 무늬를 meters만큼 옮긴다.</summary>
+        public void Nudge(Vector2 meters)
+        {
+            _offset.x = Mathf.Repeat(_offset.x + meters.x, TileSize);
+            _offset.y = Mathf.Repeat(_offset.y + meters.y, TileSize);
+            if (_data != null) _data.lightCookieOffset = _offset;
+        }
         public static CloudShadows Instance { get; private set; }
         /// <summary>검증용: 무늬에서 그늘(구름 절반 이상)이 차지하는 비율.</summary>
         public static float ShadedFraction { get; private set; }

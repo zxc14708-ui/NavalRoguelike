@@ -85,6 +85,7 @@ namespace Game.Dev
                 runner.PccSoak = System.Array.IndexOf(args, "-pccSoak") >= 0;
                 runner.RouteOnly = System.Array.IndexOf(args, "-routeOnly") >= 0;
                 runner.VlsOnly = System.Array.IndexOf(args, "-vlsOnly") >= 0;
+                runner.BlastOnly = System.Array.IndexOf(args, "-blastOnly") >= 0;
                 runner.BlockHitOnly = System.Array.IndexOf(args, "-blockHitOnly") >= 0;
                 runner.WeaponPackOnly = System.Array.IndexOf(args, "-weaponPackOnly") >= 0;
                 runner.HarborAAOnly = System.Array.IndexOf(args, "-harborAAOnly") >= 0;

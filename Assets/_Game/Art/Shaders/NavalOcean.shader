@@ -4,7 +4,7 @@
 //   - 색: 함선·섬의 저채도 미니어처 재질과 어울리는 회청색 바탕과 마루, 절제한 하늘 반사와 흰 파도.
 //   - 모든 무늬가 월드 좌표에 붙어 있어 카메라가 따라가도 배가 움직이는 것이 보인다(예전 격자의 역할).
 //   - 주광 그림자를 받는다(함선 그림자가 수면에 떨어짐).
-//   - 구름 그림자: 쿠키는 유지하되 수면 감광만 약하게 적용한다. 배·섬의 조명은 바꾸지 않는다.
+//   - 구름 그림자: 해 쿠키를 읽어 그늘진 수면을 은은하게 어둡게 한다(_CloudShade 0.4 → 그늘 약 −20%). 배·섬은 URP 조명 쿠키로 따로 어두워진다.
 //   - 물빛 산란은 높은 마루에만 옅게 남긴다. 실제 알파 투명은 아니며 수면 깊이·항적 그리기 순서를 유지한다.
 Shader "Naval/Ocean"
 {
@@ -25,7 +25,7 @@ Shader "Naval/Ocean"
         _Reflection ("Sky reflection amount", Range(0, 1)) = 0.26
         _ShadowStrength ("Shadow darkness", Range(0, 1)) = 0.055
         _GridStrength ("Reference grid (20m)", Range(0, 0.3)) = 0
-        _CloudShade ("Cloud shadow on water", Range(0, 1)) = 0.16
+        _CloudShade ("Cloud shadow on water", Range(0, 1)) = 0.4
     }
 
     SubShader

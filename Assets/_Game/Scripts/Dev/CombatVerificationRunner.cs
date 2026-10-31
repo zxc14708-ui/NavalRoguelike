@@ -96,6 +96,8 @@ namespace Game.Dev
         public bool RouteOnly;
         [Tooltip("VLS 8셀 덮개 열림 검사만 돌린다(-vlsOnly)")]
         public bool VlsOnly;
+        [Tooltip("함체 명중 폭발 불덩이 전후 비교만 돌린다(-blastOnly)")]
+        public bool BlastOnly;
         [Tooltip("피격 칸 판정(블록 내구) 검사만 돌린다(-blockHitOnly)")]
         public bool BlockHitOnly;
         [Tooltip("노봉·곡사포·경어뢰·충각 강화 검사만 돌린다(-weaponPackOnly)")]
@@ -289,6 +291,13 @@ namespace Game.Dev
             {
                 yield return VlsHatchCheck();
                 SaveLog("vls");
+                Finish();
+                yield break;
+            }
+            if (BlastOnly)
+            {
+                yield return BlastCheck();
+                SaveLog("blast");
                 Finish();
                 yield break;
             }

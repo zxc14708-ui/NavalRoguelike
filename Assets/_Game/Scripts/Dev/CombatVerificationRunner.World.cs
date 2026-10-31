@@ -191,7 +191,59 @@ namespace Game.Dev
             if (field != null) { Game.World.IslandField.Disabled = false; field.Regenerate(0); }
         }
 
+        // ------------------------------------------------------------ 폭발 불덩이
+
+        /// <summary>함체 명중 폭발: 예전 불덩이와 디졸브 불덩이(Naval/BlastFire)를 같은 자리에서 터뜨려 시점별로 찍는다.</summary>
+        private IEnumerator BlastCheck()
+        {
+            _report.AppendLine("\n## 폭발 불덩이(함체 명중)");
+            CombatDevTools.ClearBattlefield();
+            Time.timeScale = 1f;
+            var ship = GameManager.Instance.Player;
+            var mark = new GameObject("Blast shot target").transform;
+            mark.position = ship.transform.position + ship.transform.forward * 14f + Vector3.up * 0.6f;
+            var fire = Game.View.DecorFx.BlastFire;
+            var mat = fire != null ? fire.GetComponent<ParticleSystemRenderer>().sharedMaterial : null;
+            _report.AppendLine($"- 디졸브 불덩이 재질: {(mat != null ? $"{mat.name} · {mat.shader.name} · 지원 {mat.shader.isSupported}" : "없음")}");
+            if (fire == null) Fail("디졸브 불덩이(MAT_BlastFire · Naval/BlastFire)를 쓸 수 없음");
+            foreach (bool dissolve in new[] { false, true })
+            {
+                Game.View.Explosions.DissolveFire = dissolve;
+                yield return new WaitForSeconds(2.5f);   // 앞 폭발이 다 사라질 때까지
+                int before = Game.View.DecorFx.Count(fire);
+                Game.View.Explosions.Spawn(mark.position, 1.2f, Game.View.Explosions.Kind.Impact);
+                float t0 = Time.time;
+                int peak = 0;
+                foreach (float at in new[] { 0.12f, 0.35f, 0.7f })
+                {
+                    while (Time.time - t0 < at) { peak = Mathf.Max(peak, Game.View.DecorFx.Count(fire)); yield return null; }
+                    yield return CloseShot($"blast_{(dissolve ? "dissolve" : "old")}_{Mathf.RoundToInt(at * 100):000}", mark, 14f);
+                }
+                _report.AppendLine($"- {(dissolve ? "디졸브" : "예전")} 불덩이: 사진 0.12·0.35·0.70초 · 디졸브 입자 최대 {peak}");
+                if (dissolve && peak <= before) Fail("함체 명중 폭발에서 디졸브 불덩이가 나오지 않음");
+                if (!dissolve && peak > before) Fail("예전 모양으로 껐는데 디졸브 불덩이가 나옴");
+            }
+            Game.View.Explosions.DissolveFire = true;
+            Destroy(mark.gameObject);
+            Time.timeScale = TimeScale;
+        }
+
         // ------------------------------------------------------------ 장식(격침·물보라·연기·구름)
+
+        /// <summary>구름 켬/끔 비교 그림(왼쪽 켬 · 오른쪽 끔)을 저장한다.</summary>
+        private void SaveCloudPair(Color32[] on, Color32[] off)
+        {
+            const int w = 320, h = 180;
+            var tex = new Texture2D(w * 2, h, TextureFormat.RGBA32, false);
+            for (int y = 0; y < h; y++)
+            for (int x = 0; x < w; x++)
+            {
+                tex.SetPixel(x, y, on[y * w + x]);
+                tex.SetPixel(w + x, y, off[y * w + x]);
+            }
+            File.WriteAllBytes(Path.Combine(OutputDirectory, "decor_clouds_on_off.png"), tex.EncodeToPNG());
+            Destroy(tex);
+        }
 
         /// <summary>
         /// 장식 효과: 구름 그림자 쿠키가 해에 붙어 흐르는지, 속력에 따라 뱃머리 물보라·연돌 연기가 나오는지(기어 올림 검은 연기),
@@ -214,7 +266,9 @@ namespace Game.Dev
             ship.DevRudderOverride = 0f;
             ship.SetEngineOrder(0f);
             yield return new WaitForSeconds(4f);
-            float drift = clouds != null ? (clouds.Offset - o0).magnitude : 0f;
+            // 쿠키 좌표는 한 장(TileSize)마다 되감기므로 축마다 가까운 쪽 차이로 잰다
+            float Wrapped(float d) => Mathf.Repeat(d + Game.View.CloudShadows.TileSize * 0.5f, Game.View.CloudShadows.TileSize) - Game.View.CloudShadows.TileSize * 0.5f;
+            float drift = clouds != null ? new Vector2(Wrapped(clouds.Offset.x - o0.x), Wrapped(clouds.Offset.y - o0.y)).magnitude : 0f;
             _report.AppendLine($"- 구름 그림자: {(clouds != null && clouds.Applied ? "해에 쿠키 적용" : "없음")} · 4초에 {drift:0.0}m 흐름");
             if (clouds == null || !clouds.Applied) Fail("구름 그림자 쿠키가 해에 붙지 않음");
             if (drift < 1f) Fail("구름 그림자가 흐르지 않음");
@@ -242,29 +296,38 @@ namespace Game.Dev
             // 구름 그림자가 실제로 그려지는지: 같은 장면을 켜고/끄고 찍어 밝기를 비교
             if (clouds != null)
             {
-                Time.timeScale = 0f;
-                var on = RenderMain();
-                clouds.enabled = false;
-                yield return null;
-                var offPx = RenderMain();
-                clouds.enabled = true;
-                Time.timeScale = TimeScale;
-                int darker = 0; double sumOn = 0, sumOff = 0;
-                for (int i = 0; i < on.Length; i++)
+                // 구름 무늬 위치는 무작위라 화면이 마침 맑은 틈에 걸릴 수 있다 — 그러면 무늬를 반 장 옮겨 한 번 더 잰다
+                float frac = 0f;
+                for (int attempt = 0; attempt < 2 && frac < 0.05f; attempt++)
                 {
-                    float a = on[i].r + on[i].g + on[i].b, b = offPx[i].r + offPx[i].g + offPx[i].b;
-                    sumOn += a; sumOff += b;
-                    if (a < b * 0.9f) darker++;
+                    if (attempt > 0) clouds.Nudge(Vector2.one * Game.View.CloudShadows.TileSize * 0.5f);
+                    Time.timeScale = 0f;
+                    var on = RenderMain();
+                    clouds.enabled = false;
+                    yield return null;
+                    var offPx = RenderMain();
+                    clouds.enabled = true;
+                    Time.timeScale = TimeScale;
+                    SaveCloudPair(on, offPx);
+                    int darker = 0; double sumOn = 0, sumOff = 0, shadeOn = 0, shadeOff = 0;
+                    for (int i = 0; i < on.Length; i++)
+                    {
+                        float a = on[i].r + on[i].g + on[i].b, b = offPx[i].r + offPx[i].g + offPx[i].b;
+                        sumOn += a; sumOff += b;
+                        if (a < b * 0.9f) { darker++; shadeOn += a; shadeOff += b; }
+                    }
+                    frac = darker / (float)on.Length;
+                    _report.AppendLine($"- 구름 켬/끔 비교{(attempt > 0 ? "(무늬 반 장 옮겨 다시)" : "")}(`decor_clouds_on_off.png`): 그늘진 화면 {frac:P0} · 그늘 밝기 {shadeOn / System.Math.Max(1.0, shadeOff):P0} · 화면 평균 밝기 {sumOn / Mathf.Max(1f, (float)sumOff):P0} (무늬 전체 그늘 비율 {Game.View.CloudShadows.ShadedFraction:P0})");
                 }
-                float frac = darker / (float)on.Length;
-                _report.AppendLine($"- 구름 켬/끔 비교: 그늘진 화면 {frac:P0} · 평균 밝기 {sumOn / Mathf.Max(1f, (float)sumOff):P0} (무늬 전체 그늘 비율 {Game.View.CloudShadows.ShadedFraction:P0})");
                 if (frac < 0.05f)
                 {
+                    // 마지막 렌더가 '끔'이면 쿠키 키워드·전역 쿠키 텍스처도 꺼진 상태라, 켬으로 한 번 더 그린 뒤 본다
+                    RenderMain();
                     var cl = clouds.GetComponent<Light>();
                     int dirs = 0; string names = "";
                     foreach (var l in Object.FindObjectsByType<Light>(FindObjectsSortMode.None)) if (l.type == LightType.Directional && l.isActiveAndEnabled) { dirs++; names += $"{l.name}({l.intensity:0.##}) "; }
-                    _report.AppendLine($"  - 진단: 해 {RenderSettings.sun?.name ?? "없음"} · 구름 붙은 빛 {cl?.name} 켜짐 {cl?.isActiveAndEnabled} 세기 {cl?.intensity:0.##} 쿠키 {(cl != null && cl.cookie != null ? cl.cookie.name : "없음")} · 켜진 방향광 {dirs}: {names}· _LIGHT_COOKIES {Shader.IsKeywordEnabled("_LIGHT_COOKIES")}");
-                    Fail("구름 그림자가 화면에 그려지지 않음(쿠키 미적용)");
+                    _report.AppendLine($"  - 진단: 해 {RenderSettings.sun?.name ?? "없음"} · 구름 붙은 빛 {cl?.name} 켜짐 {cl?.isActiveAndEnabled} 세기 {cl?.intensity:0.##} 쿠키 {(cl != null && cl.cookie != null ? cl.cookie.name : "없음")} · 켜진 방향광 {dirs}: {names}· _LIGHT_COOKIES {Shader.IsKeywordEnabled("_LIGHT_COOKIES")} · 전역 주광 쿠키 {Shader.GetGlobalTexture("_MainLightCookieTexture")?.name ?? "없음"}");
+                    Fail("구름 그림자가 화면에 거의 안 보임(그늘진 화면 5% 미만 — 쿠키 미적용 또는 바다 재질 _CloudShade가 너무 약함)");
                 }
             }
 

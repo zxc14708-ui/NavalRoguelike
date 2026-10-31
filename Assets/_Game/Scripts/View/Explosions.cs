@@ -28,6 +28,8 @@ namespace Game.View
 
         /// <summary>검증용: 지금까지 만든 폭발 수.</summary>
         public static int SpawnCount { get; private set; }
+        /// <summary>함체 명중(Impact) 불덩이를 디졸브 불덩이(DecorFx.BlastFire)로 그린다. 검증에서 예전 모양과 나란히 찍을 때만 끈다.</summary>
+        public static bool DissolveFire = true;
 
         private static readonly List<Light> s_lights = new();
         private static int s_nextLight;
@@ -44,8 +46,21 @@ namespace Game.View
             DecorFx.Emit(DecorFx.Flash, position, Vector3.zero, 0.14f, 4.2f * size, new Color(1f, 0.95f, 0.8f, 0.95f));
             DecorFx.Emit(DecorFx.Flash, position, Vector3.zero, 0.22f, 2.6f * size, new Color(1f, 0.72f, 0.3f, 0.9f));
 
-            // 불덩이
-            int fire = Mathf.RoundToInt(10 + 8 * size);
+            // 불덩이 — 함체 명중은 갈라지며 타 사라지는 큰 덩이 몇 개, 나머지는 부드러운 원 여러 개
+            var blast = kind == Kind.Impact && DissolveFire ? DecorFx.BlastFire : null;
+            if (blast != null)
+            {
+                int blobs = Mathf.RoundToInt(6 + 4 * size);
+                for (int i = 0; i < blobs; i++)
+                {
+                    Vector3 dir = Random.onUnitSphere;
+                    dir.y = Mathf.Abs(dir.y) * 0.8f + 0.2f;
+                    DecorFx.Emit(blast, position + dir * 0.35f * size, dir * Random.Range(1.6f, 4.2f) * size,
+                        Random.Range(0.55f, 0.95f), Random.Range(1.4f, 2.4f) * size,
+                        Color.Lerp(new Color(1f, 0.93f, 0.62f, 1f), new Color(1f, 0.5f, 0.16f, 1f), Random.value));
+                }
+            }
+            int fire = blast != null ? Mathf.RoundToInt(3 + 2 * size) : Mathf.RoundToInt(10 + 8 * size);
             for (int i = 0; i < fire; i++)
             {
                 Vector3 dir = Random.onUnitSphere;
