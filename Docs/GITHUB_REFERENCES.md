@@ -15,7 +15,7 @@
 
 | 우선순위 | 저장소 | 활용처 | 라이선스 표기 | 검토 상태 |
 | --- | --- | --- | --- | --- |
-| 1 | [Unity Movement AI](https://github.com/sturdyspoon/unity-movement-ai) | 호위함 추종·간격 유지·충돌 회피 | MIT | 주요 회피·추종 코드 확인, 적용 전 |
+| 1 | [Unity Movement AI](https://github.com/sturdyspoon/unity-movement-ai) | 호위함 추종·간격 유지·충돌 회피 | MIT | 2026-10-31 방식만 적용(코드 미복사, 아래 적용 기록) |
 | 2 | [lib_fts](https://github.com/forrestthewoods/lib_fts) | 주포 탄도·이동 표적 사격 계산 | 대상 파일에 퍼블릭 도메인 및 사용·수정·배포 허용 명시 | C# 탄도 파일 확인, 적용 전 |
 | 3 | [PrimeTween](https://github.com/KyryloKuzyk/PrimeTween) | 카드·HUD·피격·카메라 연출 | 자체 라이선스 | README·LICENSE 확인, 적용 전 |
 | 4 | [Boat Attack Water](https://github.com/Unity-Technologies/boat-attack-water/tree/rendergraph-U6) | URP 해수면·물 효과 | Unity Companion License | Unity 6용 브랜치·의존성 확인, 실행 미검증 |
@@ -104,6 +104,7 @@
 | 적용일 | 저장소·버전/커밋 | 적용 파일·기능 | 라이선스·출처 반영 | 검증 결과 |
 | --- | --- | --- | --- | --- |
 | — | — | 이 목록 작성 시 도입한 코드 없음 | — | 프로젝트 실행 호환성 미검증 |
+| 2026-10-31 | Unity Movement AI(방식만 참고 — CollisionAvoidance · WallAvoidance · OffsetPursuit, 코드 미복사) | `TaskForce/TaskForceEscortFormation` — `MoveOffsetAround`(자율 목표 둘레 이동) · `RouteAroundFlagship`(기함 우회) · `Avoidance`(기함·호위함 예측 충돌 회피, 섬 세 갈래 탐지선) · `OpenWater`(섬 안 자리 대체). Rigidbody 가속도 대신 이 배의 선수 방향·선회율·속력 조함에 더하는 원하는 속도로 변환 | 코드 미복사 — 크레딧 대상 아님 | `-formationOnly` 통과(자율 기함 최소 간격 10.1m · 기본 회귀 5.9m, 섬 회피 정지·항해 박힘 0회) |
 | 2026-10-31 | FastNoiseLite 1.1.1(커밋 `785f37a`, C# 파일 원본 그대로) | `Scripts/ThirdParty/FastNoiseLite` → `World/IslandShape`(절차형 섬 해안선: 타원 + OpenSimplex2 FBm 굴곡), `World/IslandField.Density`(약 400m 밀도 무늬로 군도·트인 바다) | MIT 머리 문구 보존, `CREDITS.md` · `Credits.txt` · 폴더 README | `-islandOnly` 통과(해안선 길쭉함 1.01~1.64, 무인도 수면 충돌면/해안 0.70~0.94 — 보이지 않는 벽 없음) |
 | 2026-10-31 | Slay the Spire Map in Unity(구조만 참고, 코드·의존성 미도입) | `Core/RouteMap`(층별 갈림길·엇갈리지 않는 연결·런 시드 재현) · `UI/HUDView.RouteMap`(항로 지도 화면) · `RunSave.routePath` | 코드 미복사 — 크레딧 대상 아님 | `-routeMapOnly` 통과(지도 600개 규칙 · 이어하기 · 화면에서 이어진 갈림길만 열림) |
 | 2026-10-31 | PrimeTween 1.5.0(npm 레지스트리, `Packages/manifest.json` scopedRegistries) | `UI/UiJuice`(정비 카드 등장 · 선체 수치 흔들림) · `View/QuarterViewCamera.Shake`(큰 피해 화면 흔들림) | 자체 라이선스 — 소스 미포함(npm 설치), `CREDITS.md` · `Credits.txt` | `-juiceOnly` 통과 |

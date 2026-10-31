@@ -701,6 +701,8 @@ namespace Game.Dev
             _report.AppendLine($"- 종렬진 선회 뒤 7초 직진: 기함 항적에서 옆으로 최대 {colWorst:0.0}m");
             if (colWorst > 3f) Fail("종렬진이 선회 뒤 기함 항적을 따라 한 줄로 서지 않음");
 
+            yield return EscortIslandCheck(formation, ship, field);
+
             ship.DevRudderOverride = null;
             ship.SetEngineOrder(0f);
             formation.SetFormation(Game.TaskForce.FleetFormation.Circular);
@@ -709,6 +711,88 @@ namespace Game.Dev
             CombatDevTools.ClearBattlefield();
             if (field != null) { Game.World.IslandField.Disabled = false; field.Regenerate(0); }
         }
+
+        /// <summary>
+        /// 호위함 섬 회피(2026-10-31, Unity Movement AI 방식의 벽 회피 · 섬 안 자리 대체): 함대원형진에서
+        /// (1) 멈춘 기함의 앞 자리에 섬을 놓으면 그 호위함이 섬에 박히지 않고 바다 쪽에서 기다리는지,
+        /// (2) 우현 자리 줄 앞에 섬을 두고 지나가면 박히지 않고 비켜 갔다가 자리로 돌아오는지.
+        /// </summary>
+        private IEnumerator EscortIslandCheck(Game.TaskForce.TaskForceEscortFormation formation, Game.Ship.ShipController ship, Game.World.IslandField field)
+        {
+            if (field == null || formation.EscortCount == 0) { _report.AppendLine("- 호위함 섬 회피: 섬 배치기·호위함이 없어 건너뜀"); yield break; }
+            formation.SetFormation(Game.TaskForce.FleetFormation.Circular);
+            ship.DevRudderOverride = 0f;
+            ship.SetEngineOrder(0f);
+            yield return new WaitForSeconds(4f);
+
+            Vector3 SlotOf(Component esc)
+            {
+                var args = new object[] { Get<int>(esc, "_slot"), Vector3.zero };
+                var m = formation.GetType().GetMethod("SlotPosition", Inst);
+                return m != null ? (Vector3)m.Invoke(formation, args) : esc.transform.position;
+            }
+            int Stuck()
+            {
+                int n = 0;
+                for (int i = 0; i < formation.EscortCount; i++)
+                    if (!Game.World.Islands.IsClear(formation.GetEscort(i).transform.position, 1f)) n++;
+                return n;
+            }
+
+            // (1) 앞 자리(기함에서 가장 앞에 있는 호위함의 자리)에 섬 — 실제처럼 섬이 먼저 있고 호위함이 그 자리로 온다:
+            //     종렬진(모두 뒤)으로 물려 둔 뒤 섬을 놓고 원형진으로 바꾼다
+            Component front = null;
+            for (int i = 0; i < formation.EscortCount; i++)
+            {
+                var e = formation.GetEscort(i);
+                if (front == null || ship.transform.InverseTransformPoint(e.transform.position).z > ship.transform.InverseTransformPoint(front.transform.position).z) front = e;
+            }
+            var slot = SlotOf(front);
+            formation.SetFormation(Game.TaskForce.FleetFormation.Column);
+            yield return new WaitForSeconds(6f);
+            field.PlaceAt(slot, 7f, false, 31);
+            formation.SetFormation(Game.TaskForce.FleetFormation.Circular);
+            yield return new WaitForSeconds(4f);   // 뒤에서 앞 자리 쪽으로 돌아오는 중
+            int stuck1 = 0;
+            for (int k = 0; k < 16; k++) { yield return new WaitForSeconds(0.5f); stuck1 += Stuck(); }
+            float wait = Vector3.Distance(Flat(front.transform.position), Flat(slot));
+            bool frontClear = Game.World.Islands.IsClear(front.transform.position, 2f);
+            _report.AppendLine($"- 섬 회피(정지): 종렬진 → 원형진, 앞 자리에 섬(반경 7m) → 그 호위함 자리에서 {wait:0.0}m 바다 쪽 대기 · 섬에 박힘 {stuck1}회(8초 × 4척)");
+            if (stuck1 > 0 || !frontClear) Fail("호위함이 섬 안 자리로 들어가 섬에 박힘");
+            if (wait > 30f) Fail("섬 안 자리 대신 기다리는 곳이 너무 멂");
+            field.ClearAll();
+
+            // (2) 항해: 우현 자리 줄 앞에 섬 — 지나가며 비켜 갔다가 자리로
+            yield return new WaitForSeconds(2f);
+            Component starboard = null;
+            for (int i = 0; i < formation.EscortCount; i++)
+            {
+                var e = formation.GetEscort(i);
+                if (starboard == null || ship.transform.InverseTransformPoint(e.transform.position).x > ship.transform.InverseTransformPoint(starboard.transform.position).x) starboard = e;
+            }
+            float lateral = ship.transform.InverseTransformPoint(SlotOf(starboard)).x;
+            var center = ship.transform.position + ship.transform.forward * 50f + ship.transform.right * lateral;
+            field.PlaceAt(center, 8f, false, 32);
+            ship.SetEngineOrder(0.5f);
+            int stuck2 = 0;
+            float off = 0f;
+            for (int k = 0; k < 28; k++)
+            {
+                yield return new WaitForSeconds(0.5f);
+                stuck2 += Stuck();
+                off = Mathf.Max(off, Vector3.Distance(Flat(starboard.transform.position), Flat(SlotOf(starboard))));
+            }
+            yield return new WaitForSeconds(4f);
+            float back = Vector3.Distance(Flat(starboard.transform.position), Flat(SlotOf(starboard)));
+            bool passed = Vector3.Dot(ship.transform.position - center, ship.transform.forward) > 10f;
+            _report.AppendLine($"- 섬 회피(항해): 우현 자리 줄 앞 50m 섬(반경 8m) 지나감 {Yes(passed)} · 섬에 박힘 {stuck2}회 · 비켜 간 거리 최대 {off:0.0}m → 지난 뒤 자리 오차 {back:0.0}m");
+            if (stuck2 > 0) Fail("항해 중 호위함이 섬에 박힘");
+            if (passed && back > 6f) Fail("섬을 비켜 간 뒤 호위함이 자리로 돌아오지 않음");
+            ship.SetEngineOrder(0f);
+            field.ClearAll();
+        }
+
+        private static Vector3 Flat(Vector3 v) { v.y = 0f; return v; }
 
         /// <summary>
         /// 자율 진형(2026-10-03): 위협이 없으면 기함 둘레를 스스로 돈다(자리가 바뀐다) · 기함에서 AutoLeash 안 · 화면 안 · 기함과 겹치지 않음,
@@ -733,7 +817,8 @@ namespace Game.Dev
                     // 다른 진형에서 바꾼 직후(3초)는 들어오는 중이라 빼고 잰다(단종진 맨 뒤는 52m 뒤에서 출발)
                     if (k >= 6) maxDist = Mathf.Max(maxDist, new Vector2(lp.x, lp.z - (ext.x + ext.y) * 0.5f).magnitude);
                     float along = Mathf.Clamp(lp.z, ext.y, ext.x);
-                    clearance = Mathf.Min(clearance, new Vector2(lp.x, lp.z - along).magnitude - ext.z);
+                    // 바꾼 첫 1초는 앞 진형 자리(종렬진 1번은 원래 선미 2m)에 있으므로 빼고 잰다
+                    if (k >= 2) clearance = Mathf.Min(clearance, new Vector2(lp.x, lp.z - along).magnitude - ext.z);
                     if (k >= 6 && cam != null)
                     {
                         var vp = cam.WorldToViewportPoint(esc.transform.position);
