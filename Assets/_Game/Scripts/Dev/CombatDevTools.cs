@@ -36,6 +36,17 @@ namespace Game.Dev
 
         public static CombatDevTools Instance { get; private set; }
 
+        /// <summary>
+        /// 자동 검증은 창이 포커스를 잃어도 계속 돈다. 빌드 설정은 백그라운드 실행을 꺼 두어(일반 플레이는 다른 창을 누르면 멈춤),
+        /// 창 모드 검사 창이 앞으로 나오지 못하면(다른 창을 쓰는 중) 시작하자마자 멈춘 채 시간 초과됐다(2026-10-31).
+        /// </summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void KeepVerificationRunning()
+        {
+            if (System.Array.IndexOf(System.Environment.GetCommandLineArgs(), "-combatVerify") >= 0)
+                Application.runInBackground = true;
+        }
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void AutoCreate()
         {
@@ -86,6 +97,8 @@ namespace Game.Dev
                 runner.RouteOnly = System.Array.IndexOf(args, "-routeOnly") >= 0;
                 runner.VlsOnly = System.Array.IndexOf(args, "-vlsOnly") >= 0;
                 runner.BlastOnly = System.Array.IndexOf(args, "-blastOnly") >= 0;
+                runner.RouteMapOnly = System.Array.IndexOf(args, "-routeMapOnly") >= 0;
+                runner.JuiceOnly = System.Array.IndexOf(args, "-juiceOnly") >= 0;
                 runner.BlockHitOnly = System.Array.IndexOf(args, "-blockHitOnly") >= 0;
                 runner.WeaponPackOnly = System.Array.IndexOf(args, "-weaponPackOnly") >= 0;
                 runner.HarborAAOnly = System.Array.IndexOf(args, "-harborAAOnly") >= 0;

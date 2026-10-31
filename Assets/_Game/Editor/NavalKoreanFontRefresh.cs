@@ -41,7 +41,10 @@ namespace Game.EditorTools
 
             asset.ClearFontAssetData(true);   // 저장은 빈 동적 아틀라스로(실행 중 필요한 글자만 굽는다)
             EditorUtility.SetDirty(asset);
-            AssetDatabase.SaveAssets();
+            // 평소에는 NavalDynamicFontSaveGuard가 이 에셋 저장을 막는다(구운 글자가 커밋에 섞이지 않게) — 여기서만 연다
+            NavalDynamicFontSaveGuard.AllowSave = true;
+            try { AssetDatabase.SaveAssets(); }
+            finally { NavalDynamicFontSaveGuard.AllowSave = false; }
         }
     }
 }
