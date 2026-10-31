@@ -147,23 +147,12 @@ namespace Game.Dev
             yield return new WaitForSeconds(3f);
 
             var t = ship.transform;
-            // 섬이 없는 넓은 바다로 옮겨 시작한다(선회권까지 섬과 닿지 않게)
-            Vector3 open = t.position;
-            for (int ring = 0; ring <= 15 && !Game.World.Islands.IsClear(open, 130f); ring++)
-                for (int k = 0; k < 16; k++)
-                {
-                    float a = k / 16f * Mathf.PI * 2f;
-                    var cand = new Vector3(Mathf.Sin(a), 0f, Mathf.Cos(a)) * (ring * 60f);
-                    if (Game.World.Islands.IsClear(cand, 130f)) { open = cand; break; }
-                }
-            if (Vector3.Distance(open, t.position) > 1f)
-            {
-                open.y = t.position.y;
-                t.position = open;
-                if (ship.TryGetComponent<Rigidbody>(out var body)) body.position = open;
-                _report.AppendLine($"- 넓은 바다로 옮겨 시작 ({open.x:0}, {open.z:0})");
-                yield return new WaitForSeconds(1f);
-            }
+            // 항로 추종만 보므로 섬을 치우고 시작한다(2026-11-01). 예전에는 섬 없는 바다를 찾아 옮겼는데,
+            // 섬은 배가 그 구역에 도착한 뒤에 생겨 군도 무늬(섬 밀도) 뒤로는 옮긴 자리 바로 옆에 섬이 생겨 좌초했다.
+            var islandField = Game.World.IslandField.Instance;
+            if (islandField != null) { Game.World.IslandField.Disabled = true; islandField.ClearAll(); }
+            yield return new WaitForSeconds(0.5f);
+            _report.AppendLine($"- 섬 치움(항로 추종만 검사): 둘레 130m 섬 없음 {Yes(Game.World.Islands.IsClear(t.position, 130f))}");
             Vector3 o = new(t.position.x, 0f, t.position.z);
             Vector3 f = new Vector3(t.forward.x, 0f, t.forward.z).normalized, r = Vector3.Cross(Vector3.up, f);
             var points = new[] { o + f * 45f + r * 25f, o + f * 70f - r * 30f, o + f * 30f - r * 75f };

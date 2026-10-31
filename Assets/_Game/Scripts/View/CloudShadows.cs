@@ -7,7 +7,8 @@ namespace Game.View
     /// 구름 그림자(장식, 판정 없음). 해(주 방향광)에 구름 무늬 쿠키를 씌워 바다·배·섬에 똑같이 그림자가 지게 하고,
     /// 쿠키를 바람 방향(DecorFx.Wind — 연기와 같은 쪽)으로 천천히 흘린다.
     ///   - 무늬: 이어 붙여도 이음매가 없는 fBm 노이즈를 문턱으로 잘라 뭉게구름 모양(한 장 = TileSize m).
-    ///   - 그늘에서는 직사광이 Darkness만큼 줄어든다. 바다 셰이더(Naval/Ocean)는 쿠키 값을 직접 읽어 물빛도 어둡게 한다.
+    ///   - 그늘에서는 직사광이 Darkness × 설정 배율(DisplaySettings.CloudShadowScale — 진하게 1.4 · 보통 1 · 옅게 0.5)만큼 줄어든다.
+    ///     바다 셰이더(Naval/Ocean)는 쿠키 값을 직접 읽어 물빛도 같이 어두워진다. 설정이 "끄기"면 쿠키를 떼고 원래대로 되돌린다.
     /// 씬을 다시 만들지 않아도 되게 씬이 열린 뒤 해에 스스로 붙는다. 꺼지면 원래 쿠키로 되돌린다.
     /// </summary>
     public class CloudShadows : MonoBehaviour
@@ -20,6 +21,8 @@ namespace Game.View
         private Light _light;
         private UniversalAdditionalLightData _data;
         private Texture2D _texture;
+        private float _bakedScale = -1f;
+        private bool _attached;
         private Texture _previousCookie;
         private Vector2 _previousSize, _previousOffset, _offset;
 
@@ -36,6 +39,8 @@ namespace Game.View
         public static CloudShadows Instance { get; private set; }
         /// <summary>검증용: 무늬에서 그늘(구름 절반 이상)이 차지하는 비율.</summary>
         public static float ShadedFraction { get; private set; }
+        /// <summary>검증용: 지금 쿠키에 구운 그늘 세기(직사광이 줄어드는 비율, 0이면 꺼짐).</summary>
+        public float Strength => _attached ? Darkness * _bakedScale : 0f;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Bootstrap()
@@ -54,21 +59,45 @@ namespace Game.View
             _light = GetComponent<Light>();
             if (_light == null) return;
             _data = _light.GetUniversalAdditionalLightData();
-            if (_texture == null) _texture = BuildTexture();
-
-            _previousCookie = _light.cookie;
-            _previousSize = _data.lightCookieSize;
-            _previousOffset = _data.lightCookieOffset;
-            _light.cookie = _texture;
-            _data.lightCookieSize = new Vector2(TileSize, TileSize);
             _offset = new Vector2(Random.Range(0f, TileSize), Random.Range(0f, TileSize));
-            _data.lightCookieOffset = _offset;
+            Game.Core.DisplaySettings.Changed += ApplySetting;
+            ApplySetting();
         }
 
         private void OnDisable()
         {
             if (Instance == this) Instance = null;
+            Game.Core.DisplaySettings.Changed -= ApplySetting;
+            Detach();
+        }
+
+        /// <summary>설정 배율에 맞춰 쿠키를 다시 굽고 붙이거나(끄기면) 뗀다. 배율이 그대로면 아무것도 안 한다.</summary>
+        private void ApplySetting()
+        {
             if (_light == null || _data == null) return;
+            float scale = Game.Core.DisplaySettings.CloudShadowScale;
+            if (scale <= 0f) { Detach(); return; }
+            if (_texture == null || !Mathf.Approximately(scale, _bakedScale))
+            {
+                if (_texture != null) Destroy(_texture);
+                _texture = BuildTexture(Mathf.Clamp01(Darkness * scale));
+                _bakedScale = scale;
+                if (_attached) _light.cookie = _texture;
+            }
+            if (_attached) return;
+            _previousCookie = _light.cookie;
+            _previousSize = _data.lightCookieSize;
+            _previousOffset = _data.lightCookieOffset;
+            _light.cookie = _texture;
+            _data.lightCookieSize = new Vector2(TileSize, TileSize);
+            _data.lightCookieOffset = _offset;
+            _attached = true;
+        }
+
+        private void Detach()
+        {
+            if (!_attached || _light == null || _data == null) return;
+            _attached = false;
             _light.cookie = _previousCookie;
             _data.lightCookieSize = _previousSize;
             _data.lightCookieOffset = _previousOffset;
@@ -81,7 +110,7 @@ namespace Game.View
 
         private void Update()
         {
-            if (_light == null || _data == null) return;
+            if (_light == null || _data == null || !_attached) return;
             // 쿠키 좌표는 빛의 오른쪽·위쪽 축 기준이다. 바람을 그 축에 나눠 싣는다.
             Vector3 w = DecorFx.Wind;
             var t = _light.transform;
@@ -91,7 +120,7 @@ namespace Game.View
             _data.lightCookieOffset = _offset;
         }
 
-        private static Texture2D BuildTexture()
+        private static Texture2D BuildTexture(float darkness)
         {
             var tex = new Texture2D(Resolution, Resolution, TextureFormat.RGBA32, false, true)
             {
@@ -117,7 +146,7 @@ namespace Game.View
                 n /= sum;
                 float cloud = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(Coverage - 0.07f, Coverage + 0.1f, n));
                 if (cloud > 0.5f) shaded++;
-                byte b = (byte)Mathf.RoundToInt((1f - Darkness * cloud) * 255f);
+                byte b = (byte)Mathf.RoundToInt((1f - darkness * cloud) * 255f);
                 px[y * Resolution + x] = new Color32(b, b, b, b);
             }
             ShadedFraction = shaded / (float)px.Length;

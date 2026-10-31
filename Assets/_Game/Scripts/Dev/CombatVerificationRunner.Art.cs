@@ -58,6 +58,60 @@ namespace Game.Dev
             return size;
         }
 
+        /// <summary>
+        /// 절차형 선체(2026-11-01): 함수(Bow) · 함미 트랜섬(Stern) · 옆면 곡선(Sides)이 생겼는지, 트랜섬이 맨 뒤 블록 뒤로 나오는지,
+        /// 옆면이 칸 경계 밖으로 벌어지되 지나치지 않는지 재고 함미·옆면을 찍는다.
+        /// </summary>
+        private IEnumerator HullShapeCheck(Game.Ship.ShipController ship)
+        {
+            var grid = ship.GetComponentInChildren<Game.Ship.ShipGrid>();
+            Transform Part(string n)
+            {
+                foreach (var t in ship.GetComponentsInChildren<MeshFilter>())
+                    if (t.name == n) return t.transform;
+                return null;
+            }
+            var bow = Part("Bow");
+            var stern = Part("Stern");
+            var sides = Part("Sides");
+            int minX = int.MaxValue, minZ = int.MaxValue, maxZ = int.MinValue;
+            if (grid != null)
+                foreach (var c in grid.OccupiedCells) { minX = Mathf.Min(minX, c.X); minZ = Mathf.Min(minZ, c.Z); maxZ = Mathf.Max(maxZ, c.Z); }
+            float s = grid != null ? grid.CellSize : 2f;
+            float rearEdge = (minX - 0.5f) * s;
+            float sternBack = 0f, flare = 0f;
+            int sideTris = 0;
+            if (stern != null)
+            {
+                var b = stern.GetComponent<MeshFilter>().sharedMesh.bounds;
+                sternBack = rearEdge - b.min.z;
+            }
+            if (sides != null)
+            {
+                var m = sides.GetComponent<MeshFilter>().sharedMesh;
+                var b = m.bounds;
+                flare = Mathf.Max(b.max.x - (maxZ + 0.5f) * s, (minZ - 0.5f) * s - b.min.x);
+                sideTris = m.triangles.Length / 3;
+            }
+            _report.AppendLine($"- 절차형 선체: 함수 {(bow != null ? "있음" : "없음")} · 함미 트랜섬 {(stern != null ? $"맨 뒤 블록 뒤로 {sternBack:0.00}m" : "없음")} · 옆면 곡선 {(sides != null ? $"칸 경계 밖 최대 {flare:0.00}m, 삼각형 {sideTris}" : "없음")}");
+            if (bow == null) Fail("함수 메시가 없음");
+            if (stern == null || sternBack < 0.3f || sternBack > 1.2f) Fail("함미 트랜섬이 없거나 길이가 맞지 않음(0.3~1.2m)");
+            if (Ruleset.Active == null || Ruleset.Active.HullSideSkirt == null)
+            {
+                if (sides == null || flare < 0.12f || flare > 0.4f) Fail("옆면 곡선이 없거나 벌어짐이 맞지 않음(0.12~0.4m)");
+            }
+            else if (sides != null) Fail("자체 뱃전 모델이 있는 규칙 집합인데 옆면 곡선이 덮음");
+            if (stern != null)
+            {
+                var mark = new GameObject("Stern shot").transform;
+                mark.position = stern.TransformPoint(new Vector3(0f, 0f, rearEdge));
+                yield return CloseShot("hull_stern_transom", mark, 9f);
+                mark.position = ship.transform.position + ship.transform.right * ((maxZ + 0.5f) * s);
+                yield return CloseShot("hull_side_flare", mark, 11f);
+                Destroy(mark.gameObject);
+            }
+        }
+
         private IEnumerator ArtCheck()
         {
             _report.AppendLine("\n## 시각 규칙 점검 (G06)");
@@ -72,6 +126,7 @@ namespace Game.Dev
             yield return new WaitForSeconds(1f);
             var flagship = Measure(ship.gameObject, ship.name, "기함");
             sizes.Add(flagship);
+            yield return HullShapeCheck(ship);
 
             // 호위함: 역할 넷을 T0 → T3
             if (fleet != null)

@@ -39,6 +39,8 @@ namespace Game.Enemies
         private Transform _flagship;
         private ITargetable _engaged;
         private float _retargetAt;
+        // 등장 때 기본으로 잡은 기함 — 아직 고른 표적이 아니라 첫 선택에서는 "20% 이상 나아야 바꾼다"를 쓰지 않는다
+        private bool _defaultTarget;
 
         /// <summary>플레이어 기함(스폰 때 받은 것). 표적이 호위함이어도 바뀌지 않는다.</summary>
         protected Transform Flagship => _flagship;
@@ -93,6 +95,7 @@ namespace Game.Enemies
             _flagship = player;
             _engaged = player != null ? player.GetComponent<ITargetable>() : null;
             _retargetAt = Time.time + Random.Range(0.4f, 1.4f);
+            _defaultTarget = true;
             _playerHull = player != null ? player.GetComponent<BoxCollider>() : null;
             if (_ownHull == null) _ownHull = GetComponent<BoxCollider>();
             _hp = def != null ? def.MaxHp : 1f;
@@ -140,6 +143,7 @@ namespace Game.Enemies
         /// <summary>
         /// 표적 선택: 기함과 등록된 아군(적의 적, 수상함) 중 "수평 거리 ÷ 우선도"가 가장 작은 것을 노린다.
         /// 1.5~2.5초마다 다시 보고, 바꾸려면 20% 이상 나아야 한다(표적을 자꾸 바꾸며 헤매지 않게).
+        /// 등장 뒤 첫 선택은 이 조건 없이 가장 나은 표적을 고른다(기본 기함은 고른 표적이 아니다).
         /// 노리던 호위함이 격침되면 곧바로 다시 고른다.
         /// </summary>
         private void UpdateTarget()
@@ -148,6 +152,8 @@ namespace Game.Enemies
             bool lost = Player == null || _engaged == null || !_engaged.IsAlive;
             if (!lost && Time.time < _retargetAt) return;
             _retargetAt = Time.time + Random.Range(1.5f, 2.5f);
+            bool sticky = !lost && !_defaultTarget;
+            _defaultTarget = false;
 
             Transform best = _flagship;
             ITargetable bestRef = _flagship.GetComponent<ITargetable>();
@@ -167,7 +173,7 @@ namespace Game.Enemies
                     if (score < bestScore) { bestScore = score; best = t.Transform; bestRef = t; }
                 }
                 // 지금 표적이 여전히 살아 있으면 새 후보가 확실히 나을 때만 바꾼다
-                if (!lost && best != Player && bestScore > currentScore * 0.8f) return;
+                if (sticky && best != Player && bestScore > currentScore * 0.8f) return;
             }
             if (best == Player && !lost) return;
             ReleaseEngagement();

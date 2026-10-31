@@ -128,7 +128,7 @@ namespace Game.UI
         /// <summary>검증용: 마지막으로 내보낸 진단 파일.</summary>
         public string LastDiagnosticsPath { get; private set; }
 
-        /// <summary>설정 › 그래픽 탭(점검 G04·G05): 항구 화질 · 항구 배경 정지 · 장식 효과 · 연기 옅게.</summary>
+        /// <summary>설정 › 그래픽 탭(점검 G04·G05): 항구 화질 · 항구 배경 정지 · 장식 효과 · 연기 옅게 · 구름 그림자.</summary>
         private void BuildGraphicsSettings(Transform page)
         {
             var names = DisplaySettings.QualityNames;
@@ -158,6 +158,20 @@ namespace Game.UI
             Cycler(page, y, "연기 옅게", DisplaySettings.ThinSmoke ? "켜기 — 연돌·격침 연기 절반 투명" : "끄기", _ =>
             {
                 DisplaySettings.SetThinSmoke(!DisplaySettings.ThinSmoke);
+                ShowSettingsTab(3);
+            });
+            Next();
+            int cloud = DisplaySettings.CloudShadow;
+            Cycler(page, y, "구름 그림자", cloud switch
+            {
+                0 => "진하게 — 그늘에서 햇빛 70% 줄어듦",
+                1 => "보통 — 그늘에서 햇빛 50% 줄어듦",
+                2 => "옅게 — 그늘에서 햇빛 25% 줄어듦",
+                _ => "끄기 — 구름 그림자 없음",
+            }, d =>
+            {
+                int n = DisplaySettings.CloudShadowNames.Length;
+                DisplaySettings.SetCloudShadow((cloud + d + n) % n);
                 ShowSettingsTab(3);
             });
         }

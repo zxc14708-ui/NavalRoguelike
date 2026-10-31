@@ -224,6 +224,41 @@ namespace Game.Dev
                 if (!dissolve && peak > before) Fail("예전 모양으로 껐는데 디졸브 불덩이가 나옴");
             }
             Game.View.Explosions.DissolveFire = true;
+
+            // 다른 폭발 종류 — 자폭·공중 격추·격침은 디졸브 불덩이, 수면 명중·포구 섬광처럼 작은 것은 없음
+            var sb = new StringBuilder();
+            var kinds = new (string name, string shot, float size, Game.View.Explosions.Kind kind, bool want)[]
+            {
+                ("자폭", "charge", 1.5f, Game.View.Explosions.Kind.Charge, true),
+                ("공중 격추", "air", 1.4f, Game.View.Explosions.Kind.Air, true),
+                ("수면 명중", "water", 1.1f, Game.View.Explosions.Kind.Water, false),
+                ("포구 섬광", "muzzle", 0.12f, Game.View.Explosions.Kind.Air, false),
+            };
+            foreach (var k in kinds)
+            {
+                yield return new WaitForSeconds(2.5f);
+                int before = Game.View.DecorFx.Count(fire);
+                Game.View.Explosions.Spawn(mark.position + (k.kind == Game.View.Explosions.Kind.Air ? Vector3.up * 4f : Vector3.zero), k.size, k.kind);
+                int peak = before;
+                for (float t = 0f; t < 0.35f; t += Time.deltaTime) { peak = Mathf.Max(peak, Game.View.DecorFx.Count(fire)); yield return null; }
+                if (k.want) yield return CloseShot($"blast_{k.shot}_035", mark, 16f);
+                bool got = peak > before;
+                sb.Append($"{k.name} {(got ? $"{peak - before}개" : "없음")} · ");
+                if (got != k.want) Fail(k.want ? $"{k.name} 폭발에서 디졸브 불덩이가 나오지 않음" : $"{k.name}에 디졸브 불덩이가 나옴(물기둥·작은 섬광만 나와야 함)");
+            }
+            // 격침 순간(ShipWreck) — 적 고속정 겉모습으로 잔해를 만든다
+            yield return new WaitForSeconds(2.5f);
+            var boat = EnemySpawner.Instance.SpawnAt(CombatDevTools.FindEnemy("ene_fastboat"), mark.position + ship.transform.right * 6f, Quaternion.identity);
+            int wb = Game.View.DecorFx.Count(fire);
+            if (boat != null) { boat.DevFrozen = true; Game.View.ShipWreck.Spawn(boat.transform, 0f); }
+            int wpeak = wb;
+            for (float t = 0f; t < 0.35f; t += Time.deltaTime) { wpeak = Mathf.Max(wpeak, Game.View.DecorFx.Count(fire)); yield return null; }
+            if (boat != null) yield return CloseShot("blast_wreck_035", boat.transform, 16f);
+            sb.Append($"격침 {(wpeak > wb ? $"{wpeak - wb}개" : "없음")}");
+            _report.AppendLine($"- 종류별 디졸브 불덩이(0.35초 안 최대 입자 증가): {sb}");
+            if (boat != null && wpeak <= wb) Fail("격침 순간에 디졸브 불덩이가 나오지 않음");
+            CombatDevTools.ClearBattlefield();
+
             Destroy(mark.gameObject);
             Time.timeScale = TimeScale;
         }
@@ -329,6 +364,30 @@ namespace Game.Dev
                     _report.AppendLine($"  - 진단: 해 {RenderSettings.sun?.name ?? "없음"} · 구름 붙은 빛 {cl?.name} 켜짐 {cl?.isActiveAndEnabled} 세기 {cl?.intensity:0.##} 쿠키 {(cl != null && cl.cookie != null ? cl.cookie.name : "없음")} · 켜진 방향광 {dirs}: {names}· _LIGHT_COOKIES {Shader.IsKeywordEnabled("_LIGHT_COOKIES")} · 전역 주광 쿠키 {Shader.GetGlobalTexture("_MainLightCookieTexture")?.name ?? "없음"}");
                     Fail("구름 그림자가 화면에 거의 안 보임(그늘진 화면 5% 미만 — 쿠키 미적용 또는 바다 재질 _CloudShade가 너무 약함)");
                 }
+
+                // 설정 › 그래픽 › 구름 그림자(진하게 · 보통 · 옅게 · 끄기): 같은 장면의 평균 밝기가 단계마다 달라지는지
+                Time.timeScale = 0f;
+                var sbc = new StringBuilder();
+                var bright = new double[4];
+                var applied = new bool[4];
+                for (int level = 0; level < 4; level++)
+                {
+                    DisplaySettings.SetCloudShadow(level);
+                    yield return null;
+                    var px = RenderMain();
+                    double sum = 0;
+                    foreach (var c in px) sum += c.r + c.g + c.b;
+                    bright[level] = sum;
+                    applied[level] = clouds.Applied;
+                    sbc.Append($"{DisplaySettings.CloudShadowNames[level]} {clouds.Strength:0.00}{(applied[level] ? "" : "(뗌)")} · ");
+                }
+                DisplaySettings.SetCloudShadow(1);
+                yield return null;
+                Time.timeScale = TimeScale;
+                _report.AppendLine($"- 구름 그림자 설정(그늘 세기): {sbc}화면 밝기 진하게/끄기 {bright[0] / System.Math.Max(1.0, bright[3]):P1} · 옅게/끄기 {bright[2] / System.Math.Max(1.0, bright[3]):P1} · 보통으로 되돌림 {Yes(clouds.Applied)}");
+                if (applied[3] || !applied[0] || !applied[2]) Fail("구름 그림자 '끄기'가 쿠키를 떼지 않거나 다른 단계에서 붙지 않음");
+                if (!(bright[0] < bright[1] && bright[1] < bright[2] && bright[2] < bright[3])) Fail("구름 그림자 설정 단계대로 화면 밝기가 달라지지 않음");
+                if (!clouds.Applied) Fail("구름 그림자를 보통으로 되돌려도 다시 붙지 않음");
             }
 
             // 3) 격침 잔해: 정지한 함선 앞쪽에 초계함·고속정·미사일정, 옆에 잠항 잠수함

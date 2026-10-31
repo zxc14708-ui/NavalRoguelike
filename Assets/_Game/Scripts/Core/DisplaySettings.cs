@@ -31,6 +31,9 @@ namespace Game.Core
         private static bool _identityMarkers = true;
         private static int _harborQuality, _effectsQuality;
         private static bool _harborStill, _thinSmoke;
+        private static int _cloudShadow = 1;
+        // 자동 검증(-combatVerify)은 구름 그림자를 늘 보통으로 시작하고 바꿔도 저장하지 않는다(플레이어 설정과 섞이지 않게)
+        private static readonly bool s_verify = System.Array.IndexOf(System.Environment.GetCommandLineArgs(), "-combatVerify") >= 0;
 
         public static event System.Action Changed;
 
@@ -51,6 +54,12 @@ namespace Game.Core
         public static bool ThinSmoke { get { Load(); return _thinSmoke; } }
         /// <summary>장식 입자를 내는 비율(높음 1 · 보통 0.65 · 낮음 0.35).</summary>
         public static float DecorDensity => EffectsQuality switch { 0 => 1f, 1 => 0.65f, _ => 0.35f };
+
+        public static readonly string[] CloudShadowNames = { "진하게", "보통", "옅게", "끄기" };
+        /// <summary>구름 그림자 0 진하게 · 1 보통 · 2 옅게 · 3 끄기(2026-11-01).</summary>
+        public static int CloudShadow { get { Load(); return _cloudShadow; } }
+        /// <summary>구름 그늘이 직사광을 줄이는 정도의 배율(보통 1, 끄기 0). CloudShadows가 쿠키를 다시 굽는다.</summary>
+        public static float CloudShadowScale => CloudShadow switch { 0 => 1.4f, 1 => 1f, 2 => 0.5f, _ => 0f };
 
         /// <summary>번쩍이는 연출의 세기 배율(줄이기면 0.35).</summary>
         public static float FlashScale => ReduceFlashes ? 0.35f : 1f;
@@ -76,6 +85,7 @@ namespace Game.Core
             _effectsQuality = Mathf.Clamp(PlayerPrefs.GetInt(Prefix + "EffectsQuality", 0), 0, 2);
             _harborStill = PlayerPrefs.GetInt(Prefix + "HarborStill", 0) == 1;
             _thinSmoke = PlayerPrefs.GetInt(Prefix + "ThinSmoke", 0) == 1;
+            _cloudShadow = s_verify ? 1 : Mathf.Clamp(PlayerPrefs.GetInt(Prefix + "CloudShadow", 1), 0, CloudShadowNames.Length - 1);
             int quality = PlayerPrefs.GetInt(Prefix + "Quality", -1);
             if (quality >= 0 && quality < QualitySettings.names.Length && quality != QualitySettings.GetQualityLevel())
                 QualitySettings.SetQualityLevel(quality, true);
@@ -102,6 +112,13 @@ namespace Game.Core
         public static void SetHarborStill(bool on) { Load(); _harborStill = on; Save("HarborStill", on ? 1 : 0); }
         public static void SetEffectsQuality(int q) { Load(); _effectsQuality = Mathf.Clamp(q, 0, 2); Save("EffectsQuality", _effectsQuality); }
         public static void SetThinSmoke(bool on) { Load(); _thinSmoke = on; Save("ThinSmoke", on ? 1 : 0); }
+        public static void SetCloudShadow(int level)
+        {
+            Load();
+            _cloudShadow = Mathf.Clamp(level, 0, CloudShadowNames.Length - 1);
+            if (s_verify) Changed?.Invoke();
+            else Save("CloudShadow", _cloudShadow);
+        }
 
         public static void SetQuality(int level)
         {

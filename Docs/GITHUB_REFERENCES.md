@@ -17,10 +17,10 @@
 | --- | --- | --- | --- | --- |
 | 1 | [Unity Movement AI](https://github.com/sturdyspoon/unity-movement-ai) | 호위함 추종·간격 유지·충돌 회피 | MIT | 2026-10-31 방식만 적용(코드 미복사, 아래 적용 기록) |
 | 2 | [lib_fts](https://github.com/forrestthewoods/lib_fts) | 주포 탄도·이동 표적 사격 계산 | 대상 파일에 퍼블릭 도메인 및 사용·수정·배포 허용 명시 | C# 탄도 파일 확인, 적용 전 |
-| 3 | [PrimeTween](https://github.com/KyryloKuzyk/PrimeTween) | 카드·HUD·피격·카메라 연출 | 자체 라이선스 | README·LICENSE 확인, 적용 전 |
+| 3 | [PrimeTween](https://github.com/KyryloKuzyk/PrimeTween) | 카드·HUD·피격·카메라 연출 | 자체 라이선스 | 2026-10-31 적용(npm 레지스트리 1.5.0, 소스 미포함 — 아래 적용 기록) |
 | 4 | [Boat Attack Water](https://github.com/Unity-Technologies/boat-attack-water/tree/rendergraph-U6) | URP 해수면·물 효과 | Unity Companion License | Unity 6용 브랜치·의존성 확인, 실행 미검증 |
-| 5 | [FastNoiseLite](https://github.com/Auburn/FastNoiseLite) | 섬·해안선·해역 분포 다양화 | MIT | README·C# 파일 확인, 적용 전 |
-| 6 | [Slay the Spire Map in Unity](https://github.com/silverua/slay-the-spire-map-in-unity) | 분기 항로·보급·전투 노드 | 코드 MIT, 포함 리소스는 별도 확인 | README·LICENSE 확인, 적용 전 |
+| 5 | [FastNoiseLite](https://github.com/Auburn/FastNoiseLite) | 섬·해안선·해역 분포 다양화 | MIT | 2026-10-31 적용(1.1.1 원본 파일 포함 — 아래 적용 기록) |
+| 6 | [Slay the Spire Map in Unity](https://github.com/silverua/slay-the-spire-map-in-unity) | 분기 항로·보급·전투 노드 | 코드 MIT, 포함 리소스는 별도 확인 | 2026-10-31 구조만 참고해 새로 작성(코드·리소스 미도입 — 아래 적용 기록) |
 | 7 | [NaughtyAttributes](https://github.com/dbrizov/NaughtyAttributes) | 데이터 편집·인스펙터 검증 편의 | MIT | README·라이선스 표기 확인, 적용 전 |
 | — | [NOVA Shader](https://github.com/CyberAgentGameEntertainment/NovaShader) | 파티클 효과(폭발·포구 화염·연기) | MIT | 2026-10-31 Claude 검토. 방식만 참고해 자체 셰이더로 구현(아래 8) |
 

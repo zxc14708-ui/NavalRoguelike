@@ -28,7 +28,7 @@ namespace Game.View
 
         /// <summary>검증용: 지금까지 만든 폭발 수.</summary>
         public static int SpawnCount { get; private set; }
-        /// <summary>함체 명중(Impact) 불덩이를 디졸브 불덩이(DecorFx.BlastFire)로 그린다. 검증에서 예전 모양과 나란히 찍을 때만 끈다.</summary>
+        /// <summary>불덩이를 디졸브 불덩이(DecorFx.BlastFire)로 그린다(함체 명중 · 자폭 · 공중 · 격침). 검증에서 예전 모양과 나란히 찍을 때만 끈다.</summary>
         public static bool DissolveFire = true;
 
         private static readonly List<Light> s_lights = new();
@@ -46,21 +46,20 @@ namespace Game.View
             DecorFx.Emit(DecorFx.Flash, position, Vector3.zero, 0.14f, 4.2f * size, new Color(1f, 0.95f, 0.8f, 0.95f));
             DecorFx.Emit(DecorFx.Flash, position, Vector3.zero, 0.22f, 2.6f * size, new Color(1f, 0.72f, 0.3f, 0.9f));
 
-            // 불덩이 — 함체 명중은 갈라지며 타 사라지는 큰 덩이 몇 개, 나머지는 부드러운 원 여러 개
-            var blast = kind == Kind.Impact && DissolveFire ? DecorFx.BlastFire : null;
-            if (blast != null)
+            // 불덩이 — 갈라지며 타 사라지는 큰 덩이(디졸브)에 부드러운 원 몇 개를 곁들인다. 수면 명중은 물기둥이 주인공이라 예전 원만.
+            var blast = DissolveFire ? BlastBlobs(kind, size) : 0;
+            for (int i = 0; i < blast; i++)
             {
-                int blobs = Mathf.RoundToInt(6 + 4 * size);
-                for (int i = 0; i < blobs; i++)
-                {
-                    Vector3 dir = Random.onUnitSphere;
-                    dir.y = Mathf.Abs(dir.y) * 0.8f + 0.2f;
-                    DecorFx.Emit(blast, position + dir * 0.35f * size, dir * Random.Range(1.6f, 4.2f) * size,
-                        Random.Range(0.55f, 0.95f), Random.Range(1.4f, 2.4f) * size,
-                        Color.Lerp(new Color(1f, 0.93f, 0.62f, 1f), new Color(1f, 0.5f, 0.16f, 1f), Random.value));
-                }
+                Vector3 dir = Random.onUnitSphere;
+                // 자폭은 낮고 넓게 부풀고, 함체 명중은 위로, 공중은 사방으로
+                if (kind == Kind.Charge) dir = new Vector3(dir.x * 1.3f, Mathf.Abs(dir.y) * 0.6f + 0.15f, dir.z * 1.3f);
+                else if (kind != Kind.Air) dir.y = Mathf.Abs(dir.y) * 0.8f + 0.2f;
+                float life = kind == Kind.Air ? Random.Range(0.4f, 0.7f) : kind == Kind.Charge ? Random.Range(0.65f, 1.1f) : Random.Range(0.55f, 0.95f);
+                float speed = kind == Kind.Charge ? Random.Range(2.2f, 5f) : Random.Range(1.6f, 4.2f);
+                DecorFx.Emit(DecorFx.BlastFire, position + dir * 0.35f * size, dir * speed * size, life, Random.Range(1.4f, 2.4f) * size,
+                    Color.Lerp(new Color(1f, 0.93f, 0.62f, 1f), new Color(1f, 0.5f, 0.16f, 1f), Random.value));
             }
-            int fire = blast != null ? Mathf.RoundToInt(3 + 2 * size) : Mathf.RoundToInt(10 + 8 * size);
+            int fire = blast > 0 ? Mathf.RoundToInt(3 + 2 * size) : Mathf.RoundToInt(10 + 8 * size);
             for (int i = 0; i < fire; i++)
             {
                 Vector3 dir = Random.onUnitSphere;
@@ -116,6 +115,36 @@ namespace Game.View
             }
 
             FlashLight(position + Vector3.up * 0.5f, size);
+        }
+
+        /// <summary>
+        /// 디졸브 불덩이 수. 함체 명중 6~11 · 자폭 7~14 · 공중 요격·격추 4~7(포구 섬광처럼 아주 작은 것은 0) · 수면 명중 0.
+        /// 재질이 없으면(Resources에서 못 찾음) 0 — 예전 부드러운 원으로 그린다.
+        /// </summary>
+        public static int BlastBlobs(Kind kind, float size)
+        {
+            if (DecorFx.BlastFire == null) return 0;
+            return kind switch
+            {
+                Kind.Impact => Mathf.RoundToInt(6 + 4 * size),
+                Kind.Charge => Mathf.RoundToInt(7 + 5 * size),
+                Kind.Air => size >= 0.4f ? Mathf.RoundToInt(4 + 2 * size) : 0,
+                _ => 0,
+            };
+        }
+
+        /// <summary>격침 순간의 불덩이 — 갑판 위 여러 점에서 디졸브 불덩이를 띄운다(ShipWreck). 재질이 없으면 false.</summary>
+        public static bool DeckBlast(System.Func<Vector3> point, float scale, int count)
+        {
+            if (!DissolveFire || DecorFx.BlastFire == null) return false;
+            for (int i = 0; i < count; i++)
+            {
+                Vector3 r = Random.insideUnitSphere; r.y = Mathf.Abs(r.y) * 0.7f + 0.3f;
+                DecorFx.Emit(DecorFx.BlastFire, point(), r * 2.4f * scale + Vector3.up * Random.Range(1.2f, 3f),
+                    Random.Range(0.6f, 1.05f), Random.Range(1.3f, 2.3f) * scale,
+                    Color.Lerp(new Color(1f, 0.9f, 0.58f, 1f), new Color(1f, 0.46f, 0.14f, 1f), Random.value));
+            }
+            return true;
         }
 
         // ------------------------------------------------------------ 조명

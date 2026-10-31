@@ -182,18 +182,23 @@ namespace Game.Dev
                 var hullRoot = ship.transform.Find("Model/HullRoot");
                 int plates = 0, skirts = 0, oldPieces = 0;
                 string bowMats = "";
+                bool stern = false, sides = false;
                 if (hullRoot != null)
                     foreach (Transform t in hullRoot)
                     {
                         if (t.name.StartsWith("HULL_Ww2DeckPlate")) plates++;
                         else if (t.name.StartsWith("HULL_Ww2SideSkirt")) skirts++;
                         else if (t.name.StartsWith("HULL_DeckPlate") || t.name.StartsWith("HULL_SideSkirt")) oldPieces++;
+                        else if (t.name == "Stern") stern = true;
+                        else if (t.name == "Sides") sides = true;
                         else if (t.name == "Bow" && t.TryGetComponent<MeshRenderer>(out var br)) bowMats = string.Join("·", br.sharedMaterials.Select(m => m != null ? m.name : "null"));
                     }
                 int cells = ship.Grid.OccupiedCells.Count;
-                _report.AppendLine($"- WWII 선체: 칸 {cells} · 갑판판 {plates} · 현측 띠 {skirts} · 현대 조각 {oldPieces} · 뱃머리 재질 {bowMats} (규칙 집합 조각 {Yes(def.HullDeckPlate != null && def.HullSideSkirt != null)})");
+                _report.AppendLine($"- WWII 선체: 칸 {cells} · 갑판판 {plates} · 현측 띠 {skirts} · 현대 조각 {oldPieces} · 뱃머리 재질 {bowMats} · 함미 트랜섬 {Yes(stern)} · 옆면 곡선 {(sides ? "덮음" : "없음(WWII 현측 띠 그대로)")} (규칙 집합 조각 {Yes(def.HullDeckPlate != null && def.HullSideSkirt != null)})");
                 if (def.HullDeckPlate == null || def.HullSideSkirt == null) Fail("규칙 집합에 WWII 선체 조각이 없음");
                 else if (plates != cells || skirts == 0 || oldPieces > 0 || !bowMats.Contains("WW2 Deck")) Fail("WWII 판의 선체가 WWII 갑판판·현측 띠·뱃머리 재질로 만들어지지 않음");
+                if (!stern) Fail("WWII 판에 함미 트랜섬이 없음");
+                if (sides) Fail("WWII 판에서 옆면 곡선이 WWII 현측 띠 모델을 덮음");
             }
 
             // 이제부터는 규칙 검사: 웨이브를 멈추고 함선을 튼튼하게

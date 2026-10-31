@@ -149,9 +149,10 @@ namespace Game.View
             _startPos = transform.position;
             _startRot = transform.rotation;
 
-            // 격침 순간: 불덩이 + 검은 연기
+            // 격침 순간: 불덩이(디졸브 불덩이 + 부드러운 원 조금) + 검은 연기
             int fire = Mathf.RoundToInt(10 * _scale + 6);
-            for (int i = 0; i < fire; i++)
+            bool blast = Explosions.DeckBlast(() => DeckPoint(Random.Range(-0.35f, 0.35f)), _scale, Mathf.RoundToInt(4 * _scale + 4));
+            for (int i = 0; i < (blast ? fire / 3 : fire); i++)
             {
                 Vector3 p = DeckPoint(Random.Range(-0.35f, 0.35f));
                 Vector3 r = Random.insideUnitSphere; r.y = Mathf.Abs(r.y);
