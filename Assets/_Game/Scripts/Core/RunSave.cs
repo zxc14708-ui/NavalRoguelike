@@ -48,6 +48,7 @@ namespace Game.Core
             public string doctrine;
             public int rerolls;
             public int seed;
+            public List<int> routePath = new();   // 항로 지도에서 고른 길(2026-10-31, 예전 파일은 비어 있음 — 출항 지점부터)
             public string formation;
             public List<ModuleData> modules = new();
             public List<GrowthData> growth = new();
@@ -92,6 +93,7 @@ namespace Game.Core
                 doctrine = CombatPolicies.Doctrine.ToString(),
                 rerolls = RefitDraft.RerollsLeft,
                 seed = RunSeed.Current,
+                routePath = new List<int>(RouteMap.Path),
                 formation = fleet != null ? fleet.Formation.ToString() : "",
             };
             foreach (var m in ship.Grid.Modules)
@@ -265,6 +267,7 @@ namespace Game.Core
 
             gm.RestoreRun(d.elapsed, d.kills);
             RunSeed.Resume(d.seed, d.stage);
+            RouteMap.Restore(d.seed, director.StageCount, d.routePath);
             director.DangerStartRun = d.dangerStart;
             director.MissionRoute = d.mission;
             director.ResumeAt(d.stage, d.danger);

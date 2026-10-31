@@ -220,6 +220,7 @@ namespace Game.Dev
             if (hud != null)
             {
                 gm.SetState(GameState.Paused);
+                Game.Core.RouteMap.Clear();   // 기존 3칸 선택(지도 없는 경로)을 본다
                 hud.ShowRouteChoice(3, 30f, _ => { }, () => { });
                 yield return null;
                 var overlay = Get<GameObject>(hud, "_routeChoice");

@@ -30,6 +30,8 @@ namespace Game.UI
         private Color _accent, _gold;
 
         private TMP_Text _hullValue;
+        private PrimeTween.Tween _hullNudge;
+        private Game.View.QuarterViewCamera _view;
         private RectTransform _hullFill;
         private RawImage _hullFillImage;
         private RectTransform _diagramPivot;
@@ -148,7 +150,18 @@ namespace Game.UI
         private void UpdateHull()
         {
             float cur = _player.HullHp, max = Mathf.Max(1f, _player.HullMaxHp);
-            if (_lastHp >= 0f && cur < _lastHp - 0.01f) _flashUntil = Time.unscaledTime + 0.35f;
+            if (_lastHp >= 0f && cur < _lastHp - 0.01f)
+            {
+                _flashUntil = Time.unscaledTime + 0.35f;
+                // 연출(2026-10-31, UiJuice): 선체 수치를 흔들고, 한 번에 최대 선체의 4% 넘게 잃으면 화면도 흔든다
+                UiJuice.Nudge(_hullValue != null ? _hullValue.transform : null, ref _hullNudge);
+                float lost = (_lastHp - cur) / max;
+                if (UiJuice.Enabled && lost >= 0.04f)
+                {
+                    if (_view == null && Camera.main != null) _view = Camera.main.GetComponent<Game.View.QuarterViewCamera>();
+                    if (_view != null) _view.Shake(Mathf.Clamp(lost * 6f, 0.3f, 1f) * DisplaySettings.FlashScale);
+                }
+            }
             _lastHp = cur;
 
             float f = Mathf.Clamp01(cur / max);

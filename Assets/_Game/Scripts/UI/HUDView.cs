@@ -997,6 +997,7 @@ namespace Game.UI
             overlay.offsetMin = overlay.offsetMax = Vector2.zero;
             overlay.GetComponent<Image>().raycastTarget = true;
             _routeChoice = overlay.gameObject;
+            if (ShowRouteMap(overlay, nextStage, repairAmount)) return;   // 판의 항로 지도(2026-10-31)
 
             var content = Panel(overlay, "Route briefing", new Vector2(0.5f, 0.5f),
                 new Vector2(-400f, -180f), new Vector2(800f, 360f), Color.clear);
@@ -1047,6 +1048,7 @@ namespace Game.UI
         {
             var callback = _onMissionChosen;
             if (callback == null) return;
+            RecordRouteKind(Game.Core.RouteKind.Mission);
             UiSound.Play(UiSound.Cue.Confirm);
             if (_routeChoice != null)
             {
@@ -1060,6 +1062,7 @@ namespace Game.UI
 
         private void ChooseRoute(bool danger)
         {
+            RecordRouteKind(danger ? Game.Core.RouteKind.Danger : Game.Core.RouteKind.Supply);
             UiSound.Play(UiSound.Cue.Confirm);
             if (_routeChoice != null)
             {
@@ -1179,7 +1182,14 @@ namespace Game.UI
                 else if (Keyboard.current.digit2Key.wasPressedThisFrame) ChooseDoctrine(NavalDoctrine.AntiSub);
                 else if (Keyboard.current.digit3Key.wasPressedThisFrame) ChooseDoctrine(NavalDoctrine.Gunnery);
             }
-            if (_routeChoice != null && Keyboard.current != null)
+            if (_routeChoice != null && Keyboard.current != null && _routeKeys.Count > 0)
+            {
+                // 항로 지도: 1~3 = 고를 수 있는 갈림길(위에서부터)
+                if (Keyboard.current.digit1Key.wasPressedThisFrame) _routeKeys[0]();
+                else if (Keyboard.current.digit2Key.wasPressedThisFrame && _routeKeys.Count > 1) _routeKeys[1]();
+                else if (Keyboard.current.digit3Key.wasPressedThisFrame && _routeKeys.Count > 2) _routeKeys[2]();
+            }
+            else if (_routeChoice != null && Keyboard.current != null)
             {
                 if (Keyboard.current.digit1Key.wasPressedThisFrame) ChooseRoute(false);
                 else if (Keyboard.current.digit2Key.wasPressedThisFrame) ChooseRoute(true);

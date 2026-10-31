@@ -177,6 +177,7 @@ namespace Game.UI
             if (shipCamera != null) shipCamera.enabled = true;
 
             EnsureHighlight();
+            _deal++;
             ShowCards();
             UpdateCamera();
             Refresh();

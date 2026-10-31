@@ -12,6 +12,8 @@ namespace Game.World
     /// 씬을 다시 만들지 않아도 되게 씬이 열린 뒤 스스로 붙는다.
     /// 해역(SeaRegion, 2026-10-11 점검 K04)이 바뀌면 새 시드로 다시 채운다: 섬 수·간격·바위섬 비율이 해역마다 다르고,
     /// 좁은 수로에서는 물길 안 작은 바위섬만 두고 양안 기슭(IslandField.Banks)을 물길을 따라 이어 붙인다.
+    /// 섬 밀도(2026-10-31): 판 시드로 정한 큰 노이즈 무늬(FastNoiseLite, 약 400m)를 따라 구역의 섬 수를 늘리고 줄여
+    /// 섬이 몰린 군도와 트인 바다가 번갈아 나온다(좁은 수로는 그대로).
     /// </summary>
     public partial class IslandField : MonoBehaviour
     {
@@ -21,6 +23,8 @@ namespace Game.World
         private const float ClearRadius = 45f;      // 출항 지점 둘레는 비움
         private const float MinSpacing = 34f;       // 섬끼리 간격(수로)
         private const float CoastReach = 10f;       // 해안 소품이 해안선 밖으로 나가는 거리
+        private const float DensityScale = 400f;    // 섬 밀도 무늬 크기(m)
+        private const float DensityShift = 0.28f;   // 밀도가 구역의 섬 수 굴림을 얼마나 미는가
 
         /// <summary>검증·재현용: 0이 아니면 이 시드로 배치한다(다음 판 시작 전에 설정).</summary>
         public static int SeedOverride;
@@ -30,6 +34,8 @@ namespace Game.World
         private readonly Dictionary<Vector2Int, List<IslandInfo>> _chunks = new();
         private readonly List<Vector2Int> _drop = new();
         private int _seed;
+        private FastNoiseLite _density;
+        private int _densitySeed;
         private Vector3 _origin;
         private bool _originSet;
         private float _timer;
@@ -157,6 +163,7 @@ namespace Game.World
             var sea = SeaRegion.Active ? SeaRegion.CurrentProfile : null;
             bool strait = SeaRegion.IsStrait;
             double roll = rng.NextDouble();
+            if (!strait) roll = System.Math.Clamp(roll + Density(key) * DensityShift, 0.0, 0.999);
             int count = sea == null ? (roll < 0.3 ? 0 : roll < 0.78 ? 1 : 2)
                       : roll < sea.P0 ? 0 : roll < sea.P1 ? 1 : roll < sea.P2 ? 2 : 3;
             for (int n = 0; n < count; n++)
@@ -204,6 +211,21 @@ namespace Game.World
             list.Add(info);
             Physics.SyncTransforms();
             return info;
+        }
+
+        /// <summary>구역 가운데의 섬 밀도(-1 트인 바다 ~ +1 군도). 같은 판 시드면 같은 무늬.</summary>
+        public float Density(Vector2Int key)
+        {
+            if (_density == null || _densitySeed != _seed)
+            {
+                _densitySeed = _seed;
+                _density = new FastNoiseLite(_seed);
+                _density.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
+                _density.SetFractalType(FastNoiseLite.FractalType.FBm);
+                _density.SetFractalOctaves(2);
+                _density.SetFrequency(1f / DensityScale);
+            }
+            return _density.GetNoise((key.x + 0.5f) * ChunkSize, (key.y + 0.5f) * ChunkSize);
         }
 
         private bool FarFromOthers(Vector3 center, float radius, float spacing)

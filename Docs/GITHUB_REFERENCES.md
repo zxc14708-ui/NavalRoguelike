@@ -104,4 +104,7 @@
 | 적용일 | 저장소·버전/커밋 | 적용 파일·기능 | 라이선스·출처 반영 | 검증 결과 |
 | --- | --- | --- | --- | --- |
 | — | — | 이 목록 작성 시 도입한 코드 없음 | — | 프로젝트 실행 호환성 미검증 |
+| 2026-10-31 | FastNoiseLite 1.1.1(커밋 `785f37a`, C# 파일 원본 그대로) | `Scripts/ThirdParty/FastNoiseLite` → `World/IslandShape`(절차형 섬 해안선: 타원 + OpenSimplex2 FBm 굴곡), `World/IslandField.Density`(약 400m 밀도 무늬로 군도·트인 바다) | MIT 머리 문구 보존, `CREDITS.md` · `Credits.txt` · 폴더 README | `-islandOnly` 통과(해안선 길쭉함 1.01~1.64, 무인도 수면 충돌면/해안 0.70~0.94 — 보이지 않는 벽 없음) |
+| 2026-10-31 | Slay the Spire Map in Unity(구조만 참고, 코드·의존성 미도입) | `Core/RouteMap`(층별 갈림길·엇갈리지 않는 연결·런 시드 재현) · `UI/HUDView.RouteMap`(항로 지도 화면) · `RunSave.routePath` | 코드 미복사 — 크레딧 대상 아님 | `-routeMapOnly` 통과(지도 600개 규칙 · 이어하기 · 화면에서 이어진 갈림길만 열림) |
+| 2026-10-31 | PrimeTween 1.5.0(npm 레지스트리, `Packages/manifest.json` scopedRegistries) | `UI/UiJuice`(정비 카드 등장 · 선체 수치 흔들림) · `View/QuarterViewCamera.Shake`(큰 피해 화면 흔들림) | 자체 라이선스 — 소스 미포함(npm 설치), `CREDITS.md` · `Credits.txt` | `-juiceOnly` 통과 |
 | 2026-10-31 | NOVA Shader v3.6.0(방식만 참고, 코드·패키지 미도입) | `Naval/BlastFire` · `DecorFx.BlastFire` · `Explosions`(함체 명중) | 코드 미복사 — 크레딧 대상 아님 | `-blastOnly` · `-lifeOnly` 통과 |

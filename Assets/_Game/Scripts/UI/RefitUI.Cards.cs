@@ -42,6 +42,7 @@ namespace Game.UI
             }
             _cards.Clear();
             if (next != null) _cards.AddRange(next);
+            _deal++;
             ShowCards();
             return true;
         }
@@ -60,11 +61,16 @@ namespace Game.UI
         private static readonly Color CardColor = new(0.085f, 0.115f, 0.15f, 1f);
         private static readonly Color FrameColor = new(0.05f, 0.075f, 0.1f, 1f);
 
+        // 카드 묶음 번호: 열기·다시 뽑기마다 올라가고, 새 묶음일 때만 등장 연출을 한다(UiJuice)
+        private int _deal, _shownDeal = -1;
+
         private void ShowCards()
         {
             if (cardPanel != null) cardPanel.SetActive(_choosing);
             PrepareCardPanel();
             if (cardRects == null) return;
+            bool freshDeal = _shownDeal != _deal && _choosing;
+            _shownDeal = _deal;
 
             for (int i = 0; i < cardRects.Length; i++)
             {
@@ -73,6 +79,7 @@ namespace Game.UI
                 if (!used) continue;
 
                 LayoutCard(i);
+                if (freshDeal) UiJuice.PopIn(cardRects[i], i);
                 var name = cardNames != null && i < cardNames.Length ? cardNames[i] : null;
                 var icon = cardIcons != null && i < cardIcons.Length ? cardIcons[i] : null;
                 var stats = cardStats != null && i < cardStats.Length ? cardStats[i] : null;

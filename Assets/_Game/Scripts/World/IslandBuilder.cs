@@ -9,6 +9,7 @@ namespace Game.World
     ///   무인도: 모래 해안 + 풀 덮인 언덕 + 나무 몇 그루(+해안 바위). 언덕 높이 3~6m.
     /// 수면선(-0.9)보다 아래까지 내려가 물에 떠 보이지 않게 하고, 둘레에 파도 거품 띠를 두른다.
     /// 콜라이더는 부분마다 볼록 메시(Terrain 레이어). 나무는 가리지 않는다(얇음).
+    /// 해안선(2026-10-31): 섬마다 IslandShape(타원 + FastNoiseLite 굴곡)를 정해 본체·언덕·바위·나무·장식·파도 거품·레이더 윤곽이 같은 해안선을 따른다.
     /// </summary>
     public static partial class IslandBuilder
     {
@@ -38,15 +39,16 @@ namespace Game.World
 
             float height;
             float shoreRadius;
+            var shape = new IslandShape(new System.Random(rng.Next()), rocky);
             if (rocky)
             {
                 height = Range(rng, 6f, 11f) * Mathf.Lerp(0.8f, 1.15f, Mathf.InverseLerp(5f, 14f, radius));
-                AddRock(root.transform, Vector3.zero, radius, height, rng, s_rock);
+                AddRock(root.transform, Vector3.zero, radius, height, rng, s_rock, shape);
                 int extra = rng.Next(1, 4);
                 for (int i = 0; i < extra; i++)
                 {
                     float a = (float)rng.NextDouble() * Mathf.PI * 2f;
-                    float d = radius * Range(0.7f, 1.15f, rng);
+                    float d = radius * Range(0.7f, 1.15f, rng) * shape.At(a);
                     float r = radius * Range(0.3f, 0.55f, rng);
                     AddRock(root.transform, new Vector3(Mathf.Cos(a) * d, 0f, Mathf.Sin(a) * d), r, height * Range(0.35f, 0.7f, rng), rng, rng.NextDouble() < 0.5 ? s_rock : s_cliff);
                 }
@@ -55,18 +57,18 @@ namespace Game.World
             else
             {
                 // 모래 해안(낮고 넓게) + 풀 언덕 + 나무
-                var sand = Lathe(new[] { (BaseY, 1.18f), (SeaY + 0.15f, 1.0f), (0.35f, 0.86f), (0.75f, 0.7f) }, radius, 14, 0.08f, rng, flatTop: true);
+                var sand = Lathe(new[] { (BaseY, 1.18f), (SeaY + 0.15f, 1.0f), (0.35f, 0.86f), (0.75f, 0.7f) }, radius, 18, 0.08f, rng, flatTop: true, shape: shape.At);
                 AddPart(root.transform, "Beach", sand, s_sand, collider: true);
 
                 height = Range(rng, 3f, 6f);
-                var hill = Lathe(new[] { (0.5f, 0.74f), (height * 0.45f, 0.6f), (height * 0.8f, 0.36f), (height, 0.1f) }, radius, 12, 0.14f, rng, flatTop: false);
+                var hill = Lathe(new[] { (0.5f, 0.74f), (height * 0.45f, 0.6f), (height * 0.8f, 0.36f), (height, 0.1f) }, radius, 14, 0.14f, rng, flatTop: false, shape: shape.At);
                 AddPart(root.transform, "Hill", hill, s_grass, collider: true);
 
                 int trees = rng.Next(3, 8);
                 for (int i = 0; i < trees; i++)
                 {
                     float a = (float)rng.NextDouble() * Mathf.PI * 2f;
-                    float d = radius * Range(0.1f, 0.55f, rng);
+                    float d = radius * Range(0.1f, 0.55f, rng) * shape.At(a);
                     float ground = Mathf.Lerp(height * 0.9f, 0.8f, Mathf.InverseLerp(0f, radius * 0.6f, d));
                     AddTree(root.transform, new Vector3(Mathf.Cos(a) * d, ground - 0.3f, Mathf.Sin(a) * d), rng);
                 }
@@ -75,26 +77,28 @@ namespace Game.World
                 for (int i = 0; i < shoreRocks; i++)
                 {
                     float a = (float)rng.NextDouble() * Mathf.PI * 2f;
-                    float d = radius * Range(0.95f, 1.15f, rng);
+                    float d = radius * Range(0.95f, 1.15f, rng) * shape.At(a);
                     AddRock(root.transform, new Vector3(Mathf.Cos(a) * d, 0f, Mathf.Sin(a) * d), radius * Range(0.12f, 0.2f, rng), Range(1.2f, 2.4f, rng), rng, s_cliff);
                 }
                 shoreRadius = radius * 1.12f;
             }
 
             // 장식(판정 없음): 등대 · 해안에 얹힌 난파선 · 바위 위 물개
-            var decor = Decorate(root.transform, radius, height, rocky, new System.Random(rng.Next()));
+            var decor = Decorate(root.transform, radius, height, rocky, new System.Random(rng.Next()), shape.At);
 
-            var rim = new Vector2[12];
+            var rim = new Vector2[24];
             for (int i = 0; i < rim.Length; i++)
             {
                 float a = i * Mathf.PI * 2f / rim.Length;
-                rim[i] = new Vector2(center.x + Mathf.Cos(a) * shoreRadius * 0.85f, center.z + Mathf.Sin(a) * shoreRadius * 0.85f);
+                float r = shoreRadius * 0.85f * shape.At(a);
+                rim[i] = new Vector2(center.x + Mathf.Cos(a) * r, center.z + Mathf.Sin(a) * r);
             }
 
-            AddFoamRing(root.transform, shoreRadius, rng);
+            AddFoamRing(root.transform, a => shoreRadius * shape.At(a), rng);
             SetLayer(root, Islands.Layer);
 
-            var info = new IslandInfo { Center = root.transform.position, Radius = shoreRadius, Height = height, Rocky = rocky, Rim = rim, Root = root,
+            var info = new IslandInfo { Center = root.transform.position, Radius = shoreRadius * shape.Max, Height = height, Rocky = rocky, Rim = rim, Root = root,
+                                        ShoreAt = a => shoreRadius * shape.At(a), Aspect = shape.Aspect,
                                         Lighthouse = decor.lighthouse, Wreck = decor.wreck, Seals = decor.seals };
             Islands.Register(info);
             return info;
@@ -102,14 +106,16 @@ namespace Game.World
 
         // ------------------------------------------------------------ 부분
 
-        private static void AddRock(Transform parent, Vector3 local, float radius, float height, System.Random rng, Material mat)
+        /// <summary>바위 하나. shape가 있으면(섬 본체) 해안선을 따르고 돌리지 않는다(섬 로컬 방향 그대로).</summary>
+        private static void AddRock(Transform parent, Vector3 local, float radius, float height, System.Random rng, Material mat, IslandShape shape = null)
         {
-            int segments = rng.Next(7, 11);
+            int segments = rng.Next(7, 11) + (shape != null ? 3 : 0);
             var rings = new[] { (BaseY, 1.12f), (SeaY + 0.3f, 1.0f), (height * 0.35f, Range(0.75f, 0.9f, rng)), (height * 0.7f, Range(0.4f, 0.6f, rng)), (height * 0.92f, Range(0.15f, 0.3f, rng)), (height, 0f) };
-            var mesh = Lathe(rings, radius, segments, 0.22f, rng, flatTop: false, apexJitter: radius * 0.25f);
+            var mesh = Lathe(rings, radius, segments, 0.22f, rng, flatTop: false, apexJitter: radius * 0.25f, shape: shape != null ? shape.At : null);
             var part = AddPart(parent, "Rock", mesh, mat, collider: true);
             part.transform.localPosition = local;
-            part.transform.localRotation = Quaternion.Euler(0f, (float)rng.NextDouble() * 360f, 0f);
+            float yaw = (float)rng.NextDouble() * 360f;
+            if (shape == null) part.transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
         }
 
         private static void AddTree(Transform parent, Vector3 local, System.Random rng)
@@ -192,7 +198,7 @@ namespace Game.World
         /// 반경 비율 0이면 꼭짓점 하나로 모은다.
         /// </summary>
         internal static Mesh Lathe((float y, float r)[] rings, float radius, int segments, float jitter, System.Random rng,
-                                  bool flatTop, float apexJitter = 0f)
+                                  bool flatTop, float apexJitter = 0f, System.Func<float, float> shape = null)
         {
             int R = rings.Length;
             var grid = new Vector3[R, segments];
@@ -202,7 +208,7 @@ namespace Game.World
                 for (int s = 0; s < segments; s++)
                 {
                     float a = twist + s * Mathf.PI * 2f / segments + ((float)rng.NextDouble() - 0.5f) * 0.25f;
-                    float r = rings[k].r * radius * (1f + ((float)rng.NextDouble() - 0.5f) * 2f * jitter);
+                    float r = rings[k].r * radius * (1f + ((float)rng.NextDouble() - 0.5f) * 2f * jitter) * (shape != null ? shape(a) : 1f);
                     float y = rings[k].y;
                     if (k > 0 && k < R - 1) y += ((float)rng.NextDouble() - 0.5f) * jitter * 1.5f;
                     grid[k, s] = new Vector3(Mathf.Cos(a) * r, y, Mathf.Sin(a) * r);

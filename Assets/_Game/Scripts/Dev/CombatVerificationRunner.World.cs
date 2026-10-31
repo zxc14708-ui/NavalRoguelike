@@ -751,6 +751,50 @@ namespace Game.Dev
         /// 섬: 자동 배치(출항 지점 비움, 간격), 포탄·어뢰 차단, 사선이 막히면 적이 쏘지 않음, 레이더 그림자,
         /// 함선 좌초(박히지 않고 멈춤), 적의 섬 회피. 캡처 포함.
         /// </summary>
+        /// <summary>
+        /// 절차형 섬 해안선(2026-10-31, IslandShape): 길쭉함·굴곡이 실제로 나오는지, 무인도 둘레 방향마다 수면 높이의
+        /// 콜라이더가 보이는 해안(파도 거품 안쪽)보다 바다 쪽으로 튀어나오지 않는지(보이지 않는 벽) 잰다.
+        /// </summary>
+        private void ShoreCheck(IReadOnlyList<Game.World.IslandInfo> all)
+        {
+            int shaped = 0, green = 0;
+            float minAspect = float.MaxValue, maxAspect = 0f, minRatio = float.MaxValue, maxRatio = 0f, worstSpread = 0f;
+            Physics.SyncTransforms();
+            foreach (var isl in all)
+            {
+                if (isl.ShoreAt == null || isl.Root == null) continue;
+                shaped++;
+                minAspect = Mathf.Min(minAspect, isl.Aspect);
+                maxAspect = Mathf.Max(maxAspect, isl.Aspect);
+                float lo = float.MaxValue, hi = 0f;
+                for (int i = 0; i < 24; i++)
+                {
+                    float a = i * Mathf.PI * 2f / 24f;
+                    float shore = isl.ShoreAt(a);
+                    lo = Mathf.Min(lo, shore); hi = Mathf.Max(hi, shore);
+                    if (isl.Rocky) continue;
+                    var dir = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+                    var from = isl.Center + dir * (shore * 2f + 10f) + Vector3.up * 0.2f;
+                    // 섬 본체(모래 해안·언덕)만 잰다 — 해안 소품(부두·방파제·어선)과 이웃 섬은 건너뛴다
+                    float best = float.MaxValue;
+                    foreach (var h in Physics.RaycastAll(from, -dir, shore * 2f + 10f, Game.World.Islands.Mask, QueryTriggerInteraction.Ignore))
+                        if (h.collider.transform.parent == isl.Root.transform && (h.collider.name == "Beach" || h.collider.name == "Hill"))
+                            best = Mathf.Min(best, h.distance);
+                    if (best == float.MaxValue) continue;
+                    var hitPoint = from - dir * best;
+                    float r = new Vector2(hitPoint.x - isl.Center.x, hitPoint.z - isl.Center.z).magnitude / shore;
+                    minRatio = Mathf.Min(minRatio, r); maxRatio = Mathf.Max(maxRatio, r);
+                }
+                if (!isl.Rocky) green++;
+                worstSpread = Mathf.Max(worstSpread, hi / Mathf.Max(0.01f, lo));
+            }
+            _report.AppendLine($"- 해안선(절차형 {shaped}개): 길쭉함 {(shaped > 0 ? minAspect : 0):0.00}~{maxAspect:0.00} · 가장 굴곡진 섬 긴/짧은 반경 {worstSpread:0.00}배 · " +
+                               $"무인도 {green}개 수면 충돌면/해안 반경 {(green > 0 ? minRatio : 0):0.00}~{maxRatio:0.00}");
+            if (shaped > 0 && worstSpread < 1.15f) Fail("절차형 섬 해안선이 모두 원에 가까움(모양 변화 없음)");
+            if (green > 0 && maxRatio > 1.05f) Fail("무인도 충돌면이 해안선보다 바다 쪽으로 튀어나옴(보이지 않는 벽)");
+            if (green > 0 && minRatio < 0.6f) Fail("무인도 충돌면이 보이는 해안보다 크게 안쪽(배가 섬에 파묻힘)");
+        }
+
         private IEnumerator IslandCheck()
         {
             _report.AppendLine("\n## 섬(엄폐)");
@@ -781,6 +825,7 @@ namespace Game.Dev
             _report.AppendLine($"- 자동 배치(시드 12345, 5×5 구역 = 550m): 섬 {all.Count}개(바위섬 {rocky}·무인도 {all.Count - rocky}) · 함선에서 가장 가까운 해안 {nearest:0}m · 섬 사이 최소 수로 {minGap:0}m");
             if (all.Count < 5) Fail("섬이 너무 적음");
             if (nearest < 30f) Fail("출항 지점 가까이에 섬이 있음");
+            ShoreCheck(all);
             yield return Shot("islands_overview");
             if (all.Count > 0)
             {

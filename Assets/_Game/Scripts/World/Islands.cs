@@ -11,6 +11,10 @@ namespace Game.World
         public float Height;
         public bool Rocky;            // 바위섬이면 true, 무인도면 false
         public Vector2[] Rim;         // 수면 윤곽 표본(월드 xz)
+        /// <summary>절차형 섬의 해안 반경(섬 로컬 방향 라디안 → m, IslandShape). 원이거나 Codex 모델 섬이면 null.</summary>
+        public System.Func<float, float> ShoreAt;
+        /// <summary>절차형 섬의 길쭉함(1 = 원).</summary>
+        public float Aspect = 1f;
         public GameObject Root;
         /// <summary>장식: 등대가 있는가, 해안에 얹힌 난파선이 있는가, 물개 수.</summary>
         public bool Lighthouse, Wreck;

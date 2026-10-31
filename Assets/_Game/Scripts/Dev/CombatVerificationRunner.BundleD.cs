@@ -185,6 +185,7 @@ namespace Game.Dev
             {
                 bool missionPicked = false, routePicked = false;
                 GameManager.Instance.SetState(GameState.Paused);
+                RouteMap.Clear();   // 기존 3칸 선택(지도 없는 경로)을 본다
                 hud.ShowRouteChoice(2, 30f, _ => routePicked = true, () => missionPicked = true);
                 yield return null;
                 var missionButton = GameObject.Find("Mission route");

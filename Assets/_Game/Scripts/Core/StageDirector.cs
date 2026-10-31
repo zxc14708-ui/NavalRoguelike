@@ -129,6 +129,7 @@ namespace Game.Core
                     if (Ruleset.IsWw2) { BeginWw2Battle(hud); return; }
                     RunSave.Delete();   // 새 출항: 이어하기 기록은 버린다(시작 화면이 미리 알린다)
                     RunSeed.Begin();    // 새 판의 시드(점검 O07)
+                    RouteMap.Begin(RunSeed.Current, StageCount);   // 이 판의 항로 지도(2026-10-31)
                     if (PlayerProfile.DangerStart)
                     {
                         // 고난도 출항(점검 K06): 첫 스테이지부터 위험 항로(적 +25%, 경험치 +25%)
@@ -145,6 +146,7 @@ namespace Game.Core
                     _training = true;
                     Game.World.SeaRegion.Leave();
                     RunSeed.Begin();
+                    RouteMap.Clear();
                     GameManager.Instance.SetState(GameState.Playing);
                     Game.UI.TrainingDirector.Begin(hud.GetComponentInParent<Canvas>().rootCanvas.transform, hud.Font);
                 }, data =>
@@ -177,6 +179,7 @@ namespace Game.Core
             }
             _ww2 = true;
             _training = false;
+            RouteMap.Clear();   // WWII 시험 전투는 항로 지도 없이
             stages = new RoundSet[def.Stages.Count];
             for (int i = 0; i < stages.Length; i++) stages[i] = def.Stages[i];
             Game.World.SeaRegion.Leave();

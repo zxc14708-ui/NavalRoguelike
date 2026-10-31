@@ -98,6 +98,10 @@ namespace Game.Dev
         public bool VlsOnly;
         [Tooltip("함체 명중 폭발 불덩이 전후 비교만 돌린다(-blastOnly)")]
         public bool BlastOnly;
+        [Tooltip("항로 지도 생성·복원·화면 검사만 돌린다(-routeMapOnly)")]
+        public bool RouteMapOnly;
+        [Tooltip("화면 연출(PrimeTween) 검사만 돌린다(-juiceOnly)")]
+        public bool JuiceOnly;
         [Tooltip("피격 칸 판정(블록 내구) 검사만 돌린다(-blockHitOnly)")]
         public bool BlockHitOnly;
         [Tooltip("노봉·곡사포·경어뢰·충각 강화 검사만 돌린다(-weaponPackOnly)")]
@@ -291,6 +295,20 @@ namespace Game.Dev
             {
                 yield return VlsHatchCheck();
                 SaveLog("vls");
+                Finish();
+                yield break;
+            }
+            if (JuiceOnly)
+            {
+                yield return JuiceCheck();
+                SaveLog("juice");
+                Finish();
+                yield break;
+            }
+            if (RouteMapOnly)
+            {
+                yield return RouteMapCheck();
+                SaveLog("routemap");
                 Finish();
                 yield break;
             }
