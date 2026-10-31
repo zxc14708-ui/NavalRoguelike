@@ -9,6 +9,8 @@ namespace Game.View
     ///     실제 배처럼 양쪽 팔이 약 19.5°로 벌어진다(폭 = 선폭 + 2·tan19.5°·속력·경과 시간).
     ///   - 추진기 물살: 선미 뒤로 곧게 남는 거품 띠. 조금씩 넓어지며 더 오래 남는다.
     /// 배가 지나간 자리를 일정 간격으로 기록해 띠를 만들므로 선회하면 물살도 휘어진다.
+    /// 배 움직임(2026-11-01): 세게 돌거나 가속하면(휘저음) 추진기 물살이 넓고 하얗게 일고, 거품 둘레에 공기 섞인 밝은 물빛이 남는다.
+    ///   정점 색 r = 남은 수명(1 = 막 생김), g = 휘저음(0~1), a = 세기 — 셰이더가 오래된 거품일수록 성기게 흩는다.
     /// 세기는 속력에 비례하고 시간이 지나면 흐려진다. 정지하면 새 물살이 생기지 않는다.
     ///
     /// 플레이어 함선과 수상함은 자동으로 붙는다(ShipController, EnemyController).
@@ -24,6 +26,7 @@ namespace Game.View
             public float Speed;
             public float Strength;
             public float Distance;   // 띠를 따라 누적 거리(무늬용)
+            public float Churn;      // 선회·가속으로 휘저은 정도(0~1)
         }
 
         private sealed class Ribbon
@@ -57,6 +60,10 @@ namespace Game.View
         private Vector3 _lastPos;
         private float _speed;
         private bool _hasLast;
+        private float _lastYaw, _yawRate, _accel, _churn;
+
+        /// <summary>검증용: 지금 휘저음(0~1).</summary>
+        public float Churn => _churn;
 
         /// <summary>세기 배율(0이면 물살 없음). 잠수함은 드러났을 때만 1.</summary>
         public System.Func<float> StrengthMultiplier;
@@ -91,19 +98,19 @@ namespace Game.View
             _kelvin.Arms = true;
             _kelvin.ArmThickness = 0.7f;
             _kelvin.ArmThicknessGrowth = 0.03f;
-            _kelvin.Lifetime = 3f;
+            _kelvin.Lifetime = 4.5f;
             _kelvin.BaseWidthRatio = 1.0f;
             _kelvin.SpreadPerSpeed = KelvinSpread;
-            _kelvin.MaxWidth = 20f;   // 선회 반경(전속 약 18m)보다 반폭이 작아야 안쪽 줄이 접히지 않는다
+            _kelvin.MaxWidth = 26f;   // 반폭(13m)이 선회 반경(전속 약 18m)보다 작아야 안쪽 줄이 접히지 않는다
             _kelvin.FullStrengthSpeed = 7f;
             _kelvin.HeightOffset = 0f;
 
             _wash = CreateRibbon("Wash", s_washMaterial);
             _wash.AtBow = false;
-            _wash.Lifetime = 4.5f;
-            _wash.BaseWidthRatio = 0.55f;
-            _wash.SpreadPerSpeed = 0.06f;
-            _wash.MaxWidth = 7f;
+            _wash.Lifetime = 9f;
+            _wash.BaseWidthRatio = 0.6f;
+            _wash.SpreadPerSpeed = 0.1f;
+            _wash.MaxWidth = 11f;
             _wash.FullStrengthSpeed = 6f;
             _wash.HeightOffset = 0.01f;
         }
@@ -167,11 +174,18 @@ namespace Game.View
                 else
                 {
                     float forwardSpeed = Mathf.Abs(Vector3.Dot(delta, Flat(transform.forward))) / dt;
+                    float before = _speed;
                     _speed = Mathf.Lerp(_speed, forwardSpeed, 1f - Mathf.Exp(-dt * 6f));
+                    float k = 1f - Mathf.Exp(-dt * 3f);
+                    _accel = Mathf.Lerp(_accel, (_speed - before) / dt, k);
+                    _yawRate = Mathf.Lerp(_yawRate, Mathf.DeltaAngle(_lastYaw, transform.eulerAngles.y) / dt, k);
                 }
             }
             _lastPos = pos;
+            _lastYaw = transform.eulerAngles.y;
             _hasLast = true;
+            // 휘저음: 세게 돌수록(초당 25°면 가득), 가속할수록(초당 3m/s면 가득). 느리면 휘저을 물살도 없다.
+            _churn = Mathf.Clamp01(Mathf.Abs(_yawRate) / 25f + Mathf.Max(0f, _accel) / 3f) * Mathf.Clamp01(_speed / 3f);
 
             float mul = StrengthMultiplier != null ? Mathf.Clamp01(StrengthMultiplier()) : 1f;
             GetHull(out Vector3 bow, out Vector3 stern, out float beam);
@@ -252,6 +266,7 @@ namespace Game.View
                     Speed = _speed,
                     Strength = strength,
                     Distance = dist,
+                    Churn = _churn,
                 });
             }
 
@@ -274,11 +289,12 @@ namespace Game.View
             {
                 Point p = i < n
                     ? r.Points[i]
-                    : new Point { Position = head, Right = Flat(transform.right), Time = now, Speed = _speed, Strength = headStrength, Distance = headDistance };
+                    : new Point { Position = head, Right = Flat(transform.right), Time = now, Speed = _speed, Strength = headStrength, Distance = headDistance, Churn = _churn };
 
                 float age = Mathf.Max(0f, now - p.Time);
                 float life = 1f - Mathf.Clamp01(age / r.Lifetime);
                 float width = Mathf.Min(r.MaxWidth, beam * r.BaseWidthRatio + r.SpreadPerSpeed * p.Speed * age);
+                if (!r.Arms) width = Mathf.Min(r.MaxWidth * 1.3f, width * (1f + 0.6f * p.Churn));   // 휘저은 물살은 넓게 인다
 
                 // 배 바로 뒤는 선체에 가려지므로 머리 쪽 0.25초는 서서히 나타나게(선체와 겹쳐 번쩍이지 않게)
                 float fadeIn = Mathf.Clamp01(age / 0.25f);
@@ -286,7 +302,7 @@ namespace Game.View
                 if (a > 0.004f) any = true;
                 byte alpha = (byte)Mathf.RoundToInt(Mathf.Clamp01(a) * 255f);
 
-                var c = new Color32(255, 255, 255, alpha);
+                var c = new Color32((byte)Mathf.RoundToInt(life * 255f), (byte)Mathf.RoundToInt(Mathf.Clamp01(p.Churn) * 255f), 255, alpha);
                 if (r.Arms)
                 {
                     // 양쪽 팔: 가장자리를 따라 두 줄(각 줄의 가로 uv 0~1)

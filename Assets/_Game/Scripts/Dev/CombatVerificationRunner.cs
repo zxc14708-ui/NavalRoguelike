@@ -319,6 +319,13 @@ namespace Game.Dev
                 Finish();
                 yield break;
             }
+            if (ShoreOnly)
+            {
+                yield return ShoreCheck();
+                SaveLog("shore");
+                Finish();
+                yield break;
+            }
             if (RouteOnly)
             {
                 yield return RouteCheck();

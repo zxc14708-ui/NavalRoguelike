@@ -18,7 +18,7 @@
 | 1 | [Unity Movement AI](https://github.com/sturdyspoon/unity-movement-ai) | 호위함 추종·간격 유지·충돌 회피 | MIT | 2026-10-31 방식만 적용(코드 미복사, 아래 적용 기록) |
 | 2 | [lib_fts](https://github.com/forrestthewoods/lib_fts) | 주포 탄도·이동 표적 사격 계산 | 대상 파일에 퍼블릭 도메인 및 사용·수정·배포 허용 명시 | C# 탄도 파일 확인, 적용 전 |
 | 3 | [PrimeTween](https://github.com/KyryloKuzyk/PrimeTween) | 카드·HUD·피격·카메라 연출 | 자체 라이선스 | 2026-10-31 적용(npm 레지스트리 1.5.0, 소스 미포함 — 아래 적용 기록) |
-| 4 | [Boat Attack Water](https://github.com/Unity-Technologies/boat-attack-water/tree/rendergraph-U6) | URP 해수면·물 효과 | Unity Companion License | Unity 6용 브랜치·의존성 확인, 실행 미검증 |
+| 4 | [Boat Attack Water](https://github.com/Unity-Technologies/boat-attack-water/tree/rendergraph-U6) | URP 해수면·물 효과 | Unity Companion License | 2026-11-01 방식만 참고해 새로 작성(패키지·코드 미도입 — 아래 적용 기록) |
 | 5 | [FastNoiseLite](https://github.com/Auburn/FastNoiseLite) | 섬·해안선·해역 분포 다양화 | MIT | 2026-10-31 적용(1.1.1 원본 파일 포함 — 아래 적용 기록) |
 | 6 | [Slay the Spire Map in Unity](https://github.com/silverua/slay-the-spire-map-in-unity) | 분기 항로·보급·전투 노드 | 코드 MIT, 포함 리소스는 별도 확인 | 2026-10-31 구조만 참고해 새로 작성(코드·리소스 미도입 — 아래 적용 기록) |
 | 7 | [NaughtyAttributes](https://github.com/dbrizov/NaughtyAttributes) | 데이터 편집·인스펙터 검증 편의 | MIT | README·라이선스 표기 확인, 적용 전 |
@@ -108,4 +108,5 @@
 | 2026-10-31 | FastNoiseLite 1.1.1(커밋 `785f37a`, C# 파일 원본 그대로) | `Scripts/ThirdParty/FastNoiseLite` → `World/IslandShape`(절차형 섬 해안선: 타원 + OpenSimplex2 FBm 굴곡), `World/IslandField.Density`(약 400m 밀도 무늬로 군도·트인 바다) | MIT 머리 문구 보존, `CREDITS.md` · `Credits.txt` · 폴더 README | `-islandOnly` 통과(해안선 길쭉함 1.01~1.64, 무인도 수면 충돌면/해안 0.70~0.94 — 보이지 않는 벽 없음) |
 | 2026-10-31 | Slay the Spire Map in Unity(구조만 참고, 코드·의존성 미도입) | `Core/RouteMap`(층별 갈림길·엇갈리지 않는 연결·런 시드 재현) · `UI/HUDView.RouteMap`(항로 지도 화면) · `RunSave.routePath` | 코드 미복사 — 크레딧 대상 아님 | `-routeMapOnly` 통과(지도 600개 규칙 · 이어하기 · 화면에서 이어진 갈림길만 열림) |
 | 2026-10-31 | PrimeTween 1.5.0(npm 레지스트리, `Packages/manifest.json` scopedRegistries) | `UI/UiJuice`(정비 카드 등장 · 선체 수치 흔들림) · `View/QuarterViewCamera.Shake`(큰 피해 화면 흔들림) | 자체 라이선스 — 소스 미포함(npm 설치), `CREDITS.md` · `Credits.txt` | `-juiceOnly` 통과 |
+| 2026-11-01 | Boat Attack Water(rendergraph-U6, 방식만 참고 — 얕은 물빛 · 해안 거품 · 물 밑 빛 무늬 · 하늘 반사, 코드·패키지 미도입) | `View/ShoreWaterMask`(섬 윤곽 → 해안 거리 텍스처, 군항 기지 섬 포함) · `Naval/Ocean`(얕은 물빛 · 물 밑 빛 무늬 · 해안 파도선 · 하늘·구름 반사) · `View/OceanWaveTexture`(필립스 스펙트럼 FFT 물결 — 공개 논문 방식, 직접 계산) | 코드 미복사 — 크레딧 대상 아님 | `-shoreOnly` · `-decorOnly` · `-islandOnly` · `-artOnly` · `-blastOnly` · `-seaOnly` · `-harborBuildingsOnly` · `-perfOnly` |
 | 2026-10-31 | NOVA Shader v3.6.0(방식만 참고, 코드·패키지 미도입) | `Naval/BlastFire` · `DecorFx.BlastFire` · `Explosions`(함체 명중) | 코드 미복사 — 크레딧 대상 아님 | `-blastOnly` · `-lifeOnly` 통과 |
