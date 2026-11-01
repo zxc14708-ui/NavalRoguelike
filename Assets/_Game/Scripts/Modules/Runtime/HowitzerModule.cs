@@ -170,22 +170,51 @@ namespace Game.Modules.Runtime
             if (barrel != null) _barrelRest = barrel.localPosition;
         }
 
-        /// <summary>표적이 진로를 유지하면 탄이 떨어질 때 있을 곳(두 번 고쳐 잡는다).</summary>
+        /// <summary>
+        /// 표적이 지금 조함(속력·선회율)을 유지하면 탄이 떨어질 때 있을 곳(2026-11-01).
+        ///   1) 수평 등속 포물선과 등속 표적이 만나는 시간을 정확히 푼다(Ballistics.SolveLateralIntercept — lib_fts 방식 참고).
+        ///   2) 표적이 돌고 있으면(초당 1.5° 넘게) 그 선회율을 유지한 원호 위 자리로 고쳐 잡는다(세 번).
+        /// 예전에는 직선 예측만 해서 플레이어 둘레를 도는 적에게 원 바깥으로 빗나갔다.
+        /// </summary>
         private Vector3 PredictImpact(ITargetable target, Vector3 from, out float flight)
         {
             Vector3 pos = target.Transform.position;
             Vector3 vel = target is EnemyController e ? e.MoveVelocity : Vector3.zero;
-            Vector3 aim = pos;
-            flight = minFlightTime;
-            for (int i = 0; i < 2; i++)
+            float speed = Mathf.Max(1f, horizontalSpeed);
+            Ballistics.SolveLateralIntercept(from, pos, vel, speed, minFlightTime, out var aim, out flight);
+            float yaw = TrackYawRate(target, vel, Time.deltaTime);
+            if (Mathf.Abs(yaw) > 1.5f && vel.sqrMagnitude > 0.25f)
             {
-                Vector3 d = aim - from;
-                d.y = 0f;
-                flight = Mathf.Max(minFlightTime, d.magnitude / Mathf.Max(1f, horizontalSpeed));
-                aim = pos + vel * flight;
+                for (int i = 0; i < 3; i++)
+                {
+                    aim = Ballistics.PredictTurning(pos, vel, yaw, flight);
+                    Vector3 d = aim - from; d.y = 0f;
+                    flight = Mathf.Max(minFlightTime, d.magnitude / speed);
+                }
+                aim = Ballistics.PredictTurning(pos, vel, yaw, flight);
             }
-            aim.y = 0f;
             return aim;
+        }
+
+        private ITargetable _track;
+        private Vector3 _trackVel;
+        private float _trackYaw;
+
+        /// <summary>검증용: 지금 표적의 선회율 추정(도/초).</summary>
+        public float TrackedYawRate => _trackYaw;
+
+        /// <summary>같은 표적의 속도 방향 변화로 선회율을 잰다(부드럽게, ±60°/s). 표적이 바뀌면 0부터.</summary>
+        private float TrackYawRate(ITargetable target, Vector3 vel, float dt)
+        {
+            vel.y = 0f;
+            if (!ReferenceEquals(target, _track)) { _track = target; _trackVel = vel; _trackYaw = 0f; return 0f; }
+            if (dt > 0f && vel.sqrMagnitude > 0.25f && _trackVel.sqrMagnitude > 0.25f)
+            {
+                float now = Mathf.Clamp(Vector3.SignedAngle(_trackVel, vel, Vector3.up) / dt, -60f, 60f);
+                _trackYaw = Mathf.Lerp(_trackYaw, now, 1f - Mathf.Exp(-dt * 4f));
+            }
+            _trackVel = vel;
+            return _trackYaw;
         }
 
         private void Fire(Vector3 from, Vector3 impact, float flight)

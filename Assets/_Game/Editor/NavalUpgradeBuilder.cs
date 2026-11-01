@@ -47,6 +47,7 @@ namespace Game.EditorTools
                 Stage("탄약고 강화 I", "지원 효과 +15%", m => { m.supplyMultiplier = 1.15f; }),
                 Stage("탄약고 강화 II", "지원 효과 +30% · 유폭 피해 −25%", m => { m.supplyMultiplier = 1.3f; m.explosionDamageMultiplier = 0.75f; }));
             AddWeaponPackProfiles();
+            AddSupportPackProfiles();
 
             AssetDatabase.SaveAssets();
             Debug.Log("[Upgrade Profiles] 완료");
@@ -73,6 +74,45 @@ namespace Game.EditorTools
                 Stage("충각 함수 강화 I", "피해 +25% · 내구 +30%", m => { m.damageMultiplier = 1.25f; m.maxHpMultiplier = 1.3f; }),
                 Stage("충각 함수 강화 II", "피해 +50% · 내구 +50% · 반동 피해 25% → 10%",
                       m => { m.damageMultiplier = 1.5f; m.maxHpMultiplier = 1.5f; m.selfDamageMultiplier = 0.4f; }));
+            AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>
+        /// 나머지 블록 강화(2026-11-01): VLS · 유도로켓 · 함대공 · 대잠 발사기 · 기만체 · 전자전 · 소나 · 기뢰 투하궤.
+        /// 각 블록이 실제로 읽는 수치만 고른다(기만체는 재장전만, 전자전은 범위·재사용, 소나는 탐지 거리). 아이콘은 블록 아이콘을 쓴다.
+        /// 손상통제반은 함교가 수를 세는 블록이라(자체 수치가 효과를 정하지 않음) 강화를 두지 않는다.
+        /// </summary>
+        public static void AddSupportPackProfiles()
+        {
+            Make("UPG_Vls", "mod_vls",
+                Stage("VLS 강화 I", "피해 +20% · 미사일 보급 15% 빠르게", m => { m.damageMultiplier = 1.2f; m.ammoReloadMultiplier = 0.85f; }),
+                Stage("VLS 강화 II", "피해 +40% · 보급 30% 빠르게 · 셀 +25%(8 → 10)",
+                      m => { m.damageMultiplier = 1.4f; m.ammoReloadMultiplier = 0.7f; m.magazineMultiplier = 1.25f; }));
+            Make("UPG_Rocket", "mod_rocket",
+                Stage("유도로켓 강화 I", "피해 +25% · 탄창 +25%(12 → 15)", m => { m.damageMultiplier = 1.25f; m.magazineMultiplier = 1.25f; }),
+                Stage("유도로켓 강화 II", "피해 +50% · 탄창 +50%(18) · 사거리 +15%",
+                      m => { m.damageMultiplier = 1.5f; m.magazineMultiplier = 1.5f; m.rangeMultiplier = 1.15f; }));
+            Make("UPG_Sam", "mod_sam",
+                Stage("함대공 미사일 강화 I", "발사 간격 −15% · 탄창 +25%(4 → 5)", m => { m.cooldownMultiplier = 0.85f; m.magazineMultiplier = 1.25f; }),
+                Stage("함대공 미사일 강화 II", "발사 간격 −25% · 탄창 +50%(6) · 사거리 +15%",
+                      m => { m.cooldownMultiplier = 0.75f; m.magazineMultiplier = 1.5f; m.rangeMultiplier = 1.15f; }));
+            Make("UPG_Asw", "mod_asw",
+                Stage("대잠 발사기 강화 I", "피해 +25% · 발사 간격 −10%", m => { m.damageMultiplier = 1.25f; m.cooldownMultiplier = 0.9f; }),
+                Stage("대잠 발사기 강화 II", "피해 +50% · 발사 간격 −20% · 사거리 +15%",
+                      m => { m.damageMultiplier = 1.5f; m.cooldownMultiplier = 0.8f; m.rangeMultiplier = 1.15f; }));
+            Make("UPG_Decoy", "mod_decoy",
+                Stage("기만체 발사기 강화 I", "재장전 −20%(8 → 6.4초)", m => { m.cooldownMultiplier = 0.8f; }),
+                Stage("기만체 발사기 강화 II", "재장전 −35%(5.2초)", m => { m.cooldownMultiplier = 0.65f; }));
+            Make("UPG_Ew", "mod_ew",
+                Stage("전자전 장비 강화 I", "재사용 −15% · 범위 +15%", m => { m.cooldownMultiplier = 0.85f; m.rangeMultiplier = 1.15f; }),
+                Stage("전자전 장비 강화 II", "재사용 −30% · 범위 +30%", m => { m.cooldownMultiplier = 0.7f; m.rangeMultiplier = 1.3f; }));
+            Make("UPG_Sonar", "mod_sonar",
+                Stage("소나 강화 I", "탐지 거리 +20%", m => { m.detectionMultiplier = 1.2f; }),
+                Stage("소나 강화 II", "탐지 거리 +40%", m => { m.detectionMultiplier = 1.4f; }));
+            Make("UPG_MineRail", "mod_minerail",
+                Stage("기뢰 투하궤 강화 I", "피해 +25% · 탄창 +25%(6 → 8)", m => { m.damageMultiplier = 1.25f; m.magazineMultiplier = 1.25f; }),
+                Stage("기뢰 투하궤 강화 II", "피해 +50% · 탄창 +50%(9) · 투하 간격 −15%",
+                      m => { m.damageMultiplier = 1.5f; m.magazineMultiplier = 1.5f; m.cooldownMultiplier = 0.85f; }));
             AssetDatabase.SaveAssets();
         }
 

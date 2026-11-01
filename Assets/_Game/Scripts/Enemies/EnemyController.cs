@@ -90,11 +90,18 @@ namespace Game.Enemies
             if (def != null) Game.Core.PlayerProfile.Discover(def.Id);   // 사전 발견 기록(점검 C05)
             // 수상함은 모델 바닥을 수면 아래로(점검 G06 수면선) — 판정 상자·위치는 그대로
             if (def != null && def.Kind == Game.Combat.TargetKind.Surface && transform.Find("ModelPivot") is { } pivot)
+            {
+                // 파도 흔들림(2026-11-01)은 모델에만 — 수면선을 맞추기 전에 자세를 되돌리고, 맞춘 자리를 기준으로 삼는다
+                if (pivot.TryGetComponent<Game.View.ShipVisualSway>(out var sway)) sway.ResetPose();
                 Game.View.Waterline.Settle(transform, pivot);
+                Game.View.ShipVisualSway.Ensure(pivot).Rebase();
+            }
             Player = player;
             _flagship = player;
             _engaged = player != null ? player.GetComponent<ITargetable>() : null;
-            _retargetAt = Time.time + Random.Range(0.4f, 1.4f);
+            // 첫 표적은 등장하자마자 고른다(2026-11-01) — 예전 0.4~1.4초 뒤에 고르면 빠른 배는 그사이 기함 쪽으로 15m 달려 와
+            // 옆 호위함을 지나친 뒤라 기함을 골랐다(호위함 표적 검사가 오락가락한 원인)
+            _retargetAt = Time.time + Random.Range(0.05f, 0.25f);
             _defaultTarget = true;
             _playerHull = player != null ? player.GetComponent<BoxCollider>() : null;
             if (_ownHull == null) _ownHull = GetComponent<BoxCollider>();

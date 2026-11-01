@@ -36,6 +36,48 @@ namespace Game.View
         /// <summary>검증용: 움직이는 파도 계산 시간(ms, 작업 스레드).</summary>
         public static float AnimBuildMs { get; private set; }
         private static System.Threading.Tasks.Task<Color32[][]> s_frames;
+        // 배 흔들림용 높이(B 채널만, 장마다 N×N) — 작업 스레드가 채운다
+        private static byte[][] s_heights;
+
+        // 바다 셰이더(Naval/Ocean)의 물결 겹과 같은 값 — 셰이더를 바꾸면 함께 바꾼다(MAT_ocean _WaveTexScale 38, _WaveSpeed 1)
+        private const float Tile1 = 38f, Speed1 = 1.3f, Ratio2 = 2.71f, Speed2 = 2.1f, Phase2 = 0.37f, Drift = 0.4f;
+
+        /// <summary>움직이는 파도의 높이를 CPU에서 읽을 수 있는가(배 흔들림).</summary>
+        public static bool HeightReady => s_heights != null;
+
+        /// <summary>
+        /// 그 자리 수면의 물결 높이(0~1, 0.5 = 평균) — 셰이더와 같은 두 겹 · 같은 시간(Time.timeSinceLevelLoad = _Time.y).
+        /// 아직 계산 전이면 0.5.
+        /// </summary>
+        public static float SampleHeight(Vector2 xz, float time)
+        {
+            var h = s_heights;
+            if (h == null) return 0.5f;
+            float s = 1f / Tile1;
+            Vector2 uv1 = xz * s + new Vector2(0.0107f, 0.0064f) * (time * Drift);
+            Vector2 r2 = new(xz.x * 0.80f - xz.y * 0.60f, xz.x * 0.60f + xz.y * 0.80f);
+            Vector2 uv2 = r2 * (s * Ratio2) + new Vector2(-0.0151f, 0.0093f) * (time * Drift);
+            return SampleLayer(h, uv1, time * Speed1, 0f) * 0.7f + SampleLayer(h, uv2, time * Speed2, Phase2) * 0.3f;
+        }
+
+        private static float SampleLayer(byte[][] h, Vector2 uv, float time, float phase)
+        {
+            float fr = Mathf.Repeat(time / Loop + phase, 1f) * Frames;
+            int i0 = Mathf.FloorToInt(fr) % Frames, i1 = (i0 + 1) % Frames;
+            float a = fr - Mathf.Floor(fr);
+            return Mathf.Lerp(Bilinear(h[i0], uv), Bilinear(h[i1], uv), a);
+        }
+
+        private static float Bilinear(byte[] f, Vector2 uv)
+        {
+            float x = Mathf.Repeat(uv.x, 1f) * N - 0.5f, y = Mathf.Repeat(uv.y, 1f) * N - 0.5f;
+            int x0 = Mathf.FloorToInt(x), y0 = Mathf.FloorToInt(y);
+            float fx = x - x0, fy = y - y0;
+            int xa = (x0 % N + N) % N, xb = (xa + 1) % N, ya = (y0 % N + N) % N, yb = (ya + 1) % N;
+            float a = Mathf.Lerp(f[ya * N + xa], f[ya * N + xb], fx);
+            float b = Mathf.Lerp(f[yb * N + xa], f[yb * N + xb], fx);
+            return Mathf.Lerp(a, b, fy) / 255f;
+        }
         /// <summary>검증용: 계산 시간(ms).</summary>
         public static float BuildMs { get; private set; }
 
@@ -58,6 +100,14 @@ namespace Game.View
                 {
                     var sw = System.Diagnostics.Stopwatch.StartNew();
                     var frames = BuildFrames();
+                    var heights = new byte[frames.Length][];
+                    for (int f = 0; f < frames.Length; f++)
+                    {
+                        var b = new byte[frames[f].Length];
+                        for (int i = 0; i < b.Length; i++) b[i] = frames[f][i].b;
+                        heights[f] = b;
+                    }
+                    s_heights = heights;
                     AnimBuildMs = (float)sw.Elapsed.TotalMilliseconds;
                     return frames;
                 });

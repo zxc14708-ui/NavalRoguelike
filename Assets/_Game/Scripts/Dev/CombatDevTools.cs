@@ -98,6 +98,7 @@ namespace Game.Dev
                 runner.VlsOnly = System.Array.IndexOf(args, "-vlsOnly") >= 0;
                 runner.BlastOnly = System.Array.IndexOf(args, "-blastOnly") >= 0;
                 runner.ShoreOnly = System.Array.IndexOf(args, "-shoreOnly") >= 0;   // 해안 물빛 시험 비교
+                runner.PolishOnly = System.Array.IndexOf(args, "-polishOnly") >= 0; // 전투 기능 · 바다 후속 묶음
                 runner.RouteMapOnly = System.Array.IndexOf(args, "-routeMapOnly") >= 0;
                 runner.JuiceOnly = System.Array.IndexOf(args, "-juiceOnly") >= 0;
                 runner.BlockHitOnly = System.Array.IndexOf(args, "-blockHitOnly") >= 0;

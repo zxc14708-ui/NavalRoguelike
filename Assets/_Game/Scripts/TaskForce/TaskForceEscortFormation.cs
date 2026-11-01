@@ -1141,7 +1141,21 @@ namespace Game.TaskForce
             /// <summary>
             /// 섬 안에 걸린 자리는 가까운 바다 쪽 자리로 바꾼다(0.3초마다, 자리가 크게 바뀔 때만 다시 찾음).
             /// 가까운 순서로 4~28m 둘레를 살펴 섬이 없는 첫 자리. 못 찾으면 원래 자리.
+            /// 여유는 해안에서 OpenWaterClearance(5.5m) — 배가 대기 자리 1~2m 앞(섬 쪽)에 멈춰도 해안에 붙지 않게(2026-11-01, 4.5m에선 가끔 붙음).
             /// </summary>
+            private const float OpenWaterClearance = 5.5f;
+
+            /// <summary>대신 갈 바다 자리가 기함 선체(반폭 + 9m 둘레)에 걸리는가 — 섬을 피하다 기함과 겹치지 않게(2026-11-01).</summary>
+            private bool NearFlagship(Vector3 world)
+            {
+                if (_flagship == null || _owner == null) return false;
+                var ext = _owner.FlagshipExtent;
+                var q = _flagship.InverseTransformPoint(world);
+                float z = Mathf.Clamp(q.z, ext.y, ext.x);
+                float r = ext.z + AutoHullMargin;
+                return new Vector2(q.x, q.z - z).sqrMagnitude < r * r;
+            }
+
             private Vector3 OpenWater(Vector3 target)
             {
                 if (Game.World.Islands.All.Count == 0) return target;
@@ -1149,7 +1163,7 @@ namespace Game.TaskForce
                 _openWaterAt = Time.time;
                 _openWaterFor = target;
                 _openWater = target;
-                if (Game.World.Islands.IsClear(target, 4.5f)) return target;
+                if (Game.World.Islands.IsClear(target, OpenWaterClearance)) return target;
                 Vector3 here = transform.position;
                 Vector3 toward = Flat2(here - target);
                 float start = toward.sqrMagnitude > 0.01f ? Mathf.Atan2(toward.x, toward.z) : 0f;
@@ -1160,7 +1174,7 @@ namespace Game.TaskForce
                     {
                         float ang = start + (k % 2 == 0 ? 1 : -1) * ((k + 1) / 2) * Mathf.PI / 6f;
                         var c = target + new Vector3(Mathf.Sin(ang), 0f, Mathf.Cos(ang)) * d;
-                        if (!Game.World.Islands.IsClear(c, 4.5f)) continue;
+                        if (!Game.World.Islands.IsClear(c, OpenWaterClearance) || NearFlagship(c)) continue;
                         Vector3 path = Flat2(c - here);
                         bool reachable = path.sqrMagnitude < 1f ||
                             !Physics.SphereCast(new Vector3(here.x, 0.6f, here.z), 2.2f, path.normalized, out _, path.magnitude, Game.World.Islands.Mask, QueryTriggerInteraction.Ignore);

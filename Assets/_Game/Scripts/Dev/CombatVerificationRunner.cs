@@ -326,6 +326,13 @@ namespace Game.Dev
                 Finish();
                 yield break;
             }
+            if (PolishOnly)
+            {
+                yield return PolishCheck();
+                SaveLog("polish");
+                Finish();
+                yield break;
+            }
             if (RouteOnly)
             {
                 yield return RouteCheck();

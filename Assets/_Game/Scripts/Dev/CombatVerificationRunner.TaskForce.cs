@@ -182,7 +182,17 @@ namespace Game.Dev
                 bOnShip |= eb != null && eb.EngagedTarget == ship.transform;
             }
             _report.AppendLine($"- 표적 선택: 호위함 옆 6m 적 → {(aOnCap ? Name(cap.transform) : Name(ea != null ? ea.EngagedTarget : null))} · 기함 앞 30m 적 → {(bOnShip ? Name(ship.transform) : Name(eb != null ? eb.EngagedTarget : null))}");
-            if (!aOnCap) Fail("호위함 바로 옆 적이 호위함을 노리지 않음");
+            if (!aOnCap)
+            {
+                // 진단: 후보 목록 · 거리 · 공격자 수(2026-11-01 — 오락가락 원인 찾기)
+                bool listed = false, alive = false;
+                foreach (var c in Game.Combat.TargetRegistry.HostileTo(Game.Combat.CombatFaction.Hostile, Game.Combat.TargetKind.Surface))
+                    if (c != null && c.Transform == cap.transform) { listed = true; alive = c.IsAlive; }
+                float dCap = ea != null ? Vector3.Distance(ea.transform.position, cap.transform.position) : -1f;
+                float dShip = ea != null ? Vector3.Distance(ea.transform.position, ship.transform.position) : -1f;
+                _report.AppendLine($"  - 진단: 적→호위함 {dCap:0.0}m · 적→기함 {dShip:0.0}m · 호위함 공격자 {EnemyController.AttackersOn(cap.transform)} · 후보 목록에 호위함 {Yes(listed)}(살아 있음 {Yes(alive)}) · 적 살아 있음 {Yes(ea != null && ea.IsAlive)}");
+                Fail("호위함 바로 옆 적이 호위함을 노리지 않음");
+            }
             if (!bOnShip) Fail("기함 가까운 적이 기함을 노리지 않음");
             CombatDevTools.ClearBattlefield();
             yield return null;

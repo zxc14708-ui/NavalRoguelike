@@ -11,6 +11,8 @@ namespace Game.View
     /// 배가 지나간 자리를 일정 간격으로 기록해 띠를 만들므로 선회하면 물살도 휘어진다.
     /// 배 움직임(2026-11-01): 세게 돌거나 가속하면(휘저음) 추진기 물살이 넓고 하얗게 일고, 거품 둘레에 공기 섞인 밝은 물빛이 남는다.
     ///   정점 색 r = 남은 수명(1 = 막 생김), g = 휘저음(0~1), a = 세기 — 셰이더가 오래된 거품일수록 성기게 흩는다.
+    /// 선체 둘레 거품(2026-11-01): 수면선에서 선체를 두르는 거품 고리(둥근 사각, 48칸). 멈춰 있으면 옅게 찰랑이고,
+    ///   속력이 붙을수록 짙어지며 선수 쪽이 넓고 하얗다(물이 부딪히는 자리). 배를 따라 움직이는 자식 물체라 띠와 달리 기록이 없다.
     /// 세기는 속력에 비례하고 시간이 지나면 흐려진다. 정지하면 새 물살이 생기지 않는다.
     ///
     /// 플레이어 함선과 수상함은 자동으로 붙는다(ShipController, EnemyController).
@@ -51,6 +53,17 @@ namespace Game.View
         private static Material s_kelvinMaterial, s_washMaterial;
 
         private Ribbon _kelvin, _wash;
+
+        // 선체 둘레 거품
+        private const int HullFoamSegments = 48;
+        private GameObject _hullFoamGo;
+        private Mesh _hullFoam;
+        private Color32[] _hullFoamColors;
+        private float[] _hullFoamBow;        // 정점마다 선수 쪽 가중(0 선미 ~ 1 선수)
+        private Vector3 _hullFoamSize;       // 만든 때의 선체 크기(바뀌면 다시 만든다)
+
+        /// <summary>검증용: 선체 둘레 거품의 지금 세기(선수 쪽 정점 알파, 0~1).</summary>
+        public float HullFoamStrength { get; private set; }
         private float _sprayDebt;
         private int _spraySide = 1;
 
@@ -113,6 +126,19 @@ namespace Game.View
             _wash.MaxWidth = 11f;
             _wash.FullStrengthSpeed = 6f;
             _wash.HeightOffset = 0.01f;
+
+            if (s_washMaterial != null)
+            {
+                _hullFoamGo = new GameObject("Hull foam", typeof(MeshFilter), typeof(MeshRenderer));
+                _hullFoamGo.transform.SetParent(transform, false);
+                _hullFoam = new Mesh { name = "Hull foam" };
+                _hullFoam.MarkDynamic();
+                _hullFoamGo.GetComponent<MeshFilter>().sharedMesh = _hullFoam;
+                var r = _hullFoamGo.GetComponent<MeshRenderer>();
+                r.sharedMaterial = s_washMaterial;
+                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                r.receiveShadows = false;
+            }
         }
 
         private Ribbon CreateRibbon(string kind, Material material)
@@ -145,6 +171,7 @@ namespace Game.View
                 if (r.Mesh != null) Destroy(r.Mesh);
                 if (r.Go != null) Destroy(r.Go);
             }
+            if (_hullFoam != null) Destroy(_hullFoam);
         }
 
         private void ResetTrail(bool visible)
@@ -158,6 +185,7 @@ namespace Game.View
                 if (r.Mesh != null) r.Mesh.Clear();
                 if (r.Go != null) r.Go.SetActive(visible);
             }
+            if (_hullFoamGo != null) _hullFoamGo.SetActive(visible);
         }
 
         private void LateUpdate()
@@ -193,6 +221,77 @@ namespace Game.View
             UpdateRibbon(_kelvin, bow, beam, mul);
             UpdateRibbon(_wash, stern, beam, mul);
             EmitBowSpray(dt, bow, beam, mul);
+            UpdateHullFoam(mul);
+        }
+
+        /// <summary>선체 둘레 거품: 선체 크기가 바뀌면 고리를 다시 만들고, 매 프레임 세기(정점 알파)만 바꾼다.</summary>
+        private void UpdateHullFoam(float mul)
+        {
+            if (_hullFoam == null) return;
+            if (_hull == null) _hull = GetComponent<BoxCollider>();
+            Vector3 size = _hull != null ? _hull.size : new Vector3(2f, 1f, 6f);
+            Vector3 center = _hull != null ? _hull.center : Vector3.zero;
+            if (_hullFoamColors == null || (size - _hullFoamSize).sqrMagnitude > 1e-4f) BuildHullFoam(size, center);
+
+            // 수면 높이에 붙인다(배 뿌리 높이가 달라도)
+            var t = _hullFoamGo.transform;
+            float sy = Mathf.Abs(transform.lossyScale.y) > 1e-4f ? transform.lossyScale.y : 1f;
+            t.localPosition = new Vector3(0f, (WaterY + 0.015f - transform.position.y) / sy, 0f);
+
+            float ratio = Mathf.Clamp01(_speed / 6f);
+            byte churn = (byte)Mathf.RoundToInt(ratio * 200f);
+            float strongest = 0f;
+            for (int i = 0; i < _hullFoamColors.Length; i++)
+            {
+                float bow = _hullFoamBow[i];
+                // 멈춰 있으면 옅게 찰랑, 속력이 붙으면 선수부터 짙게(선미 쪽은 추진기 물살이 맡는다)
+                float a = (0.22f + ratio * (0.35f + 0.55f * bow)) * mul;
+                strongest = Mathf.Max(strongest, a);
+                _hullFoamColors[i] = new Color32(255, churn, 255, (byte)Mathf.RoundToInt(Mathf.Clamp01(a) * 255f));
+            }
+            HullFoamStrength = strongest;
+            _hullFoam.colors32 = _hullFoamColors;
+        }
+
+        /// <summary>둥근 사각(초타원) 고리. 안쪽은 선체 가장자리 살짝 안(선체가 가림), 바깥은 0.7m + 선수 쪽 최대 +1m. uv.x 0.5(안) → 1(밖).</summary>
+        private void BuildHullFoam(Vector3 size, Vector3 center)
+        {
+            _hullFoamSize = size;
+            int n = HullFoamSegments;
+            var verts = new Vector3[(n + 1) * 2];
+            var uvs = new Vector2[(n + 1) * 2];
+            _hullFoamColors = new Color32[(n + 1) * 2];
+            _hullFoamBow = new float[(n + 1) * 2];
+            var tris = new int[n * 6];
+            float hx = size.x * 0.5f, hz = size.z * 0.5f;
+            float along = 0f;
+            Vector3 prev = Vector3.zero;
+            for (int i = 0; i <= n; i++)
+            {
+                float ang = i * Mathf.PI * 2f / n;
+                float c = Mathf.Cos(ang), s = Mathf.Sin(ang);
+                var p = new Vector3(Mathf.Sign(c) * Mathf.Sqrt(Mathf.Abs(c)) * hx, 0f, Mathf.Sign(s) * Mathf.Sqrt(Mathf.Abs(s)) * hz);
+                var outward = new Vector3(p.x / Mathf.Max(0.1f, hx * hx), 0f, p.z / Mathf.Max(0.1f, hz * hz)).normalized;
+                float bow = Mathf.Clamp01(s);   // +z = 선수
+                float width = 0.7f + 1.0f * bow * bow;
+                var inner = new Vector3(center.x, 0f, center.z) + p - outward * 0.15f;
+                var outer = new Vector3(center.x, 0f, center.z) + p + outward * width;
+                if (i > 0) along += Vector3.Distance(inner, prev);
+                prev = inner;
+                verts[i * 2] = inner; verts[i * 2 + 1] = outer;
+                uvs[i * 2] = new Vector2(0.5f, along); uvs[i * 2 + 1] = new Vector2(1f, along);
+                _hullFoamBow[i * 2] = _hullFoamBow[i * 2 + 1] = bow;
+                if (i == n) continue;
+                int b = i * 2, k = i * 6;
+                tris[k] = b; tris[k + 1] = b + 2; tris[k + 2] = b + 1;
+                tris[k + 3] = b + 1; tris[k + 4] = b + 2; tris[k + 5] = b + 3;
+            }
+            _hullFoam.Clear();
+            _hullFoam.vertices = verts;
+            _hullFoam.uv = uvs;
+            _hullFoam.colors32 = _hullFoamColors;
+            _hullFoam.triangles = tris;
+            _hullFoam.RecalculateBounds();
         }
 
         /// <summary>

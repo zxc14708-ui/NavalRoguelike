@@ -8,7 +8,11 @@ using Game.View;
 
 namespace Game.Enemies
 {
-    /// <summary>1스테이지 연안 경비정: 원거리 미사일, 근거리 함수/함미 함포.</summary>
+    /// <summary>
+    /// 1스테이지 연안 경비정: 원거리 미사일, 근거리 함수/함미 함포.
+    /// 부위 파괴(2026-11-01, <see cref="BossParts"/>): 함수·함미 함포(각 최대 체력 14%), 두 미사일 발사관 묶음(각 15%) —
+    /// 부서진 포는 쏘지 않고, 부서진 쪽 발사관 묶음은 일제사격을 하지 않는다.
+    /// </summary>
     public class BossShip : EnemyController, IBossTelegraph
     {
         // ---- 보스 학습(점검 K05): 원거리면 미사일 일제사격, 가까우면 함포. 손상 단계는 연출(75·50·25%).
@@ -36,7 +40,12 @@ namespace Game.Enemies
 
         private readonly WeaponController _bowGun = new();
         private readonly WeaponController _aftGun = new();
+        private readonly BossParts _parts = new();
+        private BossParts.Part _bowPart, _aftPart, _bank0Part, _bank4Part;
         private ShipController _playerShip;
+
+        /// <summary>검증용: 부위 목록.</summary>
+        public BossParts Parts => _parts;
         private MuzzleBurstVfx _muzzleFx;
         private Coroutine _salvo;
         private float _salvoTimer, _gunTimer, _smokeDebt, _fireDebt;
@@ -85,6 +94,16 @@ namespace Game.Enemies
             _bowGun.SetFireArc(arc);
             _aftGun.SetFireArc(arc);
             _muzzleFx ??= GetComponent<MuzzleBurstVfx>() ?? gameObject.AddComponent<MuzzleBurstVfx>();
+            float maxHp = def != null ? def.MaxHp : 600f;
+            _parts.Clear();
+            _bowPart = _parts.Add("함수 함포", "함수 포 사격 중지", bowTurret, 2.4f, maxHp * 0.14f, bowTurret);
+            _aftPart = _parts.Add("함미 함포", "함미 포 사격 중지", aftTurret, 2.4f, maxHp * 0.14f, aftTurret);
+            if (launchPoints != null && launchPoints.Length >= 8)
+            {
+                bool bank0Starboard = transform.InverseTransformPoint(launchPoints[0].position).x >= 0f;
+                _bank0Part = _parts.Add(bank0Starboard ? "우현 미사일 발사관" : "좌현 미사일 발사관", "그쪽 일제사격 중지", launchPoints[0], 2.4f, maxHp * 0.15f, launchPoints[0].parent);
+                _bank4Part = _parts.Add(bank0Starboard ? "좌현 미사일 발사관" : "우현 미사일 발사관", "그쪽 일제사격 중지", launchPoints[4], 2.4f, maxHp * 0.15f, launchPoints[4].parent);
+            }
             GameEvents.RaiseBossPhaseChanged("연안 경비정 출현 — 원거리 미사일 / 근거리 함포");
         }
 
@@ -99,6 +118,7 @@ namespace Game.Enemies
 
             OrbitPlayer(Definition.PreferredRange, _closeCombat ? 0.8f : 0.65f, dt);
             EmitDamageFx(dt);
+            _parts.Tick(dt);
 
             float tick = dt * (ReconAircraft.ActiveCount > 0 ? ReconAircraft.SpottedAttackRate : 1f);
             if (_closeCombat)
@@ -130,8 +150,8 @@ namespace Game.Enemies
             _gunTimer -= tick;
             if (_gunTimer > 0f || PlayerConcealed || PlayerBehindIsland || gunProjectilePrefab == null) return;
 
-            bool bowReady = _bowGun.Muzzle != null && _bowGun.IsInFireArc(aim) && _bowGun.IsAimedAt(aim);
-            bool aftReady = _aftGun.Muzzle != null && _aftGun.IsInFireArc(aim) && _aftGun.IsAimedAt(aim);
+            bool bowReady = _bowGun.Muzzle != null && !_parts.IsDestroyed(_bowPart) && _bowGun.IsInFireArc(aim) && _bowGun.IsAimedAt(aim);
+            bool aftReady = _aftGun.Muzzle != null && !_parts.IsDestroyed(_aftPart) && _aftGun.IsInFireArc(aim) && _aftGun.IsAimedAt(aim);
             if (!bowReady && !aftReady) return;
             var gun = aftReady && (!bowReady || _useAftNext) ? _aftGun : _bowGun;
             _useAftNext = !_useAftNext;
@@ -155,6 +175,7 @@ namespace Game.Enemies
                 float bank4X = transform.InverseTransformPoint(launchPoints[4].position).x;
                 side = Mathf.Abs(targetX - bank0X) <= Mathf.Abs(targetX - bank4X) ? 0 : 4;
             }
+            if (_parts.IsDestroyed(side == 0 ? _bank0Part : _bank4Part)) { _salvo = null; yield break; }   // 그쪽 발사관 묶음이 부서졌다
             for (int i = 0; i < salvoCount; i++)
             {
                 if (!IsAlive || Player == null || _closeCombat || PlayerConcealed || PlayerBehindIsland) break;
@@ -184,6 +205,7 @@ namespace Game.Enemies
         {
             base.TakeDamage(info);
             if (!IsAlive) return;
+            _parts.Hit(info, this);
             int stage = HpFraction <= 0.25f ? 3 : HpFraction <= 0.5f ? 2 : HpFraction <= 0.75f ? 1 : 0;
             if (stage <= _damageStage) return;
             _damageStage = stage;
@@ -232,6 +254,7 @@ namespace Game.Enemies
 
         public override void OnDespawned()
         {
+            _parts.Clear();
             if (_salvo != null) StopCoroutine(_salvo);
             _salvo = null;
             base.OnDespawned();

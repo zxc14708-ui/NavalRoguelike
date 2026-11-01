@@ -194,7 +194,7 @@ namespace Game.Modules.Runtime
         public override void OnModuleDestroyed()
         {
             // 파괴되면 Tick이 멈춰 기만체도 수리도 전속도 멈춘다.
-            // TODO: 파괴 시 전체 모듈 효율 감소
+            // 함선 전체의 사격통제 저하(무장 재장전·사거리·포탑 선회)는 ShipSystems.BridgeDown이 모듈 파괴 이벤트로 다시 집계해 건다.
         }
     }
 }

@@ -12,6 +12,9 @@ namespace Game.Ship
     /// 느려지면 기관 카드를 못 뽑은 판이 회복 불가능해지기 때문이다.
     ///
     /// 모듈이 설치/파괴/철거될 때만 재계산한다(매 프레임 아님).
+    ///
+    /// 함교 파괴(2026-11-01): 함교가 있었는데 모두 부서지면 사격통제가 무너진다 — 무장 재장전 ×1.35 · 사거리 ×0.85 · 포탑 선회 ×0.7.
+    ///   함교가 품은 레이더(탐지·추적)·기만체·수리·전속은 원래대로 함께 잃으므로 탐지·추적은 더 깎지 않는다.
     /// </summary>
     public class ShipSystems : MonoBehaviour
     {
@@ -79,6 +82,10 @@ namespace Game.Ship
         public float MissileResupplyMultiplier => 1f - _missileReloadReduction;
         public float MovingGunDamageMultiplier => SpeedRatio >= 0.5f ? 1f + _movingGunDamageBonus : 1f;
 
+        /// <summary>함교가 모두 부서져 사격통제가 무너졌는가(함교가 처음부터 없으면 false).</summary>
+        public bool BridgeDown { get; private set; }
+        public const float BridgeDownReload = 1.35f, BridgeDownRange = 0.85f, BridgeDownTurn = 0.7f;
+
         private void OnEnable()
         {
             GameEvents.ModuleInstalled += OnModuleChanged;
@@ -120,6 +127,11 @@ namespace Game.Ship
             _escortFireRateBonus = _speedBonus = _accelerationBonus = 0f;
             _movingGunDamageBonus = _guidedRangeBonus = _missileReloadReduction = 0f;
             _fireControlTracks = 0;
+            bool wasDown = BridgeDown;
+            int bridges = 0, liveBridges = 0;
+            foreach (var m in grid.Modules)
+                if (m != null && m.Definition != null && m.Definition.Type == ModuleType.Bridge) { bridges++; if (m.IsOperational) liveBridges++; }
+            BridgeDown = bridges > 0 && liveBridges == 0;
 
             foreach (var m in grid.Modules)
             {
@@ -140,6 +152,12 @@ namespace Game.Ship
             DetectionRange *= RunUpgrades.DetectionMultiplier;
             for (int i = 0; i < _sonars.Count; i++)
                 _sonars[i] = (_sonars[i].variant, _sonars[i].range * RunUpgrades.DetectionMultiplier);
+
+            if (BridgeDown && !wasDown)
+            {
+                GameEvents.RaiseBanner("함교 파괴 — 사격통제 저하: 재장전 느려짐 · 사거리 감소 · 포탑 둔해짐");
+                Game.Combat.CombatLog.Add("함교 파괴", $"재장전 ×{BridgeDownReload:0.00} · 사거리 ×{BridgeDownRange:0.00} · 포탑 선회 ×{BridgeDownTurn:0.0}");
+            }
 
             GameEvents.RaiseDetectionRangeChanged(DetectionRange);
         }
@@ -188,6 +206,12 @@ namespace Game.Ship
             }
             if (type is ModuleType.Autocannon or ModuleType.NavalGun or ModuleType.Nobong)
                 stats.Damage *= MovingGunDamageMultiplier;
+            if (BridgeDown && RunUpgrades.IsWeapon(type))
+            {
+                stats.ReloadTime *= BridgeDownReload;
+                stats.Range *= BridgeDownRange;
+                stats.TurretTurnRate *= BridgeDownTurn;
+            }
         }
 
         /// <summary>여러 개를 달아도 무적이 되지 않도록 상한을 둔다.</summary>

@@ -130,10 +130,16 @@ namespace Game.World
         private static void AddFoamRing(Transform parent, float radius, System.Random rng)
             => AddFoamRing(parent, _ => radius, rng);
 
-        /// <summary>radiusAt(각도 라디안, 로컬 +X에서 반시계) = 그 방향의 해안 반경.</summary>
+        /// <summary>
+        /// radiusAt(각도 라디안, 로컬 +X에서 반시계) = 그 방향의 해안 반경.
+        /// 해안 물빛(Game.View.ShoreWaterMask — 바다 셰이더가 해안 파도선을 그림)이 켜져 있으면 만들지 않는다(2026-11-01 — 둘이 겹쳐 진했다).
+        /// </summary>
         private static void AddFoamRing(Transform parent, System.Func<float, float> radiusAt, System.Random rng)
         {
             if (s_foam == null) return;
+            // 무늬 위상을 먼저 뽑는다 — 고리를 만들지 않을 때도 난수를 같은 만큼 써야 같은 시드의 섬 모양(바위·판정)이 그대로다
+            float phase = (float)rng.NextDouble() * 10f;
+            if (Game.View.ShoreWaterMask.Enabled) return;
             const int N = 40;
             var verts = new List<Vector3>(N * 2 + 2);
             var uvs = new List<Vector2>(N * 2 + 2);
@@ -141,7 +147,6 @@ namespace Game.World
             var tris = new List<int>(N * 6);
             float along = 0f;
             Vector3 prev = Vector3.zero;
-            float phase = (float)rng.NextDouble() * 10f;
             for (int i = 0; i <= N; i++)
             {
                 float a = i * Mathf.PI * 2f / N;

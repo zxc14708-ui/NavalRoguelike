@@ -59,10 +59,11 @@ namespace Game.Dev
             }
             float AntennaYaw() { var d = antenna.TransformDirection(localAxis); return Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg; }
             float prevAntennaYaw = antenna != null ? AntennaYaw() : 0f;
-            float start = Time.time;
+            float start = Time.time, maxDt = 0f;
             while (Time.time - start < 6f)
             {
                 yield return new WaitForEndOfFrame();
+                maxDt = Mathf.Max(maxDt, Time.deltaTime);
                 float sweep = scope.SweepBearing;
                 sweepTurn += Mathf.DeltaAngle(prevSweep, sweep);
                 prevSweep = sweep;
@@ -87,7 +88,9 @@ namespace Game.Dev
                                $", 스윕-안테나 방위 차 평균 {sumOffset / Mathf.Max(1, samples):0.0}° / 최대 {maxOffset:0.0}°");
             if (Mathf.Abs(sweepRpm - source.AntennaRpm) > 1f) Fail($"스윕 {sweepRpm:0.0} rpm ≠ 안테나 {source.AntennaRpm:0} rpm");
             if (antenna != null && Mathf.Abs(antennaTurn - sweepTurn) > Mathf.Abs(sweepTurn) * 0.02f) Fail($"안테나 모델 회전 {antennaTurn:0}° vs 스윕 {sweepTurn:0}° 불일치");
-            if (maxOffset > 1f) Fail($"스윕이 안테나 방위와 최대 {maxOffset:0.0}° 어긋남");
+            // 화면이 한 프레임 앞 방위를 그려도 맞다 — 한도 = 1° 또는 안테나가 가장 긴 한 프레임에 도는 각도(2026-11-01, 1° 고정은 프레임 속도 검사였다)
+            float frameTurn = source.AntennaRpm * 6f * maxDt;
+            if (maxOffset > Mathf.Max(1f, frameTurn + 0.2f)) Fail($"스윕이 안테나 방위와 최대 {maxOffset:0.0}° 어긋남(한 프레임 {frameTurn:0.0}°)");
 
             // 2) 탐지거리 안(20·28)은 찍히고 밖(범위+8)은 안 찍힘
             float range = scope.DisplayRange;

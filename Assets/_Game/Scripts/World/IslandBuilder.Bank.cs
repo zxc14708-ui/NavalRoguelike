@@ -159,8 +159,8 @@ namespace Game.World
                 col.size = new Vector3(BankDepth, 16f, (k2 - k) * BankStep + 0.2f);
             }
 
-            // ---- 해안 거품 띠
-            if (s_foam != null)
+            // ---- 해안 거품 띠(해안 물빛이 켜져 있으면 바다 셰이더가 그린다 — 2026-11-01)
+            if (s_foam != null && !Game.View.ShoreWaterMask.Enabled)
             {
                 var fv = new List<Vector3>(); var fu = new List<Vector2>(); var fc = new List<Color32>(); var ft = new List<int>();
                 for (int k = 0; k < samples; k++)
