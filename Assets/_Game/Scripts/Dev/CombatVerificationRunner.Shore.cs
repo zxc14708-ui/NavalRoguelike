@@ -90,6 +90,17 @@ namespace Game.Dev
             }
             _report.AppendLine($"- 물결 텍스처(FFT): {(Game.View.OceanWaveTexture.Texture != null ? $"{Game.View.OceanWaveTexture.Texture.width}² · 계산 {Game.View.OceanWaveTexture.BuildMs:0}ms" : "없음")}");
             if (Game.View.OceanWaveTexture.Texture == null) Fail("물결 텍스처가 만들어지지 않음");
+            // 움직이는 파도: 작업 스레드 계산이 끝나길 기다린 뒤, 배 옆을 0.25초 간격 12장(움직임 확인용)
+            Time.timeScale = 1f;
+            for (float w = 0f; w < 8f && Game.View.OceanWaveTexture.Animated == null; w += 0.25f) yield return new WaitForSeconds(0.25f);
+            var anim = Game.View.OceanWaveTexture.Animated;
+            _report.AppendLine($"- 움직이는 파도: {(anim != null ? $"{anim.depth}장 · 한 바퀴 {Game.View.OceanWaveTexture.Loop:0}초 · 계산 {Game.View.OceanWaveTexture.AnimBuildMs:0}ms(작업 스레드)" : "없음")} · `sea_anim_00~11.png`");
+            if (anim == null) Fail("움직이는 파도가 만들어지지 않음");
+            for (int f = 0; f < 12; f++)
+            {
+                yield return CloseShot($"sea_anim_{f:00}", ship.transform, 12f);
+                yield return new WaitForSeconds(0.25f);
+            }
             // 배 옆 수면(물빛·잔물결·흰 물거품) 가까이
             Time.timeScale = 0f;
             yield return CloseShot("sea_ship_close", ship.transform, 12f);

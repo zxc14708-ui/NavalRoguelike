@@ -78,6 +78,22 @@ Shader "Naval/Ocean"
         TEXTURE2D(_NavalOceanWaves);
         SAMPLER(sampler_NavalOceanWaves);
         float _NavalOceanWavesOn;
+        // 움직이는 파도(OceanWaveTexture가 작업 스레드 계산을 마치면 넘김): 48장 · 12초 한 바퀴
+        TEXTURE2D_ARRAY(_NavalOceanWavesAnim);
+        SAMPLER(sampler_NavalOceanWavesAnim);
+        float _NavalOceanAnimOn;
+        float4 _NavalOceanAnim;   // x 장 수, y 한 바퀴(초)
+
+        // 움직이는 파도 한 겹: 이웃한 두 장을 시간 비율로 섞는다. phase로 겹마다 시작을 어긋낸다.
+        float4 SampleWaveAnim(float2 uv, float time, float phase)
+        {
+            float fr = frac(time / _NavalOceanAnim.y + phase) * _NavalOceanAnim.x;
+            float i0 = floor(fr);
+            float i1 = fmod(i0 + 1.0, _NavalOceanAnim.x);
+            float4 a = SAMPLE_TEXTURE2D_ARRAY(_NavalOceanWavesAnim, sampler_NavalOceanWavesAnim, uv, i0);
+            float4 b = SAMPLE_TEXTURE2D_ARRAY(_NavalOceanWavesAnim, sampler_NavalOceanWavesAnim, uv, i1);
+            return lerp(a, b, fr - i0);
+        }
 
         // 해안 물빛(ShoreWaterMask가 전역으로 넘김)
         TEXTURE2D(_NavalShoreMask);
@@ -203,8 +219,20 @@ Shader "Naval/Ocean"
                 {
                     float s = 1.0 / _WaveTexScale;
                     float2 r2 = float2(xz.x * 0.80 - xz.y * 0.60, xz.x * 0.60 + xz.y * 0.80);
-                    float4 w1 = SAMPLE_TEXTURE2D(_NavalOceanWaves, sampler_NavalOceanWaves, xz * s + float2(0.0107, 0.0064) * t);
-                    float4 w2 = SAMPLE_TEXTURE2D(_NavalOceanWaves, sampler_NavalOceanWaves, r2 * s * 2.71 + float2(-0.0151, 0.0093) * t);
+                    float2 uv1 = xz * s + float2(0.0107, 0.0064) * t * 0.4;
+                    float2 uv2 = r2 * s * 2.71 + float2(-0.0151, 0.0093) * t * 0.4;
+                    float4 w1, w2;
+                    if (_NavalOceanAnimOn > 0.5)
+                    {
+                        // 파도가 실제로 진행하고 모양이 바뀐다. 작게 줄인 겹일수록 빨리(심해 분산: 크기 1/s배면 시간 1/√s배)
+                        w1 = SampleWaveAnim(uv1, t * 1.3, 0.0);
+                        w2 = SampleWaveAnim(uv2, t * 2.1, 0.37);
+                    }
+                    else
+                    {
+                        w1 = SAMPLE_TEXTURE2D(_NavalOceanWaves, sampler_NavalOceanWaves, uv1);
+                        w2 = SAMPLE_TEXTURE2D(_NavalOceanWaves, sampler_NavalOceanWaves, uv2);
+                    }
                     // 돌린 겹의 기울기는 월드 방향으로 되돌린다
                     float2 g1 = w1.rg * 2.0 - 1.0;
                     float2 q2 = w2.rg * 2.0 - 1.0;
