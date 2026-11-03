@@ -26,7 +26,7 @@ namespace Game.Enemies
     /// 부위 파괴(2026-11-01, <see cref="BossParts"/>): 선수·선미 함포(각 최대 체력 13%), 좌·우현 미사일 발사대(각 12%), 좌·우현 어뢰 발사관(각 10%).
     ///   함포가 하나 부서지면 남은 포만 쏘고, 둘 다면 함포 예고 사격이 없다. 발사대·발사관은 그 현측의 미사일·어뢰가 없어진다.
     /// </summary>
-    public class ModernCorvetteBoss : EnemyController, IBossTelegraph
+    public class ModernCorvetteBoss : EnemyController, IBossTelegraph, IBossParts
     {
         // ---- 보스 학습(점검 K05): 거리에 따라 쓸 공격이 정해진다 — 그중 가장 먼저 준비되는 것.
         public string PhaseName => Hurt ? "화재 — 공격이 빨라지고 어뢰 뒤 함포" : "거리 순환 — 원거리 미사일 · 중거리 함포 · 근거리 어뢰";

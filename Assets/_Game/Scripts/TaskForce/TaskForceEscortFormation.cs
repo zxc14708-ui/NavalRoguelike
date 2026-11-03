@@ -717,6 +717,10 @@ namespace Game.TaskForce
             private Vector3 _prevTarget, _targetVel;
             private bool _hasTarget;
             private float _phase;
+            private float _waveBob, _wavePitch, _waveRoll;   // 파도 흔들림(2026-11-03, ShipVisualSway.SampleWave)
+
+            /// <summary>검증용: 파도로 생긴 오르내림(m)·앞뒤·좌우 기울기(도).</summary>
+            public Vector3 WaveMotion => new(_waveBob, _wavePitch, _waveRoll);
             private int _level = -1;
             private float _hp, _maxHp;
             private float _nextSmoke;
@@ -961,10 +965,22 @@ namespace Game.TaskForce
                 {
                     float t = Time.time * 1.35f + _phase;
                     float list = _disabled ? 7f : 0f;   // 전투 불능이면 기울어 있다
-                    _visual.localPosition = new Vector3(0f, Mathf.Sin(t) * 0.06f - (_disabled ? 0.25f : 0f), 0f);
+                    // 움직이는 파도를 따라 오르내리고 기운다(기함·적과 같은 파도). 정해진 출렁임은 파도가 있으면 잔잔하게만.
+                    float idle = 1f;
+                    if (Game.View.OceanWaveTexture.HeightReady && _hullCollider != null)
+                    {
+                        Vector3 size = Vector3.Scale(_hullCollider.size, transform.lossyScale);
+                        Game.View.ShipVisualSway.SampleWave(transform, size.z, size.x, 1.4f, 1.25f, out float wb, out float wp, out float wr);
+                        float k = 1f - Mathf.Exp(-Time.deltaTime * 5f);
+                        _waveBob = Mathf.Lerp(_waveBob, wb, k);
+                        _wavePitch = Mathf.Lerp(_wavePitch, wp, k);
+                        _waveRoll = Mathf.Lerp(_waveRoll, wr, k);
+                        idle = 0.35f;
+                    }
+                    _visual.localPosition = new Vector3(0f, Mathf.Sin(t) * 0.06f * idle + _waveBob - (_disabled ? 0.25f : 0f), 0f);
                     // 선회 중에는 안쪽으로 기운다(소형 고속함)
                     _bank = Mathf.Lerp(_bank, Mathf.Clamp(-_yawRate * 0.09f, -8f, 8f), 1f - Mathf.Exp(-Time.deltaTime * 4f));
-                    _visual.localRotation = Quaternion.Euler(Mathf.Sin(t * 0.73f) * 0.8f, 0f, Mathf.Sin(t) * 1.1f + list + _bank);
+                    _visual.localRotation = Quaternion.Euler(Mathf.Sin(t * 0.73f) * 0.8f * idle + _wavePitch, 0f, Mathf.Sin(t) * 1.1f * idle + list + _bank + _waveRoll);
                 }
 
                 // 손상: 선체 절반 아래부터 연기, 4분의 1 아래(전투 불능 포함)는 불길까지

@@ -20,8 +20,10 @@ namespace Game.Enemies
     /// 우현 대공포는 함교탑 너머 좌현 낮은 곳을 쏘지 못한다. 수면에 옅은 초록 부채꼴로 보여 준다 —
     /// 플레이어가 선미 쪽 사각으로 파고들면 주포를 피할 수 있고, 보스는 선회해 현측을 돌린다.
     /// 3단계에서는 드론 편대와 번갈아 전투기 편대를 띄운다.
+    /// 부위 파괴(2026-11-03, <see cref="BossParts"/>): 주포탑마다(각 최대 체력 9%) · 비행갑판(14%) · 미사일 발사대(10%) · 대공포(8%).
+    ///   부서진 포탑의 포구는 일제사격에 끼지 않고, 비행갑판이면 드론·전투기·정찰기 발진, 발사대면 미사일 일제사격, 대공포면 요격이 멈춘다.
     /// </summary>
-    public class HybridBattleshipBoss : EnemyController, IBossTelegraph
+    public class HybridBattleshipBoss : EnemyController, IBossTelegraph, IBossParts
     {
         // ---- 보스 학습(점검 K05): 체력에 따라 전함 → 항모 → 총력전.
         public string PhaseName => _phase switch
@@ -35,9 +37,9 @@ namespace Game.Enemies
         {
             get
             {
-                (string, float) best = ("주포 일제사격", Mathf.Max(0f, _salvoTimer));
-                if (_phase >= 1 && _droneTimer < best.Item2) best = (_phase >= 2 && _waveCount % 2 == 1 ? "전투기 발진" : "드론 발진", Mathf.Max(0f, _droneTimer));
-                if (_phase >= 2 && _missileTimer < best.Item2) best = ("미사일 일제사격", Mathf.Max(0f, _missileTimer));
+                (string, float) best = MainBatteryLeft ? ("주포 일제사격", Mathf.Max(0f, _salvoTimer)) : (null, float.MaxValue);
+                if (_phase >= 1 && !_parts.IsDestroyed(_deckPart) && _droneTimer < best.Item2) best = (_phase >= 2 && _waveCount % 2 == 1 ? "전투기 발진" : "드론 발진", Mathf.Max(0f, _droneTimer));
+                if (_phase >= 2 && !_parts.IsDestroyed(_missilePart) && _missileTimer < best.Item2) best = ("미사일 일제사격", Mathf.Max(0f, _missileTimer));
                 return best;
             }
         }
@@ -116,6 +118,23 @@ namespace Game.Enemies
         private EnemyController _recon;
         private Collider _playerHull;
         private Game.Ship.ShipController _playerShip;
+        private readonly BossParts _parts = new();
+        private BossParts.Part _deckPart, _missilePart, _aaPart;
+
+        /// <summary>검증·보스 막대용: 부위 목록.</summary>
+        public BossParts Parts => _parts;
+
+        /// <summary>부서지지 않은 주포탑이 하나라도 있는가(포탑 부위가 없으면 true).</summary>
+        private bool MainBatteryLeft
+        {
+            get
+            {
+                bool any = false;
+                foreach (var p in _parts.Parts)
+                    if (p.Name.StartsWith("주포", System.StringComparison.Ordinal)) { any = true; if (!p.Destroyed) return true; }
+                return !any;
+            }
+        }
 
         public override void Setup(Game.Data.EnemyDefinition def, Transform player)
         {
@@ -137,6 +156,16 @@ namespace Game.Enemies
             }
             _playerHull = player != null ? player.GetComponent<Collider>() : null;
             _playerShip = player != null ? player.GetComponent<Game.Ship.ShipController>() : null;
+
+            float maxHp = def != null ? def.MaxHp : 3000f;
+            _parts.Clear();
+            if (mainTurrets != null)
+                for (int i = 0; i < mainTurrets.Length; i++)
+                    _parts.Add($"주포 {i + 1}", $"{i + 1}번 주포 사격 중지", mainTurrets[i], 4.5f, maxHp * 0.09f, mainTurrets[i]);
+            _deckPart = _parts.Add("비행갑판", "드론·전투기·정찰기 발진 중지", flightDeckLaunch, 7f, maxHp * 0.14f);
+            var missileAnchor = missileLaunchPoints != null && missileLaunchPoints.Length > 0 ? missileLaunchPoints[0] : null;
+            _missilePart = _parts.Add("미사일 발사대", "미사일 일제사격 중지", missileAnchor, 4f, maxHp * 0.10f, missileAnchor != null ? missileAnchor.parent : null);
+            _aaPart = _parts.Add("대공포", "아군 미사일 요격 중지", aaMount, 3.5f, maxHp * 0.08f, aaMount);
             GameEvents.RaiseBossPhaseChanged("항공전함 출현 — 주포 착탄 원을 피하라");
         }
 
@@ -153,11 +182,12 @@ namespace Game.Enemies
             // 정찰기가 표적을 지시하면 보스의 모든 패턴도 빨라진다
             float tick = dt * (ReconAircraft.ActiveCount > 0 ? ReconAircraft.SpottedAttackRate : 1f);
 
+            _parts.Tick(dt);
             UpdateTurrets(dt);
             UpdateMainBattery(tick);
-            if (_phase >= 1) UpdateFlightDeck(tick);
-            if (_phase >= 2) UpdateMissileSalvo(tick);
-            UpdateAntiAir(dt);
+            if (_phase >= 1 && !_parts.IsDestroyed(_deckPart)) UpdateFlightDeck(tick);
+            if (_phase >= 2 && !_parts.IsDestroyed(_missilePart)) UpdateMissileSalvo(tick);
+            if (!_parts.IsDestroyed(_aaPart)) UpdateAntiAir(dt);
 
             if (radar != null) radar.Rotate(Vector3.up, radarRpm * 6f * dt, Space.World);
         }
@@ -193,7 +223,7 @@ namespace Game.Enemies
             _bearingMuzzles.Clear();
             if (gunMuzzles != null)
                 foreach (var m in gunMuzzles)
-                    if (m != null && !EnemyFireCutout.IsBlocked(transform, m.position, predicted, mainBatteryCutouts))
+                    if (m != null && !_parts.MountDestroyed(m) && !EnemyFireCutout.IsBlocked(transform, m.position, predicted, mainBatteryCutouts))
                         _bearingMuzzles.Add(m);
 
             // 포가 하나도 향하지 못하면(플레이어가 선미 사각에 있으면) 잠깐 기다린다. 그동안 선회해 현측을 돌린다.
@@ -408,6 +438,18 @@ namespace Game.Enemies
 
             _aaRounds--;
             _aaTimer = aaShotInterval;
+        }
+
+        public override void TakeDamage(in Game.Combat.DamageInfo info)
+        {
+            base.TakeDamage(info);
+            if (IsAlive) _parts.Hit(info, this);
+        }
+
+        public override void OnDespawned()
+        {
+            _parts.Clear();
+            base.OnDespawned();
         }
 
         protected override void Die()

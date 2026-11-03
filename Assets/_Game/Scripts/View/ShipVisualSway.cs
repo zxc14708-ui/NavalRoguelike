@@ -67,21 +67,11 @@ namespace Game.View
             {
                 var root = transform.parent != null ? transform.parent : transform;
                 Vector3 size = _hull != null ? Vector3.Scale(_hull.size, _hull.transform.lossyScale) : new Vector3(2f, 1f, 6f);
-                float length = Mathf.Max(2f, size.z), beam = Mathf.Max(1f, size.x);
-                Vector3 c = root.position;
-                Vector3 fwd = root.forward; fwd.y = 0f; fwd = fwd.sqrMagnitude > 1e-4f ? fwd.normalized : Vector3.forward;
-                Vector3 right = new(fwd.z, 0f, -fwd.x);
-                float now = Time.timeSinceLevelLoad;
-                float H(Vector3 p) => OceanWaveTexture.SampleHeight(new Vector2(p.x, p.z), now);
-                float hb = H(c + fwd * (length * 0.45f)), hs = H(c - fwd * (length * 0.45f));
-                float hp = H(c - right * (beam * 0.5f)), hr = H(c + right * (beam * 0.5f));
-                float wantBob = ((hb + hs + hp + hr) * 0.25f - 0.5f) * waveHeight;
-                float wantPitch = Mathf.Atan2((hs - hb) * waveHeight, length) * Mathf.Rad2Deg * tiltBoost;   // 선수가 높으면 들린다
-                float wantRoll = Mathf.Atan2((hr - hp) * waveHeight, beam) * Mathf.Rad2Deg * tiltBoost;     // 우현이 높으면 우현이 들린다
+                SampleWave(root, size.z, size.x, waveHeight, tiltBoost, out float wantBob, out float wantPitch, out float wantRoll);
                 float k = 1f - Mathf.Exp(-Time.deltaTime * 5f);
                 _bob = Mathf.Lerp(_bob, wantBob, k);
-                _pitch = Mathf.Lerp(_pitch, Mathf.Clamp(wantPitch, -6f, 6f), k);
-                _roll = Mathf.Lerp(_roll, Mathf.Clamp(wantRoll, -6f, 6f), k);
+                _pitch = Mathf.Lerp(_pitch, wantPitch, k);
+                _roll = Mathf.Lerp(_roll, wantRoll, k);
                 // 파도가 주가 되고, 정해진 흔들림은 잔잔하게만 남긴다
                 roll = roll * 0.35f + _roll;
                 pitch = pitch * 0.35f + _pitch;
@@ -90,6 +80,26 @@ namespace Game.View
 
             transform.localRotation = Quaternion.Euler(pitch, 0f, roll) * _baseLocalRot;
             transform.localPosition = _baseLocalPos + Vector3.up * bob;
+        }
+
+        /// <summary>
+        /// 그 배 자리의 파도로 생기는 오르내림(m)·앞뒤 기울기·좌우 기울기(도, ±6° 안) — 선수·선미·좌우 현 네 점의 물결 높이로(부드럽게 하지 않은 값).
+        /// 호위함처럼 이 컴포넌트를 쓰지 않는 배도 같은 파도를 따르게 공용으로 둔다(2026-11-03).
+        /// </summary>
+        public static void SampleWave(Transform root, float length, float beam, float waveHeight, float tiltBoost,
+                                      out float bob, out float pitch, out float roll)
+        {
+            length = Mathf.Max(2f, length); beam = Mathf.Max(1f, beam);
+            Vector3 c = root.position;
+            Vector3 fwd = root.forward; fwd.y = 0f; fwd = fwd.sqrMagnitude > 1e-4f ? fwd.normalized : Vector3.forward;
+            Vector3 right = new(fwd.z, 0f, -fwd.x);
+            float now = Time.timeSinceLevelLoad;
+            float H(Vector3 p) => OceanWaveTexture.SampleHeight(new Vector2(p.x, p.z), now);
+            float hb = H(c + fwd * (length * 0.45f)), hs = H(c - fwd * (length * 0.45f));
+            float hp = H(c - right * (beam * 0.5f)), hr = H(c + right * (beam * 0.5f));
+            bob = ((hb + hs + hp + hr) * 0.25f - 0.5f) * waveHeight;
+            pitch = Mathf.Clamp(Mathf.Atan2((hs - hb) * waveHeight, length) * Mathf.Rad2Deg * tiltBoost, -6f, 6f);   // 선수가 높으면 들린다
+            roll = Mathf.Clamp(Mathf.Atan2((hr - hp) * waveHeight, beam) * Mathf.Rad2Deg * tiltBoost, -6f, 6f);      // 우현이 높으면 우현이 들린다
         }
     }
 }

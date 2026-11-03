@@ -13,7 +13,7 @@ namespace Game.Enemies
     /// 부위 파괴(2026-11-01, <see cref="BossParts"/>): 함수·함미 함포(각 최대 체력 14%), 두 미사일 발사관 묶음(각 15%) —
     /// 부서진 포는 쏘지 않고, 부서진 쪽 발사관 묶음은 일제사격을 하지 않는다.
     /// </summary>
-    public class BossShip : EnemyController, IBossTelegraph
+    public class BossShip : EnemyController, IBossTelegraph, IBossParts
     {
         // ---- 보스 학습(점검 K05): 원거리면 미사일 일제사격, 가까우면 함포. 손상 단계는 연출(75·50·25%).
         public string PhaseName => _closeCombat ? "근거리 — 함포 2문" : "원거리 — 미사일 일제사격";

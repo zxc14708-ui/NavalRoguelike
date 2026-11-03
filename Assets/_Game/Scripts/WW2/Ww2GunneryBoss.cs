@@ -17,8 +17,10 @@ namespace Game.WW2
     ///   - 부포: 가까우면(<see cref="secondaryRange"/>) 기관포탄을 짧게 쏜다.
     ///   - 포탑이 기함을 향해 돌아야 쏜다(보이는 예고). 연막·섬 뒤면 주포를 쏘지 않는다.
     /// 어뢰 일제 발사에 크게 맞는 표적이다(큰 선체). 격침하면 시험 전투 승리.
+    /// 부위 파괴(2026-11-03, <see cref="BossParts"/>): 포탑마다(각 최대 체력 12%) · 부포(10%). 부서진 포탑은 돌지 않고 그 포구는 쏘지 않아
+    ///   일제 사격 포탄 수가 살아 있는 포탑 비율만큼 준다(모두 부서지면 주포 없음). 부포가 부서지면 근접 사격이 없다.
     /// </summary>
-    public class Ww2GunneryBoss : EnemyController, IBossTelegraph
+    public class Ww2GunneryBoss : EnemyController, IBossTelegraph, IBossParts
     {
         [Header("Main Battery")]
         [SerializeField] private Transform[] turrets = System.Array.Empty<Transform>();
@@ -56,7 +58,27 @@ namespace Game.WW2
         public int SalvosFired { get; private set; }
         public string PhaseName => Phase2 ? "2단계 — 집중 일제 사격(좌우 두 줄)" : "1단계 — 협차 사격(침로를 따라 앞뒤)";
         public float[] PhaseThresholds => s_thresholds;
-        public (string name, float seconds) NextAttack => ("주포 일제 사격", Mathf.Max(0f, _salvoTimer));
+        public (string name, float seconds) NextAttack => LiveTurrets > 0 ? ("주포 일제 사격", Mathf.Max(0f, _salvoTimer)) : (null, 0f);
+
+        private readonly BossParts _parts = new();
+        private BossParts.Part[] _turretParts = System.Array.Empty<BossParts.Part>();
+        private BossParts.Part _secondaryPart;
+
+        /// <summary>검증·보스 막대용: 부위 목록.</summary>
+        public BossParts Parts => _parts;
+
+        private int LiveTurrets
+        {
+            get
+            {
+                if (_turretParts.Length == 0) return turrets.Length;
+                int n = 0;
+                foreach (var p in _turretParts) if (p == null || !p.Destroyed) n++;
+                return n;
+            }
+        }
+
+        private bool TurretAlive(int i) => i >= _turretParts.Length || _turretParts[i] == null || !_turretParts[i].Destroyed;
 
         protected override bool TargetsEscorts => false;
 
@@ -81,11 +103,20 @@ namespace Game.WW2
                 }
             }
             else for (int i = 0; i < turrets.Length; i++) if (turrets[i] != null) turrets[i].localRotation = _turretRest[i];
+
+            float maxHp = def != null ? def.MaxHp : 2000f;
+            _parts.Clear();
+            _turretParts = new BossParts.Part[turrets.Length];
+            for (int i = 0; i < turrets.Length; i++)
+                _turretParts[i] = _parts.Add($"{i + 1}번 포탑", $"{i + 1}번 포탑 사격 중지", turrets[i], 3.5f, maxHp * 0.12f, turrets[i]);
+            var sec = secondaryMuzzles.Length > 0 ? secondaryMuzzles[0] : null;
+            _secondaryPart = _parts.Add("부포", "근접 사격 중지", sec, 3f, maxHp * 0.10f, sec != null ? sec.parent : null);
         }
 
         protected override void UpdateBehaviour(float dt)
         {
             OrbitPlayer(Definition.PreferredRange, 0.55f, dt);
+            _parts.Tick(dt);
             Vector3 predicted = Predicted(shellFlightTime);
             bool aimed = TrainTurrets(predicted, dt);
 
@@ -93,13 +124,13 @@ namespace Game.WW2
             _secondaryTimer -= dt;
             float dist = Vector3.Distance(transform.position, Player.position);
 
-            if (_secondaryTimer <= 0f && dist <= secondaryRange && !PlayerConcealed)
+            if (_secondaryTimer <= 0f && dist <= secondaryRange && !PlayerConcealed && !_parts.IsDestroyed(_secondaryPart))
             {
                 _secondaryTimer = secondaryInterval;
                 FireSecondary();
             }
 
-            if (_salvoTimer > 0f || _salvo != null || !aimed) return;
+            if (_salvoTimer > 0f || _salvo != null || !aimed || LiveTurrets == 0) return;
             if (PlayerConcealed || PlayerBehindIsland || dist > maxSalvoRange) { _salvoTimer = 1f; return; }
             _salvoTimer = Phase2 ? salvoIntervalPhase2 : salvoInterval;
             _salvo = StartCoroutine(Salvo(predicted, Phase2));
@@ -128,7 +159,7 @@ namespace Game.WW2
             for (int i = 0; i < turrets.Length; i++)
             {
                 var t = turrets[i];
-                if (t == null) continue;
+                if (t == null || !TurretAlive(i)) continue;   // 부서진 포탑은 그 자리에 멈춘다
                 Vector3 to = point - t.position;
                 if (Vector3.ProjectOnPlane(to, transform.up).sqrMagnitude < 0.01f) continue;
                 Vector3 rest = _turretRestDir != null && i < _turretRestDir.Length ? _turretRestDir[i] : Vector3.forward;
@@ -145,6 +176,10 @@ namespace Game.WW2
             Vector3 fwd = Ww2Aim.PredictHeading(Player, _playerShip, shellFlightTime);   // 착탄 때의 침로를 따라 늘어선다
             Vector3 right = Vector3.Cross(Vector3.up, fwd);
             int count = phase2 ? shellsPhase2 : shellsPhase1;
+            // 부서진 포탑의 포구는 빼고, 포탄 수도 살아 있는 포탑 비율만큼
+            var live = new System.Collections.Generic.List<Transform>(muzzles.Length);
+            foreach (var m in muzzles) if (m != null && !_parts.MountDestroyed(m)) live.Add(m);
+            if (turrets.Length > 0) count = Mathf.Max(live.Count > 0 ? 1 : 0, Mathf.RoundToInt(count * LiveTurrets / (float)turrets.Length));
             for (int i = 0; i < count; i++)
             {
                 if (!IsAlive || Player == null) break;
@@ -159,7 +194,7 @@ namespace Game.WW2
                 Vector2 jitter = Random.insideUnitCircle * 0.6f;
                 Vector3 impact = predicted + offset + new Vector3(jitter.x, 0f, jitter.y);
                 impact.y = 0f;
-                var muzzle = muzzles.Length > 0 && muzzles[i % muzzles.Length] != null ? muzzles[i % muzzles.Length] : transform;
+                var muzzle = live.Count > 0 ? live[i % live.Count] : transform;
                 var go = PoolManager.Instance?.Spawn(shellPrefab, muzzle.position, muzzle.rotation);
                 go?.GetComponent<ArtilleryShell>()?.Launch(muzzle.position, impact, shellFlightTime + i * 0.05f, Definition.AttackDamage,
                                                            blastRadius, _playerHull, Ww2BattleLog.BossSalvo);
@@ -189,8 +224,15 @@ namespace Game.WW2
             AudioManager.Play(SfxId.AutocannonShot, muzzle.position, 0.5f, 1.1f);
         }
 
+        public override void TakeDamage(in DamageInfo info)
+        {
+            base.TakeDamage(info);
+            if (IsAlive) _parts.Hit(info, this);
+        }
+
         public override void OnDespawned()
         {
+            _parts.Clear();
             if (_salvo != null) StopCoroutine(_salvo);
             _salvo = null;
             base.OnDespawned();

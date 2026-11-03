@@ -197,25 +197,6 @@ namespace Game.Combat
         private const float RaiseHeight = 1.2f;
         private const float TurretMuzzle = 1.0f, CiwsMuzzle = 1.6f;
 
-        /// <summary>
-        /// 상부 구조물(높은 블록 — 함교 등) 바로 옆(상하좌우)에 놓인 CIWS는 구조물에 붙은 높은 받침 위에 선다(2026-11-01, 실제 함정처럼).
-        /// 포구가 구조물 꼭대기를 넘어 그 방향도 쏠 수 있다 — 예전에는 한 줄 시작 배치에서 함교 바로 뒤 CIWS의 앞쪽 약 100°가 막혀 있었다.
-        /// </summary>
-        public const float CiwsMountHeight = 2.2f;
-
-        /// <summary>이 칸의 CIWS가 상부 구조물 받침에 서는가.</summary>
-        public static bool CiwsOnStructureMount(ShipGrid grid, GridCoord origin)
-        {
-            if (grid == null) return false;
-            var self = grid.Get(origin);
-            foreach (var dir in Neighbors4)
-            {
-                var n = grid.Get(origin + dir);
-                if (n?.Definition != null && n != self && n.Definition.HeightClass == ModuleHeight.High) return true;
-            }
-            return false;
-        }
-
         // 격자 방향과 그 방향의 Unity 로컬 선회각. +X(선수)=0, +Z(우현)=90.
         private static readonly GridCoord[] Neighbors4 =
         {
@@ -279,8 +260,7 @@ namespace Game.Combat
 
         /// <summary>CIWS. 높은 받침이라 이웃 블록은 넘겨 쏘고, 상부 구조물만 사격 금지(선회는 자유).</summary>
         public static FireArc ComputeCiws(ShipGrid grid, GridCoord origin, int rotationSteps)
-            => Build(grid, origin, rotationSteps, ModuleHeight.Mid,
-                     CiwsMuzzle + (CiwsOnStructureMount(grid, origin) ? CiwsMountHeight : 0f), includeNeighbors: false, trainCutout: false);
+            => Build(grid, origin, rotationSteps, ModuleHeight.Mid, CiwsMuzzle, includeNeighbors: false, trainCutout: false);
 
         /// <summary>종류에 맞는 계산을 고른다(정비 화면용).</summary>
         public static FireArc ComputeFor(ModuleType type, ShipGrid grid, GridCoord origin, int rotationSteps, ModuleHeight shooterHeight)
@@ -336,7 +316,6 @@ namespace Game.Combat
             foreach (var m in grid.Modules)
             {
                 if (m?.Definition == null || m == self || m.Definition.HeightClass != ModuleHeight.High) continue;
-                if (TopOf(m) <= muzzle - 0.2f) continue;   // 포구가 꼭대기보다 높으면(구조물 받침의 CIWS) 가리지 않는다
                 foreach (var c in m.OccupiedCoords)
                 {
                     AddCell(clearance, noTrain, facing, c.X - cx, c.Z - cz, TopOf(m), muzzle, cell);

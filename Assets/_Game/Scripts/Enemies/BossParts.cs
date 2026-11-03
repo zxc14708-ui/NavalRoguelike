@@ -7,6 +7,12 @@ using Game.View;
 
 namespace Game.Enemies
 {
+    /// <summary>부위가 있는 보스(보스 막대가 부위 상태를 보여 준다).</summary>
+    public interface IBossParts
+    {
+        BossParts Parts { get; }
+    }
+
     /// <summary>
     /// 보스 부위 파괴(2026-11-01). 보스의 무장 부위(함포·발사대 등)마다 체력을 따로 두고,
     /// 맞은 자리(DamageInfo.HitPoint)에서 반경 안의 가장 가까운 살아 있는 부위가 선체와 같은 피해를 함께 받는다.
@@ -57,6 +63,25 @@ namespace Game.Enemies
         }
 
         public bool IsDestroyed(Part p) => p != null && p.Destroyed;
+
+        /// <summary>
+        /// 이 포구(발사점)를 품은 부위가 부서졌는가 — 포구가 부위 자식이면 그 부위, 아니면 반경 안의 가장 가까운 부위.
+        /// 어느 부위에도 속하지 않으면 false.
+        /// </summary>
+        public bool MountDestroyed(Transform muzzle)
+        {
+            if (muzzle == null) return false;
+            Part owner = null;
+            float best = float.MaxValue;
+            foreach (var p in _parts)
+            {
+                if (p.Anchor == null) continue;
+                if (muzzle.IsChildOf(p.Anchor)) { owner = p; break; }
+                float d = (muzzle.position - p.Anchor.position).sqrMagnitude;
+                if (d <= p.Radius * p.Radius && d < best) { best = d; owner = p; }
+            }
+            return owner != null && owner.Destroyed;
+        }
 
         /// <summary>
         /// 맞은 자리에서 반경 안의 가장 가까운(수평 거리) 살아 있는 부위에 같은 피해. 이번에 부서졌으면 그 부위를 돌려준다.

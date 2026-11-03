@@ -21,10 +21,6 @@ namespace Game.Modules
         [SerializeField] private GameObject pedestalPrefab;
         [SerializeField] private float raiseHeight = 1.2f;
 
-        /// <summary>올린 무기 받침(높이 raiseHeight). CIWS 구조물 받침도 이것을 늘려 쓴다.</summary>
-        public GameObject PedestalPrefab => pedestalPrefab;
-        public float PedestalHeight => raiseHeight;
-
         /// <summary>
         /// 모듈을 설치한다. 실패하면 null을 반환하고 아무것도 바꾸지 않는다.
         /// carriedUpgrade: 정비 화면에서 집어 옮기는 블록의 강화 상태(번호·단계를 그대로 잇는다). 새 블록이면 null.

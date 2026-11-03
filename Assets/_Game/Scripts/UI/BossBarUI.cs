@@ -12,6 +12,8 @@ namespace Game.UI
     /// 보스 막대(2026-10-11 점검 K05). 보스가 나와 있는 동안 화면 위 가운데(진행·알림 아래)에:
     ///   이름 · 체력 막대(단계가 바뀌는 지점에 눈금, 지난 눈금은 흐리게) · 지금 단계 · "다음: 미사일 일제사격 3.2초" · 대응 한 줄(사전과 같은 글).
     /// 다음 공격이 2초 안이면 붉게 깜빡인다(번쩍임 줄이기면 깜빡이지 않고 붉게만). 첫 패배 뒤 대응법을 미리 읽게 하는 것이 목적.
+    /// 부위(2026-11-03, IBossParts): 부위가 있는 보스면 아래에 한 줄 더 — 부위마다 짧은 이름 + 작은 체력 막대, 부서지면 흐린 글자에 "파괴".
+    ///   어느 부위를 노리면 어떤 공격이 멈추는지 보고 고를 수 있게.
     /// </summary>
     public sealed class BossBarUI : MonoBehaviour
     {
@@ -21,10 +23,27 @@ namespace Game.UI
         private static readonly Color Track = new(0.15f, 0.2f, 0.24f, 1f);
         private static readonly Color Gold = new(0.98f, 0.73f, 0.28f);
 
-        private RectTransform _panel, _fill, _ticks;
+        private RectTransform _panel, _fill, _ticks, _partsRow;
         private TMP_Text _name, _phase, _next, _tip;
         private EnemyController _boss;
         private float _poll;
+        private TMP_FontAsset _font;
+        private readonly System.Collections.Generic.List<(TMP_Text label, RectTransform fill, Image img, float width)> _partChips = new();
+        private const float BaseHeight = 92f, PartsHeight = 26f;
+        private static readonly Color PartFill = new(0.98f, 0.62f, 0.3f, 1f);
+
+        /// <summary>검증용: 부위 줄 글(부위마다 "이름 남은%" 또는 "이름 파괴").</summary>
+        public string PartsText
+        {
+            get
+            {
+                if (_boss is not IBossParts bp || bp.Parts == null) return "";
+                var sb = new System.Text.StringBuilder();
+                foreach (var part in bp.Parts.Parts) sb.Append(part.Destroyed ? $"{part.Name} 파괴 · " : $"{part.Name} {part.HpFraction * 100f:0}% · ");
+                return sb.ToString();
+            }
+        }
+        public int PartChips => _partChips.Count;
 
         /// <summary>검증용: 지금 따라가는 보스와 글.</summary>
         public EnemyController Boss => _boss;
@@ -62,6 +81,8 @@ namespace Game.UI
             _tip = Label(root, font, "Tip", new Vector2(12, -68), new Vector2(Width - 24, 20), 13, new Color(0.66f, 1f, 0.75f), TextAlignmentOptions.TopLeft);
             _tip.overflowMode = TextOverflowModes.Ellipsis;
             _tip.textWrappingMode = TextWrappingModes.NoWrap;
+            _partsRow = Rect(root, "Parts", new Vector2(12, -BaseHeight + 4f), new Vector2(Width - 24, PartsHeight - 6f), Color.clear);
+            _font = font;
             _panelHolder = root.gameObject;
         }
 
@@ -105,7 +126,52 @@ namespace Game.UI
                     : $"다음  <b>{name}</b>  <color={(soon ? (blink ? "#ffffff" : "#ff6b5a") : "#e0c05a")}>{(sec < 0.1f ? "곧" : $"{sec:0.0}초")}</color>";
             }
             else { _phase.text = ""; _next.text = ""; }
+            UpdateParts();
         }
+
+        /// <summary>부위 줄: 남은 체력만큼 막대, 부서졌으면 흐린 글자 + "파괴".</summary>
+        private void UpdateParts()
+        {
+            if (_boss is not IBossParts bp || bp.Parts == null) return;
+            var parts = bp.Parts.Parts;
+            if (parts.Count != _partChips.Count) { BuildParts(); return; }
+            for (int i = 0; i < parts.Count; i++)
+            {
+                var part = parts[i];
+                var chip = _partChips[i];
+                chip.fill.sizeDelta = new Vector2(chip.width * part.HpFraction, 4f);
+                string text = part.Destroyed ? $"<color=#7d8a92>{Short(part.Name)} <b>파괴</b></color>" : Short(part.Name);
+                if (chip.label.text != text) chip.label.text = text;
+                chip.img.color = part.HpFraction < 0.35f ? new Color(1f, 0.35f, 0.25f) : PartFill;
+            }
+        }
+
+        /// <summary>부위 칸을 다시 만든다(보스가 바뀌거나 부위 수가 달라질 때). 부위가 없으면 패널을 원래 높이로.</summary>
+        private void BuildParts()
+        {
+            foreach (Transform c in _partsRow) Destroy(c.gameObject);
+            _partChips.Clear();
+            var parts = _boss is IBossParts bp && bp.Parts != null ? bp.Parts.Parts : null;
+            int n = parts != null ? parts.Count : 0;
+            _panel.sizeDelta = new Vector2(Width, n > 0 ? BaseHeight + PartsHeight : BaseHeight);
+            if (n == 0) return;
+            const float gap = 6f;
+            float w = ((Width - 24) - gap * (n - 1)) / n;
+            for (int i = 0; i < n; i++)
+            {
+                float x = i * (w + gap);
+                var label = Label(_partsRow, _font, "Part", new Vector2(x, 0f), new Vector2(w, 15f), 11.5f, new Color(0.9f, 0.93f, 0.95f), TextAlignmentOptions.TopLeft);
+                label.overflowMode = TextOverflowModes.Ellipsis;
+                label.textWrappingMode = TextWrappingModes.NoWrap;
+                var track = Rect(_partsRow, "PartTrack", new Vector2(x, -15f), new Vector2(w, 4f), Track);
+                var fill = Rect(track, "PartFill", Vector2.zero, new Vector2(w, 4f), PartFill);
+                _partChips.Add((label, fill, fill.GetComponent<Image>(), w));
+            }
+        }
+
+        /// <summary>좁은 칸에 맞게 줄인 부위 이름("좌현 미사일 발사대" → "좌현 미사일").</summary>
+        private static string Short(string name) => name
+            .Replace(" 발사대", "").Replace(" 발사관", "");
 
         private void Find()
         {
@@ -126,6 +192,7 @@ namespace Game.UI
             }
             _tip.text = string.IsNullOrEmpty(tip) ? "" : $"대응  {tip}";
             BuildTicks();
+            BuildParts();
         }
 
         private void BuildTicks()

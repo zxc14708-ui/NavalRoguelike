@@ -45,6 +45,10 @@ namespace Game.Dev
             if (quick != 3) Fail("시설 바로 가기(연구소·기록실·정비창)가 보이지 않음");
             if (shown < 1) Fail("기능 건물 이름표가 하나도 보이지 않음");
             if (hover != "행정동 A") Fail("이름만 있는 건물에 마우스를 올려도 이름이 나오지 않음");
+            yield return new WaitForSecondsRealtime(1.5f);   // 해안 물빛이 기지 모래·부두를 찾을 시간(1초마다 찾는다)
+            _report.AppendLine($"- 해안 물빛(군항): 부두 윤곽 {Game.View.ShoreWaterMask.PierOutlines}개(수면을 뚫고 선 조각 — 부두 · 말뚝 · 정박한 배) · {Game.View.ShoreWaterMask.PierSources}");
+            if (Game.View.ShoreWaterMask.Enabled && Game.View.ShoreWaterMask.PierOutlines == 0) Fail("군항 부두에 물거품 윤곽이 없음");
+            Game.View.ShoreWaterMask.Instance?.SaveMask(System.IO.Path.Combine(OutputDirectory, "harbor_shore_mask.png"));
             yield return HarborShot("harbor_buildings_overview");
 
             // 2) 건물 확대 · 패널 · 돌아가기

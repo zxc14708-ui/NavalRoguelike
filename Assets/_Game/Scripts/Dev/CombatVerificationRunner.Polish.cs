@@ -30,7 +30,8 @@ namespace Game.Dev
             ship.SetEngineOrder(0f);
             yield return new WaitForSeconds(2f);
 
-            // 2) CIWS: 시작 배치에서 함교 바로 옆이면 받침 위 — 앞쪽 30m 미사일 높이를 덮는가
+            // 2) CIWS: 1단 그대로 — 상부 구조물(함교)에 가린 방향은 쏘지 못하는 것이 규칙(2026-11-03 사용자: 받침으로 올리지 않는다).
+            //    시작 배치에서 함교 바로 뒤 CIWS는 앞쪽을 못 막고 뒤쪽은 막는지 본다.
             CiwsModule ciws = null;
             foreach (var m in ship.Grid.Modules) if (m?.Runtime is CiwsModule c) { ciws = c; break; }
             if (ciws != null)
@@ -38,9 +39,9 @@ namespace Game.Dev
                 Vector3 ahead = ship.transform.position + ship.transform.forward * 30f + Vector3.up * 1.2f;
                 Vector3 astern = ship.transform.position - ship.transform.forward * 30f + Vector3.up * 1.2f;
                 bool front = ciws.CoversPoint(ahead), back = ciws.CoversPoint(astern);
-                _report.AppendLine($"- CIWS: 구조물 받침 {ciws.StructureMount:0.0}m · 앞쪽 30m 덮음 {Yes(front)} · 뒤쪽 30m 덮음 {Yes(back)}");
-                if (ciws.StructureMount > 0f && !front) Fail("구조물 받침 위 CIWS가 함교 너머 앞쪽을 덮지 못함");
-                yield return CloseShot("polish_ciws_mount", ciws.transform, 9f);
+                _report.AppendLine($"- CIWS(1단, 함교에 가린 방향은 사격 금지): 앞쪽 30m 덮음 {Yes(front)} · 뒤쪽 30m 덮음 {Yes(back)}");
+                if (!back) Fail("CIWS가 트인 뒤쪽도 덮지 못함");
+                yield return CloseShot("polish_ciws", ciws.transform, 9f);
             }
             else _report.AppendLine("- CIWS: 시작 배치에 없음 — 건너뜀");
 
@@ -76,18 +77,32 @@ namespace Game.Dev
                 if (errT > 1.5f || errT >= errS) Fail("선회 표적 예측이 직선 예측보다 낫지 않음");
             }
 
-            // 4) 보스 부위 파괴: 두 보스를 멈춰 세우고 선수 함포 자리에 피해
-            foreach (var id in new[] { "ene_boss", "ene_boss_corvette" })
+            // 4) 보스 부위 파괴: 네 보스(1·2·3스테이지 + WWII 순양함)를 멈춰 세우고 첫 부위 자리에 피해, 보스 막대의 부위 줄도 본다
+            var ww2Ruleset = Resources.Load<Game.Data.RulesetDefinition>("Rulesets/ww2_v1");
+            foreach (var id in new[] { "ene_boss", "ene_boss_corvette", "ene_boss2", "ww2_boss_gunnery_cruiser" })
             {
                 CombatDevTools.ClearBattlefield();
                 yield return null;
                 var def = CombatDevTools.FindEnemy(id);
-                var boss = def != null ? EnemySpawner.Instance.SpawnAt(def, ship.transform.position + ship.transform.forward * 45f, Quaternion.identity) : null;
+                if (def == null && ww2Ruleset != null)
+                    foreach (var e in ww2Ruleset.Enemies) if (e != null && e.Id == id) def = e;
+                Vector3 at = ship.transform.position + ship.transform.forward * 45f;
+                var boss = def != null ? EnemySpawner.Instance.SpawnAt(def, at, Quaternion.identity) : null;
+                if (boss == null && def != null && def.Prefab != null)
+                {
+                    // 스포너는 지금 규칙(현대)에 없는 WWII 적을 막는다 — 검사에서만 풀에서 바로 꺼내 맞춘다
+                    var go = PoolManager.Instance?.Spawn(def.Prefab, at, Quaternion.identity);
+                    if (go != null && go.TryGetComponent<EnemyController>(out var direct)) { direct.Setup(def, ship.transform); direct.transform.SetPositionAndRotation(at, Quaternion.identity); boss = direct; }
+                }
                 if (boss == null) { _report.AppendLine($"- 보스 부위({id}): 생성 실패 — 건너뜀"); continue; }
                 boss.DevFrozen = true;
                 yield return null;
-                BossParts parts = boss is ModernCorvetteBoss mc ? mc.Parts : boss is BossShip bs ? bs.Parts : null;
+                BossParts parts = boss is IBossParts bp ? bp.Parts : null;
                 if (parts == null || parts.Parts.Count == 0) { Fail($"{def.DisplayName}에 부위가 없음"); continue; }
+                // 보스 막대: 부위 줄이 생기는가(막대는 0.25초마다 보스를 찾는다)
+                var bar = Object.FindFirstObjectByType<Game.UI.BossBarUI>();
+                yield return new WaitForSeconds(0.6f);
+                int chips = bar != null && bar.Boss == boss ? bar.PartChips : -1;
                 var first = parts.Parts[0];
                 float hp0 = boss.CurrentHp / Mathf.Max(1f, def.MaxHp);
                 int hits = 0;
@@ -102,6 +117,11 @@ namespace Game.Dev
                 if (!first.Destroyed) Fail($"{def.DisplayName}의 {first.Name}이 부서지지 않음");
                 if (!boss.IsAlive) Fail("부위만 노렸는데 보스가 격침됨");
                 yield return new WaitForSeconds(0.6f);
+                string barText = bar != null ? bar.PartsText : "";
+                _report.AppendLine($"  - 보스 막대 부위 줄: 칸 {chips}/{parts.Parts.Count} · \"{barText}\"");
+                if (chips != parts.Parts.Count) Fail($"{def.DisplayName}: 보스 막대에 부위 줄이 없거나 칸 수가 다름");
+                if (!barText.Contains(first.Name + " 파괴")) Fail("보스 막대가 부서진 부위를 표시하지 않음");
+                yield return Shot($"polish_boss_bar_{id}");
                 yield return CloseShot($"polish_boss_part_{id}", first.Anchor, 12f);
                 // 광역 피해(맞은 자리 없음)는 부위를 깎지 않는다
                 var second = parts.Parts.Count > 1 ? parts.Parts[1] : null;
@@ -111,6 +131,7 @@ namespace Game.Dev
                     boss.TakeDamage(new DamageInfo(10f, Vector3.zero, Vector3.down, DamageSource.Gun, "검증"));
                     if (!Mathf.Approximately(before, second.Hp)) Fail("맞은 자리 없는 피해가 부위를 깎음");
                 }
+                if (boss.IsAlive) boss.RemoveWithoutReward();   // 풀에서 바로 꺼낸 보스도 치운다
             }
             CombatDevTools.ClearBattlefield();
 
@@ -152,6 +173,25 @@ namespace Game.Dev
             if (!Game.View.OceanWaveTexture.HeightReady) Fail("파도 높이를 CPU에서 읽을 수 없음");
             if (sway == null || maxTilt < 0.2f) Fail("기함 흔들림이 파도를 따르지 않음");
             if (enemyTilt < 0.2f) Fail("적 수상함에 파도 흔들림이 없음");
+
+            // 7-1) 호위함 파도 흔들림(2026-11-03)
+            var fleet = ship.GetComponent<Game.TaskForce.TaskForceEscortFormation>();
+            if (fleet != null)
+            {
+                if (fleet.EscortCount == 0) fleet.Deploy();
+                yield return new WaitForSeconds(3f);
+                float escortTilt = 0f;
+                var esc = fleet.EscortCount > 0 ? fleet.GetEscort(0) : null;
+                var prop = esc != null ? esc.GetType().GetProperty("WaveMotion") : null;
+                for (float t = 0f; t < 3f && prop != null; t += 0.1f)
+                {
+                    yield return new WaitForSeconds(0.1f);
+                    var m = (Vector3)prop.GetValue(esc);
+                    escortTilt = Mathf.Max(escortTilt, Mathf.Abs(m.y), Mathf.Abs(m.z));
+                }
+                _report.AppendLine($"- 호위함 파도 흔들림(3초): 기울기 최대 {escortTilt:0.0}°");
+                if (escortTilt < 0.2f) Fail("호위함에 파도 흔들림이 없음");
+            }
             CombatDevTools.ClearBattlefield();
 
             // 7) 선체 둘레 거품: 정지 → 전속

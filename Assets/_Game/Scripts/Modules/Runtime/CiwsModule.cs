@@ -158,39 +158,11 @@ namespace Game.Modules.Runtime
             _barrelSpeedRpm = 0f;
         }
 
-        /// <summary>
-        /// 함교·레이더·헬기데크 방향은 사격 금지. 머리 위로 넘어오는 높은 미사일은 쏠 수 있다.
-        /// 상부 구조물 바로 옆이면 구조물 받침(FireArcCalculator.CiwsMountHeight) 위로 올라가 그 구조물 너머로도 쏜다(2026-11-01).
-        /// </summary>
+        /// <summary>함교·레이더·헬기데크 방향은 사격 금지. 머리 위로 넘어오는 높은 미사일은 쏠 수 있다.</summary>
         protected override void OnShipLayoutChanged()
         {
             if (Grid == null || Instance == null) return;
-            ApplyStructureMount(FireArcCalculator.CiwsOnStructureMount(Grid, Instance.Origin) ? FireArcCalculator.CiwsMountHeight : 0f);
             weapon.SetFireArc(FireArcCalculator.ComputeCiws(Grid, Instance.Origin, Instance.RotationSteps));
-        }
-
-        private float _mount;
-
-        /// <summary>검증용: 구조물 받침 높이(0이면 갑판 위).</summary>
-        public float StructureMount => _mount;
-
-        /// <summary>모델을 받침 높이만큼 올리고 아래에 늘린 받침을 세운다(바뀌었을 때만).</summary>
-        private void ApplyStructureMount(float height)
-        {
-            if (Mathf.Approximately(height, _mount)) return;
-            transform.localPosition += Vector3.up * (height - _mount);
-            _mount = height;
-            var old = transform.Find("StructureMount");
-            if (old != null) Destroy(old.gameObject);
-            if (height <= 0f) return;
-            var factory = Object.FindFirstObjectByType<ModuleFactory>();
-            if (factory == null || factory.PedestalPrefab == null) return;
-            var pedestal = Instantiate(factory.PedestalPrefab, transform);
-            pedestal.name = "StructureMount";
-            pedestal.transform.localPosition = Vector3.down * height;
-            pedestal.transform.localRotation = Quaternion.identity;
-            pedestal.transform.localScale = new Vector3(1f, height / Mathf.Max(0.1f, factory.PedestalHeight), 1f);
-            foreach (var t in pedestal.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = gameObject.layer;
         }
 
         protected override void Tick(float dt)

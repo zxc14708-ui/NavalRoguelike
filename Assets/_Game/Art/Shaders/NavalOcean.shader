@@ -272,12 +272,16 @@ Shader "Naval/Ocean"
                 water *= 0.90 + 0.10 * nl;
 
                 // --- 해안 물빛(시험): 해안 거리 shoreDist(m), 32 = 먼 바다
-                float shoreDist = 32.0;
+                float shoreDist = 32.0, pierDist = 32.0;   // R = 해안(얕은 물빛 + 거품), G = 부두(거품만, 2026-11-03)
                 if (_NavalShoreFx > 0.5)
                 {
                     float2 suv = (xz - _NavalShoreRect.xy) * _NavalShoreRect.zw;
                     if (all(suv > 0.0) && all(suv < 1.0))
-                        shoreDist = SAMPLE_TEXTURE2D(_NavalShoreMask, sampler_NavalShoreMask, suv).r * 32.0;
+                    {
+                        float2 sm = SAMPLE_TEXTURE2D(_NavalShoreMask, sampler_NavalShoreMask, suv).rg * 32.0;
+                        shoreDist = sm.x;
+                        pierDist = sm.y;
+                    }
                 }
                 float shallow = 1.0 - smoothstep(0.0, 20.0, shoreDist);
                 if (shallow > 0.0)
@@ -336,14 +340,18 @@ Shader "Naval/Ocean"
                 }
 
                 // --- 해안 거품(시험): 해안에 붙은 띠 + 바다 쪽에서 밀려오는 물결 줄
-                if (shoreDist < 10.0)
+                // 부두·정박한 배는 같은 거품을 조금 좁게(거리를 1.6배로 본다)
+                float foamDist = min(shoreDist, pierDist * 1.6);
+                if (foamDist < 10.0)
                 {
+                    float shoreDistF = foamDist;
                     float fn = ValueNoise(xz * 0.8 + float2(t * 0.09, -t * 0.06)) * 0.6 + ValueNoise(xz * 2.3 - t * 0.15) * 0.4;
                     // 해안에 붙은 또렷한 흰 파도선(굵기가 노이즈로 들쭉날쭉) + 바다 쪽에서 밀려오는 가는 줄
-                    float edge = 1.2 + fn * 1.8;
-                    float band = 1.0 - smoothstep(edge - 0.25, edge + 0.25, shoreDist);
-                    float lap = sin(shoreDist * 1.15 - t * 1.7 + fn * 2.0) * 0.5 + 0.5;
-                    float lines = (1.0 - smoothstep(3.0, 8.0, shoreDist)) * smoothstep(0.90, 0.95, lap) * step(0.42, fn);
+                    // 2026-11-03: 파도선 굵기 약 60%로(사용자 — 너무 두꺼움). 띠 1.2~3.0m → 0.7~1.8m, 밀려오는 줄도 가늘게.
+                    float edge = 0.7 + fn * 1.1;
+                    float band = 1.0 - smoothstep(edge - 0.2, edge + 0.2, shoreDistF);
+                    float lap = sin(shoreDistF * 1.15 - t * 1.7 + fn * 2.0) * 0.5 + 0.5;
+                    float lines = (1.0 - smoothstep(2.5, 7.0, shoreDistF)) * smoothstep(0.93, 0.97, lap) * step(0.42, fn);
                     col = lerp(col, _FoamColor.rgb * (0.9 + 0.1 * nl), saturate(band + lines * 0.6) * _ShoreFoam);
                 }
 

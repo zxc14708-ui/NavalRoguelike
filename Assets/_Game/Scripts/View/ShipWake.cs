@@ -253,7 +253,7 @@ namespace Game.View
             _hullFoam.colors32 = _hullFoamColors;
         }
 
-        /// <summary>둥근 사각(초타원) 고리. 안쪽은 선체 가장자리 살짝 안(선체가 가림), 바깥은 0.7m + 선수 쪽 최대 +1m. uv.x 0.5(안) → 1(밖).</summary>
+        /// <summary>둥근 사각(초타원) 고리. 안쪽은 선체 가장자리 살짝 안(선체가 가림), 바깥은 0.45m + 선수 쪽 최대 +0.65m. uv.x 0.5(안) → 1(밖).</summary>
         private void BuildHullFoam(Vector3 size, Vector3 center)
         {
             _hullFoamSize = size;
@@ -273,7 +273,7 @@ namespace Game.View
                 var p = new Vector3(Mathf.Sign(c) * Mathf.Sqrt(Mathf.Abs(c)) * hx, 0f, Mathf.Sign(s) * Mathf.Sqrt(Mathf.Abs(s)) * hz);
                 var outward = new Vector3(p.x / Mathf.Max(0.1f, hx * hx), 0f, p.z / Mathf.Max(0.1f, hz * hz)).normalized;
                 float bow = Mathf.Clamp01(s);   // +z = 선수
-                float width = 0.7f + 1.0f * bow * bow;
+                float width = 0.45f + 0.65f * bow * bow;   // 2026-11-03: 0.7 + 1.0 → 0.45 + 0.65(얇게)
                 var inner = new Vector3(center.x, 0f, center.z) + p - outward * 0.15f;
                 var outer = new Vector3(center.x, 0f, center.z) + p + outward * width;
                 if (i > 0) along += Vector3.Distance(inner, prev);
