@@ -11,8 +11,10 @@ namespace Game.View
     /// 배가 지나간 자리를 일정 간격으로 기록해 띠를 만들므로 선회하면 물살도 휘어진다.
     /// 배 움직임(2026-11-01): 세게 돌거나 가속하면(휘저음) 추진기 물살이 넓고 하얗게 일고, 거품 둘레에 공기 섞인 밝은 물빛이 남는다.
     ///   정점 색 r = 남은 수명(1 = 막 생김), g = 휘저음(0~1), a = 세기 — 셰이더가 오래된 거품일수록 성기게 흩는다.
-    /// 선체 둘레 거품(2026-11-01): 수면선에서 선체를 두르는 거품 고리(둥근 사각, 48칸). 멈춰 있으면 옅게 찰랑이고,
+    /// 선체 둘레 거품(2026-11-01): 수면선에서 선체를 두르는 거품 고리. 멈춰 있으면 옅게 찰랑이고,
     ///   속력이 붙을수록 짙어지며 선수 쪽이 넓고 하얗다(물이 부딪히는 자리). 배를 따라 움직이는 자식 물체라 띠와 달리 기록이 없다.
+    ///   모양(2026-11-09): 배 모양을 따른다 — 기함은 실제 칸 배치 + 함수 뾰족 끝 + 함미 트랜섬의 윤곽, 적·호위함은 선체 상자 크기로 만든
+    ///   배 평면(선미는 조금 좁고 가운데는 곧고 앞 40%에서 선수 끝으로 모임). 예전 둥근 사각은 배보다 뭉툭하고 컸다.
     /// 세기는 속력에 비례하고 시간이 지나면 흐려진다. 정지하면 새 물살이 생기지 않는다.
     ///
     /// 플레이어 함선과 수상함은 자동으로 붙는다(ShipController, EnemyController).
@@ -61,6 +63,8 @@ namespace Game.View
         private Color32[] _hullFoamColors;
         private float[] _hullFoamBow;        // 정점마다 선수 쪽 가중(0 선미 ~ 1 선수)
         private Vector3 _hullFoamSize;       // 만든 때의 선체 크기(바뀌면 다시 만든다)
+        private int _hullFoamCells = -1;     // 만든 때의 기함 칸 수(배치가 바뀌면 다시 만든다)
+        private Game.Ship.ShipGrid _grid;
 
         /// <summary>검증용: 선체 둘레 거품의 지금 세기(선수 쪽 정점 알파, 0~1).</summary>
         public float HullFoamStrength { get; private set; }
@@ -231,7 +235,9 @@ namespace Game.View
             if (_hull == null) _hull = GetComponent<BoxCollider>();
             Vector3 size = _hull != null ? _hull.size : new Vector3(2f, 1f, 6f);
             Vector3 center = _hull != null ? _hull.center : Vector3.zero;
-            if (_hullFoamColors == null || (size - _hullFoamSize).sqrMagnitude > 1e-4f) BuildHullFoam(size, center);
+            if (_grid == null) _grid = TryGetComponent<Game.Ship.ShipController>(out var sc) ? sc.Grid : null;
+            int cells = _grid != null ? _grid.OccupiedCells.Count : 0;
+            if (_hullFoamColors == null || (size - _hullFoamSize).sqrMagnitude > 1e-4f || cells != _hullFoamCells) BuildHullFoam(size, center);
 
             // 수면 높이에 붙인다(배 뿌리 높이가 달라도)
             var t = _hullFoamGo.transform;
@@ -253,29 +259,40 @@ namespace Game.View
             _hullFoam.colors32 = _hullFoamColors;
         }
 
-        /// <summary>둥근 사각(초타원) 고리. 안쪽은 선체 가장자리 살짝 안(선체가 가림), 바깥은 0.45m + 선수 쪽 최대 +0.65m. uv.x 0.5(안) → 1(밖).</summary>
+        /// <summary>
+        /// 배 모양 고리: 윤곽(배 로컬 xz, 볼록)을 둘레 길이로 고르게 다시 나눠, 안쪽은 윤곽 살짝 안(선체가 가림), 바깥은 0.45m + 선수 쪽 최대 +0.65m.
+        /// uv.x 0.5(안) → 1(밖).
+        /// </summary>
         private void BuildHullFoam(Vector3 size, Vector3 center)
         {
             _hullFoamSize = size;
-            int n = HullFoamSegments;
+            _hullFoamCells = _grid != null ? _grid.OccupiedCells.Count : 0;
+            var outline = _grid != null && _hullFoamCells > 0 ? GridOutline(_grid) : Planform(size, center);
+            var ring = Resample(outline, HullFoamSegments);
+            float zMin = float.MaxValue, zMax = float.MinValue;
+            foreach (var q in ring) { zMin = Mathf.Min(zMin, q.y); zMax = Mathf.Max(zMax, q.y); }
+            Vector2 centroid = Vector2.zero;
+            foreach (var q in ring) centroid += q;
+            centroid /= ring.Count;
+
+            int n = ring.Count;
             var verts = new Vector3[(n + 1) * 2];
             var uvs = new Vector2[(n + 1) * 2];
             _hullFoamColors = new Color32[(n + 1) * 2];
             _hullFoamBow = new float[(n + 1) * 2];
             var tris = new int[n * 6];
-            float hx = size.x * 0.5f, hz = size.z * 0.5f;
             float along = 0f;
             Vector3 prev = Vector3.zero;
             for (int i = 0; i <= n; i++)
             {
-                float ang = i * Mathf.PI * 2f / n;
-                float c = Mathf.Cos(ang), s = Mathf.Sin(ang);
-                var p = new Vector3(Mathf.Sign(c) * Mathf.Sqrt(Mathf.Abs(c)) * hx, 0f, Mathf.Sign(s) * Mathf.Sqrt(Mathf.Abs(s)) * hz);
-                var outward = new Vector3(p.x / Mathf.Max(0.1f, hx * hx), 0f, p.z / Mathf.Max(0.1f, hz * hz)).normalized;
-                float bow = Mathf.Clamp01(s);   // +z = 선수
-                float width = 0.45f + 0.65f * bow * bow;   // 2026-11-03: 0.7 + 1.0 → 0.45 + 0.65(얇게)
-                var inner = new Vector3(center.x, 0f, center.z) + p - outward * 0.15f;
-                var outer = new Vector3(center.x, 0f, center.z) + p + outward * width;
+                Vector2 p = ring[i % n], before = ring[(i - 1 + n) % n], after = ring[(i + 1) % n];
+                Vector2 tangent = (after - before).normalized;
+                Vector2 normal = new(tangent.y, -tangent.x);
+                if (Vector2.Dot(normal, p - centroid) < 0f) normal = -normal;   // 바깥쪽
+                float bow = Mathf.Clamp01((p.y - Mathf.Lerp(zMin, zMax, 0.5f)) / Mathf.Max(0.1f, (zMax - zMin) * 0.5f));   // 앞 절반에서 0 → 1
+                float width = 0.45f + 0.65f * bow * bow;
+                var inner = new Vector3(p.x - normal.x * 0.15f, 0f, p.y - normal.y * 0.15f);
+                var outer = new Vector3(p.x + normal.x * width, 0f, p.y + normal.y * width);
                 if (i > 0) along += Vector3.Distance(inner, prev);
                 prev = inner;
                 verts[i * 2] = inner; verts[i * 2 + 1] = outer;
@@ -292,6 +309,96 @@ namespace Game.View
             _hullFoam.colors32 = _hullFoamColors;
             _hullFoam.triangles = tris;
             _hullFoam.RecalculateBounds();
+        }
+
+        /// <summary>
+        /// 기함 윤곽(배 로컬 xz): 칸 모서리 + 함수 뾰족 끝(맨 앞 구간 가운데에서 1.2칸) + 함미 트랜섬(맨 뒤 구간에서 0.35칸, 모서리 깎임)의 볼록 껍질.
+        /// ShipHullBuilder가 만드는 함수·함미와 같은 치수.
+        /// </summary>
+        private List<Vector2> GridOutline(Game.Ship.ShipGrid grid)
+        {
+            float s = grid.CellSize;
+            var pts = new List<Vector2>();
+            int maxX = int.MinValue, minX = int.MaxValue;
+            foreach (var c in grid.OccupiedCells) { maxX = Mathf.Max(maxX, c.X); minX = Mathf.Min(minX, c.X); }
+            float frontMin = float.MaxValue, frontMax = float.MinValue, rearMin = float.MaxValue, rearMax = float.MinValue;
+            foreach (var c in grid.OccupiedCells)
+            {
+                for (int dx = -1; dx <= 1; dx += 2)
+                    for (int dz = -1; dz <= 1; dz += 2)
+                        pts.Add(new Vector2((c.Z + dz * 0.5f) * s, (c.X + dx * 0.5f) * s));   // 격자 Z → 로컬 x, 격자 X → 로컬 z
+                if (c.X == maxX) { frontMin = Mathf.Min(frontMin, (c.Z - 0.5f) * s); frontMax = Mathf.Max(frontMax, (c.Z + 0.5f) * s); }
+                if (c.X == minX) { rearMin = Mathf.Min(rearMin, (c.Z - 0.5f) * s); rearMax = Mathf.Max(rearMax, (c.Z + 0.5f) * s); }
+            }
+            pts.Add(new Vector2((frontMin + frontMax) * 0.5f, (maxX + 0.5f) * s + 1.2f * s));          // 함수 끝
+            float len = 0.35f * s, ch = Mathf.Min(len, (rearMax - rearMin) * 0.25f);
+            pts.Add(new Vector2(rearMin + ch, (minX - 0.5f) * s - len));                                // 함미 트랜섬
+            pts.Add(new Vector2(rearMax - ch, (minX - 0.5f) * s - len));
+            // 격자 로컬 → 배 로컬
+            for (int i = 0; i < pts.Count; i++)
+            {
+                var w = grid.transform.TransformPoint(new Vector3(pts[i].x, 0f, pts[i].y));
+                var l = transform.InverseTransformPoint(w);
+                pts[i] = new Vector2(l.x, l.z);
+            }
+            return Hull(pts);
+        }
+
+        /// <summary>적·호위함 배 평면(배 로컬 xz): 선미 82% 폭에서 곧게 넓어져 가운데는 온 폭, 앞 40%에서 선수 끝으로 모인다.</summary>
+        private static List<Vector2> Planform(Vector3 size, Vector3 center)
+        {
+            float halfB = Mathf.Max(0.3f, size.x * 0.5f), length = Mathf.Max(1f, size.z), z0 = center.z - length * 0.5f;
+            float Half(float u) => u < 0.12f ? halfB * (0.82f + 0.18f * u / 0.12f)
+                                 : u < 0.6f ? halfB
+                                 : halfB * (1f - Mathf.Pow((u - 0.6f) / 0.4f, 1.6f));
+            var right = new List<Vector2>();
+            var left = new List<Vector2>();
+            const int steps = 20;
+            for (int i = 0; i <= steps; i++)
+            {
+                float u = i / (float)steps, z = z0 + u * length, h = Half(u);
+                right.Add(new Vector2(center.x + h, z));
+                left.Add(new Vector2(center.x - h, z));
+            }
+            var poly = new List<Vector2>(right);
+            for (int i = left.Count - 1; i >= 0; i--) if (left[i] != right[i]) poly.Add(left[i]);   // 선수 끝(폭 0)은 한 번만
+            return poly;
+        }
+
+        /// <summary>볼록 껍질(반시계).</summary>
+        private static List<Vector2> Hull(List<Vector2> pts)
+        {
+            pts.Sort((a, b) => a.x != b.x ? a.x.CompareTo(b.x) : a.y.CompareTo(b.y));
+            var h = new List<Vector2>();
+            for (int pass = 0; pass < 2; pass++)
+            {
+                int start = h.Count;
+                for (int i = 0; i < pts.Count; i++)
+                {
+                    var q = pass == 0 ? pts[i] : pts[pts.Count - 1 - i];
+                    while (h.Count >= start + 2 && (h[^1].x - h[^2].x) * (q.y - h[^2].y) - (h[^1].y - h[^2].y) * (q.x - h[^2].x) <= 0f) h.RemoveAt(h.Count - 1);
+                    h.Add(q);
+                }
+                h.RemoveAt(h.Count - 1);
+            }
+            return h;
+        }
+
+        /// <summary>닫힌 다각형을 둘레 길이로 고르게 count점으로(모서리가 몰리지 않게).</summary>
+        private static List<Vector2> Resample(List<Vector2> poly, int count)
+        {
+            float total = 0f;
+            for (int i = 0; i < poly.Count; i++) total += (poly[(i + 1) % poly.Count] - poly[i]).magnitude;
+            var res = new List<Vector2>(count);
+            float step = total / count, need = 0f;
+            for (int i = 0; i < poly.Count && res.Count < count; i++)
+            {
+                Vector2 a = poly[i], b = poly[(i + 1) % poly.Count];
+                float seg = (b - a).magnitude;
+                while (need <= seg && res.Count < count) { res.Add(Vector2.Lerp(a, b, seg > 1e-5f ? need / seg : 0f)); need += step; }
+                need -= seg;
+            }
+            return res;
         }
 
         /// <summary>

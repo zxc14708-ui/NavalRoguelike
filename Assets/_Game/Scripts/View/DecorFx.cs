@@ -19,10 +19,12 @@ namespace Game.View
         public static readonly Vector3 Wind = new(2.2f, 0f, 1.2f);
 
         private static Transform s_root;
-        private static ParticleSystem s_spray, s_smoke, s_wreckSmoke, s_fire, s_sparks, s_flash, s_blastFire;
+        private static ParticleSystem s_spray, s_smoke, s_wreckSmoke, s_fire, s_sparks, s_flash, s_blastFire, s_chaff;
         private static Material s_material, s_blastMaterial;
 
         public static ParticleSystem Spray => Get(ref s_spray, "Bow spray", 2000, 1f, 1.7f, 0.75f, false);
+        /// <summary>기만체 은박(채프): 작은 반짝이가 아주 천천히 떨어진다(크기 그대로, 2026-11-09)</summary>
+        public static ParticleSystem Chaff => Get(ref s_chaff, "Decoy chaff", 1500, 1f, 0.9f, 0.04f, false);
         public static ParticleSystem Smoke => Get(ref s_smoke, "Funnel smoke", 2500, 1f, 3.4f, 0f, true);
         public static ParticleSystem WreckSmoke => Get(ref s_wreckSmoke, "Wreck smoke", 1200, 1f, 3.6f, 0f, true);
         public static ParticleSystem Fire => Get(ref s_fire, "Wreck fire", 900, 1f, 0.35f, -0.05f, false);

@@ -45,6 +45,28 @@ namespace Game.Dev
             }
             else _report.AppendLine("- CIWS: 시작 배치에 없음 — 건너뜀");
 
+            // 0) 기만체 채프 구름(2026-11-09): 터진 뒤 수명 끝까지 구름·은박이 남는가 — 쏜 뒤 1.5 · 4 · 6.5초를 찍는다
+            DecoyLauncherModule launcher = null;
+            foreach (var m in ship.Grid.Modules) if (m?.Runtime is DecoyLauncherModule d && m.IsOperational) { launcher = d; break; }
+            if (launcher != null)
+            {
+                launcher.Deploy(ship.transform.position + ship.transform.forward * 40f);
+                float t0 = Time.time;
+                var counts = new StringBuilder();
+                int late = 0;
+                foreach (float at in new[] { 1.5f, 4f, 6.5f })
+                {
+                    while (Time.time - t0 < at) yield return null;
+                    int chaff = Game.View.DecorFx.Count(Game.View.DecorFx.Chaff);
+                    if (at > 6f) late = chaff;
+                    counts.Append($"{at:0.0}초 은박 {chaff} · ");
+                    yield return Shot($"polish_decoy_{Mathf.RoundToInt(at * 10):00}");
+                }
+                _report.AppendLine($"- 기만체 채프 구름: {counts}");
+                if (late < 10) Fail("기만체가 터진 뒤 채프 구름이 남지 않음");
+            }
+            else _report.AppendLine("- 기만체: 발사기 없음 — 건너뜀");
+
             // 1) 함교 파괴
             ModuleInstance bridge = null; WeaponModuleProbe(ship, out var gun);
             foreach (var m in ship.Grid.Modules) if (m?.Definition != null && m.Definition.Type == ModuleType.Bridge) { bridge = m; break; }
@@ -173,6 +195,7 @@ namespace Game.Dev
             if (!Game.View.OceanWaveTexture.HeightReady) Fail("파도 높이를 CPU에서 읽을 수 없음");
             if (sway == null || maxTilt < 0.2f) Fail("기함 흔들림이 파도를 따르지 않음");
             if (enemyTilt < 0.2f) Fail("적 수상함에 파도 흔들림이 없음");
+            if (boat.Count > 0 && boat[0] != null) yield return CloseShot("polish_enemy_hull_foam", boat[0].transform, 10f);   // 배 모양 거품 고리
 
             // 7-1) 호위함 파도 흔들림(2026-11-03)
             var fleet = ship.GetComponent<Game.TaskForce.TaskForceEscortFormation>();
