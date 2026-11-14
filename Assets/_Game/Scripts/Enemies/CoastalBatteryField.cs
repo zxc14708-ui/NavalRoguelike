@@ -53,15 +53,27 @@ namespace Game.Enemies
         {
             Instance = this;
             SeaRegion.Changed += OnSeaChanged;
+            SeaRegion.HarborChanged += OnHarborChanged;
         }
 
         private void OnDestroy()
         {
             SeaRegion.Changed -= OnSeaChanged;
+            SeaRegion.HarborChanged -= OnHarborChanged;
             if (Instance == this) Instance = null;
         }
 
         private void OnSeaChanged(SeaKind kind) => Reset();
+
+        /// <summary>군항 만·부지(기슭 모양이 바뀌는 곳)의 기슭 포대는 치운다 — 군항 포대는 HarborAssault가 안벽 양 끝에 따로 둔다.</summary>
+        private static bool InHarborZone(Vector3 p) => SeaRegion.HarborActive && SeaRegion.HarborT(p) > SeaRegion.HarborEntranceT - 40f;
+
+        private void OnHarborChanged()
+        {
+            _remove.Clear();
+            foreach (var kv in _placed) if (kv.Value != null && InHarborZone(kv.Value.transform.position)) _remove.Add(kv.Key);
+            foreach (var key in _remove) { _placed[key].RemoveWithoutReward(); _placed.Remove(key); }
+        }
 
         /// <summary>세운 포대를 모두 치우고 격침 기록을 지운다.</summary>
         public void Reset()
@@ -125,6 +137,7 @@ namespace Game.Enemies
                     float along = index * IslandBuilder.BankSegmentLength + IslandBuilder.BankSegmentLength * 0.5f;
                     float shore = IslandBuilder.BankShore(along, side, field.Seed);
                     Vector3 pos = SeaRegion.ChannelPoint(along, side * (shore - 2.2f));
+                    if (InHarborZone(pos)) continue;
                     var rot = Quaternion.LookRotation(-SeaRegion.ChannelRight * side, Vector3.up);
                     _candidates.Add((Key(1, index, side), pos, rot, Flat(pos - me)));
                 }

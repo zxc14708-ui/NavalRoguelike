@@ -326,7 +326,7 @@ namespace Game.UI
                 Row(sb, $"<b>{sea.Title}</b>", sea.Tactics);
             }
             Row(sb, "<b>해안포대</b>", "섬·기슭 물가에 박힌 고정 포대. 45m 안에 곡사포 2발(떨어질 자리가 보인다), 체력 110. 곡사포·76mm로 먼저 부수거나 섬 뒤로 피한다. 격침한 자리에는 다시 서지 않는다.");
-            Row(sb, "<b>좁은 수로</b>", $"물길 폭 {Game.World.SeaRegion.ChannelHalfWidth * 2f:0}m. 양안 너머로는 나갈 수 없다 — 회피 공간이 좁으니 대잠 수단과 곡사포를 챙긴다.");
+            Row(sb, "<b>좁은 수로</b>", $"물길 폭 {Game.World.SeaRegion.ChannelHalfWidth * 2f:0}m. 양안 너머로는 나갈 수 없다 — 회피 공간이 좁으니 대잠 수단과 곡사포를 챙긴다. 마지막 구간에는 수로 끝이 지름 약 {Game.World.SeaRegion.HarborRadius * 2f:0}m의 만으로 열리고, 그 안쪽 적 군항에서 보스와 싸운다.");
             yield return Term("term_sea", "해역 · 해안포대", "진행", CodexRole.Surface | CodexRole.Sub | CodexRole.Air, sb.ToString().TrimEnd());
 
             sb.Clear();

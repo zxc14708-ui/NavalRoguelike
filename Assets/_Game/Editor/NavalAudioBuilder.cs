@@ -19,6 +19,10 @@ namespace Game.EditorTools
             // 짧은 효과음은 미리 풀어 둬야 첫 발사 때 끊기지 않는다. 긴 루프는 압축 상태로 둔다.
             ConfigureImport("SFX_Autocannon_Shot", AudioClipLoadType.DecompressOnLoad);
             ConfigureImport("SFX_CIWS_Burst", AudioClipLoadType.DecompressOnLoad);
+            ConfigureImport("SFX_NavalGun76_Shot", AudioClipLoadType.DecompressOnLoad);   // 2026-11-15 전용 포성
+            ConfigureImport("SFX_TwinGun40_Shot", AudioClipLoadType.DecompressOnLoad);
+            foreach (var hit in new[] { "SFX_HullHit_Gun", "SFX_HullHit_Shell", "SFX_HullHit_Missile", "SFX_HullHit_Torpedo", "SFX_HullHit_Collision" })
+                ConfigureImport(hit, AudioClipLoadType.DecompressOnLoad);   // 2026-11-15 기함 피격음(ArtSource/Audio/HullHitSfx_v1/synth.py)
             ConfigureImport("SFX_Missile_Launch", AudioClipLoadType.DecompressOnLoad);
             ConfigureImport("SFX_Explosion_Large", AudioClipLoadType.DecompressOnLoad);
             ConfigureImport("SFX_Hull_Impact", AudioClipLoadType.DecompressOnLoad);
@@ -31,7 +35,14 @@ namespace Game.EditorTools
             {
                 //                       이름                클립                    음량  음높이  3D   간격   동시
                 Entry(so, "autocannonShot", "SFX_Autocannon_Shot", 0.4f,  0.1f,  1f, 0.05f, 6);   // 속사라 한 발은 작게
-                Entry(so, "navalGunShot",   "SFX_Autocannon_Shot", 0.95f, 0.04f, 1f, 0.08f, 3);   // 76mm: 코드가 낮은 음으로 튼다
+                Entry(so, "navalGunShot",   "SFX_NavalGun76_Shot", 0.8f,  0.04f, 1f, 0.08f, 4);   // 76mm 전용(곡사포·적 함포는 코드가 음높이를 바꿔 쓴다)
+                // 기함 피격(무기 종류별) — 3D 절반: 기함 소리라 멀리서도 들리게
+                Entry(so, "hullHitGun",       "SFX_HullHit_Gun",       0.55f, 0.12f, 0.5f, 0.06f, 4);
+                Entry(so, "hullHitShell",     "SFX_HullHit_Shell",     0.8f,  0.06f, 0.5f, 0.1f,  3);
+                Entry(so, "hullHitMissile",   "SFX_HullHit_Missile",   0.75f, 0.05f, 0.5f, 0.12f, 3);
+                Entry(so, "hullHitTorpedo",   "SFX_HullHit_Torpedo",   0.85f, 0.04f, 0.5f, 0.2f,  2);
+                Entry(so, "hullHitCollision", "SFX_HullHit_Collision", 0.7f,  0.06f, 0.5f, 0.25f, 2);
+                Entry(so, "twinGunShot",    "SFX_TwinGun40_Shot",  0.2f,  0.06f, 1f, 0.05f, 5);   // 40mm 쌍열포(노봉) — 저음 보강판이 5.5dB 커서 음량 절반
                 Entry(so, "ciwsBurst",      "SFX_CIWS_Burst",      0.7f,  0.03f, 1f, 0f,    3);
                 Entry(so, "missileLaunch",  "SFX_Missile_Launch",  0.6f,  0.06f, 1f, 0.1f,  4);
                 Entry(so, "explosion",      "SFX_Explosion_Large", 0.8f,  0.10f, 1f, 0.08f, 6);

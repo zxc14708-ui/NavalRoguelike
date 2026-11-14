@@ -162,7 +162,7 @@ namespace Game.Modules.Runtime
             weapon.Kick(recoilDistance);
             if (_muzzleVfx == null) _muzzleVfx = gameObject.AddComponent<MuzzleBurstVfx>();
             _muzzleVfx.Emit(shotOrigin, dir, MuzzleBurstVfx.Style.NavalGun, muzzleFlash, true);
-            AudioManager.Play(Game.Data.SfxId.NavalGunShot, shotOrigin, 1f, 0.55f);   // 낮고 무거운 포성
+            AudioManager.Play(Game.Data.SfxId.NavalGunShot, shotOrigin);   // 76mm 포성(전용 클립, 2026-11-15)
         }
 
         /// <summary>교전거리 대역과 사격각을 모두 만족하는 표적만.</summary>

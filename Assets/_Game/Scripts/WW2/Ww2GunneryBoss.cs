@@ -199,7 +199,7 @@ namespace Game.WW2
                 go?.GetComponent<ArtilleryShell>()?.Launch(muzzle.position, impact, shellFlightTime + i * 0.05f, Definition.AttackDamage,
                                                            blastRadius, _playerHull, Ww2BattleLog.BossSalvo);
                 PooledEffect.Spawn(muzzleFlash, muzzle.position);
-                AudioManager.Play(SfxId.NavalGunShot, muzzle.position, 1f, 0.5f);
+                AudioManager.Play(SfxId.NavalGunShot, muzzle.position, 1f, 0.7f);
                 yield return new WaitForSeconds(0.12f);
             }
             Ww2BattleLog.Released(Ww2BattleLog.BossSalvo);

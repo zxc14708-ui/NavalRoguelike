@@ -119,7 +119,7 @@ namespace Game.Modules.Runtime
             weapon.Kick(recoilDistance * 0.6f);   // 포신 둘이 한 덩어리라 한 발 반동은 조금 작게
             if (_muzzleVfx == null) _muzzleVfx = gameObject.AddComponent<MuzzleBurstVfx>();
             _muzzleVfx.Emit(from, dir, MuzzleBurstVfx.Style.Autocannon, muzzleSmoke, ++_salvoCount % 2 == 0);
-            AudioManager.Play(Game.Data.SfxId.AutocannonShot, from, 0.8f, 0.72f);   // 기관포보다 낮은 쿵쿵
+            AudioManager.Play(Game.Data.SfxId.TwinGunShot, from);   // 40mm 쌍열포(전용 클립, 2026-11-15)
         }
 
         /// <summary>강화 외형(Visual_Level1~3)을 바꾼 뒤 새 포탑·고각부·포구에 다시 연결한다.</summary>

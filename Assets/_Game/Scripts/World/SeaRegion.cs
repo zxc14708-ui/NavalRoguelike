@@ -102,6 +102,8 @@ namespace Game.World
             ChannelOrigin = Vector3.zero;
             ChannelAxis = Vector3.forward;
             Changed = null;
+            HarborActive = false;
+            HarborChanged = null;
         }
 
         /// <summary>스테이지 시작(StageDirector). 좁은 수로면 origin·heading이 물길 가운데·방향이 된다.</summary>
@@ -112,6 +114,7 @@ namespace Game.World
             heading.y = 0f;
             ChannelAxis = heading.sqrMagnitude > 1e-4f ? heading.normalized : Vector3.forward;
             ChannelOrigin = new Vector3(origin.x, 0f, origin.z);
+            HarborActive = false;
             Changed?.Invoke(kind);
         }
 
@@ -121,6 +124,7 @@ namespace Game.World
             if (!Active) return;
             Active = false;
             Current = SeaKind.Open;
+            HarborActive = false;
             Changed?.Invoke(SeaKind.Open);
         }
 
@@ -137,17 +141,120 @@ namespace Game.World
         /// <summary>물길 위의 점(along, lateral) → 월드.</summary>
         public static Vector3 ChannelPoint(float along, float lateral) => ChannelOrigin + ChannelAxis * along + ChannelRight * lateral;
 
-        /// <summary>그 자리가 물길 안(양안에서 margin 이상)인가. 수로가 아니면 늘 true.</summary>
-        public static bool InWater(Vector3 p, float margin) => !IsStrait || Mathf.Abs(Lateral(p)) <= ChannelHalfWidth - margin;
+        /// <summary>그 자리가 물길 안(양안에서 margin 이상)인가. 수로가 아니면 늘 true. 군항이 열려 있으면 만(灣) 모양과 안벽까지.</summary>
+        public static bool InWater(Vector3 p, float margin) => !IsStrait || WaterRoom(p) >= margin;
 
         /// <summary>보이지 않는 경계: 물길 밖이면 안쪽으로 되돌린다. 되돌렸으면 true.</summary>
         public static bool ClampToChannel(ref Vector3 p, float margin)
         {
             if (!IsStrait) return false;
-            float lat = Lateral(p), limit = ChannelHalfWidth - margin;
-            if (Mathf.Abs(lat) <= limit) return false;
+            bool moved = false;
+            float along = Along(p);
+            if (HarborActive)
+            {
+                // 안벽 너머(군항 육지)로는 못 간다
+                float t = HarborT(along), limitT = HarborQuayOffset - margin;
+                if (t > limitT) { p -= HarborForward * (t - limitT); along = Along(p); moved = true; }
+            }
+            float lat = Lateral(p), limit = HalfWidthAt(along) - margin;
+            if (Mathf.Abs(lat) <= limit) return moved;
             p -= ChannelRight * (lat - Mathf.Sign(lat) * limit);
             return true;
+        }
+
+        /// <summary>
+        /// 그 자리에서 가장 가까운 경계(양안 · 군항 안벽)까지 남은 거리(안쪽 +, 밖이면 −). 수로가 아니면 큰 값.
+        /// 적이 기슭에 박히기 전에 미리 돌게 하는 데 쓴다(EnemyController.KeepInWater).
+        /// </summary>
+        public static float WaterRoom(Vector3 p)
+        {
+            if (!IsStrait) return 1e6f;
+            float along = Along(p);
+            float room = HalfWidthAt(along) - Mathf.Abs(Lateral(p));
+            if (HarborActive) room = Mathf.Min(room, HarborQuayOffset - HarborT(along));
+            return room;
+        }
+
+        /// <summary>가장 가까운 경계에서 물 안쪽을 향하는 수평 방향.</summary>
+        public static Vector3 InwardNormal(Vector3 p)
+        {
+            float along = Along(p), lat = Lateral(p);
+            float side = HalfWidthAt(along) - Mathf.Abs(lat);
+            if (HarborActive && HarborQuayOffset - HarborT(along) < side) return -HarborForward;
+            if (HarborActive)
+            {
+                // 만의 둥근 기슭: 만 가운데 쪽으로(곧은 물길에서는 축에 수직과 같다)
+                float t = HarborT(along);
+                if (t > HarborEntranceT && t < HarborQuayOffset)
+                {
+                    Vector3 c = HarborPoint(0f, 0f) - new Vector3(p.x, 0f, p.z);
+                    c.y = 0f;
+                    if (c.sqrMagnitude > 1f) return c.normalized;
+                }
+            }
+            return -ChannelRight * Mathf.Sign(lat == 0f ? 1f : lat);
+        }
+
+        // ------------------------------------------------------------ 수로 출구 군항(2026-11-15)
+        // 2스테이지 보스 구간: 앞쪽 수로가 지름 약 240m의 만으로 벌어지고, 만 안쪽 끝이 적 군항 안벽이다.
+        // 좌표 t = 만 가운데에서 군항 쪽으로 잰 물길 축 거리. 만 = 반경 HarborRadius의 원, t = HarborQuayOffset에서 곧은 안벽.
+
+        public const float HarborRadius = 120f;
+        public const float HarborQuayOffset = 66f;
+        /// <summary>만 입구(원이 물길 폭과 만나는 곳, 만 가운데 기준 −).</summary>
+        public static float HarborEntranceT => -Mathf.Sqrt(HarborRadius * HarborRadius - ChannelHalfWidth * ChannelHalfWidth);
+        /// <summary>안벽에서의 만 절반 폭.</summary>
+        public static float HarborQuayHalfWidth => Mathf.Sqrt(HarborRadius * HarborRadius - HarborQuayOffset * HarborQuayOffset);
+
+        public static bool HarborActive { get; private set; }
+        public static float HarborCenterAlong { get; private set; }
+        /// <summary>군항이 물길 축의 어느 쪽인가(+1 = 축 방향, −1 = 반대).</summary>
+        public static int HarborDir { get; private set; } = 1;
+        /// <summary>군항이 열렸다/닫혔다. 기슭·섬·포대·군항 외형이 듣는다.</summary>
+        public static event Action HarborChanged;
+
+        public static Vector3 HarborForward => ChannelAxis * HarborDir;
+        public static float HarborT(float along) => (along - HarborCenterAlong) * HarborDir;
+        public static float HarborT(Vector3 p) => HarborT(Along(p));
+        /// <summary>만 좌표(t, 오른쪽 거리 — 군항을 바라볼 때의 오른쪽) → 월드.</summary>
+        public static Vector3 HarborPoint(float t, float right) => ChannelPoint(HarborCenterAlong + t * HarborDir, right * HarborDir);
+
+        /// <summary>군항을 연다(EnemySpawner 보스 구간). 수로가 아니면 무시.</summary>
+        public static void OpenHarbor(float centerAlong, int dir)
+        {
+            if (!IsStrait) return;
+            HarborActive = true;
+            HarborCenterAlong = centerAlong;
+            HarborDir = dir >= 0 ? 1 : -1;
+            HarborChanged?.Invoke();
+        }
+
+        public static void CloseHarbor()
+        {
+            if (!HarborActive) return;
+            HarborActive = false;
+            HarborChanged?.Invoke();
+        }
+
+        /// <summary>그 지점(물길 축 거리)에서 물길 가운데부터 경계까지(군항이 열려 있으면 만 모양).</summary>
+        public static float HalfWidthAt(float along) => HarborActive ? HarborShore(HarborT(along), ChannelHalfWidth) : ChannelHalfWidth;
+
+        /// <summary>
+        /// 만 모양: 곧은 물길 폭(baseHalf)과 원을 부드럽게 합친다(입구가 꺾이지 않게). 안벽 뒤는 안벽 폭 그대로.
+        /// 기슭 외형(IslandBuilder.BankShore)도 같은 식에 잡음을 얹어 쓴다.
+        /// </summary>
+        public static float HarborShore(float t, float baseHalf, float circleNoise = 0f)
+        {
+            float tc = Mathf.Min(t, HarborQuayOffset);
+            float circle = Mathf.Abs(tc) < HarborRadius ? Mathf.Sqrt(HarborRadius * HarborRadius - tc * tc) + circleNoise : 0f;
+            return SmoothMax(baseHalf, circle, 14f);
+        }
+
+        /// <summary>다항식 부드러운 최댓값: b가 a보다 k 넘게 작으면 정확히 a(멀리 있는 기슭은 군항을 열어도 그대로).</summary>
+        private static float SmoothMax(float a, float b, float k)
+        {
+            float h = Mathf.Clamp01(0.5f + 0.5f * (b - a) / k);
+            return Mathf.Lerp(a, b, h) + k * h * (1f - h);
         }
     }
 }

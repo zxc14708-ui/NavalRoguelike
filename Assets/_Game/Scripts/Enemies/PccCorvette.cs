@@ -159,7 +159,7 @@ namespace Game.Enemies
             var muzzle = NextMuzzle(m);
             float damage = Definition.AttackDamage / Mathf.Max(1, mounts.Length);
 
-            AudioManager.Play(Game.Data.SfxId.NavalGunShot, muzzle.position, 0.45f, 1.15f);
+            AudioManager.Play(Game.Data.SfxId.NavalGunShot, muzzle.position, 0.45f, 1.1f);
             PooledEffect.Spawn(muzzleFlash, muzzle.position, muzzleFlashScale);
             ShellsFired++;
 

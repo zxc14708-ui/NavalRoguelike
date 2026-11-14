@@ -135,6 +135,12 @@ namespace Game.Enemies
             public readonly List<Renderer> Lamps = new();
         }
 
+        /// <summary>검증용: 시작한 공격 수(어뢰 · 함포 · 미사일).</summary>
+        public int DevTorpedoAttacks { get; private set; }
+        public int DevGunAttacks { get; private set; }
+        public int DevMissileAttacks { get; private set; }
+        public int DevAttacks => DevTorpedoAttacks + DevGunAttacks + DevMissileAttacks;
+
         /// <summary>경고 표시용: 어뢰 사격 제원을 정하고 발사관 등이 깜빡이는 중.</summary>
         public bool IsPreparingTorpedo => _preparing;
 
@@ -156,6 +162,7 @@ namespace Game.Enemies
             _torpedoTimer = 5f;
             _cycle = 0;
             _missileSalvos = 0;
+            DevTorpedoAttacks = DevGunAttacks = DevMissileAttacks = 0;
             _cycleTimer = cycleSeconds.Length > 0 ? cycleSeconds[0] : 10f;
             _damageStage = 0;
             _smokeDebt = _fireDebt = 0f;
@@ -299,17 +306,20 @@ namespace Game.Enemies
             {
                 _torpedoTimer = torpedoInterval * IntervalScale;
                 _attack = StartCoroutine(TorpedoAttack(starboard));
+                DevTorpedoAttacks++;
             }
             else if (_gunTimer <= 0f && distance >= gunMinRange && distance <= gunMaxRange && shellPrefab != null && GunsLeft)
             {
                 _gunTimer = gunInterval * IntervalScale;
                 _attack = StartCoroutine(GunVolley());
+                DevGunAttacks++;
             }
             else if (_missileTimer <= 0f && distance >= missileMinRange && distance <= missileMaxRange && Definition.MissilePrefab != null
                      && MissileSideAlive(transform.InverseTransformPoint(Player.position).x >= 0f))
             {
                 _missileTimer = missileInterval * IntervalScale;
                 _attack = StartCoroutine(MissileSalvo());
+                DevMissileAttacks++;
             }
         }
 
@@ -412,7 +422,7 @@ namespace Game.Enemies
             _pending.Add((impact, Time.time + shellFlightTime));
             Vector3 dir = (impact + Vector3.up * 6f - muzzle.position).normalized;
             _muzzleFx.Emit(muzzle.position, dir, MuzzleBurstVfx.Style.NavalGun, gunFlashMaterialSource, true);
-            AudioManager.Play(SfxId.NavalGunShot, muzzle.position, 0.85f, 0.95f);
+            AudioManager.Play(SfxId.NavalGunShot, muzzle.position, 0.85f, 1f);
         }
 
         // ------------------------------------------------------------ 근거리: 측면 어뢰

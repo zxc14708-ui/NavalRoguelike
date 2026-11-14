@@ -55,12 +55,54 @@ MonoBehaviour:
     MinInterval: 2.5
     MaxVoices: 1
   navalGunShot:
-    Clip: {fileID: 8300000, guid: 36773ba0bf46d1d4f858014f3983747b, type: 3}
-    Volume: 0.95
+    Clip: {fileID: 8300000, guid: 4396df2a46e84749bde42accf794d1dc, type: 3}
+    Volume: 0.8
     PitchJitter: 0.04
     SpatialBlend: 1
     MinInterval: 0.08
+    MaxVoices: 4
+  twinGunShot:
+    Clip: {fileID: 8300000, guid: 28dd77b38c474b8ab41f658c8bed6f3f, type: 3}
+    Volume: 0.2
+    PitchJitter: 0.06
+    SpatialBlend: 1
+    MinInterval: 0.05
+    MaxVoices: 5
+  hullHitGun:
+    Clip: {fileID: 8300000, guid: 9dd1b79b5ff747bd97c9186ce3e60db8, type: 3}
+    Volume: 0.55
+    PitchJitter: 0.12
+    SpatialBlend: 0.5
+    MinInterval: 0.06
+    MaxVoices: 4
+  hullHitShell:
+    Clip: {fileID: 8300000, guid: 96ec5964b0034131be7a309db5bddfb0, type: 3}
+    Volume: 0.8
+    PitchJitter: 0.06
+    SpatialBlend: 0.5
+    MinInterval: 0.1
     MaxVoices: 3
+  hullHitMissile:
+    Clip: {fileID: 8300000, guid: 2733147ed3f84f6992dd8ba2403bd4cf, type: 3}
+    Volume: 0.75
+    PitchJitter: 0.05
+    SpatialBlend: 0.5
+    MinInterval: 0.12
+    MaxVoices: 3
+  hullHitTorpedo:
+    Clip: {fileID: 8300000, guid: 6807ddb22f014345b7b13743e8fa133a, type: 3}
+    Volume: 0.85
+    PitchJitter: 0.04
+    SpatialBlend: 0.5
+    MinInterval: 0.2
+    MaxVoices: 2
+  hullHitCollision:
+    Clip: {fileID: 8300000, guid: e347026962244eae961f1a19018ab241, type: 3}
+    Volume: 0.7
+    PitchJitter: 0.06
+    SpatialBlend: 0.5
+    MinInterval: 0.25
+    MaxVoices: 2
   escortGunShot:
     Clip: {fileID: 8300000, guid: 36773ba0bf46d1d4f858014f3983747b, type: 3}
     Volume: 0.55

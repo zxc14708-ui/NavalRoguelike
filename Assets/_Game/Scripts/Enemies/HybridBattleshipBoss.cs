@@ -516,7 +516,7 @@ namespace Game.Enemies
                 }
                 gun.Weapon.Kick(0.35f);
                 PooledEffect.Spawn(muzzleFlash, muzzle.position);
-                AudioManager.Play(Game.Data.SfxId.NavalGunShot, muzzle.position, 1f, 0.6f);
+                AudioManager.Play(Game.Data.SfxId.NavalGunShot, muzzle.position, 1f, 0.75f);
                 yield return new WaitForSeconds(0.12f);
             }
         }

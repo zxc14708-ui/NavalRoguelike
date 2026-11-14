@@ -155,7 +155,7 @@ namespace Game.WW2
             }
             ShellsFired += n;
             weapon.Kick(recoilDistance);
-            AudioManager.Play(Game.Data.SfxId.NavalGunShot, transform.position, 1f, 0.42f);
+            AudioManager.Play(Game.Data.SfxId.NavalGunShot, transform.position, 1f, 0.65f);
             return n;
         }
 

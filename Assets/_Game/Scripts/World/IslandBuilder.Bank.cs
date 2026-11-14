@@ -26,7 +26,26 @@ namespace Game.World
             float s = (seed % 997) * 0.37f + (side > 0 ? 0f : 51.3f);
             float n1 = Mathf.PerlinNoise(along * 0.017f + s, 3.1f + s * 0.5f);
             float n2 = Mathf.PerlinNoise(along * 0.061f + 11.7f, s + 7.9f);
-            return SeaRegion.ChannelHalfWidth + (n1 - 0.5f) * 9f + (n2 - 0.5f) * 3.5f;
+            float shore = SeaRegion.ChannelHalfWidth + (n1 - 0.5f) * 9f + (n2 - 0.5f) * 3.5f;
+            if (!SeaRegion.HarborActive) return shore;
+            // 수로 출구 군항(2026-11-15): 만으로 벌어졌다가 안벽 뒤에서 양쪽 기슭이 모여 군항 뒤 언덕이 된다
+            float t = SeaRegion.HarborT(along);
+            shore = SeaRegion.HarborShore(t, shore, (n2 - 0.5f) * 5f);
+            if (t > HarborBackStart)
+                shore = Mathf.Lerp(shore, -14f, Mathf.SmoothStep(0f, 1f, (t - HarborBackStart) / (HarborBackEnd - HarborBackStart)));
+            return shore;
+        }
+
+        /// <summary>안벽 뒤 이 거리부터 기슭이 안쪽으로 모인다(그 앞은 군항 부지).</summary>
+        public const float HarborBackStart = SeaRegion.HarborQuayOffset + 34f, HarborBackEnd = SeaRegion.HarborQuayOffset + 120f;
+
+        /// <summary>이 기슭 구간이 군항 만·부지에 걸치는가(판정 상자를 촘촘히).</summary>
+        private static bool InHarborZone(float along0, float along1)
+        {
+            if (!SeaRegion.HarborActive) return false;
+            float t0 = SeaRegion.HarborT(along0), t1 = SeaRegion.HarborT(along1);
+            float lo = Mathf.Min(t0, t1), hi = Mathf.Max(t0, t1);
+            return hi > SeaRegion.HarborEntranceT - 30f && lo < HarborBackEnd + 20f;
         }
 
         /// <summary>그 지점 기슭의 높이(4~14m).</summary>
@@ -147,10 +166,11 @@ namespace Game.World
             lr.sharedMaterials = new[] { s_rock, s_sand, s_cliff, s_grass };
             lr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
 
-            // ---- 판정: 8m마다 상자(해안선 평균 + 0.8m부터 내륙으로)
-            for (int k = 0; k < samples - 1; k += 2)
+            // ---- 판정: 8m마다 상자(해안선 평균 + 0.8m부터 내륙으로). 군항 만은 해안선이 빨리 휘어 4m마다
+            int stride = InHarborZone(along0, along0 + BankSegmentLength) ? 1 : 2;
+            for (int k = 0; k < samples - 1; k += stride)
             {
-                int k2 = Mathf.Min(k + 2, samples - 1);
+                int k2 = Mathf.Min(k + stride, samples - 1);
                 float inner = (shore[k] + shore[(k + k2) / 2] + shore[k2]) / 3f + 0.8f;
                 var box = new GameObject("Bank collider");
                 box.transform.SetParent(root.transform, false);
@@ -204,7 +224,7 @@ namespace Game.World
             float mid = (samples - 1) * BankStep * 0.5f;
             var info = new IslandInfo
             {
-                Center = root.transform.TransformPoint(new Vector3(side * (SeaRegion.ChannelHalfWidth + 30f), 0f, mid)),
+                Center = root.transform.TransformPoint(new Vector3(side * (shore[(samples - 1) / 2] + 30f), 0f, mid)),
                 Radius = 30f, Height = maxH, Rocky = true, Rim = rim.ToArray(), Root = root, Bank = true,
             };
             Islands.Register(info);

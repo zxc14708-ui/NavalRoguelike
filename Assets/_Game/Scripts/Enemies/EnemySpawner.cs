@@ -47,15 +47,40 @@ namespace Game.Enemies
             if (player == null) Debug.LogError("[EnemySpawner] player 미할당.", this);
             if (phase.Boss == null) return;
 
-            var boss = Spawn(phase.Boss);
-            if (boss == null || phase.Escort == null || phase.EscortCount <= 0) return;
+            // 좁은 수로(2스테이지)의 보스는 수로 출구 적 군항에서 싸운다(2026-11-15): 군항을 열고, 기함이 만에 들어오면 출항
+            if (HarborAssault.Wants(phase))
+            {
+                (GetComponent<HarborAssault>() ?? gameObject.AddComponent<HarborAssault>()).Begin(this, phase, player);
+                return;
+            }
 
-            // 호위함: 보스 주변 원 위에 고르게, 플레이어 쪽을 향해
+            var boss = Spawn(phase.Boss);
+            if (boss == null) return;
+            SpawnEscorts(phase, boss, null);
+        }
+
+        /// <summary>새 적 자동 생성을 잠시 멈춘다(군항 진입 중). 살아 있는 적은 그대로.</summary>
+        public bool HoldSpawns { get; set; }
+
+        /// <summary>보스를 정해진 자리·방향으로 내고 호위함을 붙인다(군항 출항). 호위 자리가 모자라면 보스 둘레 원 위에.</summary>
+        public EnemyController SpawnBossAt(RoundSet.Round phase, Vector3 position, Quaternion rotation, IReadOnlyList<Vector3> escortSpots)
+        {
+            if (phase.Boss == null) return null;
+            var boss = SpawnAt(phase.Boss, position, rotation);
+            if (boss != null) SpawnEscorts(phase, boss, escortSpots);
+            return boss;
+        }
+
+        /// <summary>호위함: 주어진 자리(없으면 보스 주변 원 위에 고르게), 플레이어 쪽을 향해.</summary>
+        private void SpawnEscorts(RoundSet.Round phase, EnemyController boss, IReadOnlyList<Vector3> spots)
+        {
+            if (phase.Escort == null || phase.EscortCount <= 0) return;
             for (int i = 0; i < phase.EscortCount; i++)
             {
                 float a = (i + 0.5f) / phase.EscortCount * Mathf.PI * 2f;
-                Vector3 pos = boss.transform.position + new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * escortRadius;
-                Vector3 to = player != null ? player.position - pos : Vector3.forward;
+                Vector3 pos = spots != null && i < spots.Count ? spots[i]
+                            : boss.transform.position + new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * escortRadius;
+                Vector3 to = _player != null ? _player.position - pos : Vector3.forward;
                 to.y = 0f;
                 SpawnAt(phase.Escort, pos, Quaternion.LookRotation(to.sqrMagnitude > 0.01f ? to.normalized : Vector3.forward, Vector3.up));
             }
@@ -63,7 +88,7 @@ namespace Game.Enemies
 
         private void Update()
         {
-            if (!_active || _player == null) return;
+            if (!_active || _player == null || HoldSpawns) return;
             if (GameManager.Instance == null || GameManager.Instance.State != GameState.Playing) return;
             if (_alive.Count >= _round.MaxAlive) return;
 
@@ -188,6 +213,8 @@ namespace Game.Enemies
         {
             _active = false;
             _accumulator = 0f;
+            HoldSpawns = false;
+            if (TryGetComponent<HarborAssault>(out var harbor)) harbor.Cancel();
             var snapshot = _alive.ToArray();
             foreach (var enemy in snapshot)
                 if (enemy != null && enemy.isActiveAndEnabled) enemy.RemoveWithoutReward();

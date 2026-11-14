@@ -17,6 +17,12 @@ namespace Game.Data
         EscortMissileLaunch,  // 호위함 함대공·대함 미사일·유도로켓
         EscortTorpedoLaunch,  // 호위함 경어뢰 발사
         EscortJam,            // 호위함 근접 교란
+        TwinGunShot,          // 40mm 쌍열포(노봉) 한 발(2026-11-15 전용 소리)
+        HullHitGun,           // 기함 피격(2026-11-15): 기관포·기총탄(작은 피해)
+        HullHitShell,         // 기함 피격: 포탄(큰 피해) · 유폭
+        HullHitMissile,       // 기함 피격: 대함미사일 · 자폭 드론 · 자폭 보트
+        HullHitTorpedo,       // 기함 피격: 어뢰 · 기뢰
+        HullHitCollision,     // 기함 피격: 충돌 · 좌초
     }
 
     /// <summary>효과음 하나의 재생 규칙.</summary>
@@ -52,8 +58,17 @@ namespace Game.Data
         [SerializeField] private SfxEntry explosion = new();
         [SerializeField] private SfxEntry hullImpact = new();
         [SerializeField] private SfxEntry sonarPing = new();
-        [Tooltip("76mm 포성. 기관포와 같은 클립을 낮게 틀지만, 연사에 묻혀 끊기지 않도록 항목을 따로 둔다")]
+        [Tooltip("76mm 포성(2026-11-15 전용 클립 — 예전엔 기관포 클립을 낮게 틀었다). 곡사포·적 함포도 음높이를 바꿔 쓴다")]
         [SerializeField] private SfxEntry navalGunShot = new();
+        [Tooltip("40mm 쌍열포(노봉) 한 발(2026-11-15 전용 클립)")]
+        [SerializeField] private SfxEntry twinGunShot = new();
+
+        [Header("Flagship hits (기함 피격, 2026-11-15 무기 종류별)")]
+        [SerializeField] private SfxEntry hullHitGun = new();
+        [SerializeField] private SfxEntry hullHitShell = new();
+        [SerializeField] private SfxEntry hullHitMissile = new();
+        [SerializeField] private SfxEntry hullHitTorpedo = new();
+        [SerializeField] private SfxEntry hullHitCollision = new();
 
         [Header("Escorts (편대)")]
         [Tooltip("호위함 함포. 기함 기관포와 같은 클립이라도 항목을 따로 둬 기함 연사에 묻히거나 끊기지 않게")]
@@ -105,6 +120,12 @@ namespace Game.Data
             SfxId.HullImpact => hullImpact,
             SfxId.SonarPing => sonarPing,
             SfxId.NavalGunShot => navalGunShot,
+            SfxId.TwinGunShot => twinGunShot,
+            SfxId.HullHitGun => hullHitGun,
+            SfxId.HullHitShell => hullHitShell,
+            SfxId.HullHitMissile => hullHitMissile,
+            SfxId.HullHitTorpedo => hullHitTorpedo,
+            SfxId.HullHitCollision => hullHitCollision,
             SfxId.EscortGunShot => escortGunShot,
             SfxId.EscortMissileLaunch => escortMissileLaunch,
             SfxId.EscortTorpedoLaunch => escortTorpedoLaunch,

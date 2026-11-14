@@ -100,6 +100,8 @@ namespace Game.Dev
                 runner.ShoreOnly = System.Array.IndexOf(args, "-shoreOnly") >= 0;   // 해안 물빛 시험 비교
                 runner.PolishOnly = System.Array.IndexOf(args, "-polishOnly") >= 0; // 전투 기능 · 바다 후속 묶음
                 runner.CarrierBossOnly = System.Array.IndexOf(args, "-carrierBossOnly") >= 0; // 3스테이지 항공전함 개편(2026-11-14)
+                runner.HarborBossOnly = System.Array.IndexOf(args, "-harborBossOnly") >= 0;
+                runner.SfxOnly = System.Array.IndexOf(args, "-sfxOnly") >= 0;   // 무장 효과음 교체(2026-11-15)   // 2스테이지 보스 무대 = 수로 출구 군항(2026-11-15)
                 runner.RouteMapOnly = System.Array.IndexOf(args, "-routeMapOnly") >= 0;
                 runner.JuiceOnly = System.Array.IndexOf(args, "-juiceOnly") >= 0;
                 runner.BlockHitOnly = System.Array.IndexOf(args, "-blockHitOnly") >= 0;

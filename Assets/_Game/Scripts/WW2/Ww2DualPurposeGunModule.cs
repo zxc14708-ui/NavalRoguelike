@@ -145,7 +145,7 @@ namespace Game.WW2
             weapon.Kick(recoilDistance);
             if (_muzzleVfx == null) _muzzleVfx = gameObject.AddComponent<MuzzleBurstVfx>();
             _muzzleVfx.Emit(origin, dir, MuzzleBurstVfx.Style.NavalGun, muzzleFlash, true);
-            AudioManager.Play(Game.Data.SfxId.NavalGunShot, origin, 0.9f, 0.62f);
+            AudioManager.Play(Game.Data.SfxId.NavalGunShot, origin, 0.9f, 0.85f);
         }
 
         private bool CanEngage(Vector3 p)

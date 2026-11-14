@@ -340,6 +340,20 @@ namespace Game.Dev
                 Finish();
                 yield break;
             }
+            if (SfxOnly)
+            {
+                yield return SfxCheck();
+                SaveLog("sfx");
+                Finish();
+                yield break;
+            }
+            if (HarborBossOnly)
+            {
+                yield return HarborBossCheck();
+                SaveLog("harbor_boss");
+                Finish();
+                yield break;
+            }
             if (RouteOnly)
             {
                 yield return RouteCheck();

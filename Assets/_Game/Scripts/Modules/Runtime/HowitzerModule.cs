@@ -231,7 +231,7 @@ namespace Game.Modules.Runtime
             _lastShotTime = Time.time;
             _recoil = recoilDistance;
             if (muzzleFlash != null) PooledEffect.Spawn(muzzleFlash, from);
-            AudioManager.Play(Game.Data.SfxId.NavalGunShot, from, 1f, 0.42f);   // 76mm보다 낮고 무거운 포성
+            AudioManager.Play(Game.Data.SfxId.NavalGunShot, from, 1f, 0.75f);   // 76mm 클립을 낮춰 더 무거운 포성
             CombatLog.Add("곡사포", $"{LogName} 발사 — 착탄 {flight:0.0}초 뒤");
         }
 

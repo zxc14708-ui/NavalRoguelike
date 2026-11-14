@@ -56,11 +56,13 @@ namespace Game.World
             Instance = this;
             _seed = SeedOverride != 0 ? SeedOverride : Random.Range(1, int.MaxValue);
             SeaRegion.Changed += OnSeaChanged;
+            SeaRegion.HarborChanged += OnHarborChanged;
         }
 
         private void OnDestroy()
         {
             SeaRegion.Changed -= OnSeaChanged;
+            SeaRegion.HarborChanged -= OnHarborChanged;
             if (Instance == this) Instance = null;
         }
 
@@ -186,7 +188,8 @@ namespace Game.World
                     center.z = Mathf.Clamp(center.z, key.y * ChunkSize + margin, (key.y + 1) * ChunkSize - margin);
                     // 해안 소품(앞바다 최대 약 10m)까지 비워 둔다
                     ok = FarFromOthers(center, radius, sea != null ? sea.MinSpacing : MinSpacing) && Horizontal(center - _origin) > ClearRadius + radius + CoastReach && !NearShips(center, radius + 12f + CoastReach)
-                         && (!strait || Mathf.Abs(SeaRegion.Lateral(center)) < SeaRegion.ChannelHalfWidth - radius - 22f);
+                         && (!strait || Mathf.Abs(SeaRegion.Lateral(center)) < SeaRegion.ChannelHalfWidth - radius - 22f)
+                         && (!SeaRegion.HarborActive || SeaRegion.HarborT(center) < HarborClearFromT - radius);   // 군항 만 안쪽은 비움
                 }
                 if (!ok) continue;
                 var islandRng = new System.Random(rng.Next());

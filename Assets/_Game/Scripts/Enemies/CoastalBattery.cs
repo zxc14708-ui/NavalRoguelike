@@ -94,7 +94,7 @@ namespace Game.Enemies
                 go?.GetComponent<ArtilleryShell>()?.Launch(muzzle.position, impact, shellFlightTime,
                                                            Definition.AttackDamage, shellBlastRadius, hull);
                 PooledEffect.Spawn(muzzleFlash, muzzle.position);
-                AudioManager.Play(Game.Data.SfxId.NavalGunShot, muzzle.position, 0.9f, 0.65f);
+                AudioManager.Play(Game.Data.SfxId.NavalGunShot, muzzle.position, 0.9f, 0.8f);
                 weapon.Kick(0.2f);
                 ShellsFired++;
                 yield return new WaitForSeconds(shellSpacing);

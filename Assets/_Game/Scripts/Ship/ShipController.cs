@@ -326,7 +326,7 @@ namespace Game.Ship
                     _lastGrounding = Time.time;
                     float damage = (into - GroundingDamageSpeed) * GroundingDamagePerSpeed;
                     ApplyHullDamage(damage, "섬에 좌초");
-                    AudioManager.Play(SfxId.HullImpact, next, 0.9f, 0.7f);
+                    AudioManager.Play(SfxId.HullHitCollision, next, Mathf.Clamp01(0.5f + into * 0.08f));   // 좌초: 충돌음(세게 박을수록 크게)
                     CombatLog.Add("좌초", $"섬에 충돌 {into:0.0} m/s → 선체 {damage:0.#}");
                 }
                 _currentSpeed *= 0.35f;
@@ -414,12 +414,26 @@ namespace Game.Ship
                 _rudder = Mathf.MoveTowards(_rudder, 0f, step);
         }
 
+        /// <summary>
+        /// 기함 피격음(2026-11-15): 무기 종류별로 다른 소리. 같은 "Gun"이라도 한 발 피해가 크면(76mm급 포탄 9~13) 포탄,
+        /// 작으면(기관포·기총 1~3) 기관포탄. 유폭은 포탄 폭발과 같은 소리.
+        /// </summary>
+        public const float ShellHitDamage = 6f;
+        public static SfxId HitSound(in DamageInfo info) => info.Source switch
+        {
+            DamageSource.Missile => SfxId.HullHitMissile,
+            DamageSource.Torpedo => SfxId.HullHitTorpedo,
+            DamageSource.Collision => SfxId.HullHitCollision,
+            DamageSource.CookOff => SfxId.HullHitShell,
+            _ => info.Amount >= ShellHitDamage ? SfxId.HullHitShell : SfxId.HullHitGun,
+        };
+
         /// <summary>충돌 지점을 아는 피해. 실제 분배는 DamageResolver가 수행한다.</summary>
         public void TakeDamage(in DamageInfo info)
         {
             if (!IsAlive) return;
 
-            AudioManager.Play(SfxId.HullImpact, info.HitPoint);
+            AudioManager.Play(HitSound(info), info.HitPoint);
 
             // WWII 판은 적 공격이 단 이름(뇌격기 어뢰·급강하 폭탄·순양함 주포)을 원인으로 쓴다. 현대 판은 예전 그대로(종류별 이름)
             _cause = Game.Core.Ruleset.IsWw2 && !string.IsNullOrEmpty(info.Tag) ? info.Tag : CauseName(info.Source);

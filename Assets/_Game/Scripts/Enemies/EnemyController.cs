@@ -111,6 +111,8 @@ namespace Game.Enemies
 
             // 화면 밖에서 이미 항해하던 배처럼 등장시킨다: 플레이어 쪽을 향하고 순항 속력을 갖는다
             _orbitSide = Random.value < 0.5f ? -1f : 1f;
+            _orbitFlipAt = _unstickUntil = 0f;
+            DevOrbitFlips = DevBoundaryHits = 0;
             if (def != null) _speed = def.MoveSpeed * 0.6f;
 
             // 물살: 수상함은 항상, 잠수함은 드러났을 때만(잠항 중 물살이 위치를 알려 주면 안 된다). 항공기는 없음.
@@ -223,7 +225,7 @@ namespace Game.Enemies
         {
             if (Kind == TargetKind.Aircraft || Game.World.Islands.All.Count == 0 || heading.sqrMagnitude < 1e-6f) return heading;
             float half = _ownHull != null ? _ownHull.size.x * 0.5f * transform.lossyScale.x : 1.5f;
-            float look = OwnHalfLength() + 6f + _speed * 1.6f;
+            float look = OwnHalfLength() + 8f + _speed * 2.2f;
             Vector3 fwd = transform.forward; fwd.y = 0f;
             Vector3 probe = (fwd.normalized + heading.normalized).normalized;
             if (!Game.World.Islands.ProbeAhead(transform.position, probe, Mathf.Max(1f, half), look, out var hit)) return heading;
@@ -259,20 +261,61 @@ namespace Game.Enemies
             float radius = EngageRadius(desiredDistance);
 
             Vector3 heading;
-            if (dist > radius * approachDistanceRatio)
+            bool orbiting = dist <= radius * approachDistanceRatio;
+            if (!orbiting)
             {
                 heading = radial;
                 throttle = 1f;   // 멀리 있을 땐 전속으로 따라붙는다
             }
-            else
-            {
-                // 반경보다 멀면 안쪽 성분(+), 가까우면 바깥쪽 성분(-)이 섞인다
-                Vector3 tangent = Vector3.Cross(Vector3.up, radial) * _orbitSide;
-                float correction = Mathf.Clamp((dist - radius) / radius * 2f, -1f, 1f);
-                heading = (tangent + radial * correction).normalized;
-            }
+            else heading = OrbitHeading(radial, dist, radius, _orbitSide);
 
+            if (Kind != TargetKind.Aircraft && Game.World.SeaRegion.IsStrait) heading = KeepInWater(heading, radial, dist, radius, orbiting);
             Steer(heading, throttle, dt);
+        }
+
+        /// <summary>선회 방향: 반경보다 멀면 안쪽 성분(+), 가까우면 바깥쪽 성분(-)이 섞인 접선.</summary>
+        private static Vector3 OrbitHeading(Vector3 radial, float dist, float radius, float side)
+        {
+            Vector3 tangent = Vector3.Cross(Vector3.up, radial) * side;
+            float correction = Mathf.Clamp((dist - radius) / radius * 2f, -1f, 1f);
+            return (tangent + radial * correction).normalized;
+        }
+
+        private float _orbitFlipAt, _unstickUntil;
+        private Vector3 _unstickNormal;
+        /// <summary>검증용: 경계 앞에서 선회 방향을 바꾼 횟수 · 보이지 않는 경계에 막힌 프레임 수.</summary>
+        public int DevOrbitFlips { get; private set; }
+        public int DevBoundaryHits { get; private set; }
+
+        /// <summary>
+        /// 좁은 수로 · 군항 만(2026-11-15): 선회 원이 기슭 밖으로 나가면 기슭에 박혀 미끄러지며 멈춰 버렸다(2스테이지 보스).
+        /// 앞쪽 내다본 자리가 경계에 가까우면 ① 반대 방향 선회가 더 넓으면 선회 방향을 바꾸고(3.5초에 한 번까지)
+        /// ② 아니면 물 안쪽으로 키를 섞는다. 그래서 기슭 앞에서는 호를 따라 오가며 거리를 지킨다.
+        /// </summary>
+        private Vector3 KeepInWater(Vector3 heading, Vector3 radial, float dist, float radius, bool orbiting)
+        {
+            const float margin = 9f;
+            float look = OwnHalfLength() + 8f + Mathf.Max(_speed, definition.MoveSpeed * 0.5f) * 2.2f;
+            Vector3 pos = transform.position;
+            float room = Game.World.SeaRegion.WaterRoom(pos + heading * look);
+            if (room >= margin) return heading;
+            if (orbiting && Time.time >= _orbitFlipAt)
+            {
+                var other = OrbitHeading(radial, dist, radius, -_orbitSide);
+                float otherRoom = Game.World.SeaRegion.WaterRoom(pos + other * look);
+                if (otherRoom > room + 3f)
+                {
+                    _orbitSide = -_orbitSide;
+                    _orbitFlipAt = Time.time + 3.5f;
+                    DevOrbitFlips++;
+                    heading = other;
+                    room = otherRoom;
+                    if (room >= margin) return heading;
+                }
+            }
+            Vector3 inward = Game.World.SeaRegion.InwardNormal(pos + heading * look);
+            float push = Mathf.Clamp01((margin - room) / (margin + 6f));
+            return (heading * (1f - push) + inward * (push * 1.5f)).normalized;
         }
 
         /// <summary>
@@ -316,6 +359,9 @@ namespace Game.Enemies
             _speed = Mathf.MoveTowards(_speed, targetSpeed, maxSpeed * accelerationRatio * dt);
 
             desiredHeading.y = 0f;
+            // 방금 섬에 박혔으면 잠깐 섬 바깥쪽으로 키를 강하게 잡는다(긴 배가 바위에 낀 채 제자리에서 멈추지 않게)
+            if (Time.time < _unstickUntil && desiredHeading.sqrMagnitude > 1e-6f)
+                desiredHeading = desiredHeading.normalized * 0.35f + _unstickNormal;
             desiredHeading = AvoidIslands(desiredHeading);
             if (desiredHeading.sqrMagnitude > 0.0001f)
             {
@@ -331,9 +377,16 @@ namespace Game.Enemies
             forward.y = 0f;
             Vector3 next = transform.position + forward.normalized * (_speed * dt);
             if (Kind != TargetKind.Aircraft && _ownHull != null &&
-                Game.World.Islands.ResolveOverlap(_ownHull, ref next, transform.rotation, out _))
-                _speed *= 0.5f;
-            if (Kind != TargetKind.Aircraft && Game.World.SeaRegion.ClampToChannel(ref next, -2f)) _speed *= 0.5f;   // 좁은 수로 경계(점검 K04)
+                Game.World.Islands.ResolveOverlap(_ownHull, ref next, transform.rotation, out Vector3 shore))
+            {
+                // 섬 쪽으로 파고들면 속력을 잃지만, 이미 벗어나는 쪽을 보고 있으면 최고 속력의 35%는 남긴다(속력 0이면 키가 안 먹어 못 빠져나온다)
+                bool leaving = throttle > 0.05f && Vector3.Dot(forward.normalized, shore) > -0.2f;
+                _speed = leaving ? Mathf.Max(_speed * 0.5f, maxSpeed * 0.35f * Mathf.Clamp01(throttle + 0.3f)) : _speed * 0.5f;
+                if (shore.sqrMagnitude > 1e-6f) { _unstickNormal = shore; _unstickUntil = Time.time + 1f; }
+                // 섬에 박혔다: 선회 방향을 바꿔 섬에서 돌아 나온다(같은 섬을 계속 파고들며 멈추지 않게, 3.5초에 한 번까지)
+                if (Time.time >= _orbitFlipAt) { _orbitSide = -_orbitSide; _orbitFlipAt = Time.time + 3.5f; DevOrbitFlips++; }
+            }
+            if (Kind != TargetKind.Aircraft && Game.World.SeaRegion.ClampToChannel(ref next, -2f)) { _speed *= 0.5f; DevBoundaryHits++; }   // 좁은 수로 경계(점검 K04)
             transform.position = next;
         }
 
