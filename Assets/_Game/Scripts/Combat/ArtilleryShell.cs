@@ -57,6 +57,9 @@ namespace Game.Combat
             Cause = cause;
         }
 
+        /// <summary>Launch 바로 뒤에 부른다: 탄도 최고점(m)을 바꾼다 — 빠르고 낮게 쏘는 직사(항공전함 근거리 주포, 2026-11-14).</summary>
+        public void SetApex(float apex) => _apex = Mathf.Max(0.2f, apex);
+
         /// <summary>발사. 경고 원도 함께 띄운다.</summary>
         public void Launch(Vector3 muzzle, Vector3 impactPoint, float flightTime, float damage, float radius, Collider target)
         {

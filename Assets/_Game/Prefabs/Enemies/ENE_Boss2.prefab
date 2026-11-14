@@ -75,72 +75,10 @@ MonoBehaviour:
   carrierPhaseAt: 0.7
   finalPhaseAt: 0.4
   shellPrefab: {fileID: 4959669531234197201, guid: bd40d5d883150424ab71f7c7e001dd5b, type: 3}
-  gunMuzzles:
-  - {fileID: 5491056549068373401}
-  - {fileID: 721708097722626387}
-  - {fileID: 1300637124228349047}
-  - {fileID: 267426268010588872}
-  - {fileID: 8845699969343923436}
-  - {fileID: 2276784026878420509}
-  - {fileID: 6677995877407621413}
-  - {fileID: 243095794672696437}
-  mainTurrets:
-  - {fileID: 6989685869640203534}
-  - {fileID: 4104990268826250665}
-  - {fileID: 734269933560868027}
-  - {fileID: 1175692395076188832}
-  turretTurnRate: 28
-  turretMaxYaw: 135
-  sideTurretArc: 80
   muzzleFlash: {fileID: 1386649982177179695, guid: 22565888ea53e7c4d86ab74e359d5c06, type: 3}
-  shellsPerSalvo: 4
-  shellFlightTime: 2.2
-  shellDamage: 14
-  shellBlastRadius: 3
-  salvoSpread: 5
-  gunRange: 45
-  salvoInterval:
-  - 7
-  - 9
-  - 5
-  mainBatteryCutouts:
-  - Center: 180
-    HalfWidth: 45
-    ClearElevation: 0
-  flightDeckLaunch: {fileID: 1904035614775612342}
-  dronesPerWave: 4
-  droneLaunchSpacing: 0.5
-  droneWaveInterval:
-  - 14
-  - 11
-  reconRelaunchDelay: 20
-  fightersPerWave: 2
-  missileLaunchPoints:
-  - {fileID: 5650315109017288055}
-  - {fileID: 934725040559756740}
-  - {fileID: 9222965528919900120}
-  - {fileID: 1304225783156674628}
-  - {fileID: 5258087804480530529}
-  - {fileID: 4113811313855079290}
-  - {fileID: 6957104177931113454}
-  - {fileID: 4158095630124940833}
-  missilesPerSalvo: 8
-  missileSalvoInterval: 10
-  missileSpacing: 0.15
-  aaMount: {fileID: 3287173902346086688}
+  gunProjectilePrefab: {fileID: 2670227156263456376, guid: 33434b91dce3338419f5fa71bfb3668e, type: 3}
   aaProjectilePrefab: {fileID: 526543231040397213, guid: a2817f5b042066a4f8ee4ba7e84694ca, type: 3}
-  aaRange: 16
-  aaProjectileSpeed: 70
-  aaShotInterval: 0.1
-  aaBurstRounds: 10
-  aaCooldown: 1.5
-  aaSpreadDegrees: 2.5
-  aaCutouts:
-  - Center: 270
-    HalfWidth: 60
-    ClearElevation: 35
-  radar: {fileID: 8626372721998842603}
-  radarRpm: 15
+  sternBoat: {fileID: 11400000, guid: d9bebf0c5b7ff0a4592534e567f6b9b2, type: 2}
   cutoutZoneMaterial: {fileID: 2100000, guid: b7a8de9149a6f4f4d882c3ee7da660c0, type: 2}
   cutoutZoneRadius: 36
 --- !u!1 &6467371969710388731

@@ -333,6 +333,13 @@ namespace Game.Dev
                 Finish();
                 yield break;
             }
+            if (CarrierBossOnly)
+            {
+                yield return CarrierBossCheck();
+                SaveLog("carrier_boss");
+                Finish();
+                yield break;
+            }
             if (RouteOnly)
             {
                 yield return RouteCheck();

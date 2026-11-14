@@ -124,6 +124,10 @@ namespace Game.Combat
 
         /// <summary>전투 기록 번호(적 미사일만).</summary>
         public int LogId { get; private set; }
+        /// <summary>발사마다 새 번호(풀에서 다시 나온 미사일을 같은 미사일로 헷갈리지 않게 — 보스 대공 판정이 쓴다).</summary>
+        public int LaunchSerial { get; private set; }
+        private static int s_launchSerial;
+        private IAimPointProvider _aimProvider;   // 보스: 열린 약점·가까운 부분을 겨눈다(2026-11-14)
         public string LogName => isThreat ? $"미사일 #{LogId}" : $"{name.Replace("(Clone)", "")}";
         public float CurrentHp => _hp;
 
@@ -136,6 +140,7 @@ namespace Game.Combat
         /// <summary>발사 직후 1회 설정한다.</summary>
         public void Launch(Transform target, float damageOverride = -1f)
         {
+            LaunchSerial = ++s_launchSerial;
             _aswDelivery = false;
             _aswTorpedo = null;
             SetTarget(target);
@@ -245,6 +250,7 @@ namespace Game.Combat
             if (target != _claimTarget) ReleaseClaim();
             _target = target;
             _targetable = target != null ? target.GetComponent<ITargetable>() : null;
+            _aimProvider = target != null ? target.GetComponent<IAimPointProvider>() : null;
         }
 
         private void ReleaseClaim()
@@ -350,6 +356,11 @@ namespace Game.Combat
         private Vector3 AimPoint()
         {
             Vector3 p = _target.position;
+            if (_aimProvider != null)
+            {
+                Vector3 a = _aimProvider.AimPointFor(transform.position, true);   // 위에서 꽂히므로 열린 엘리베이터도 노린다
+                p.x = a.x; p.z = a.z;
+            }
             p.y = Mathf.Max(p.y + _aimOffset, minAltitude);
             return p;
         }

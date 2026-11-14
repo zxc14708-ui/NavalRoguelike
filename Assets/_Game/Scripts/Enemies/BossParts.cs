@@ -28,12 +28,25 @@ namespace Game.Enemies
             public Transform Anchor;
             public float Radius, MaxHp, Hp;
             public bool Destroyed;
+            /// <summary>
+            /// 가려진 약점(2026-11-14): true면 피해를 받지 않는다(맞은 자리 판정에서 빠진다). 보스가 열고 닫는다 — 항공전함 엘리베이터(내려가 있을 때만)·함미 웰덱(램프가 열려 있을 때만).
+            /// </summary>
+            public bool Shielded;
+            /// <summary>열린 약점: 반경 안에 들면 더 가까운 다른 부위보다 먼저 맞는다(엘리베이터 옆 대공포에 피해가 새지 않게).</summary>
+            public bool Priority;
+            /// <summary>보스 막대에서 한 칸으로 묶는 이름(예: "대공포" 6기 → "대공포 4/6"). null이면 따로 한 칸.</summary>
+            public string Group;
             internal float SmokeDebt;
             internal readonly List<Renderer> Renderers = new();
             public float HpFraction => MaxHp > 0f ? Mathf.Clamp01(Hp / MaxHp) : 0f;
         }
 
         private readonly List<Part> _parts = new();
+        private readonly Dictionary<string, string> _groupNotes = new();
+
+        /// <summary>묶음 칸에 보일 짧은 글(예: 대공포 → "대공 30%"). 없으면 "대공포 4/6".</summary>
+        public void SetGroupNote(string group, string note) { if (group != null) _groupNotes[group] = note; }
+        public string GroupNote(string group) => group != null && _groupNotes.TryGetValue(group, out var n) ? n : null;
         private static MaterialPropertyBlock s_mpb;
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         private static readonly int ColorId = Shader.PropertyToID("_Color");
@@ -50,6 +63,7 @@ namespace Game.Enemies
         {
             foreach (var p in _parts) foreach (var r in p.Renderers) if (r != null) r.SetPropertyBlock(null);
             _parts.Clear();
+            _groupNotes.Clear();
         }
 
         /// <summary>부위 추가. visual이 있으면 그 아래 렌더러를 부서질 때 그을린다. anchor가 없으면 추가하지 않는다.</summary>
@@ -63,6 +77,24 @@ namespace Game.Enemies
         }
 
         public bool IsDestroyed(Part p) => p != null && p.Destroyed;
+
+        /// <summary>보스 막대 칸 수(같은 Group은 한 칸).</summary>
+        public int ChipCount
+        {
+            get
+            {
+                int n = 0;
+                for (int i = 0; i < _parts.Count; i++)
+                {
+                    var g = _parts[i].Group;
+                    if (g == null) { n++; continue; }
+                    bool seen = false;
+                    for (int j = 0; j < i; j++) if (_parts[j].Group == g) { seen = true; break; }
+                    if (!seen) n++;
+                }
+                return n;
+            }
+        }
 
         /// <summary>
         /// 이 포구(발사점)를 품은 부위가 부서졌는가 — 포구가 부위 자식이면 그 부위, 아니면 반경 안의 가장 가까운 부위.
@@ -91,12 +123,15 @@ namespace Game.Enemies
             if (info.Amount <= 0f || info.HitPoint == Vector3.zero) return null;
             Part best = null;
             float bestSqr = float.MaxValue;
+            bool bestPriority = false;
             foreach (var p in _parts)
             {
-                if (p.Destroyed || p.Anchor == null) continue;
+                if (p.Destroyed || p.Shielded || p.Anchor == null) continue;
                 Vector3 d = info.HitPoint - p.Anchor.position; d.y = 0f;
                 float sqr = d.sqrMagnitude;
-                if (sqr <= p.Radius * p.Radius && sqr < bestSqr) { bestSqr = sqr; best = p; }
+                if (sqr > p.Radius * p.Radius) continue;
+                if (bestPriority && !p.Priority) continue;
+                if ((p.Priority && !bestPriority) || sqr < bestSqr) { bestSqr = sqr; best = p; bestPriority = p.Priority; }
             }
             if (best == null) return null;
             best.Hp -= info.Amount;

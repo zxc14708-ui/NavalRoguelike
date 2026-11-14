@@ -99,6 +99,7 @@ namespace Game.Dev
                 runner.BlastOnly = System.Array.IndexOf(args, "-blastOnly") >= 0;
                 runner.ShoreOnly = System.Array.IndexOf(args, "-shoreOnly") >= 0;   // 해안 물빛 시험 비교
                 runner.PolishOnly = System.Array.IndexOf(args, "-polishOnly") >= 0; // 전투 기능 · 바다 후속 묶음
+                runner.CarrierBossOnly = System.Array.IndexOf(args, "-carrierBossOnly") >= 0; // 3스테이지 항공전함 개편(2026-11-14)
                 runner.RouteMapOnly = System.Array.IndexOf(args, "-routeMapOnly") >= 0;
                 runner.JuiceOnly = System.Array.IndexOf(args, "-juiceOnly") >= 0;
                 runner.BlockHitOnly = System.Array.IndexOf(args, "-blockHitOnly") >= 0;

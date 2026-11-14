@@ -531,17 +531,60 @@ namespace Game.Dev
             yield return RefitShot(refit, "growth_2_tiers");
             var title = Get<TMPro.TMP_Text>(refit, "titleText");
 
-            // 8) 성장 카드를 고르면 즉시 적용되고 배치로 넘어간다(설치 선택 없음)
-            refit.Open(8, new List<Game.Refit.RefitCard> { Game.Refit.RefitCard.Growth(Game.Modules.RunStat.Damage, Game.Modules.CardTier.Epic), Game.Refit.RefitCard.Install(CombatDevTools.FindModule("mod_sonar")), Game.Refit.RefitCard.Install(CombatDevTools.FindModule("mod_radar")) }, () => { });
+            // 7-1) 실제 수치 변화(2026-11-14): 카드마다 "함선 변화" 줄 — 발사 간격(초) · 함포계 한 발 피해(실제 값이 맞는지) · 받는 피해
+            {
+                string frText = Strip(refit.CardStatsText(0)), gunText = Strip(refit.CardStatsText(1)), dfnText = Strip(refit.CardStatsText(2));
+                string expect = null;
+                foreach (var m in grid.Modules)
+                    if (m?.Runtime != null && m.Definition.Type == ModuleType.Autocannon)
+                    {
+                        float b = Game.Modules.RunUpgrades.Get(Game.Modules.RunStat.Damage) + Game.Modules.RunUpgrades.Get(Game.Modules.RunStat.GunDamage);
+                        float live = m.Runtime.Stats.Damage, after = live * (1f + b + 0.16f) / (1f + b);
+                        expect = $"{(live >= 100f ? live.ToString("0") : live.ToString("0.#"))} → {(after >= 100f ? after.ToString("0") : after.ToString("0.#"))}";
+                        break;
+                    }
+                bool frOk = frText.Contains("함선 변화") && frText.Contains("발사 간격") && frText.Contains("초 →");
+                bool gunOk = gunText.Contains("한 발 피해") && expect != null && gunText.Contains(expect);
+                bool dfnOk = dfnText.Contains("적 공격 100당");
+                _report.AppendLine($"- 실제 수치: 연사력 카드 발사 간격 줄 {(frOk ? "예" : "아니오")} · 함포계 카드 기관포 피해 \"{expect}\" {(gunOk ? "있음" : "없음")} · 방어력 카드 받는 피해 줄 {(dfnOk ? "예" : "아니오")}");
+                _report.AppendLine($"  - 함포계 카드 본문: {gunText.Replace("\n", " / ")}");
+                if (!frOk || !gunOk || !dfnOk) Fail("성장 카드에 실제 수치 변화(지금 → 고른 뒤)가 표시되지 않음");
+
+                // 함선 쪽 카드: 스킬 회복(재사용 초) · 선체 강화(최대·회복) · 최고 속력(kn)
+                refit.Open(8, new List<Game.Refit.RefitCard>
+                {
+                    Game.Refit.RefitCard.Growth(Game.Modules.RunStat.SkillRate, Game.Modules.CardTier.Rare),
+                    Game.Refit.RefitCard.Growth(Game.Modules.RunStat.HullMax, Game.Modules.CardTier.Epic),
+                    Game.Refit.RefitCard.Growth(Game.Modules.RunStat.Speed, Game.Modules.CardTier.Common),
+                }, () => { }, false);
+                yield return null;
+                yield return RefitShot(refit, "growth_2b_ship_cards");
+                string skill = Strip(refit.CardStatsText(0)), hull = Strip(refit.CardStatsText(1)), speedText = Strip(refit.CardStatsText(2));
+                bool skillOk = skill.Contains("재사용 시간") && skill.Contains("기만체");
+                bool hullOk = hull.Contains("선체 최대") && hull.Contains("회복");
+                bool spdOk = speedText.Contains("kn →");
+                _report.AppendLine($"- 실제 수치(함선): 스킬 재사용 줄 {(skillOk ? "예" : "아니오")} · 선체 최대·회복 줄 {(hullOk ? "예" : "아니오")} · 속력 줄 {(spdOk ? "예" : "아니오")}");
+                _report.AppendLine($"  - 스킬 회복 카드 본문: {skill.Replace("\n", " / ")}");
+                if (!skillOk || !hullOk || !spdOk) Fail("함선 쪽 성장 카드에 실제 수치 변화가 표시되지 않음");
+            }
+
+            // 8) 성장 카드를 고르면 즉시 적용되고 배치 화면 없이 바로 전투로 돌아간다(2026-11-14 — 재개 콜백이 바로 불린다) + 안내 띠
+            bool resumed = false;
+            string banner = null;
+            System.Action<string> onBanner = m => banner = m;
+            GameEvents.BannerRequested += onBanner;
+            refit.Open(8, new List<Game.Refit.RefitCard> { Game.Refit.RefitCard.Growth(Game.Modules.RunStat.Damage, Game.Modules.CardTier.Epic), Game.Refit.RefitCard.Install(CombatDevTools.FindModule("mod_sonar")), Game.Refit.RefitCard.Install(CombatDevTools.FindModule("mod_radar")) }, () => resumed = true);
             float dmgBefore = Game.Modules.RunUpgrades.Get(Game.Modules.RunStat.Damage);
             Call(refit, "ChooseCard", 0);
+            GameEvents.BannerRequested -= onBanner;
             float dmgAfter = Game.Modules.RunUpgrades.Get(Game.Modules.RunStat.Damage);
             bool chosen = !Get<bool>(refit, "_choosing") && Get<ModuleDefinition>(refit, "_held") == null;
             string growthText = Get<string>(refit, "_growthResult");
             yield return null;
-            yield return RefitShot(refit, "growth_3_applied");
-            _report.AppendLine($"- 성장 카드 선택: 공격력 {dmgBefore * 100f:0}% → {dmgAfter * 100f:0}% · 카드 닫힘·배치로 {(chosen ? "예" : "아니오")} · 결과 문구 \"{growthText}\"");
-            if (!Near(dmgAfter - dmgBefore, 0.20f) || !chosen || string.IsNullOrEmpty(growthText)) Fail("성장 카드 선택이 즉시 적용·진행되지 않음");
+            _report.AppendLine($"- 성장 카드 선택: 공격력 {dmgBefore * 100f:0}% → {dmgAfter * 100f:0}% · 카드 닫힘 {(chosen ? "예" : "아니오")} · 배치 화면 없이 바로 재개 {(resumed ? "예" : "아니오")} · 안내 띠 \"{banner}\"");
+            if (!Near(dmgAfter - dmgBefore, 0.20f) || !chosen || string.IsNullOrEmpty(growthText)) Fail("성장 카드 선택이 즉시 적용되지 않음");
+            if (!resumed) Fail("성장 카드를 골랐는데 배치 화면으로 넘어감(바로 재개해야 함)");
+            if (string.IsNullOrEmpty(banner) || !banner.Contains("공격력")) Fail("성장 카드 적용 안내 띠가 없음");
             refit.Close();
             GameManager.Instance.SetState(GameState.Playing);
 
@@ -562,7 +605,7 @@ namespace Game.Dev
                 float before = Game.Modules.RunUpgrades.Get(bossCards[epicIndex].Stat);
                 Call(refit, "ChooseCard", epicIndex);
                 float gain = Game.Modules.RunUpgrades.Get(bossCards[epicIndex].Stat) - before;
-                Call(refit, "TryLaunch");
+                // 성장 카드는 고르면 바로 재개(2026-11-14) — 따로 재개를 누르지 않아도 finished
                 _report.AppendLine($"- 보스 보상 화면: 에픽 카드 {(epicShown ? "있음" : "없음")} · 제목에 보스 표시 {(titleBoss ? "예" : "아니오")} · 에픽 선택 +{gain * 100f:0.#}% · 닫으면 다음 단계로 {(finished ? "예" : "아니오")}");
                 if (!epicShown || !titleBoss) Fail("보스 보상 화면에 에픽 카드·제목이 표시되지 않음");
                 if (gain < 0.05f || !finished) Fail("보스 보상 선택이 적용·종료되지 않음");

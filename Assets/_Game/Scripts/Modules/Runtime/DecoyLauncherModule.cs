@@ -31,6 +31,8 @@ namespace Game.Modules.Runtime
         protected virtual bool HasSmokeRounds => true;
 
         public bool CarriesSmoke => HasSmokeRounds;
+        /// <summary>연막 재사용 시간(초, 스킬 회복 카드 적용 전). 정비 카드 미리보기용.</summary>
+        public float SmokeCooldownSeconds => smokeCooldown;
         public bool SmokeReady => HasSmokeRounds && _smokeCooldown <= 0f && Instance != null && Instance.IsOperational;
         public float SmokeReadiness01 => smokeCooldown > 0f ? 1f - Mathf.Clamp01(_smokeCooldown / smokeCooldown) : 1f;
 

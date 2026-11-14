@@ -135,7 +135,7 @@ namespace Game.Modules.Runtime
             if (target is IHasVelocity air)
                 return Ballistics.PredictIntercept(muzzle.position, target.Transform.position, air.Velocity, Stats.ProjectileSpeed);
 
-            Vector3 p = target.Transform.position + Vector3.up * aimHeight;
+            Vector3 p = AimPoints.Of(target, muzzle.position) + Vector3.up * aimHeight;   // 보스는 가까운 부분·열린 약점(2026-11-14)
             if (target is not EnemyController enemy) return p;
 
             Vector3 velocity = enemy.transform.forward * enemy.CurrentSpeed;

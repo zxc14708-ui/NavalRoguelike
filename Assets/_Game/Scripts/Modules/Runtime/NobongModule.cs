@@ -140,7 +140,7 @@ namespace Game.Modules.Runtime
         private Vector3 LeadPoint(ITargetable target)
         {
             Vector3 origin = weapon.Muzzle != null ? weapon.Muzzle.position : transform.position;
-            Vector3 p = target.Transform.position;
+            Vector3 p = AimPoints.Of(target, origin);   // 보스는 가까운 부분·열린 약점(2026-11-14)
             Vector3 velocity = target switch
             {
                 IHasVelocity moving => moving.Velocity,

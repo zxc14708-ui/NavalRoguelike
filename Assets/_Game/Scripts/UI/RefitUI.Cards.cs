@@ -104,9 +104,8 @@ namespace Game.UI
                     if (icon != null) { icon.sprite = null; icon.enabled = false; }
                     if (stats != null)
                     {
-                        stats.text = ModuleCardText.BuildGrowthStats(gdef, card.Tier);
-                        string impact = BuildGuide.GrowthImpact(card.Stat, grid);
-                        if (impact != null) stats.text = impact + "\n" + stats.text;
+                        // 실제 수치 변화(2026-11-14): 무장·스킬·선체 등 지금 함선 값 → 고른 뒤 값
+                        stats.text = ModuleCardText.BuildGrowthStats(gdef, card.Tier, Game.Core.GameManager.Instance != null ? Game.Core.GameManager.Instance.Player : null);
                     }
                     continue;
                 }
@@ -393,7 +392,10 @@ namespace Game.UI
             }
         }
 
-        /// <summary>성장 카드: 즉시 적용하고(함선 전체 능력) 배치 화면으로 넘어간다.</summary>
+        /// <summary>
+        /// 성장 카드: 즉시 적용하고(함선 전체 능력) 바로 전투로 돌아간다(2026-11-14 — 놓을 것이 없는데 배치 화면을 거치던 것을 뺐다).
+        /// 무엇이 올랐는지는 전투 화면 위 안내 띠로.
+        /// </summary>
         private void ApplyGrowth(RefitCard card)
         {
             var def = RunUpgrades.Definition(card.Stat);
@@ -405,7 +407,9 @@ namespace Game.UI
             _growthResult = def != null
                 ? $"성장 완료: {def.Name} +{add * 100f:0.#}% ({RunUpgrades.TierName(card.Tier)}) — 누적 {RunUpgrades.Describe(card.Stat, RunUpgrades.Get(card.Stat))}"
                 : "성장 카드를 적용하지 못했습니다.";
-            Refresh();
+            if (_held != null) { Refresh(); return; }   // 들고 있는 블록이 있으면(그럴 일은 없지만) 배치 화면에서 마저
+            Game.Core.GameEvents.RaiseBanner(_growthResult);
+            TryLaunch();
         }
 
         private void HandleCardInput()

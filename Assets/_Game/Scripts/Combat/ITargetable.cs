@@ -18,6 +18,22 @@ namespace Game.Combat
     }
 
     /// <summary>
+    /// 큰 표적(보스)의 겨냥점(2026-11-14): 무장이 표적 중심 대신 이 점을 겨눈다 — 쏘는 쪽 위치에 따라 가까운 부분(함수·함교·함미)을,
+    /// 약점이 열려 있으면(엘리베이터·함미 램프) 그쪽을. topAttack = 위에서 꽂히는 유도탄(미사일·로켓).
+    /// </summary>
+    public interface IAimPointProvider
+    {
+        Vector3 AimPointFor(Vector3 shooter, bool topAttack);
+    }
+
+    public static class AimPoints
+    {
+        /// <summary>표적의 겨냥점(겨냥점이 없으면 중심).</summary>
+        public static Vector3 Of(ITargetable target, Vector3 shooter, bool topAttack = false)
+            => target is IAimPointProvider p ? p.AimPointFor(shooter, topAttack) : target.Transform.position;
+    }
+
+    /// <summary>
     /// 모든 표적의 중앙 등록소.
     /// 각 무기가 매 프레임 FindObjectsOfType을 돌지 않도록 여기서 한 번만 관리한다.
     ///

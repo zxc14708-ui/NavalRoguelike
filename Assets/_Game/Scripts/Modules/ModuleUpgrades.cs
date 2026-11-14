@@ -78,7 +78,8 @@ namespace Game.Modules
         /// <summary>성장 카드: 무장 공격력·연사력·장탄수·사거리, 수리 효율. 원본 데이터는 바꾸지 않고 복사본(s)에만 곱한다.</summary>
         private static void ApplyRunUpgrades(ModuleType type, ref ModuleStats s)
         {
-            if (!RunUpgrades.Any) return;
+            // 예전엔 성장 카드가 하나도 없으면 여기서 바로 돌아갔다 — 그러면 해군 기술연구소 연구(함포계 공격력·사거리 등, RunUpgrades.Get에 포함)가
+            // 첫 성장 카드를 고르기 전까지 무장에 안 들어갔다(2026-11-14 고침). 보너스가 없으면 배율이 1이라 결과는 같다.
             if (RunUpgrades.IsWeapon(type))
             {
                 s.Damage *= RunUpgrades.DamageMultiplier(type);

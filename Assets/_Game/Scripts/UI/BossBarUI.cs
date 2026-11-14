@@ -129,20 +129,47 @@ namespace Game.UI
             UpdateParts();
         }
 
-        /// <summary>부위 줄: 남은 체력만큼 막대, 부서졌으면 흐린 글자 + "파괴".</summary>
+        /// <summary>
+        /// 부위 줄: 남은 체력만큼 막대, 부서졌으면 흐린 글자 + "파괴". 같은 Group 부위(항공전함 대공포 6기 등)는 한 칸 — "대공포 4/6",
+        /// 막대는 남은 체력 합(2026-11-14). 가려진 약점(Shielded)은 흐린 글자.
+        /// </summary>
         private void UpdateParts()
         {
             if (_boss is not IBossParts bp || bp.Parts == null) return;
             var parts = bp.Parts.Parts;
-            if (parts.Count != _partChips.Count) { BuildParts(); return; }
+            if (bp.Parts.ChipCount != _partChips.Count) { BuildParts(); return; }
+            int chipIndex = 0;
             for (int i = 0; i < parts.Count; i++)
             {
                 var part = parts[i];
-                var chip = _partChips[i];
-                chip.fill.sizeDelta = new Vector2(chip.width * part.HpFraction, 4f);
-                string text = part.Destroyed ? $"<color=#7d8a92>{Short(part.Name)} <b>파괴</b></color>" : Short(part.Name);
+                string group = part.Group;
+                if (group != null)
+                {
+                    bool first = true;
+                    for (int j = 0; j < i; j++) if (parts[j].Group == group) { first = false; break; }
+                    if (!first) continue;
+                }
+                var chip = _partChips[chipIndex++];
+                float hp = 0f, max = 0f;
+                int alive = 0, total = 0;
+                bool shielded = part.Shielded;
+                for (int j = i; j < parts.Count; j++)
+                {
+                    var q = parts[j];
+                    if (j != i && (group == null || q.Group != group)) continue;
+                    hp += q.Hp; max += q.MaxHp; total++;
+                    if (!q.Destroyed) alive++;
+                    if (group == null) break;
+                }
+                float frac = max > 0f ? Mathf.Clamp01(hp / max) : 0f;
+                bool destroyed = alive == 0;
+                string note = group != null ? bp.Parts.GroupNote(group) : null;
+                string name = group != null ? (note ?? $"{group} {alive}/{total}") : Short(part.Name);
+                chip.fill.sizeDelta = new Vector2(chip.width * frac, 4f);
+                string text = destroyed ? $"<color=#7d8a92>{(group ?? Short(part.Name))} <b>파괴</b></color>"
+                            : shielded ? $"<color=#93a3ad>{name}</color>" : name;
                 if (chip.label.text != text) chip.label.text = text;
-                chip.img.color = part.HpFraction < 0.35f ? new Color(1f, 0.35f, 0.25f) : PartFill;
+                chip.img.color = shielded ? new Color(0.55f, 0.6f, 0.65f) : frac < 0.35f ? new Color(1f, 0.35f, 0.25f) : PartFill;
             }
         }
 
@@ -151,8 +178,8 @@ namespace Game.UI
         {
             foreach (Transform c in _partsRow) Destroy(c.gameObject);
             _partChips.Clear();
-            var parts = _boss is IBossParts bp && bp.Parts != null ? bp.Parts.Parts : null;
-            int n = parts != null ? parts.Count : 0;
+            var parts = _boss is IBossParts bp && bp.Parts != null ? bp.Parts : null;
+            int n = parts != null ? parts.ChipCount : 0;
             _panel.sizeDelta = new Vector2(Width, n > 0 ? BaseHeight + PartsHeight : BaseHeight);
             if (n == 0) return;
             const float gap = 6f;

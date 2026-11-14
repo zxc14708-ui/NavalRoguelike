@@ -13,6 +13,224 @@ namespace Game.Dev
 {
     public partial class CombatVerificationRunner
     {
+        /// <summary>-carrierBossOnly: 3스테이지 항공전함 개편(2026-11-14) — 새 모델 소켓 · 현측 기관포 · 거리별 주포(탄 비행 시간·포신 앙각) ·
+        /// 대공 요격 확률(6기 50% → 그 현 2기 파괴 후 낮아짐) · 겨냥점과 가려진 약점 · 엘리베이터 드론 2×3 · 함미 보트 3 · 보스 막대 묶음.</summary>
+        public bool CarrierBossOnly;
+
+        private IEnumerator CarrierBossCheck()
+        {
+            _report.AppendLine("\n## 3스테이지 항공전함(새 모델 · 패턴 개편)");
+            if (GameManager.Instance.State != GameState.Playing) GameManager.Instance.SetState(GameState.Playing);
+            CombatDevTools.ClearBattlefield();
+            var ship = GameManager.Instance.Player;
+            ship.DevRudderOverride = 0f;
+            ship.SetEngineOrder(0f);
+            // 내 무장은 끈다(대공포·부위를 마음대로 부수면 확률 검사가 흐려진다). VLS 하나는 미사일 탄만 얻으려고 설치
+            var vls = CombatDevTools.InstallModuleNear("mod_vls", new Game.Ship.GridCoord(0, 0), 8);
+            GameObject missilePrefab = vls != null && vls.Runtime != null ? Get<GameObject>(vls.Runtime, "missilePrefab") : null;
+            var off = new List<Behaviour>();
+            foreach (var r in ship.GetComponentsInChildren<ModuleRuntime>()) if (r.enabled && r is not BridgeModule) { r.enabled = false; off.Add(r); }
+            yield return new WaitForSeconds(1f);
+
+            var def = CombatDevTools.FindEnemy("ene_boss2");
+            Vector3 PortBeam(Transform b, float d) => b.position - b.right * d;
+            // 보스를 기함 앞 25m, 기함을 좌현 쪽에 두도록 돌려 세운다(보스 앞 = 기함의 왼쪽)
+            Vector3 at = ship.transform.position + ship.transform.forward * 25f;
+            var boss = def != null ? EnemySpawner.Instance.SpawnAt(def, at, Quaternion.LookRotation(-ship.transform.right, Vector3.up)) as HybridBattleshipBoss : null;
+            if (boss == null) { Fail("항공전함 생성 실패"); foreach (var b in off) if (b != null) b.enabled = true; yield break; }
+            boss.DevStationary = true;
+            boss.transform.SetPositionAndRotation(at, Quaternion.LookRotation(-ship.transform.right, Vector3.up));
+            yield return new WaitForSeconds(0.5f);
+
+            // 1) 모델 소켓 · 부위
+            var parts = boss.Parts;
+            var sb = new StringBuilder();
+            foreach (var p in parts.Parts) sb.Append($"{p.Name}{(p.Shielded ? "(가림)" : "")} · ");
+            bool socketsOk = parts.Parts.Count == 13 && boss.AaCount == 6 && boss.ElevatorAnchor != null && boss.WellAnchor != null;
+            int portAa = 0; for (int i = 0; i < boss.AaCount; i++) if (boss.AaIsPort(i)) portAa++;
+            _report.AppendLine($"- 소켓·부위 {parts.Parts.Count}개: {sb}대공포 {boss.AaCount}기(좌현 {portAa}) · 보스 막대 칸 {parts.ChipCount}");
+            if (!socketsOk || portAa != 3) Fail("새 모델 소켓(주포·기관포·대공포 6·엘리베이터·함미 램프·레이더)을 다 찾지 못함");
+            var mats = new StringBuilder();
+            foreach (var r in boss.GetComponentsInChildren<MeshRenderer>())
+                if (r.name is "FlightDeck_Mesh" or "Hull_Mesh" or "BridgeAssembly_Mesh" or "SternWellDeck_Mesh" or "FlightDeck" or "Hull")
+                {
+                    mats.Append($"{r.name}[");
+                    foreach (var m in r.sharedMaterials) if (m != null) mats.Append($"{m.name}({(m.HasProperty("_BaseColor") ? ColorUtility.ToHtmlStringRGB(m.GetColor("_BaseColor")) : "-")}) ");
+                    mats.Append("] ");
+                }
+            _report.AppendLine($"  - 재질: {mats}");
+            yield return CloseShot("carrier_model", boss.transform, 34f);
+
+            // 2) 현측 기관포: 기함이 좌현 25m — 몇 초 안에 점사
+            int side0 = boss.DevSideShots;
+            yield return new WaitForSeconds(5f);
+            _report.AppendLine($"- 현측 기관포: 5초에 {boss.DevSideShots - side0}발");
+            if (boss.DevSideShots - side0 < 6) Fail("현측 기관포가 쏘지 않음");
+
+            // 3) 주포: 가까이(약 20m) · 멀리(약 40m)에서 탄 비행 시간과 포신 앙각
+            float flightNear = 0f, flightFar = 0f, elevNear = 0f, elevFar = 0f;
+            foreach (var dist in new[] { 20f, 40f })
+            {
+                boss.transform.position = PortBeam(boss.transform, 0f) + (ship.transform.position - boss.transform.position).normalized * ((ship.transform.position - boss.transform.position).magnitude - dist);
+                int s0 = boss.DevSalvos;
+                float t0 = Time.time;
+                while (boss.DevSalvos == s0 && Time.time - t0 < 9f) yield return null;
+                yield return new WaitForSeconds(0.05f);
+                float el = Mathf.Max(boss.MainGunElevation(0), boss.MainGunElevation(1));
+                if (dist < 30f) { flightNear = boss.DevLastFlightTime; elevNear = el; } else { flightFar = boss.DevLastFlightTime; elevFar = el; }
+                yield return CloseShot(dist < 30f ? "carrier_maingun_near" : "carrier_maingun_far", boss.BowAnchor, 14f);
+            }
+            _report.AppendLine($"- 주포: 약 20m 탄 비행 {flightNear:0.00}초 · 포신 {elevNear:0}° / 약 40m {flightFar:0.00}초 · 포신 {elevFar:0}° (예전 2.2초 고정)");
+            if (flightNear <= 0f || flightFar <= 0f) Fail("주포가 쏘지 않음");
+            else
+            {
+                if (!(flightNear < flightFar && flightFar <= 1.61f)) Fail("주포 탄 비행 시간이 거리에 따라 짧아지지 않음(최대 1.6초)");
+                if (elevFar < elevNear + 5f) Fail("멀리 쏠 때 포신이 더 들리지 않음");
+            }
+
+            // 4) 대공 요격(2026-11-14 개편): 50% × 남은 비율 − 격추마다 10%p(4초마다 회복)
+            boss.transform.position = ship.transform.position + (boss.transform.position - ship.transform.position).normalized * 30f;
+            Missile LaunchAt(Vector3 from)
+            {
+                var go = missilePrefab != null ? PoolManager.Instance?.Spawn(missilePrefab, from, Quaternion.LookRotation(boss.transform.position - from)) : null;
+                var m = go != null ? go.GetComponent<Missile>() : null;
+                if (m != null) m.Launch(boss.transform, 1f);
+                return m;
+            }
+            IEnumerator WaitGone(List<Missile> flying)
+            {
+                float t1 = Time.time;
+                while (Time.time - t1 < 5f && flying.Exists(x => x != null && x.IsAlive && x.isActiveAndEnabled)) yield return null;
+            }
+            // 4-1) 확률표: 지친 정도 0~5 → 50 · 40 · 30 · 20 · 10 · 0%
+            var table = new StringBuilder();
+            bool tableOk = true;
+            for (int f = 0; f <= 5; f++)
+            {
+                boss.DevSetAaFatigue(f);
+                float c = boss.InterceptChance(true);
+                table.Append($"{c * 100f:0}% ");
+                if (Mathf.Abs(c - (0.5f - 0.1f * f)) > 0.001f) tableOk = false;
+            }
+            // 4-2) 한 발씩(매번 지친 정도 0) 30발 — 약 50%
+            int single = 0, singleKills = 0;
+            for (int n = 0; n < 30 && missilePrefab != null; n++)
+            {
+                boss.DevSetAaFatigue(0f);
+                int k0 = boss.DevAaKills;
+                var m = LaunchAt(PortBeam(boss.transform, 38f) + boss.transform.forward * ((n % 4 - 1.5f) * 4f) + Vector3.up * 4f);
+                yield return WaitGone(new List<Missile> { m });
+                single++;
+                if (boss.DevAaKills > k0) singleKills++;
+            }
+            // 4-3) 몰아 쏘기: 지친 정도 0에서 10발을 한꺼번에 — 많아야 5발만 떨어진다(6번째부터는 0%)
+            boss.DevSetAaFatigue(0f);
+            int burstK0 = boss.DevAaKills, burstJ0 = boss.DevAaJudged;
+            var burst = new List<Missile>();
+            for (int n = 0; n < 10 && missilePrefab != null; n++)
+                burst.Add(LaunchAt(PortBeam(boss.transform, 36f) + boss.transform.forward * ((n % 5 - 2f) * 3f) + Vector3.up * (4f + n / 5)));
+            yield return WaitGone(burst);
+            int burstKills = boss.DevAaKills - burstK0, burstJudged = boss.DevAaJudged - burstJ0;
+            int fatigueAfter = boss.AaFatigue;
+            // 4-4) 회복: 지친 정도 3 → 4.3초 뒤 2
+            boss.DevSetAaFatigue(3f);
+            yield return new WaitForSeconds(4.3f);
+            int recovered = boss.AaFatigue;
+            // 4-5) 좌현 대공포 2기 파괴 → 좌현 약 17%, 우현 50%
+            int broken = 0;
+            for (int i = 0; i < boss.AaCount && broken < 2; i++)
+            {
+                var p = boss.AaPart(i);
+                if (p == null || !boss.AaIsPort(i)) continue;
+                while (!p.Destroyed) boss.TakeDamage(new DamageInfo(p.MaxHp * 0.5f, p.Anchor.position + Vector3.up * 0.2f, Vector3.down, DamageSource.Gun, "검증"));
+                broken++;
+            }
+            boss.DevSetAaFatigue(0f);
+            float portChance = boss.InterceptChance(true), stbdChance = boss.InterceptChance(false);
+            boss.DevSetAaFatigue(1f);
+            float portAfterOne = boss.InterceptChance(true);
+            boss.DevSetAaFatigue(0f);
+            yield return new WaitForSeconds(0.4f);
+            float singleRate = single > 0 ? singleKills / (float)single : 0f;
+            _report.AppendLine($"- 대공 요격 확률표(지친 정도 0~5): {table}");
+            _report.AppendLine($"  - 한 발씩 {single}발: 격추 {singleKills}({singleRate:P0}, 기대 50%) · 몰아 쏘기 10발: 판정 {burstJudged} · 격추 {burstKills}(최대 5) · 지친 정도 {fatigueAfter}");
+            _report.AppendLine($"  - 회복: 지친 정도 3 → 4.3초 뒤 {recovered} · 좌현 {broken}기 파괴 후 좌현 {portChance:P0} / 우현 {stbdChance:P0} · 좌현 1발 격추 뒤 {portAfterOne:P0}");
+            if (missilePrefab == null) Fail("검사용 미사일 탄을 찾지 못함");
+            if (!tableOk) Fail("격추마다 요격 확률이 10%p씩 줄지 않음(50 → 0%)");
+            if (singleRate < 0.27f || singleRate > 0.73f) Fail("대공포 6기 첫 요격 확률이 50% 근처가 아님");
+            if (burstJudged < 8 || burstKills > 5) Fail("몰아 쏘기에서 5발보다 많이 떨어짐(6번째부터는 반드시 들어가야 함)");
+            if (recovered != 2) Fail("깎인 요격 확률이 4초마다 한 단계씩 돌아오지 않음");
+            if (Mathf.Abs(portChance - 0.5f / 3f) > 0.01f || Mathf.Abs(stbdChance - 0.5f) > 0.01f || Mathf.Abs(portAfterOne - (0.5f / 3f - 0.1f)) > 0.01f) Fail("대공포 파괴에 따른 요격 확률이 규칙과 다름");
+
+            // 5) 겨냥점 · 가려진 약점(엘리베이터 · 함미 웰덱)
+            {
+                Vector3 beam = PortBeam(boss.transform, 25f) - boss.transform.forward * 1.4f;
+                Vector3 ahead = boss.transform.position + boss.transform.forward * 40f;
+                Vector3 astern = boss.transform.position - boss.transform.forward * 40f;
+                var elevPart = System.Linq.Enumerable.First(parts.Parts, p => p.Name == "엘리베이터");
+                var wellPart = System.Linq.Enumerable.First(parts.Parts, p => p.Name == "함미 웰덱");
+                // 가려져 있을 때: 현측 엘리베이터 자리 피해 → 엘리베이터는 그대로
+                Vector3 sideHit = boss.GetComponent<Collider>().ClosestPoint(beam);
+                float e0 = elevPart.Hp;
+                boss.TakeDamage(new DamageInfo(20f, sideHit, Vector3.right, DamageSource.Gun, "검증"));
+                bool shieldedOk = Mathf.Approximately(e0, elevPart.Hp);
+                // 내려가면: 현측 겨냥점 = 엘리베이터, 앞에서는 아님, 같은 자리 피해가 엘리베이터로
+                Call(boss, "SetElevator", 1f); Call(boss, "UpdateExposure");
+                bool aimBeam = (boss.AimPointFor(beam, false) - boss.ElevatorAnchor.position).sqrMagnitude < 0.01f;
+                bool aimAhead = (boss.AimPointFor(ahead, false) - boss.ElevatorAnchor.position).sqrMagnitude > 0.01f;
+                bool aimMissile = (boss.AimPointFor(ahead, true) - boss.ElevatorAnchor.position).sqrMagnitude < 0.01f;
+                boss.TakeDamage(new DamageInfo(20f, sideHit, Vector3.right, DamageSource.Gun, "검증"));
+                bool exposedOk = elevPart.Hp < e0 - 19f;
+                yield return CloseShot("carrier_elevator_down", boss.ElevatorAnchor, 12f);
+                Call(boss, "SetElevator", 0f); Call(boss, "UpdateExposure");
+                // 함미 램프: 열리면 뒤에서 겨냥 = 웰덱, 맞으면 선체 1.5배
+                Call(boss, "SetGate", 1f); Call(boss, "UpdateExposure");
+                bool aimAstern = (boss.AimPointFor(astern, false) - boss.WellAnchor.position).sqrMagnitude < 0.01f;
+                bool aimBeamNotWell = (boss.AimPointFor(beam, false) - boss.WellAnchor.position).sqrMagnitude > 0.01f;
+                float hp0 = boss.CurrentHp, w0 = wellPart.Hp;
+                boss.TakeDamage(new DamageInfo(10f, boss.WellAnchor.position, Vector3.forward, DamageSource.Gun, "검증"));
+                float hullLoss = hp0 - boss.CurrentHp;
+                bool wellOk = Mathf.Abs(hullLoss - 15f) < 0.01f && wellPart.Hp < w0 - 14.9f;
+                yield return CloseShot("carrier_gate_open", boss.WellAnchor, 13f);
+                Call(boss, "SetGate", 0f); Call(boss, "UpdateExposure");
+                _report.AppendLine($"- 약점: 가려진 엘리베이터 피해 없음 {Yes(shieldedOk)} · 내려가면 현측 겨냥 {Yes(aimBeam)} · 앞에서는 다른 곳 {Yes(aimAhead)} · 미사일은 앞에서도 {Yes(aimMissile)} · 현측 피해가 엘리베이터로 {Yes(exposedOk)}");
+                _report.AppendLine($"  - 함미: 열리면 뒤에서 겨냥 = 웰덱 {Yes(aimAstern)} · 현측에서는 아님 {Yes(aimBeamNotWell)} · 웰덱 10 피해 → 선체 {hullLoss:0.#}(1.5배) · 웰덱 부위도 깎임 {Yes(wellOk)}");
+                if (!shieldedOk || !aimBeam || !aimAhead || !aimMissile || !exposedOk) Fail("엘리베이터 약점 · 겨냥점이 규칙대로 동작하지 않음");
+                if (!aimAstern || !aimBeamNotWell || !wellOk) Fail("함미 웰덱 약점(뒤에서만 · 1.5배)이 규칙대로 동작하지 않음");
+            }
+
+            // 6) 2·3단계: 체력을 35%로(맞은 자리 없는 피해 — 부위는 그대로) → 드론 2×3 · 자폭 보트 3
+            boss.TakeDamage(new DamageInfo(boss.CurrentHp - def.MaxHp * 0.35f, Vector3.zero, Vector3.down, DamageSource.Gun, "검증"));
+            float t2 = Time.time;
+            bool shotDown = false, shotGate = false, shotRide = false, shotDeck = false;
+            int ridingSeen = 0, onDeckSeen = 0;
+            while (Time.time - t2 < 18f && (boss.DevDronesLaunched < 6 || boss.DevBoatsLaunched < 3))
+            {
+                if (boss.DronesOnElevator == 2 && boss.Elevator01 > 0.2f && boss.Elevator01 < 0.8f) ridingSeen++;
+                if (boss.DronesOnElevator == 2 && boss.Elevator01 < 0.02f) onDeckSeen++;
+                if (!shotDown && boss.Elevator01 > 0.95f && boss.DronesOnElevator == 2) { shotDown = true; yield return CloseShot("carrier_wave_elevator", boss.ElevatorAnchor, 12f); }
+                if (!shotRide && boss.DronesOnElevator == 2 && boss.Elevator01 > 0.35f && boss.Elevator01 < 0.65f && shotDown) { shotRide = true; yield return CloseShot("carrier_wave_riding", boss.ElevatorAnchor, 10f); }
+                if (!shotDeck && boss.DronesOnElevator == 2 && boss.Elevator01 < 0.02f) { shotDeck = true; yield return CloseShot("carrier_wave_on_deck", boss.ElevatorAnchor, 10f); }
+                if (!shotGate && boss.Gate01 > 0.95f && boss.DevBoatsLaunched >= 1) { shotGate = true; yield return CloseShot("carrier_wave_boats", boss.WellAnchor, 16f); }
+                yield return null;
+            }
+            var bar = Object.FindFirstObjectByType<Game.UI.BossBarUI>();
+            yield return new WaitForSeconds(0.4f);
+            _report.AppendLine($"- 총력전: 드론 {boss.DevDronesLaunched}기(기대 6 = 2×3) · 자폭 보트 {boss.DevBoatsLaunched}척(기대 3) · {Time.time - t2:0.0}초 · 단계 \"{boss.PhaseName}\"");
+            _report.AppendLine($"  - 드론이 엘리베이터에 실려 올라옴: 오르는 중 {ridingSeen}프레임 · 갑판에 올라온 모습 {onDeckSeen}프레임 · 끝난 뒤 실린 드론 {boss.DronesOnElevator}(기대 0)");
+            if (ridingSeen == 0 || onDeckSeen == 0 || boss.DronesOnElevator != 0) Fail("드론이 엘리베이터를 타고 올라오는 모습이 없음");
+            _report.AppendLine($"  - 보스 막대: 칸 {(bar != null ? bar.PartChips : -1)}/{parts.ChipCount} · \"{(bar != null ? bar.PartsText : "")}\"");
+            if (boss.DevDronesLaunched < 6) Fail("엘리베이터 드론이 2기씩 3번 나오지 않음");
+            if (boss.DevBoatsLaunched < 3) Fail("함미 램프에서 자폭 보트 3척이 나오지 않음");
+            if (bar != null && bar.Boss == boss && bar.PartChips != parts.ChipCount) Fail("보스 막대 부위 칸이 묶음 수와 다름");
+            yield return Shot("carrier_final_phase");
+
+            if (boss.IsAlive) boss.RemoveWithoutReward();
+            CombatDevTools.ClearBattlefield();
+            foreach (var b in off) if (b != null) b.enabled = true;
+            if (vls != null) CombatDevTools.RemoveModule(vls);
+        }
+
         /// <summary>-polishOnly: 전투 기능 · 바다 후속 묶음(2026-11-01) 확인.</summary>
         public bool PolishOnly;
 
@@ -140,8 +358,8 @@ namespace Game.Dev
                 if (!boss.IsAlive) Fail("부위만 노렸는데 보스가 격침됨");
                 yield return new WaitForSeconds(0.6f);
                 string barText = bar != null ? bar.PartsText : "";
-                _report.AppendLine($"  - 보스 막대 부위 줄: 칸 {chips}/{parts.Parts.Count} · \"{barText}\"");
-                if (chips != parts.Parts.Count) Fail($"{def.DisplayName}: 보스 막대에 부위 줄이 없거나 칸 수가 다름");
+                _report.AppendLine($"  - 보스 막대 부위 줄: 칸 {chips}/{parts.ChipCount} · \"{barText}\"");
+                if (chips != parts.ChipCount) Fail($"{def.DisplayName}: 보스 막대에 부위 줄이 없거나 칸 수가 다름");
                 if (!barText.Contains(first.Name + " 파괴")) Fail("보스 막대가 부서진 부위를 표시하지 않음");
                 yield return Shot($"polish_boss_bar_{id}");
                 yield return CloseShot($"polish_boss_part_{id}", first.Anchor, 12f);

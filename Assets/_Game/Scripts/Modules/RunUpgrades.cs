@@ -105,7 +105,29 @@ namespace Game.Modules
         /// <summary>
         /// 누적 보너스 비율(0.15 = +15%) = 이번 판 성장 카드 + 해군 기술연구소 연구(MetaResearch — 판 밖의 기본 보너스, 2026-10-28).
         /// </summary>
-        public static float Get(RunStat stat) => Bonus[(int)stat] + MetaResearch.Bonus(stat);
+        public static float Get(RunStat stat) => Bonus[(int)stat] + MetaResearch.Bonus(stat) + ((int)stat == s_previewStat ? s_previewAdd : 0f);
+
+        // 카드 미리보기(2026-11-14): 이 카드를 고르면 실제 수치가 어떻게 바뀌는지 같은 계산식(ModuleUpgrades.Compute 등)으로 구한다.
+        // 범위 안에서만 Get이 이 값을 더한다 — Changed를 부르지 않고 누적·기록도 건드리지 않는다.
+        private static int s_previewStat = -1;
+        private static float s_previewAdd;
+
+        /// <summary>using 범위 안에서 stat 보너스를 add만큼 더한 것처럼 계산한다(카드 표시용).</summary>
+        public static PreviewScope Preview(RunStat stat, float add)
+        {
+            s_previewStat = (int)stat;
+            s_previewAdd = add;
+            return default;
+        }
+
+        public readonly struct PreviewScope : IDisposable
+        {
+            public void Dispose()
+            {
+                s_previewStat = -1;
+                s_previewAdd = 0f;
+            }
+        }
 
         /// <summary>이번 판 성장 카드만의 누적(연구 제외).</summary>
         public static float CardBonus(RunStat stat) => Bonus[(int)stat];
@@ -138,6 +160,8 @@ namespace Game.Modules
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetOnPlay()
         {
+            s_previewStat = -1;
+            s_previewAdd = 0f;
             Array.Clear(Bonus, 0, Bonus.Length);
             History.Clear();
             Changed = null;

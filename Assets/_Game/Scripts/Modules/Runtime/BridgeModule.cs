@@ -81,6 +81,8 @@ namespace Game.Modules.Runtime
             : burstGap > 0f ? 1f - Mathf.Clamp01(_burstGapLeft / burstGap) : 1f;
         /// <summary>응급 수리 1회가 다시 차는 시간(초)과 다음 1회까지 남은 시간(검증·HUD용).</summary>
         public float ChargeRechargeSeconds => chargeRecharge;
+        /// <summary>전속 재사용 시간(초, 스킬 회복 카드 적용 전). 정비 카드 미리보기용.</summary>
+        public float FlankCooldownSeconds => flankCooldown;
         public float ChargeRechargeLeft => _rechargeLeft;
 
         public void Burst()

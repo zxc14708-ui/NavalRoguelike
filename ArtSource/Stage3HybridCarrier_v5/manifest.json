@@ -1,0 +1,58 @@
+{
+  "original_bounds_m": [
+    [
+      -2.6200003623962402,
+      -8.088000297546387,
+      -0.5299999713897705
+    ],
+    [
+      2.6200003623962402,
+      8.0,
+      4.590000152587891
+    ]
+  ],
+  "tris": 6052,
+  "flight_deck_length_m": 8.47,
+  "main_turrets": 2,
+  "barrels_per_main_turret": 2,
+  "aa_per_side": 3,
+  "main_gun_factors_xyz": [
+    0.76,
+    0.75,
+    0.68
+  ],
+  "drone_elevator": {
+    "opening_m": [
+      1.48,
+      1.6
+    ],
+    "platform_m": [
+      1.428,
+      1.548
+    ],
+    "travel_m": 0.502,
+    "fps": 30,
+    "frames": [
+      1,
+      145
+    ],
+    "upper_frame": 1,
+    "lower_frame": 61,
+    "moving_node": "DroneElevatorPivot",
+    "drone_socket": "DroneElevatorMount"
+  },
+  "stern_gate": {
+    "pivot": "SternGatePivot",
+    "staging_socket": "SternBoatStaging",
+    "exit_socket": "SternBoatExit",
+    "open_degrees": 96,
+    "closed_frame": 1,
+    "open_frame": 61
+  },
+  "auxiliary_mounts": [
+    "Port",
+    "Starboard",
+    "BridgePort",
+    "BridgeStarboard"
+  ]
+}

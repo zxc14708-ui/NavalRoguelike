@@ -2732,38 +2732,18 @@ namespace Game.EditorTools
         /// <summary>항공전함 소켓 연결. 아트 모델은 이름으로, 그레이박스는 만들 때 붙인 이름 그대로 찾는다.</summary>
         private static void WireHybridBoss(Transform root, HybridBattleshipBoss comp, GameObject shell, GameObject flash, GameObject aaTracer)
         {
-            var muzzles = new List<Transform>();
-            var missiles = new List<Transform>();
-            for (int i = 1; i <= 8; i++)
-            {
-                var m = FindDeep(root, $"MainGun_Muzzle_{i:00}");
-                if (m != null) muzzles.Add(m);
-                var l = FindDeep(root, $"MissileLaunchPoint_{i:00}");
-                if (l != null) missiles.Add(l);
-            }
-            // 주포 선회부(v9 모델: MainGun_01/02 아래 MainGun_Elevation_01/02 — 선회만 돌린다)
-            var turrets = new List<Transform>();
-            for (int i = 1; i <= 4; i++)
-            {
-                var t = FindDeep(root, $"MainGun_{i:00}");
-                if (t != null) turrets.Add(t);
-            }
-            var deck = FindDeep(root, "FlightDeckLaunch");
-            var aa = FindDeep(root, "AAMount");
-            var radar = FindDeep(root, "RadarPivot");
-            if (muzzles.Count == 0) Debug.LogWarning("[Setup] 항공전함에서 MainGun_Muzzle_01~ 소켓을 찾지 못했습니다(선체 중앙에서 발사).");
-
+            // 2026-11-14 개편: 포탑·기관포·대공포·엘리베이터·함미 램프 소켓은 HybridBattleshipBoss가 실행 중에 모델 이름으로 찾는다.
+            // 여기서는 탄·효과·자폭 보트 데이터만 넣는다.
+            var enemyGun = AssetDatabase.LoadAssetAtPath<GameObject>($"{Root}/Prefabs/Projectiles/PRJ_EnemyGun.prefab");
+            var boat = AssetDatabase.LoadAssetAtPath<Game.Data.EnemyDefinition>($"{Root}/Data/Enemies/ene_suicide_boat.asset");
+            if (FindDeep(root, "MainGun_Muzzle_01") == null) Debug.LogWarning("[Setup] 항공전함에서 MainGun_Muzzle_01 소켓을 찾지 못했습니다.");
             Configure(comp, so =>
             {
                 Set(so, "shellPrefab", shell);
                 Set(so, "muzzleFlash", flash);
-                SetArray(so, "gunMuzzles", muzzles.ToArray());
-                SetArray(so, "missileLaunchPoints", missiles.ToArray());
-                SetArray(so, "mainTurrets", turrets.ToArray());
-                Set(so, "flightDeckLaunch", deck);
-                Set(so, "aaMount", aa);
                 Set(so, "aaProjectilePrefab", aaTracer);
-                if (radar != null) Set(so, "radar", radar);
+                if (enemyGun != null) Set(so, "gunProjectilePrefab", enemyGun);
+                if (boat != null) Set(so, "sternBoat", boat);
                 // 주포 사격 금지 구역(= 플레이어의 안전 지대)을 수면에 옅은 초록으로
                 Set(so, "cutoutZoneMaterial", CreateTransparentMaterial("boss_blindspot", new Color(0.35f, 1f, 0.55f, 0.13f)));
             });
