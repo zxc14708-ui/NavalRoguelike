@@ -55,6 +55,8 @@ namespace Game.Modules.Runtime
             _targeting = GetComponentInParent<TargetingSystem>();
             if (_targeting == null) Debug.LogError("[Nobong] TargetingSystem을 찾지 못했습니다.", this);
             if (projectilePrefab == null) Debug.LogError("[Nobong] projectilePrefab 미할당.", this);
+            // v22 모델은 포신을 18° 든 채 저장돼 있다 — 실제 포신 축으로 고각을 재야 표적 높이에 맞춰 오르내린다(2026-11-16)
+            weapon.SetRestPoseRaised(true);
             _ammo.Configure(Stats);
             _ammo.Label = LogName;
             _score = Score;

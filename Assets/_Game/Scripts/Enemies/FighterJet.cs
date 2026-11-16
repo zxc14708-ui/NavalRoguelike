@@ -71,6 +71,7 @@ namespace Game.Enemies
                     {
                         _state = State.Attack;
                         _firedThisRun = false;
+                        AudioManager.Play(Game.Data.SfxId.JetPass, transform.position);   // 공격 진입 굉음(2026-11-16)
                     }
                     break;
 
@@ -146,7 +147,7 @@ namespace Game.Enemies
                 : null;
             go?.GetComponent<Projectile>()?.Launch(dir, projectileSpeed, Definition.AttackDamage / burstRounds, DamageSource.Gun);
 
-            AudioManager.Play(Game.Data.SfxId.AutocannonShot, muzzle.position, 0.35f, 1.35f);
+            AudioManager.Play(Game.Data.SfxId.EnemyAutocannonShot, muzzle.position, 0.35f, 1.35f);
         }
     }
 }

@@ -340,6 +340,13 @@ namespace Game.Dev
                 Finish();
                 yield break;
             }
+            if (BaseIslandsOnly)
+            {
+                yield return BaseIslandsCheck();
+                SaveLog("base_islands");
+                Finish();
+                yield break;
+            }
             if (SfxOnly)
             {
                 yield return SfxCheck();

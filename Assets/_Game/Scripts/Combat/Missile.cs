@@ -501,7 +501,7 @@ namespace Game.Combat
             PooledEffect.Spawn(blastEffect, transform.position, 2.2f);
             Game.View.Explosions.Spawn(transform.position, 1.4f, Game.View.Explosions.Kind.Air);
             ShockRing(transform.position, 1.4f);
-            AudioManager.Play(Game.Data.SfxId.Explosion, transform.position, 0.45f, 1.35f);
+            AudioManager.Play(Game.Data.SfxId.MissileBurst, transform.position, 0.8f);   // 공중 폭파 전용 소리(2026-11-16)
             if (isThreat)
             {
                 CombatStats.RecordIntercept(info.Tag, transform.position);
@@ -545,7 +545,10 @@ namespace Game.Combat
                 ShockRing(transform.position, size);
             }
             else if (kind == Game.View.Explosions.Kind.Air) ShockRing(transform.position, size * 0.8f);
-            AudioManager.Play(Game.Data.SfxId.Explosion, transform.position, 0.75f);
+            // 소리(2026-11-16): 함체·표적 명중 = 미사일 명중음(기함이 맞으면 기함 피격음이 함께 나므로 줄인다) · 공중 = 공중 폭파 · 수면 = 예전 폭발음
+            if (kind == Game.View.Explosions.Kind.Impact) AudioManager.Play(Game.Data.SfxId.MissileHit, transform.position, isThreat && damaged ? 0.5f : 1f);
+            else if (kind == Game.View.Explosions.Kind.Air) AudioManager.Play(Game.Data.SfxId.MissileBurst, transform.position);
+            else AudioManager.Play(Game.Data.SfxId.Explosion, transform.position, 0.75f);
 
             Kill(false);
         }

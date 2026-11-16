@@ -56,7 +56,7 @@ namespace Game.Combat
                 {
                     _sinking = true;
                     PooledEffect.Spawn(blastEffect, new Vector3(_to.x, 0f, _to.z), entrySplashScale);
-                    AudioManager.Play(Game.Data.SfxId.HullImpact, _to, 0.25f, 1.6f);
+                    AudioManager.Play(Game.Data.SfxId.ShellSplash, _to, 0.7f);
                 }
                 return;
             }
@@ -90,7 +90,7 @@ namespace Game.Combat
             }
 
             PooledEffect.Spawn(blastEffect, new Vector3(center.x, 0f, center.z));
-            AudioManager.Play(Game.Data.SfxId.Explosion, center, 0.8f, 0.55f);
+            AudioManager.Play(Game.Data.SfxId.UnderwaterBlast, center, 0.9f);
 
             if (PoolManager.Instance != null) PoolManager.Instance.Despawn(gameObject);
             else gameObject.SetActive(false);

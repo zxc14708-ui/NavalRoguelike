@@ -397,8 +397,18 @@ namespace Game.Enemies
             _hp -= info.Amount * (Time.time < _markedUntil ? _markMultiplier : 1f);
             // 결과 분석: 실제로 깎은 체력과 격침(마지막 한 방)을 무장별로(점검 O02)
             if (Factions.GrantsReward(this)) RunReport.RecordDamage(info.Tag, info.Source, before - Mathf.Max(0f, _hp), _hp <= 0f);
-            if (_hp <= 0f) Die();
+            if (_hp <= 0f)
+            {
+                // 마지막 한 방(무엇에 · 어디를 맞았는지)에 따라 침몰 방식이 달라진다(ShipWreck.SinkMode)
+                _killSource = info.Source;
+                _killPoint = info.HitPoint;
+                Die();
+                _killSource = null;
+            }
         }
+
+        private DamageSource? _killSource;
+        private Vector3 _killPoint;
 
         // --- 표적 지시(초계함 광역 탐색, 2026-10-11): 잠깐 받는 피해가 늘어난다
         private float _markedUntil = -1f, _markMultiplier = 1f;
@@ -422,7 +432,7 @@ namespace Game.Enemies
         protected virtual void Die()
         {
             // 격침 연출: 겉모습만 복사한 잔해가 기울며 가라앉는다(장식). 항공기는 공중에서 터진다.
-            if (Kind != TargetKind.Aircraft && LeavesWreck) Game.View.ShipWreck.Spawn(transform, _speed);
+            if (Kind != TargetKind.Aircraft && LeavesWreck) Game.View.ShipWreck.Spawn(transform, _speed, _killSource, _killPoint);
             AudioManager.Play(SfxId.Explosion, transform.position);
             // 경험치·격침 수는 적대 진영이 격침될 때만(아군으로 싸우는 유닛이 잃어도 보상이 생기지 않게)
             if (Factions.GrantsReward(this)) Game.Core.GameManager.Instance?.RegisterKill(definition);
@@ -441,7 +451,12 @@ namespace Game.Enemies
             else gameObject.SetActive(false);
         }
 
-        public virtual void OnSpawned() => TargetRegistry.Register(this);
+        public virtual void OnSpawned()
+        {
+            TargetRegistry.Register(this);
+            if (this is IBossParts) AudioManager.NoteBoss(transform);                       // 보스 음악(2026-11-16)
+            if (this is Game.WW2.Ww2StrikeAircraft) AudioManager.Play(SfxId.PropPass, transform.position);   // 프로펠러기 등장
+        }
         public virtual void OnDespawned()
         {
             ReleaseEngagement();

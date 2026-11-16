@@ -103,7 +103,7 @@ namespace Game.Enemies
                 target.TakeDamage(new DamageInfo(Definition.AttackDamage, hitPoint, Vector3.up, DamageSource.Torpedo));
             PooledEffect.Spawn(blastEffect, transform.position, blastScale);
             Game.View.Explosions.Spawn(hitPoint + Vector3.up * 0.4f, 1.5f, Game.View.Explosions.Kind.Charge);
-            AudioManager.Play(SfxId.Explosion, transform.position, 1f, 0.8f);
+            AudioManager.Play(SfxId.UnderwaterBlast, transform.position);
             CombatLog.Add("기뢰", $"기뢰 폭발 · 피해 {Definition.AttackDamage:0}");
             RemoveWithoutReward();
         }

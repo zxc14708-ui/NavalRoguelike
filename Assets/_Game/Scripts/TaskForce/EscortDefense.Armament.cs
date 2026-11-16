@@ -281,7 +281,7 @@ namespace Game.TaskForce
             _aswAt = Time.time + AswReload(tier) / (RunUpgrades.FireRateMultiplier(ModuleType.AswLauncher) * _relayRate);
             TorpedoLaunches++;
             AswStrikes++;
-            AudioManager.Play(SfxId.EscortTorpedoLaunch, from, 1f, 0.7f);
+            AudioManager.Play(SfxId.EscortTorpedoLaunch, from);
             Explosions.Spawn(new Vector3(from.x, 0f, from.z), 0.3f, Explosions.Kind.Water);
             TaskForceWorldFeedback.Instance?.PlayRig("ASW", transform.position, transform.eulerAngles.y, 12f, 1.4f, 240f);
             CombatLog.Add("편대", $"대잠 호위함 경어뢰 발사 → {CombatLog.Describe(pick)}");

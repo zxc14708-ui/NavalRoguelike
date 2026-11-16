@@ -158,7 +158,7 @@ namespace Game.Modules.Runtime
                     var go = PoolManager.Instance?.Spawn(chargePrefab, tube.position, tube.rotation);
                     go?.GetComponent<DepthCharge>()?.Launch(tube.position, to, damage);
                 }
-                AudioManager.Play(Game.Data.SfxId.EscortTorpedoLaunch, transform.position, 0.7f, 0.55f);   // 레일 굴러 떨어지는 소리
+                AudioManager.Play(Game.Data.SfxId.DepthDrop, transform.position);   // 레일 굴러 떨어지는 소리
             }
             else
             {

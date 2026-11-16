@@ -41,7 +41,7 @@ namespace Game.Modules.Runtime
             if (!SmokeReady) return;
             SmokeScreen.Instance?.Deploy(smokeDuration);
             _smokeCooldown = smokeCooldown;
-            AudioManager.Play(Game.Data.SfxId.MissileLaunch, transform.position, 0.35f, 0.8f);
+            AudioManager.Play(Game.Data.SfxId.ChaffLaunch, transform.position, 0.8f, 0.85f);
         }
 
         /// <summary>기만체를 쏘는가. WWII 함교는 기만체가 없다(패치 A 9.1) — 기만체 스킬이 이 장비를 세지 않는다.</summary>
@@ -96,7 +96,7 @@ namespace Game.Modules.Runtime
             }
 
             _cooldown = Mathf.Max(0.5f, Stats.ReloadTime);
-            AudioManager.Play(Game.Data.SfxId.MissileLaunch, origin.position, 0.4f, 1.7f);
+            AudioManager.Play(Game.Data.SfxId.ChaffLaunch, origin.position);
         }
 
         private static Vector3 RandomFlat()

@@ -516,7 +516,7 @@ namespace Game.Enemies
                 }
                 gun.Weapon.Kick(0.35f);
                 PooledEffect.Spawn(muzzleFlash, muzzle.position);
-                AudioManager.Play(Game.Data.SfxId.NavalGunShot, muzzle.position, 1f, 0.75f);
+                AudioManager.Play(Game.Data.SfxId.EnemyGunShot, muzzle.position, 1f, 0.75f);
                 yield return new WaitForSeconds(0.12f);
             }
         }
@@ -551,7 +551,7 @@ namespace Game.Enemies
                 var shot = PoolManager.Instance?.Spawn(gunProjectilePrefab, g.Muzzle.position, Quaternion.LookRotation(dir));
                 shot?.GetComponent<Projectile>()?.Launch(dir, sideGunSpeed, sideGunDamage, DamageSource.Gun);
                 PooledEffect.Spawn(muzzleFlash, g.Muzzle.position, 0.35f);
-                AudioManager.Play(Game.Data.SfxId.AutocannonShot, g.Muzzle.position, 0.45f, 1.05f);
+                AudioManager.Play(Game.Data.SfxId.EnemyAutocannonShot, g.Muzzle.position, 0.45f, 1.05f);
                 DevSideShots++;
             }
             g.Rounds--;
@@ -619,7 +619,7 @@ namespace Game.Enemies
                     var go = PoolManager.Instance?.Spawn(aaProjectilePrefab, g.Muzzle.position, Quaternion.LookRotation(dir));
                     go?.GetComponent<Projectile>()?.Launch(dir, aaProjectileSpeed, 0f, DamageSource.Gun);
                 }
-                AudioManager.Play(Game.Data.SfxId.AutocannonShot, g.Muzzle.position, 0.3f, 1.25f);
+                AudioManager.Play(Game.Data.SfxId.EnemyAutocannonShot, g.Muzzle.position, 0.3f, 1.25f);
                 if (kill && shot == 1)
                 {
                     m.TakeDamage(new DamageInfo(99999f, m.transform.position, Vector3.up, DamageSource.Gun, "항공전함 대공포"));

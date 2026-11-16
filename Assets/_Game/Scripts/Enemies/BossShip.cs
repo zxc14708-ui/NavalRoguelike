@@ -161,7 +161,7 @@ namespace Game.Enemies
             var shot = PoolManager.Instance?.Spawn(gunProjectilePrefab, muzzle.position, Quaternion.LookRotation(dir));
             shot?.GetComponent<Projectile>()?.Launch(dir, gunProjectileSpeed, gunDamage, DamageSource.Gun);
             _muzzleFx.Emit(muzzle.position, dir, MuzzleBurstVfx.Style.NavalGun, gunFlashMaterialSource, true);
-            AudioManager.Play(SfxId.NavalGunShot, muzzle.position, 0.7f, 1.05f);
+            AudioManager.Play(SfxId.EnemyGunShot, muzzle.position, 0.7f, 1.05f);
         }
 
         private IEnumerator FireSalvo()

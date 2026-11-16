@@ -25,6 +25,8 @@ namespace Game.World
         private const float CoastReach = 10f;       // 해안 소품이 해안선 밖으로 나가는 거리
         private const float DensityScale = 400f;    // 섬 밀도 무늬 크기(m)
         private const float DensityShift = 0.28f;   // 밀도가 구역의 섬 수 굴림을 얼마나 미는가
+        /// <summary>군도에서 구역마다 적 기지 섬이 나올 확률(2026-11-15). 규모 소 50% · 중 35% · 대 15%.</summary>
+        public const double BaseChance = 0.1;
 
         /// <summary>검증·재현용: 0이 아니면 이 시드로 배치한다(다음 판 시작 전에 설정).</summary>
         public static int SeedOverride;
@@ -94,6 +96,25 @@ namespace Game.World
             var info = IslandBuilder.Build(center, radius, rocky, new System.Random(seed), transform);
             list.Add(info);
             Physics.SyncTransforms();
+            return info;
+        }
+
+        /// <summary>검증용: 지정한 자리에 Codex 키트 섬(적 기지 · 자연 섬) 하나를 놓는다.</summary>
+        public IslandInfo PlaceKit(Vector3 center, IslandBuilder.Kit kind, int seed = 1, float scale = 1f)
+        {
+            var key = new Vector2Int(int.MinValue, int.MinValue);
+            if (!_chunks.TryGetValue(key, out var list)) _chunks[key] = list = new List<IslandInfo>();
+            var info = IslandBuilder.BuildKit(center, kind, new System.Random(seed), transform, scale);
+            if (info != null) list.Add(info);
+            Physics.SyncTransforms();
+            return info;
+        }
+
+        /// <summary>검증용: 지정한 자리에 절차형 섬을 놓고 자연 장식까지(DressNature).</summary>
+        public IslandInfo PlaceDressed(Vector3 center, float radius, bool rocky, int seed = 1)
+        {
+            var info = PlaceAt(center, radius, rocky, seed);
+            IslandBuilder.DressNature(info);
             return info;
         }
 
@@ -168,6 +189,30 @@ namespace Game.World
             if (!strait) roll = System.Math.Clamp(roll + Density(key) * DensityShift, 0.0, 0.999);
             int count = sea == null ? (roll < 0.3 ? 0 : roll < 0.78 ? 1 : 2)
                       : roll < sea.P0 ? 0 : roll < sea.P1 ? 1 : roll < sea.P2 ? 2 : 3;
+
+            // Codex 키트 섬(2026-11-15): 적 기지 섬(군도만) · 자연 섬. 난수는 따로 만들어 기존 섬 배치를 건드리지 않는다
+            var kitRng = new System.Random(unchecked(hash ^ 0x5A17B));
+            if (sea != null && sea.Kind == SeaKind.Archipelago && kitRng.NextDouble() < BaseChance)
+            {
+                double size = kitRng.NextDouble();
+                var kind = size < 0.5 ? IslandBuilder.Kit.BaseS : size < 0.85 ? IslandBuilder.Kit.BaseM : IslandBuilder.Kit.BaseL;
+                if (IslandBuilder.KitAvailable(kind))
+                {
+                    float radius = IslandBuilder.KitRadius(kind);
+                    float margin = Mathf.Min(radius + 8f, ChunkSize * 0.5f - 1f);   // 대형(반경 약 66m)은 구역보다 커서 가운데 근처에
+                    for (int tries = 0; tries < 6; tries++)
+                    {
+                        var center = new Vector3((key.x + (float)kitRng.NextDouble()) * ChunkSize, 0f, (key.y + (float)kitRng.NextDouble()) * ChunkSize);
+                        center.x = Mathf.Clamp(center.x, key.x * ChunkSize + margin, (key.x + 1) * ChunkSize - margin);
+                        center.z = Mathf.Clamp(center.z, key.y * ChunkSize + margin, (key.y + 1) * ChunkSize - margin);
+                        if (!FarFromOthers(center, radius, sea.MinSpacing) || Horizontal(center - _origin) <= ClearRadius + radius + CoastReach || NearShips(center, radius + 12f + CoastReach)) continue;
+                        var info = IslandBuilder.BuildKit(center, kind, new System.Random(kitRng.Next()), transform);
+                        if (info != null) { list.Add(info); count = Mathf.Max(0, count - 1); }
+                        break;
+                    }
+                }
+            }
+
             for (int n = 0; n < count; n++)
             {
                 bool rocky = rng.NextDouble() < (sea != null ? sea.RockyChance : 0.55);
@@ -177,6 +222,16 @@ namespace Game.World
                 float artScale = 1f;
                 EnvironmentArt art = strait ? null : IslandBuilder.PickArt(rocky, rng, out artScale);
                 if (art != null) radius = art.shoreRadius * artScale;
+                // Codex 자연 섬(절차형 대신): 바위섬 25% → NAT_RockIslet, 무인도 18% → 모래섬 NAT_IsletBase(야자수 · 텐트 · 난파 보트)
+                IslandBuilder.Kit? kit = null;
+                float kitScale = 1f;
+                double kitRoll = kitRng.NextDouble(), kitSize = kitRng.NextDouble();
+                if (art == null && !strait)
+                {
+                    if (rocky && kitRoll < 0.25 && IslandBuilder.KitAvailable(IslandBuilder.Kit.RockIslet)) { kit = IslandBuilder.Kit.RockIslet; kitScale = Mathf.Lerp(0.8f, 1.35f, (float)kitSize); }
+                    else if (!rocky && kitRoll < 0.18 && IslandBuilder.KitAvailable(IslandBuilder.Kit.SandIslet)) { kit = IslandBuilder.Kit.SandIslet; kitScale = Mathf.Lerp(0.85f, 1.15f, (float)kitSize); }
+                    if (kit.HasValue) radius = IslandBuilder.KitRadius(kit.Value) * kitScale;
+                }
                 float margin = radius + 8f;
                 Vector3 center = Vector3.zero;
                 bool ok = false;
@@ -194,8 +249,11 @@ namespace Game.World
                 if (!ok) continue;
                 var islandRng = new System.Random(rng.Next());
                 var info = art != null ? IslandBuilder.BuildArt(center, art, artScale, islandRng, transform)
-                                       : IslandBuilder.Build(center, radius, rocky, islandRng, transform);
+                         : kit.HasValue ? IslandBuilder.BuildKit(center, kit.Value, islandRng, transform, kitScale)
+                                        : IslandBuilder.Build(center, radius, rocky, islandRng, transform);
+                if (info == null) continue;
                 IslandBuilder.DressCoast(info, new System.Random(rng.Next()));
+                if (art == null && !kit.HasValue) IslandBuilder.DressNature(info);   // 절차형 섬: 야자수 · 사람 흔적 · 난파 보트 · 바위 관목
                 list.Add(info);
             }
             return list;
@@ -255,9 +313,9 @@ namespace Game.World
         {
             Islands.Unregister(info);
             if (info.Root == null) return;
-            // 런타임에 만든 메시만 지운다(Codex 모델 메시는 자산이라 남긴다)
+            // 런타임에 만든 메시만 지운다(Codex 모델 메시 · 기본 도형은 자산이라 남긴다 — EnvironmentArt · KeepSharedMeshes 아래)
             foreach (var mf in info.Root.GetComponentsInChildren<MeshFilter>())
-                if (mf.sharedMesh != null && mf.GetComponentInParent<EnvironmentArt>() == null) Destroy(mf.sharedMesh);
+                if (mf.sharedMesh != null && mf.GetComponentInParent<EnvironmentArt>() == null && mf.GetComponentInParent<KeepSharedMeshes>() == null) Destroy(mf.sharedMesh);
             Destroy(info.Root);
         }
     }

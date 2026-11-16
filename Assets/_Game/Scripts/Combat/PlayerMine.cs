@@ -99,7 +99,7 @@ namespace Game.Combat
 
             PooledEffect.Spawn(blastEffect, self, 1.2f);
             Game.View.Explosions.Spawn(self + Vector3.up * 0.4f, 1.5f, Game.View.Explosions.Kind.Charge);
-            AudioManager.Play(SfxId.Explosion, self, 1f, 0.8f);
+            AudioManager.Play(SfxId.UnderwaterBlast, self);
             CombatLog.Add("기뢰", $"아군 기뢰 폭발 · 적 {LastHitCount}척");
             Despawn();
         }

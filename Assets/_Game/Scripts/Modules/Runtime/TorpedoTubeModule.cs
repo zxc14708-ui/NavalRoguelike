@@ -121,7 +121,7 @@ namespace Game.Modules.Runtime
             go?.GetComponent<AswTorpedo>()?.LaunchFromTube(tube.position, dir, cue, Stats.Damage);
             LastAims.Add(cue);
             _lastShotTime = Time.time;
-            AudioManager.Play(Game.Data.SfxId.EscortTorpedoLaunch, transform.position, 0.75f, 0.6f);
+            AudioManager.Play(Game.Data.SfxId.TorpedoLaunch, transform.position);
 
             _fanIndex++;
             _pending--;

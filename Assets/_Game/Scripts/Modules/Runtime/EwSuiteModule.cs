@@ -57,7 +57,7 @@ namespace Game.Modules.Runtime
             }
 
             PooledEffect.Spawn(pulseEffect, new Vector3(center.x, 0.5f, center.z));
-            AudioManager.Play(Game.Data.SfxId.SonarPing, center, 0.7f, 1.6f);
+            AudioManager.Play(Game.Data.SfxId.JamPulse, center);
             _cooldown = Mathf.Max(1f, Stats.ReloadTime);
         }
     }

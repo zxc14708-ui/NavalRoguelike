@@ -53,6 +53,8 @@ namespace Game.Core
 
         private AudioSource _warning;
         private AudioSource _engine;
+        private AudioSource _ambience, _battleMusic, _bossMusic;   // 2026-11-16: 바다 환경음 · 전투/보스 음악(교차 전환)
+        private Transform _boss;
         private readonly HashSet<Transform> _incoming = new();
 
         private float _engineSpeed01;
@@ -74,6 +76,43 @@ namespace Game.Core
             CreateVoices();
             _warning = CreateLoopSource("MissileWarning", library.MissileWarning);
             _engine = CreateLoopSource("EngineLoop", library.EngineLoop);
+            _ambience = CreateLoopSource("SeaAmbience", library.SeaAmbience);
+            _battleMusic = CreateLoopSource("BattleMusic", library.BattleMusic);
+            _bossMusic = CreateLoopSource("BossMusic", library.BossMusic);
+            foreach (var s in new[] { _ambience, _battleMusic, _bossMusic }) s.ignoreListenerPause = true;
+        }
+
+        /// <summary>보스가 나타났다(EnemyController.OnSpawned). 살아 있는 동안 보스 음악으로 바꾼다.</summary>
+        public static void NoteBoss(Transform boss)
+        {
+            if (Instance != null && boss != null) Instance._boss = boss;
+        }
+
+        private bool BossAlive => _boss != null && _boss.gameObject.activeInHierarchy;
+
+        /// <summary>
+        /// 환경음은 출항 중(전투·정비·일시정지) 늘 깔고, 음악은 전투 중에만. 보스가 살아 있으면 보스 음악으로 1.5초에 걸쳐 바꾼다.
+        /// 정비·일시정지에는 음악을 40%로 줄여 둔다(끊지 않는다).
+        /// </summary>
+        private void UpdateLoops(float dt)
+        {
+            var state = GameManager.Instance != null ? GameManager.Instance.State : GameState.Boot;
+            bool atSea = state is GameState.Playing or GameState.Refit or GameState.Paused;
+            if (!BossAlive) _boss = null;
+
+            float music = library.MusicVolume * masterVolume * GameSettings.Volume(SoundChannel.Music)
+                          * (state == GameState.Playing ? 1f : atSea ? 0.4f : 0f);
+            Fade(_battleMusic, _boss == null ? music : 0f, dt / 1.5f);
+            Fade(_bossMusic, _boss != null ? music : 0f, dt / 1.5f);
+            Fade(_ambience, atSea ? library.SeaAmbienceVolume * masterVolume * GameSettings.Volume(SoundChannel.Ambience) : 0f, dt / 2f);
+        }
+
+        private static void Fade(AudioSource src, float target, float step)
+        {
+            if (src == null || src.clip == null) return;
+            src.volume = Mathf.MoveTowards(src.volume, target, Mathf.Max(step, 0.0001f) * Mathf.Max(target, 0.3f));
+            if (src.volume > 0.001f && !src.isPlaying) src.Play();
+            else if (src.volume <= 0.001f && target <= 0f && src.isPlaying) src.Stop();
         }
 
         private void OnDestroy()
@@ -210,6 +249,7 @@ namespace Game.Core
 
             float dt = UnityEngine.Time.unscaledDeltaTime;
             UpdateEngine(dt);
+            UpdateLoops(dt);
             PruneIncoming();
         }
 

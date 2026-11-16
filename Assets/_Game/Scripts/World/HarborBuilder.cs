@@ -41,6 +41,7 @@ namespace Game.World
         {
             float hw = SeaRegion.HarborQuayHalfWidth;
             var root = new GameObject("Enemy harbor");
+            root.AddComponent<KeepSharedMeshes>();   // 기본 상자 · Codex 시설 메시 — 치울 때 지우지 않는다
             root.transform.SetParent(parent, false);
             root.transform.SetPositionAndRotation(SeaRegion.HarborPoint(SeaRegion.HarborQuayOffset, 0f), Quaternion.LookRotation(SeaRegion.HarborForward, Vector3.up));
             var rng = new System.Random(seed ^ 0x5eed);

@@ -153,7 +153,7 @@ namespace Game.WW2
             }
             Fired += fired;
             Train(side);
-            AudioManager.Play(Game.Data.SfxId.MissileLaunch, origin, 0.55f, 0.55f);
+            AudioManager.Play(Game.Data.SfxId.TorpedoLaunch, origin, 0.9f);
             CombatLog.Add("어뢰", $"{SideName(side)} 일제 발사 {fired}발");
             return fired;
         }

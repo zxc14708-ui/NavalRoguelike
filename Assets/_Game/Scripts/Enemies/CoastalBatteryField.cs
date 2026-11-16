@@ -21,19 +21,22 @@ namespace Game.Enemies
         public const float SpawnRange = 115f, MinSpawnDistance = 50f, DespawnRange = 230f;
         private const int BankEvery = 4;
         private const string DefinitionPath = "Enemies/ene_coastal_battery";
+        private const string MissileDefinitionPath = "Enemies/ene_coastal_missile";
 
         /// <summary>검증용: 자동 배치를 멈춘다.</summary>
         public static bool Disabled;
         public static CoastalBatteryField Instance { get; private set; }
 
-        private EnemyDefinition _def;
+        private EnemyDefinition _def, _missileDef;
         private readonly Dictionary<long, EnemyController> _placed = new();
         private readonly HashSet<long> _destroyed = new();
-        private readonly List<(long key, Vector3 pos, Quaternion rot, float dist)> _candidates = new();
+        private readonly List<(long key, Vector3 pos, Quaternion rot, float dist, EnemyDefinition def)> _candidates = new();
         private readonly List<long> _remove = new();
         private float _timer;
 
         public EnemyDefinition Definition => _def != null ? _def : _def = Resources.Load<EnemyDefinition>(DefinitionPath);
+        /// <summary>해안 미사일 포대(2026-11-15, 적 기지 섬의 포대 자리).</summary>
+        public EnemyDefinition MissileDefinition => _missileDef != null ? _missileDef : _missileDef = Resources.Load<EnemyDefinition>(MissileDefinitionPath);
         public int ActiveCount => _placed.Count;
         public int DestroyedCount => _destroyed.Count;
         public IEnumerable<EnemyController> Placed => _placed.Values;
@@ -109,7 +112,7 @@ namespace Game.Enemies
                 if (_placed.Count >= MaxActive) break;
                 if (c.dist < MinSpawnDistance || c.dist > SpawnRange) continue;
                 if (_placed.ContainsKey(c.key) || _destroyed.Contains(c.key)) continue;
-                var e = EnemySpawner.Instance.SpawnFixed(Definition, c.pos, c.rot);
+                var e = EnemySpawner.Instance.SpawnFixed(c.def, c.pos, c.rot);
                 if (e != null) _placed[c.key] = e;
             }
         }
@@ -139,14 +142,27 @@ namespace Game.Enemies
                     Vector3 pos = SeaRegion.ChannelPoint(along, side * (shore - 2.2f));
                     if (InHarborZone(pos)) continue;
                     var rot = Quaternion.LookRotation(-SeaRegion.ChannelRight * side, Vector3.up);
-                    _candidates.Add((Key(1, index, side), pos, rot, Flat(pos - me)));
+                    _candidates.Add((Key(1, index, side), pos, rot, Flat(pos - me), Definition));
                 }
                 return;
             }
+            // 적 기지 섬(군도, 2026-11-15): 섬마다 정해진 포대 자리에 해안 미사일 포대. 바다 쪽(섬 가운데에서 바깥)을 보고 선다
+            if (MissileDefinition != null)
+                foreach (var island in Islands.All)
+                {
+                    if (island == null || !island.MilitaryBase || island.BatterySpots == null || island.Root == null) continue;
+                    for (int i = 0; i < island.BatterySpots.Length; i++)
+                    {
+                        Vector3 pos = island.BatterySpots[i];
+                        Vector3 outward = pos - island.Center; outward.y = 0f;
+                        var rot = Quaternion.LookRotation(outward.sqrMagnitude > 0.01f ? outward.normalized : Vector3.forward, Vector3.up);
+                        _candidates.Add((Key(2, Mathf.RoundToInt(pos.x * 4f), Mathf.RoundToInt(pos.z * 4f)), pos, rot, Flat(pos - me), MissileDefinition));
+                    }
+                }
             if (profile.BatteryChance <= 0f) return;
             foreach (var island in Islands.All)
             {
-                if (island == null || island.Bank || island.Radius < 7f || island.Root == null) continue;
+                if (island == null || island.Bank || island.MilitaryBase || island.Radius < 7f || island.Root == null) continue;
                 int cx = Mathf.RoundToInt(island.Center.x), cz = Mathf.RoundToInt(island.Center.z);
                 long key = Key(0, cx, cz);
                 double roll = Hash01(cx, cz, 17);
@@ -154,7 +170,7 @@ namespace Game.Enemies
                 float angle = (float)Hash01(cx, cz, 91) * Mathf.PI * 2f;
                 var dir = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
                 if (!CoastPoint(island, dir, out Vector3 pos)) continue;
-                _candidates.Add((key, pos, Quaternion.LookRotation(dir, Vector3.up), Flat(pos - me)));
+                _candidates.Add((key, pos, Quaternion.LookRotation(dir, Vector3.up), Flat(pos - me), Definition));
             }
         }
 

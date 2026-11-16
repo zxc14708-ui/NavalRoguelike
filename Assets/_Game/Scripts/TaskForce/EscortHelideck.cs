@@ -63,7 +63,7 @@ namespace Game.TaskForce
             heli.Sortie(spot, target, this, target != null ? target.Transform.position : cue);
             _airborne = true;
             Sorties++;
-            AudioManager.Play(Game.Data.SfxId.EscortTorpedoLaunch, spot.position, 0.4f, 0.6f);
+            AudioManager.Play(Game.Data.SfxId.EscortTorpedoLaunch, spot.position, 0.5f);
             CombatLog.Add("편대", $"대잠 호위함 헬기 출격 → {(target != null ? CombatLog.Describe(target) : "수색")}");
         }
 

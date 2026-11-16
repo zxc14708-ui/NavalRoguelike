@@ -187,7 +187,7 @@ namespace Game.WW2
                 var go = PoolManager.Instance?.Spawn(torpedoPrefab, new Vector3(p.x, 0f, p.z), Quaternion.LookRotation(CommittedHeading));
                 go?.GetComponent<Torpedo>()?.Launch(p + CommittedHeading * 60f, Definition.AttackDamage, Ww2BattleLog.TorpedoBomber);
             }
-            AudioManager.Play(Game.Data.SfxId.MissileLaunch, p, 0.5f, 0.7f);
+            AudioManager.Play(Game.Data.SfxId.TorpedoLaunch, p, 0.7f);
             MarkReleased();
         }
 

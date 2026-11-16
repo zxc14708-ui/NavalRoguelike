@@ -25,6 +25,10 @@ namespace Game.World
         public int CoastProps;
         /// <summary>좁은 수로의 기슭 구간(섬이 아님, 점검 K04).</summary>
         public bool Bank;
+        /// <summary>적 기지 섬(2026-11-15, IslandBuilder.BuildKit): 규모(1 소 · 2 중 · 3 대)와 해안 미사일 포대 자리(월드).</summary>
+        public bool MilitaryBase;
+        public int BaseSize;
+        public Vector3[] BatterySpots;
     }
 
     /// <summary>

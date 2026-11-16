@@ -199,7 +199,7 @@ namespace Game.WW2
                 go?.GetComponent<ArtilleryShell>()?.Launch(muzzle.position, impact, shellFlightTime + i * 0.05f, Definition.AttackDamage,
                                                            blastRadius, _playerHull, Ww2BattleLog.BossSalvo);
                 PooledEffect.Spawn(muzzleFlash, muzzle.position);
-                AudioManager.Play(SfxId.NavalGunShot, muzzle.position, 1f, 0.7f);
+                AudioManager.Play(SfxId.EnemyGunShot, muzzle.position, 1f, 0.7f);
                 yield return new WaitForSeconds(0.12f);
             }
             Ww2BattleLog.Released(Ww2BattleLog.BossSalvo);
@@ -221,7 +221,7 @@ namespace Game.WW2
                 var go = PoolManager.Instance?.Spawn(secondaryProjectile, muzzle.position, Quaternion.LookRotation(d));
                 go?.GetComponent<Projectile>()?.Launch(d, secondarySpeed, secondaryDamage / 3f, DamageSource.Gun);
             }
-            AudioManager.Play(SfxId.AutocannonShot, muzzle.position, 0.5f, 1.1f);
+            AudioManager.Play(SfxId.EnemyAutocannonShot, muzzle.position, 0.5f, 1.1f);
         }
 
         public override void TakeDamage(in DamageInfo info)

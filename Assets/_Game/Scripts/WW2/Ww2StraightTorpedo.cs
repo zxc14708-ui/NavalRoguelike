@@ -94,13 +94,13 @@ namespace Game.WW2
                 CombatStats.RecordHit(Ww2BattleLog.PlayerTorpedo, point);
                 Ww2BattleLog.Hit(Ww2BattleLog.PlayerTorpedo);
                 PooledEffect.Spawn(impactEffect, at, 1.3f);
-                AudioManager.Play(Game.Data.SfxId.Explosion, point, 1f, 0.6f);
+                AudioManager.Play(Game.Data.SfxId.UnderwaterBlast, point);
             }
             else
             {
                 Ww2BattleLog.Miss(Ww2BattleLog.PlayerTorpedo);
                 PooledEffect.Spawn(impactEffect, at, 0.8f);
-                AudioManager.Play(Game.Data.SfxId.Explosion, point, 0.6f, 0.7f);
+                AudioManager.Play(Game.Data.SfxId.UnderwaterBlast, point, 0.6f);
             }
             Despawn();
         }

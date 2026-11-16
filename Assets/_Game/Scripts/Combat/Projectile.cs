@@ -60,6 +60,10 @@ namespace Game.Combat
         public bool IsTracerRound => _tracerRound;
 
         /// <summary>수면 높이. 바다 평면은 -0.9지만 함정 피벗·흘수선이 0이다.</summary>
+        /// <summary>빗나간 탄의 수면 착탄음(2026-11-16): 작은 탄은 작고 높게, 큰 포탄은 크고 낮게.</summary>
+        private void SplashSound(Vector3 at) =>
+            AudioManager.Play(Game.Data.SfxId.ShellSplash, at, Mathf.Clamp(0.3f + _damage / 30f, 0.3f, 1f), _damage >= 6f ? 0.85f : 1.25f);
+
         private const float SeaLevel = 0f;
 
         private float _speed;
@@ -215,6 +219,9 @@ namespace Game.Combat
                     target.TakeDamage(new DamageInfo(_damage, hit.point, transform.forward, _source, _statsKey));
                     // 미사일 요격은 Missile이 따로 센다(요격 = 명중 포함)
                     if (target is not Missile) CombatStats.RecordHit(_statsKey, hit.point);
+                    // 적 선체 명중음(2026-11-16): 작은 탄은 작고 높게, 큰 포탄은 크고 낮게. 기함이 맞는 소리는 ShipController가 낸다
+                    if (target is Game.Enemies.EnemyController enemy && enemy.Kind != TargetKind.Aircraft)
+                        AudioManager.Play(Game.Data.SfxId.ShellImpact, hit.point, Mathf.Clamp(0.35f + _damage / 30f, 0.35f, 1f), _damage >= 6f ? 1f : 1.3f);
                 }
 
                 if (splashRadius > 0f) ApplySplash(hit.point, hit.collider);
@@ -233,6 +240,7 @@ namespace Game.Combat
             if (waterEffect != null && _maxTravel > 0f && _traveled >= _maxTravel)
             {
                 PooledEffect.Spawn(waterEffect, new Vector3(next.x, SeaLevel, next.z), waterEffectScale);
+                SplashSound(new Vector3(next.x, SeaLevel, next.z));
                 Despawn();
                 return;
             }
@@ -242,6 +250,7 @@ namespace Game.Combat
             {
                 float t = Mathf.InverseLerp(transform.position.y, next.y, SeaLevel);
                 PooledEffect.Spawn(waterEffect, Vector3.Lerp(transform.position, next, t), waterEffectScale);
+                SplashSound(Vector3.Lerp(transform.position, next, t));
                 Despawn();
                 return;
             }

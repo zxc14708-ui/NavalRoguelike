@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b0951aedabbf14429864b73543333f0, type: 3}
+  m_Name: ene_coastal_missile
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.EnemyDefinition
+  id: ene_coastal_missile
+  displayName: "\uD574\uC548 \uBBF8\uC0AC\uC77C \uD3EC\uB300"
+  kind: 0
+  prefab: {fileID: 6951986459360359935, guid: c30f07b14a06cbd4c8126c3b32394ac3, type: 3}
+  category: 3
+  rank: 0
+  targetValue: 0
+  maxAlive: 0
+  maxHp: 100
+  moveSpeed: 0
+  turnRateDegPerSec: 0
+  preferredRange: 50
+  attackDamage: 20
+  attackCooldown: 12
+  missilePrefab: {fileID: 4792404296877419749, guid: 5a04e1da22cb6eb4685de97d905d9928, type: 3}
+  salvoSize: 2
+  salvoSpacing: 0.45
+  groupSize: 1
+  xpReward: 7
+  revealDuration: 6
+  launchedDrone: {fileID: 0}
+  launchedRecon: {fileID: 0}
+  launchedFighter: {fileID: 0}

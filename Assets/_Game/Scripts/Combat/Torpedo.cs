@@ -83,7 +83,7 @@ namespace Game.Combat
 
             // 발사 신호: 물보라와 경고음(소나 핑을 높고 크게)
             PooledEffect.Spawn(impactEffect, new Vector3(p.x, 0f, p.z), launchSplashScale);
-            AudioManager.Play(Game.Data.SfxId.MissileLaunch, transform.position, 0.3f, 0.6f);
+            AudioManager.Play(Game.Data.SfxId.TorpedoLaunch, transform.position);
             AudioManager.Play(Game.Data.SfxId.SonarPing, transform.position, 1f, 1.45f);
             CombatLog.Add("어뢰", $"발사 · 피해 {damage:0}");
         }
@@ -118,7 +118,7 @@ namespace Game.Combat
                 Report(damaged);
 
                 PooledEffect.Spawn(impactEffect, new Vector3(hit.point.x, 0f, hit.point.z));
-                AudioManager.Play(Game.Data.SfxId.Explosion, hit.point, 0.9f, 0.65f);
+                AudioManager.Play(Game.Data.SfxId.UnderwaterBlast, hit.point);
                 Despawn();
                 return;
             }

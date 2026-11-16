@@ -422,7 +422,7 @@ namespace Game.Enemies
             _pending.Add((impact, Time.time + shellFlightTime));
             Vector3 dir = (impact + Vector3.up * 6f - muzzle.position).normalized;
             _muzzleFx.Emit(muzzle.position, dir, MuzzleBurstVfx.Style.NavalGun, gunFlashMaterialSource, true);
-            AudioManager.Play(SfxId.NavalGunShot, muzzle.position, 0.85f, 1f);
+            AudioManager.Play(SfxId.EnemyGunShot, muzzle.position, 0.85f, 1f);
         }
 
         // ------------------------------------------------------------ 근거리: 측면 어뢰

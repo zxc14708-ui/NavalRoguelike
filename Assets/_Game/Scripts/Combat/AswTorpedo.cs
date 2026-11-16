@@ -106,7 +106,7 @@ namespace Game.Combat
             _target.TakeDamage(new DamageInfo(_damage, transform.position, transform.forward, DamageSource.Torpedo, _statsKey));
             CombatStats.RecordHit(_statsKey, transform.position);
             PooledEffect.Spawn(impactEffect, new Vector3(transform.position.x, 0f, transform.position.z));
-            AudioManager.Play(Game.Data.SfxId.Explosion, transform.position, 0.8f, 0.65f);
+            AudioManager.Play(Game.Data.SfxId.UnderwaterBlast, transform.position, 0.9f);
             Despawn();
         }
 

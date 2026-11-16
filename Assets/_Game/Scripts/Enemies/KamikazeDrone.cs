@@ -47,7 +47,11 @@ namespace Game.Enemies
             flat.y = 0f;
 
             // PreferredRange = 급강하를 시작하는 수평 거리
-            if (!_diving && flat.magnitude <= Definition.PreferredRange) _diving = true;
+            if (!_diving && flat.magnitude <= Definition.PreferredRange)
+            {
+                _diving = true;
+                AudioManager.Play(Game.Data.SfxId.DroneBuzz, transform.position);   // 돌입 엔진음(2026-11-16)
+            }
 
             if (_diving)
                 Fly(aim, Definition.MoveSpeed * diveSpeedMultiplier, Definition.TurnRateDegPerSec, true, dt);

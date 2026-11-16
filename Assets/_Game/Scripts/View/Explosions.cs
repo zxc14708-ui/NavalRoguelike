@@ -36,9 +36,9 @@ namespace Game.View
         private static FlashDriver s_driver;
 
         /// <summary>폭발 하나. size 1 ≈ 대함미사일 명중(불덩이 지름 약 4m).</summary>
-        public static void Spawn(Vector3 position, float size, Kind kind)
+        public static void Spawn(Vector3 position, float size, Kind kind, bool counted = true)
         {
-            SpawnCount++;
+            if (counted) SpawnCount++;   // 격침 잔해의 장식 폭발은 세지 않는다(검증이 무장 폭발 수를 센다)
             size = Mathf.Max(0.2f, size);
             bool nearWater = kind == Kind.Water || kind == Kind.Charge || position.y < WaterY + 2.5f && kind != Kind.Air;
 

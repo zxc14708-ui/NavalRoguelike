@@ -94,6 +94,7 @@ namespace Game.WW2
         /// <summary>착탄점 aim을 고정하고 seconds 뒤 투하하도록 강하를 시작한다(원 표시).</summary>
         private void BeginDive(Vector3 aim, float seconds)
         {
+            AudioManager.Play(Game.Data.SfxId.DiveSiren, transform.position);   // 급강하 엔진음(2026-11-16)
             aim.y = 0f;
             Vector3 approach = aim - transform.position;
             approach.y = 0f;

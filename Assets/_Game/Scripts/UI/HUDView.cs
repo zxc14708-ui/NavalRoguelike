@@ -935,13 +935,16 @@ namespace Game.UI
         {
             Label(page, "Audio header", "음향 채널  /  AUDIO MIX", new Vector2(25, 335),
                 new Vector2(600, 32), 22, ConsoleText);
-            AddVolumeSlider(page, SoundChannel.Master, "전체 음량", 280);
-            AddVolumeSlider(page, SoundChannel.Effects, "무장·전투 효과음", 226);
-            AddVolumeSlider(page, SoundChannel.Engine, "함선 기관음", 172);
-            AddVolumeSlider(page, SoundChannel.Warning, "미사일 경보음", 118);
-            AddVolumeSlider(page, SoundChannel.Ui, "메뉴·알림음", 64);
+            // 7줄(2026-11-16 배경음악 · 바다 환경음 추가) — 줄 간격 54 → 40
+            AddVolumeSlider(page, SoundChannel.Master, "전체 음량", 288);
+            AddVolumeSlider(page, SoundChannel.Effects, "무장·전투 효과음", 248);
+            AddVolumeSlider(page, SoundChannel.Engine, "함선 기관음", 208);
+            AddVolumeSlider(page, SoundChannel.Warning, "미사일 경보음", 168);
+            AddVolumeSlider(page, SoundChannel.Ui, "메뉴·알림음", 128);
+            AddVolumeSlider(page, SoundChannel.Music, "배경음악", 88);
+            AddVolumeSlider(page, SoundChannel.Ambience, "바다 환경음", 48);
             Label(page, "Audio hint", "경보가 울리는 동안 전투 효과음은 줄어듭니다. 전체 음량은 모든 채널에 적용됩니다.",
-                new Vector2(25, 15), new Vector2(890, 26), 15, ConsoleText);
+                new Vector2(25, 10), new Vector2(890, 26), 15, ConsoleText);
         }
 
         private void AddVolumeSlider(Transform parent, SoundChannel channel, string title, float y)

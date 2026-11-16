@@ -23,6 +23,24 @@ namespace Game.Data
         HullHitMissile,       // 기함 피격: 대함미사일 · 자폭 드론 · 자폭 보트
         HullHitTorpedo,       // 기함 피격: 어뢰 · 기뢰
         HullHitCollision,     // 기함 피격: 충돌 · 좌초
+        EnemyGunShot,         // 적 포탑 사격(2026-11-16 전용 소리 — 예전엔 76mm 클립을 음높이만 바꿔 썼다)
+        MissileHit,           // 미사일이 함체·표적에 명중(적·아군 공통)
+        MissileBurst,         // 미사일 공중 폭파(요격·격추)
+        ShellImpact,          // 포탄이 적 선체에 명중
+        TorpedoLaunch,   // 어뢰 발사(압축 공기 + 입수)
+        UnderwaterBlast,   // 수중 폭발(어뢰 명중 · 폭뢰 · 기뢰)
+        SinkCapsize,   // 적 격침: 침수 전복(물 · 공기 방울 · 선체 신음)
+        SinkGroan,   // 적 격침: 선체 찢어짐
+        WreckBlast,   // 적 격침: 유폭 · 연쇄 폭발
+        EnemyAutocannonShot,   // 적 기관포 · 기총 한 발
+        JetPass,   // 제트기 공격 진입
+        PropPass,   // 프로펠러기 등장(WWII)
+        DiveSiren,   // 급강하 폭격기 급강하
+        DroneBuzz,   // 자폭 드론 돌입
+        ShellSplash,   // 빗나간 포탄의 수면 착탄 · 폭뢰 입수
+        DepthDrop,   // 폭뢰 · 기뢰 투하
+        ChaffLaunch,   // 기만체 · 연막 발사
+        JamPulse,   // 전자전 교란
     }
 
     /// <summary>효과음 하나의 재생 규칙.</summary>
@@ -63,6 +81,46 @@ namespace Game.Data
         [Tooltip("40mm 쌍열포(노봉) 한 발(2026-11-15 전용 클립)")]
         [SerializeField] private SfxEntry twinGunShot = new();
 
+        [Header("Combat (2026-11-16 합성 — ArtSource/Audio/CombatSfx_v1/synth.py)")]
+        [Tooltip("적 포탑 사격. 적마다 코드가 음높이를 바꿔 쓴다")]
+        [SerializeField] private SfxEntry enemyGunShot = new();
+        [Tooltip("미사일이 함체·표적에 명중(적·아군 공통)")]
+        [SerializeField] private SfxEntry missileHit = new();
+        [Tooltip("미사일 공중 폭파(요격·격추)")]
+        [SerializeField] private SfxEntry missileBurst = new();
+        [Tooltip("포탄이 적 선체에 명중. 작은 탄은 코드가 작고 높게 튼다")]
+        [SerializeField] private SfxEntry shellImpact = new();
+
+        [Header("Combat 2 (2026-11-16 합성 — ArtSource/Audio/CombatSfx_v2/synth.py)")]
+        [Tooltip("어뢰 발사(압축 공기 + 입수)")]
+        [SerializeField] private SfxEntry torpedoLaunch = new();
+        [Tooltip("수중 폭발(어뢰 명중 · 폭뢰 · 기뢰)")]
+        [SerializeField] private SfxEntry underwaterBlast = new();
+        [Tooltip("적 격침: 침수 전복(물 · 공기 방울 · 선체 신음)")]
+        [SerializeField] private SfxEntry sinkCapsize = new();
+        [Tooltip("적 격침: 선체 찢어짐")]
+        [SerializeField] private SfxEntry sinkGroan = new();
+        [Tooltip("적 격침: 유폭 · 연쇄 폭발")]
+        [SerializeField] private SfxEntry wreckBlast = new();
+        [Tooltip("적 기관포 · 기총 한 발")]
+        [SerializeField] private SfxEntry enemyAutocannonShot = new();
+        [Tooltip("제트기 공격 진입")]
+        [SerializeField] private SfxEntry jetPass = new();
+        [Tooltip("프로펠러기 등장(WWII)")]
+        [SerializeField] private SfxEntry propPass = new();
+        [Tooltip("급강하 폭격기 급강하")]
+        [SerializeField] private SfxEntry diveSiren = new();
+        [Tooltip("자폭 드론 돌입")]
+        [SerializeField] private SfxEntry droneBuzz = new();
+        [Tooltip("빗나간 포탄의 수면 착탄 · 폭뢰 입수")]
+        [SerializeField] private SfxEntry shellSplash = new();
+        [Tooltip("폭뢰 · 기뢰 투하")]
+        [SerializeField] private SfxEntry depthDrop = new();
+        [Tooltip("기만체 · 연막 발사")]
+        [SerializeField] private SfxEntry chaffLaunch = new();
+        [Tooltip("전자전 교란")]
+        [SerializeField] private SfxEntry jamPulse = new();
+
         [Header("Flagship hits (기함 피격, 2026-11-15 무기 종류별)")]
         [SerializeField] private SfxEntry hullHitGun = new();
         [SerializeField] private SfxEntry hullHitShell = new();
@@ -92,6 +150,15 @@ namespace Game.Data
         [Tooltip("속력 변화를 따라가는 빠르기")]
         [SerializeField, Min(0.1f)] private float engineResponse = 3f;
 
+        [Header("Ambience · Music (2D loops, 2026-11-16)")]
+        [Tooltip("바다 환경음(파도 · 바람). 출항 중 늘 깔린다")]
+        [SerializeField] private AudioClip seaAmbience;
+        [SerializeField, Range(0f, 1f)] private float seaAmbienceVolume = 0.35f;
+        [SerializeField] private AudioClip battleMusic;
+        [Tooltip("보스가 살아 있는 동안 전투 음악 대신 튼다")]
+        [SerializeField] private AudioClip bossMusic;
+        [SerializeField, Range(0f, 1f)] private float musicVolume = 0.3f;
+
         [Header("3D Distance")]
         [Tooltip("카메라가 함선에서 약 35m 떨어져 있으므로 가까운 전투음이 줄지 않게 넉넉히 잡는다")]
         [SerializeField, Min(0f)] private float minDistance = 20f;
@@ -108,6 +175,12 @@ namespace Game.Data
         public float EngineFullSpeed => engineFullSpeed;
         public float EngineResponse => engineResponse;
 
+        public AudioClip SeaAmbience => seaAmbience;
+        public float SeaAmbienceVolume => seaAmbienceVolume;
+        public AudioClip BattleMusic => battleMusic;
+        public AudioClip BossMusic => bossMusic;
+        public float MusicVolume => musicVolume;
+
         public float MinDistance => minDistance;
         public float MaxDistance => maxDistance;
 
@@ -121,6 +194,24 @@ namespace Game.Data
             SfxId.SonarPing => sonarPing,
             SfxId.NavalGunShot => navalGunShot,
             SfxId.TwinGunShot => twinGunShot,
+            SfxId.EnemyGunShot => enemyGunShot,
+            SfxId.MissileHit => missileHit,
+            SfxId.MissileBurst => missileBurst,
+            SfxId.ShellImpact => shellImpact,
+            SfxId.TorpedoLaunch => torpedoLaunch,
+            SfxId.UnderwaterBlast => underwaterBlast,
+            SfxId.SinkCapsize => sinkCapsize,
+            SfxId.SinkGroan => sinkGroan,
+            SfxId.WreckBlast => wreckBlast,
+            SfxId.EnemyAutocannonShot => enemyAutocannonShot,
+            SfxId.JetPass => jetPass,
+            SfxId.PropPass => propPass,
+            SfxId.DiveSiren => diveSiren,
+            SfxId.DroneBuzz => droneBuzz,
+            SfxId.ShellSplash => shellSplash,
+            SfxId.DepthDrop => depthDrop,
+            SfxId.ChaffLaunch => chaffLaunch,
+            SfxId.JamPulse => jamPulse,
             SfxId.HullHitGun => hullHitGun,
             SfxId.HullHitShell => hullHitShell,
             SfxId.HullHitMissile => hullHitMissile,

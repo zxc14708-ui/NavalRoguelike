@@ -56,7 +56,8 @@ namespace Game.Core
         Signature   // 함정 고유 스킬(2026-10-11, 뒤에만 덧붙임)
     }
 
-    public enum SoundChannel { Master, Effects, Engine, Warning, Ui }   // Ui: 메뉴·알림음(2026-10-11 점검 O06, 맨 뒤에 덧붙임)
+    public enum SoundChannel { Master, Effects, Engine, Warning, Ui, Music, Ambience }   // Music · Ambience: 2026-11-16(맨 뒤에 덧붙임)
+    //   // Ui: 메뉴·알림음(2026-10-11 점검 O06, 맨 뒤에 덧붙임)
 
     /// <summary>플레이어 로컬 설정. 전투 조작과 음량을 PlayerPrefs에 저장한다.</summary>
     public static class GameSettings

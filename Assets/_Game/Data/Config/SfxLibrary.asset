@@ -68,6 +68,132 @@ MonoBehaviour:
     SpatialBlend: 1
     MinInterval: 0.05
     MaxVoices: 5
+  enemyGunShot:
+    Clip: {fileID: 8300000, guid: 5f0a92af77b249d4afe4c71c559a9d78, type: 3}
+    Volume: 0.8
+    PitchJitter: 0.05
+    SpatialBlend: 1
+    MinInterval: 0.08
+    MaxVoices: 4
+  missileHit:
+    Clip: {fileID: 8300000, guid: 89c5439dad4147b7a05c1a598376dacf, type: 3}
+    Volume: 0.85
+    PitchJitter: 0.06
+    SpatialBlend: 1
+    MinInterval: 0.1
+    MaxVoices: 4
+  missileBurst:
+    Clip: {fileID: 8300000, guid: a82d2fec559744b59aedd929c3f68a1e, type: 3}
+    Volume: 0.7
+    PitchJitter: 0.08
+    SpatialBlend: 1
+    MinInterval: 0.08
+    MaxVoices: 4
+  shellImpact:
+    Clip: {fileID: 8300000, guid: 60269b2832c84e57a1ab2ab9a7e55251, type: 3}
+    Volume: 0.6
+    PitchJitter: 0.1
+    SpatialBlend: 1
+    MinInterval: 0.07
+    MaxVoices: 4
+  torpedoLaunch:
+    Clip: {fileID: 8300000, guid: 098970a0dd624ea4b0ad319627eb2559, type: 3}
+    Volume: 0.7
+    PitchJitter: 0.05
+    SpatialBlend: 1
+    MinInterval: 0.15
+    MaxVoices: 3
+  underwaterBlast:
+    Clip: {fileID: 8300000, guid: 46d25f860e0e43a39cda419a61bdd2ba, type: 3}
+    Volume: 0.85
+    PitchJitter: 0.08
+    SpatialBlend: 1
+    MinInterval: 0.1
+    MaxVoices: 4
+  sinkCapsize:
+    Clip: {fileID: 8300000, guid: f946ecc94f314e2eb088ef179659b5b0, type: 3}
+    Volume: 0.6
+    PitchJitter: 0.05
+    SpatialBlend: 1
+    MinInterval: 0.8
+    MaxVoices: 2
+  sinkGroan:
+    Clip: {fileID: 8300000, guid: 131e194138474f1783c10e64bc85cfb6, type: 3}
+    Volume: 0.6
+    PitchJitter: 0.08
+    SpatialBlend: 1
+    MinInterval: 0.6
+    MaxVoices: 2
+  wreckBlast:
+    Clip: {fileID: 8300000, guid: e6cff1eb85b9435ab77d30195f424bfb, type: 3}
+    Volume: 0.8
+    PitchJitter: 0.1
+    SpatialBlend: 1
+    MinInterval: 0.1
+    MaxVoices: 4
+  enemyAutocannonShot:
+    Clip: {fileID: 8300000, guid: 48dc909fc5604c0aa8dd2e2ff78edc25, type: 3}
+    Volume: 0.4
+    PitchJitter: 0.1
+    SpatialBlend: 1
+    MinInterval: 0.05
+    MaxVoices: 5
+  jetPass:
+    Clip: {fileID: 8300000, guid: 1feb693ce9dc402f91ed0b0d5c1a8409, type: 3}
+    Volume: 0.5
+    PitchJitter: 0.06
+    SpatialBlend: 1
+    MinInterval: 1.2
+    MaxVoices: 2
+  propPass:
+    Clip: {fileID: 8300000, guid: 65d0a3bf51f0466d842df7f2733864be, type: 3}
+    Volume: 0.45
+    PitchJitter: 0.06
+    SpatialBlend: 1
+    MinInterval: 1.5
+    MaxVoices: 2
+  diveSiren:
+    Clip: {fileID: 8300000, guid: 009b608a5fcc423382db92320fe93b99, type: 3}
+    Volume: 0.5
+    PitchJitter: 0.05
+    SpatialBlend: 1
+    MinInterval: 0.6
+    MaxVoices: 2
+  droneBuzz:
+    Clip: {fileID: 8300000, guid: 42f76df1bf2248be9e9a9d2cf54aac7d, type: 3}
+    Volume: 0.45
+    PitchJitter: 0.08
+    SpatialBlend: 1
+    MinInterval: 0.8
+    MaxVoices: 2
+  shellSplash:
+    Clip: {fileID: 8300000, guid: 88262c2bdccc4beb84e828ea18d5cac9, type: 3}
+    Volume: 0.45
+    PitchJitter: 0.15
+    SpatialBlend: 1
+    MinInterval: 0.08
+    MaxVoices: 3
+  depthDrop:
+    Clip: {fileID: 8300000, guid: d768efbdf4144876b1a69ede9f219e16, type: 3}
+    Volume: 0.5
+    PitchJitter: 0.1
+    SpatialBlend: 1
+    MinInterval: 0.15
+    MaxVoices: 3
+  chaffLaunch:
+    Clip: {fileID: 8300000, guid: c99be88e482c42db83db9672a1ed5ba6, type: 3}
+    Volume: 0.55
+    PitchJitter: 0.08
+    SpatialBlend: 1
+    MinInterval: 0.15
+    MaxVoices: 3
+  jamPulse:
+    Clip: {fileID: 8300000, guid: 771e8bb0d92644ec9aecd135e4b15dab, type: 3}
+    Volume: 0.5
+    PitchJitter: 0.04
+    SpatialBlend: 1
+    MinInterval: 0.3
+    MaxVoices: 2
   hullHitGun:
     Clip: {fileID: 8300000, guid: 9dd1b79b5ff747bd97c9186ce3e60db8, type: 3}
     Volume: 0.55
@@ -118,14 +244,14 @@ MonoBehaviour:
     MinInterval: 0.08
     MaxVoices: 3
   escortTorpedoLaunch:
-    Clip: {fileID: 8300000, guid: 47e13f7449f996a4d9f80abc39915c57, type: 3}
+    Clip: {fileID: 8300000, guid: 098970a0dd624ea4b0ad319627eb2559, type: 3}
     Volume: 0.6
     PitchJitter: 0.05
     SpatialBlend: 1
     MinInterval: 0.2
     MaxVoices: 2
   escortJam:
-    Clip: {fileID: 8300000, guid: a24ceb7151f8631428d8a8a78557dd43, type: 3}
+    Clip: {fileID: 8300000, guid: 771e8bb0d92644ec9aecd135e4b15dab, type: 3}
     Volume: 0.45
     PitchJitter: 0.04
     SpatialBlend: 1
@@ -140,5 +266,10 @@ MonoBehaviour:
   enginePitchFull: 1.2
   engineFullSpeed: 10
   engineResponse: 3
+  seaAmbience: {fileID: 8300000, guid: 134efbf0a98f4f58aba52b799224b2ae, type: 3}
+  seaAmbienceVolume: 0.35
+  battleMusic: {fileID: 8300000, guid: d7f96f07576544f1bfbf425d53088555, type: 3}
+  bossMusic: {fileID: 8300000, guid: 4f9a140241d2471aa8cffff6708f4fa3, type: 3}
+  musicVolume: 0.3
   minDistance: 20
   maxDistance: 90

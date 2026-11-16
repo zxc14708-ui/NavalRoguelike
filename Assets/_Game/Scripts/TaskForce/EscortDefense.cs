@@ -223,7 +223,7 @@ namespace Game.TaskForce
             Jams++;
             Vector3 from = LaunchPoint(EscortTurrets.MountKind.Decoy, pick.transform.position, "EWOrigin");
             Tracer.Spawn(from, pick.transform.position, TaskForceEscortFormation.RoleColor(EscortRole.ElectronicWarfare), 0.45f, 0.12f);
-            AudioManager.Play(SfxId.EscortJam, from, 1f, 1.6f);
+            AudioManager.Play(SfxId.EscortJam, from);
             TaskForceWorldFeedback.Instance?.PlayRig("EW", transform.position, transform.eulerAngles.y, 10f, 1.0f, 0f);
         }
 
@@ -252,8 +252,8 @@ namespace Game.TaskForce
             if (Turrets != null && Turrets.TorpedoPoint(at, out var tube)) from = tube;   // 표적 쪽 현측 어뢰관
             Tracer.Spawn(from, new Vector3(at.x, 0f, at.z), TaskForceEscortFormation.RoleColor(EscortRole.AntiSubmarine), 0.6f, 0.14f);
             Explosions.Spawn(new Vector3(at.x, 0f, at.z), 0.7f, Explosions.Kind.Water);
-            AudioManager.Play(SfxId.EscortTorpedoLaunch, from, 1f, 0.7f);
-            AudioManager.Play(SfxId.Explosion, new Vector3(at.x, 0f, at.z), 0.45f, 0.75f);   // 수중 폭발
+            AudioManager.Play(SfxId.EscortTorpedoLaunch, from);
+            AudioManager.Play(SfxId.UnderwaterBlast, new Vector3(at.x, 0f, at.z), 0.55f);   // 수중 폭발
             TaskForceWorldFeedback.Instance?.PlayRig("ASW", transform.position, transform.eulerAngles.y, 12f, 1.4f, 240f);
             CombatLog.Add("편대", $"대잠 호위함 자동 대잠 타격 → {CombatLog.Describe(pick)} · 피해 {damage:0}");
         }
