@@ -136,14 +136,13 @@ namespace Game.UI
 
         // --------------------------------------------------------------- 편대 슬롯 화면(2026-10-03)
         // 편대 카드(배치·강화)를 고르면 함선 블록 배치 화면 대신 이 화면이 뜬다. 슬롯 1~4 중
-        // 배치 카드 = 고속정을 넣을 빈 슬롯, 강화 카드 = 강화할 호위함을 고른다. 적용 뒤 결과를 보여 주고
-        // 전투 재개(Space·Enter) 또는 함선 배치 화면(Tab, 블록 재배치)으로 넘어간다.
+        // 배치 카드 = 고속정을 넣을 빈 슬롯, 강화 카드 = 강화할 호위함을 고른다. 적용하면 결과 화면 없이
+        // 바로 전투로 돌아가고(2026-11-17, 성장 카드와 같게) 결과는 안내 띠로 보여 준다.
 
         private bool _fleetPicking;      // 슬롯 고르는 중
         private bool _fleetDeployMode;   // true = 편대 배치(빈 슬롯), false = 편대 강화(호위함)
-        private bool _fleetDone;         // 적용 끝 — 결과 화면
         private int _fleetHover = -1;
-        private RectTransform _fleetPanel, _fleetResume, _fleetToShip;
+        private RectTransform _fleetPanel;
         private TMP_Text _fleetTitle, _fleetDetail, _fleetFooter;
         private readonly List<RectTransform> _fleetSlotRects = new();
         private readonly List<Image> _fleetSlotBgs = new();
@@ -154,7 +153,6 @@ namespace Game.UI
         {
             _fleetDeployMode = deploy;
             _fleetPicking = true;
-            _fleetDone = false;
             EnsureFleetPanel();
             _fleetHover = -1;
             if (_fleet != null)
@@ -168,7 +166,6 @@ namespace Game.UI
         private void CloseFleetPanel()
         {
             _fleetPicking = false;
-            _fleetDone = false;
             if (_fleetPanel != null) _fleetPanel.gameObject.SetActive(false);
         }
 
@@ -204,15 +201,8 @@ namespace Game.UI
             ApplyFleetUpgrade(index);
         }
 
-        /// <summary>적용 끝: 바뀐 슬롯과 결과를 보여 주고 전투 재개 / 함선 배치 화면을 기다린다.</summary>
-        private void ShowFleetResult()
-        {
-            _fleetPicking = false;
-            _fleetDone = true;
-            EnsureFleetPanel();
-            if (_fleetPanel != null) { _fleetPanel.gameObject.SetActive(true); _fleetPanel.SetAsLastSibling(); }
-            RefreshFleetPanel();
-        }
+        /// <summary>적용 끝: 결과 화면 없이 바로 전투로 돌아간다(2026-11-17). 무엇이 바뀌었는지는 안내 띠로.</summary>
+        private void ShowFleetResult() => ResumeWithBanner(_fleetResult);
 
         private void HandleFleetInput()
         {
@@ -220,23 +210,6 @@ namespace Game.UI
             var mouse = Mouse.current;
             Vector2 p = mouse != null ? mouse.position.ReadValue() : default;
             bool click = mouse != null && mouse.leftButton.wasPressedThisFrame;
-
-            if (_fleetDone)
-            {
-                if ((kb != null && kb.tabKey.wasPressedThisFrame) || (click && Hit(_fleetToShip, p)))
-                {
-                    CloseFleetPanel();   // 함선 배치 화면(블록 재배치 · Space로 재개)
-                    Refresh();
-                    return;
-                }
-                if ((kb != null && (kb.spaceKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame)) ||
-                    (click && Hit(_fleetResume, p)))
-                {
-                    CloseFleetPanel();
-                    TryLaunch();
-                }
-                return;
-            }
 
             if (kb != null)
             {
@@ -301,17 +274,7 @@ namespace Game.UI
             _fleetDetail = UiText(_fleetPanel, font, new Vector2(0, -225), new Vector2(1560, 70), 22);
             _fleetDetail.textWrappingMode = TextWrappingModes.Normal;
             _fleetFooter = UiText(_fleetPanel, font, new Vector2(0, -285), new Vector2(1560, 34), 19);
-            _fleetResume = FleetButton("Resume", font, new Vector2(-200, -360), "<b>전투 재개</b>  <color=#8fa4b8>[Space]</color>");
-            _fleetToShip = FleetButton("To ship", font, new Vector2(200, -360), "<b>함선 배치 화면</b>  <color=#8fa4b8>[Tab]</color>");
             _fleetPanel.gameObject.SetActive(false);
-        }
-
-        private RectTransform FleetButton(string name, TMP_FontAsset font, Vector2 position, string label)
-        {
-            var button = UiRect(name, _fleetPanel, new Vector2(0.5f, 0.5f), new Vector2(360, 58), new Color(0.09f, 0.22f, 0.26f, 1f));
-            button.anchoredPosition = position;
-            UiText(button, font, Vector2.zero, new Vector2(340, 52), 22).text = label;
-            return button;
         }
 
         private void RefreshFleetPanel()
@@ -320,16 +283,15 @@ namespace Game.UI
             int max = TaskForceEscortFormation.MaxEscorts;
             int count = _fleet != null ? _fleet.EscortCount : 0;
             string formation = _fleet != null ? FleetFormations.Name(_fleet.Formation) : "";
-            _fleetTitle.text = _fleetDone ? $"편대  <size=75%><color=#8fa4b8>{count}/{max}척 · {formation}</color></size>"
-                : _fleetDeployMode ? "편대 배치 — 고속정을 넣을 슬롯을 고르세요"
-                : "편대 강화 — 강화할 호위함을 고르세요";
+            _fleetTitle.text = _fleetDeployMode ? $"편대 배치 — 고속정을 넣을 슬롯을 고르세요  <size=75%><color=#8fa4b8>{count}/{max}척 · {formation}</color></size>"
+                : $"편대 강화 — 강화할 호위함을 고르세요  <size=75%><color=#8fa4b8>{count}/{max}척 · {formation}</color></size>";
 
             for (int s = 0; s < max; s++)
             {
                 int index = _fleet != null ? _fleet.IndexOfRosterSlot(s) : -1;
                 var info = index >= 0 ? _fleet.GetInfo(index) : default;
                 bool selectable = _fleetPicking && FleetSlotSelectable(s);
-                bool lit = s == _fleetHover && (selectable || _fleetDone);
+                bool lit = s == _fleetHover && selectable;
                 Color rc = index >= 0 ? TaskForceEscortFormation.RoleColor(info.Role) : FleetAccent;
                 float k = lit ? 0.42f : selectable ? 0.2f : 0.09f;
                 _fleetSlotBgs[s].color = new Color(rc.r * k, rc.g * k, rc.b * k, 1f);
@@ -337,12 +299,8 @@ namespace Game.UI
                 _fleetSlotTexts[s].text = FleetSlotText(s, index, info);
             }
 
-            _fleetDetail.text = _fleetDone ? $"<color=#68dede>{_fleetResult}</color>" : FleetHoverDetail();
-            _fleetFooter.text = _fleetDone
-                ? "<color=#8fa4b8>Space / Enter — 전투 재개    Tab — 함선 배치 화면(블록 재배치)</color>"
-                : "<color=#8fa4b8>1 ~ 4 키 · 클릭 · ←→ + Enter 로 선택    우클릭 / Esc — 카드로 돌아가기</color>";
-            _fleetResume.gameObject.SetActive(_fleetDone);
-            _fleetToShip.gameObject.SetActive(_fleetDone);
+            _fleetDetail.text = FleetHoverDetail();
+            _fleetFooter.text = "<color=#8fa4b8>1 ~ 4 키 · 클릭 · ←→ + Enter 로 선택 — 고르면 바로 전투 재개    우클릭 / Esc — 카드로 돌아가기</color>";
         }
 
         /// <summary>그 슬롯의 진형 자리: "함대원형진 앞 · 단종진 뒤 1번째 · 자율 스스로 판단".</summary>

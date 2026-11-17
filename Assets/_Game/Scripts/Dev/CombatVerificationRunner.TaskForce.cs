@@ -64,7 +64,13 @@ namespace Game.Dev
             GameManager.Instance.SetState(GameState.Refit);
             var filler1 = Game.Refit.RefitCard.Install(CombatDevTools.FindModule("mod_sonar"));
             var filler2 = Game.Refit.RefitCard.Growth(Game.Modules.RunStat.Damage, Game.Modules.CardTier.Common);
-            refit.Open(3, new List<Game.Refit.RefitCard> { filler1, filler2, Game.Refit.RefitCard.FleetDeploy() }, () => { });
+            // 편대 카드도 적용하면 결과 화면 없이 바로 전투 재개(2026-11-17) — 재개 콜백 횟수 · 마지막 안내 띠
+            int resumes = 0;
+            string fleetBanner = null;
+            System.Action onResume = () => resumes++;
+            System.Action<string> onFleetBanner = m => fleetBanner = m;
+            GameEvents.BannerRequested += onFleetBanner;
+            refit.Open(3, new List<Game.Refit.RefitCard> { filler1, filler2, Game.Refit.RefitCard.FleetDeploy() }, onResume);
             yield return null;
             yield return RefitShot(refit, "fleet_1_deploy_card");
             Call(refit, "ChooseCard", 2);
@@ -73,18 +79,17 @@ namespace Game.Dev
             yield return null;
             yield return RefitShot(refit, "fleet_1b_slot_screen");
             Call(refit, "ChooseFleetSlot", 2);   // 3번 슬롯
-            bool resultScreen = Get<bool>(refit, "_fleetDone");
-            yield return null;
-            yield return RefitShot(refit, "fleet_1c_slot_result");
+            bool resumedDeploy = resumes == 1 && !Get<bool>(refit, "_fleetPicking") && fleetBanner != null && fleetBanner.Contains("편대 합류");
             var pb = formation.GetEscort(0);
             string pbModel = ModelKey(pb);
             var pbInfo = formation.GetInfo(0);
             string deployText = Get<string>(refit, "_fleetResult");
-            _report.AppendLine($"- 편대 배치 카드: 슬롯 화면 {Yes(slotScreen)} · 결과 화면 {Yes(resultScreen)} · {formation.EscortCount}척 · {pbInfo.Name}(슬롯 {pbInfo.RosterSlot + 1}) · 역할 {pbInfo.Role} · 모델 {pbModel} · 축척 {Scale(pb):0.00} · 결과 \"{deployText}\"");
-            if (!slotScreen || !resultScreen) Fail("편대 배치 카드가 편대 슬롯 화면을 거치지 않음");
+            _report.AppendLine($"- 편대 배치 카드: 슬롯 화면 {Yes(slotScreen)} · 고르면 바로 재개 {Yes(resumedDeploy)}(안내 띠 \"{fleetBanner}\") · {formation.EscortCount}척 · {pbInfo.Name}(슬롯 {pbInfo.RosterSlot + 1}) · 역할 {pbInfo.Role} · 모델 {pbModel} · 축척 {Scale(pb):0.00} · 결과 \"{deployText}\"");
+            if (!slotScreen) Fail("편대 배치 카드가 편대 슬롯 화면을 거치지 않음");
+            if (!resumedDeploy) Fail("편대 배치 카드를 적용했는데 바로 전투로 돌아가지 않음(재개 · 안내 띠)");
             if (formation.EscortCount != 1 || pbInfo.RosterSlot != 2 || pbInfo.Role != Game.TaskForce.EscortRole.None || !pbModel.StartsWith("ESC_PB") || !Mathf.Approximately(Scale(pb), 0.60f))
                 Fail("편대 배치 카드로 고른 슬롯에 역할 없는 고속정이 합류하지 않음");
-            refit.Open(4, new List<Game.Refit.RefitCard> { filler1, filler2, Game.Refit.RefitCard.FleetDeploy() }, () => { });
+            refit.Open(4, new List<Game.Refit.RefitCard> { filler1, filler2, Game.Refit.RefitCard.FleetDeploy() }, onResume);
             Call(refit, "ChooseCard", 2);
             Call(refit, "ChooseFleetSlot", 2);   // 이미 찬 슬롯 — 무시돼야 한다
             bool occupiedRefused = formation.EscortCount == 1 && Get<bool>(refit, "_fleetPicking");
@@ -93,7 +98,7 @@ namespace Game.Dev
             if (!occupiedRefused || formation.GetInfo(1).RosterSlot != 0) Fail("편대 슬롯 선택이 찬 슬롯을 막지 않거나 고른 슬롯에 들어가지 않음");
 
             // 3) 편대 강화(역할 없음) → 역할 선택 패널 · 취소하면 카드로 · 고르면 그 역할의 기본형
-            refit.Open(5, new List<Game.Refit.RefitCard> { filler1, filler2, Game.Refit.RefitCard.FleetUpgrade(1) }, () => { });
+            refit.Open(5, new List<Game.Refit.RefitCard> { filler1, filler2, Game.Refit.RefitCard.FleetUpgrade(1) }, onResume);
             yield return null;
             yield return RefitShot(refit, "fleet_2_role_card");
             Call(refit, "ChooseCard", 2);
@@ -101,29 +106,37 @@ namespace Game.Dev
             bool picking = Get<bool>(refit, "_rolePicking");
             yield return null;
             yield return RefitShot(refit, "fleet_3_role_picker");
+            int resumesBeforeCancel = resumes;
             Call(refit, "BackToCards");
-            bool cancelled = Get<bool>(refit, "_choosing") && !Get<bool>(refit, "_rolePicking") && !Get<bool>(refit, "_fleetPicking") && formation.GetInfo(1).Role == Game.TaskForce.EscortRole.None;
+            bool cancelled = Get<bool>(refit, "_choosing") && !Get<bool>(refit, "_rolePicking") && !Get<bool>(refit, "_fleetPicking") && formation.GetInfo(1).Role == Game.TaskForce.EscortRole.None
+                             && resumes == resumesBeforeCancel;   // 취소는 재개하지 않는다
             Call(refit, "ChooseCard", 2);
             Call(refit, "ChooseFleetSlot", 0);
             Call(refit, "ChooseRole", 2);   // 전자전
-            refit.Open(5, new List<Game.Refit.RefitCard> { filler1, filler2, Game.Refit.RefitCard.FleetUpgrade() }, () => { });
+            bool resumedRole = resumes == resumesBeforeCancel + 1 && !Get<bool>(refit, "_rolePicking") && fleetBanner != null && fleetBanner.Contains("편대 강화");
+            refit.Open(5, new List<Game.Refit.RefitCard> { filler1, filler2, Game.Refit.RefitCard.FleetUpgrade() }, onResume);
             Call(refit, "ChooseCard", 2);
             Call(refit, "ChooseFleetSlot", 2);   // 3번 슬롯 = 처음 합류한 고속정
             Call(refit, "ChooseRole", 0);   // 방공
             var cap = formation.GetEscort(Game.TaskForce.EscortRole.AirDefense);
             var ew = formation.GetEscort(Game.TaskForce.EscortRole.ElectronicWarfare);
-            _report.AppendLine($"- 역할 지정 카드: 선택 패널 {Yes(picking)} · 취소 → 카드로·역할 그대로 {Yes(cancelled)} · 0번 → {formation.GetInfo(0).Name}({ModelKey(cap)}) · 1번 → {formation.GetInfo(1).Name}({ModelKey(ew)})");
+            _report.AppendLine($"- 역할 지정 카드: 선택 패널 {Yes(picking)} · 취소 → 카드로·역할 그대로 {Yes(cancelled)} · 고르면 바로 재개 {Yes(resumedRole)} · 0번 → {formation.GetInfo(0).Name}({ModelKey(cap)}) · 1번 → {formation.GetInfo(1).Name}({ModelKey(ew)})");
             if (!picking || !cancelled) Fail("역할 지정 카드의 선택·취소 흐름이 동작하지 않음");
+            if (!resumedRole) Fail("역할을 고른 뒤 바로 전투로 돌아가지 않음");
             if (cap == null || ew == null || ModelKey(cap) != "ESC_CAP_T0" || ModelKey(ew) != "ESC_EW_T0") Fail("역할 지정 뒤 그 역할의 기본형 모델이 붙지 않음");
 
             // 4) 편대 강화(개량): 모델·축척·선체 성장
-            refit.Open(6, new List<Game.Refit.RefitCard> { filler1, filler2, Game.Refit.RefitCard.FleetUpgrade(0) }, () => { });
+            refit.Open(6, new List<Game.Refit.RefitCard> { filler1, filler2, Game.Refit.RefitCard.FleetUpgrade(0) }, onResume);
             yield return null;
             yield return RefitShot(refit, "fleet_4_upgrade_card");
+            int resumesBeforeUpgrade = resumes;
             Call(refit, "ChooseCard", 2);
             Call(refit, "ChooseFleetSlot", 2);
+            GameEvents.BannerRequested -= onFleetBanner;
+            bool resumedUpgrade = resumes == resumesBeforeUpgrade + 1;
+            if (!resumedUpgrade) Fail("편대 개량 카드를 적용했는데 바로 전투로 돌아가지 않음");
             var capInfo = formation.GetInfo(0);
-            _report.AppendLine($"- 개량 카드: {capInfo.Name} 개량 {capInfo.Tier} · 모델 {ModelKey(cap)} · 축척 {Scale(cap):0.00} · 선체 최대 {Game.TaskForce.TaskForceEscortFormation.MaxHullFor(capInfo.Tier):0}");
+            _report.AppendLine($"- 개량 카드: 바로 재개 {Yes(resumedUpgrade)}(\"{fleetBanner}\") · {capInfo.Name} 개량 {capInfo.Tier} · 모델 {ModelKey(cap)} · 축척 {Scale(cap):0.00} · 선체 최대 {Game.TaskForce.TaskForceEscortFormation.MaxHullFor(capInfo.Tier):0}");
             if (capInfo.Tier != 1 || ModelKey(cap) != "ESC_CAP_T1" || !Mathf.Approximately(Scale(cap), 0.76f)) Fail("개량 카드가 모델·축척을 올리지 않음");
 
             // 5) 강화 대상 고르기·최대 4척

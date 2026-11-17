@@ -55,7 +55,12 @@ namespace Game.Dev
             // 1) 카드 흐름: 무장 강화는 독립 카드(설치 카드와 따로). 같은 블록이 둘이면 고르고, 취소하면 카드로 돌아온다
             var upgradeCards = new List<Game.Refit.RefitCard> { Game.Refit.RefitCard.WeaponUpgrade(ac), Game.Refit.RefitCard.Install(CombatDevTools.FindModule("mod_radar")), Game.Refit.RefitCard.Install(CombatDevTools.FindModule("mod_sonar")) };
             GameManager.Instance.SetState(GameState.Refit);
-            refit.Open(99, upgradeCards, () => { });   // 3장: 호위함 개량은 3번째 카드를 대체한다
+            // 장비 강화도 대상을 고르면 바로 전투 재개(2026-11-17) — 재개 콜백 · 안내 띠
+            int upResumes = 0;
+            string upBanner = null;
+            System.Action<string> onUpBanner = m => upBanner = m;
+            GameEvents.BannerRequested += onUpBanner;
+            refit.Open(99, upgradeCards, () => upResumes++);   // 3장: 호위함 개량은 3번째 카드를 대체한다
             yield return null;
             yield return RefitShot(refit, "upgrade_1_cards");
             Call(refit, "ChooseCard", 0);
@@ -70,9 +75,13 @@ namespace Game.Dev
             bool picking = Get<bool>(refit, "_upgradePicking");
             yield return null;
             yield return RefitShot(refit, "upgrade_3_pick");
+            bool resumedBeforePick = upResumes > 0;   // 취소 · 다시 고르기 동안에는 재개하지 않는다
             bool upgraded = (bool)Call(refit, "TryUpgradeAt", a.Origin);
+            GameEvents.BannerRequested -= onUpBanner;
+            bool upResumed = !resumedBeforePick && upResumes == 1 && upBanner != null && upBanner.Contains("강화");
             int aLv = a.UpgradeLevel, bLv = b.UpgradeLevel;
-            _report.AppendLine($"- 카드: 무장 강화 카드 → 강화 대상 선택 {(picking0 ? "예" : "아니오")}(설치 선택 없음: 들기 {held0}) · 강조 {markers}개 · 취소 → 카드 {(backToCards ? "예" : "아니오")} · 다시 선택 {picking} · 기관포 A 강화 {upgraded} → A {aLv} / B {bLv}");
+            _report.AppendLine($"- 카드: 무장 강화 카드 → 강화 대상 선택 {(picking0 ? "예" : "아니오")}(설치 선택 없음: 들기 {held0}) · 강조 {markers}개 · 취소 → 카드 {(backToCards ? "예" : "아니오")} · 다시 선택 {picking} · 기관포 A 강화 {upgraded} → A {aLv} / B {bLv} · 고르면 바로 재개 {(upResumed ? "예" : "아니오")}(\"{upBanner}\")");
+            if (!upResumed) Fail("장비 강화 대상을 골랐는데 바로 전투로 돌아가지 않음(재개 · 안내 띠)");
             if (!picking0 || held0 || !backToCards || !picking || !upgraded) Fail("무장 강화 카드 흐름이 동작하지 않음");
             if (aLv != 1 || bLv != 0) Fail("강화가 고른 블록 하나에만 적용되지 않음");
             if (markers < 2) Fail("강화 대상 강조가 부족함");
@@ -96,10 +105,11 @@ namespace Game.Dev
             if (existingMags.Count == 0) { onlyMag = CombatDevTools.InstallModuleNear("mod_magazine", new GridCoord(0, 0), 8); installedHere = onlyMag != null; }
             if (onlyMag != null)
             {
-                refit.Open(99, new List<Game.Refit.RefitCard> { Game.Refit.RefitCard.WeaponUpgrade(magDef), Game.Refit.RefitCard.Install(CombatDevTools.FindModule("mod_radar")), Game.Refit.RefitCard.Install(CombatDevTools.FindModule("mod_sonar")) }, () => { });
+                int magResumes = 0;
+                refit.Open(99, new List<Game.Refit.RefitCard> { Game.Refit.RefitCard.WeaponUpgrade(magDef), Game.Refit.RefitCard.Install(CombatDevTools.FindModule("mod_radar")), Game.Refit.RefitCard.Install(CombatDevTools.FindModule("mod_sonar")) }, () => magResumes++);
                 Call(refit, "ChooseCard", 0);
-                bool auto = onlyMag.UpgradeLevel == 1 && !Get<bool>(refit, "_upgradePicking");
-                _report.AppendLine($"- 대상이 하나뿐인 강화 카드: 바로 적용 {(auto ? "예" : "아니오")}(탄약고 단계 {onlyMag.UpgradeLevel})");
+                bool auto = onlyMag.UpgradeLevel == 1 && !Get<bool>(refit, "_upgradePicking") && magResumes == 1;
+                _report.AppendLine($"- 대상이 하나뿐인 강화 카드: 바로 적용 · 바로 재개 {(auto ? "예" : "아니오")}(탄약고 단계 {onlyMag.UpgradeLevel} · 재개 {magResumes})");
                 if (!auto) Fail("대상이 하나뿐인데 바로 적용되지 않음");
                 if (installedHere) CombatDevTools.RemoveModule(onlyMag);
             }

@@ -247,7 +247,7 @@ namespace Game.UI
 
             if (_choosing) { HandleCardInput(); UpdateCamera(); return; }
             if (_rolePicking) { HandleRoleInput(); UpdateCamera(); return; }
-            if (_fleetPicking || _fleetDone) { HandleFleetInput(); UpdateCamera(); return; }
+            if (_fleetPicking) { HandleFleetInput(); UpdateCamera(); return; }
             if (_upgradePicking) { HandleUpgradePickInput(); UpdateCamera(); Refresh(); return; }
 
             HandleKeyboard();
@@ -301,6 +301,18 @@ namespace Game.UI
         {
             if (_held != null) return;   // 들고 있으면 재개 불가
             _onLaunch?.Invoke();
+        }
+
+        /// <summary>
+        /// 놓을 블록이 없는 카드(성장 2026-11-14 · 장비 강화 · 편대 배치/강화 2026-11-17)는 적용하면 배치 화면 · 결과 화면을 거치지 않고
+        /// 바로 전투로 돌아간다. 무엇이 바뀌었는지는 전투 화면 위 안내 띠로. 들고 있는 블록이 있으면(그럴 일은 없지만) 배치 화면에서 마저.
+        /// </summary>
+        private void ResumeWithBanner(string result)
+        {
+            CloseFleetPanel();
+            if (_held != null) { Refresh(); return; }
+            if (!string.IsNullOrEmpty(result)) Game.Core.GameEvents.RaiseBanner(result);
+            TryLaunch();
         }
 
         // ----------------------------------------------------------- 3D 표시
