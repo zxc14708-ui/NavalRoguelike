@@ -340,6 +340,13 @@ namespace Game.Dev
                 Finish();
                 yield break;
             }
+            if (Stage4Only)
+            {
+                yield return Stage4Check();
+                SaveLog("stage4");
+                Finish();
+                yield break;
+            }
             if (BaseIslandsOnly)
             {
                 yield return BaseIslandsCheck();

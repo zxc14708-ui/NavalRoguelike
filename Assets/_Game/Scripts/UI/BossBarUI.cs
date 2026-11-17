@@ -206,9 +206,13 @@ namespace Game.UI
             _boss = null;
             _lastPhase = null;
             _soonAnnounced = false;
-            var list = TargetRegistry.HostileTo(CombatFaction.Player, TargetKind.Surface);
-            for (int i = 0; i < list.Count; i++)
-                if (list[i] is EnemyController e && e.IsAlive && e.Definition != null && e.Definition.Rank == EnemyRank.Boss) { _boss = e; break; }
+            // 수상 보스 + 수면 비행 보스(4스테이지 룬급 — 날 때는 항공 표적)
+            foreach (var kind in new[] { TargetKind.Surface, TargetKind.Aircraft })
+            {
+                var list = TargetRegistry.HostileTo(CombatFaction.Player, kind);
+                for (int i = 0; i < list.Count && _boss == null; i++)
+                    if (list[i] is EnemyController e && e.IsAlive && e.Definition != null && e.Definition.Rank == EnemyRank.Boss) _boss = e;
+            }
             if (_boss == null) return;
             if (_boss != previous) UiSound.Play(UiSound.Cue.BossAlert);   // 보스 등장(배너 글과 함께)
             string tip = CodexCatalog.CounterTip(_boss.Definition);

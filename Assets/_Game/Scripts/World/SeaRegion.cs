@@ -5,7 +5,7 @@ using UnityEngine;
 namespace Game.World
 {
     /// <summary>해역 종류(2026-10-11 점검 K04). 스테이지마다 정해진다. 값은 저장되지 않는다(스테이지 번호에서 다시 정함).</summary>
-    public enum SeaKind { Archipelago, Strait, Open }
+    public enum SeaKind { Archipelago, Strait, Open, InlandSea }   // InlandSea: 2026-11-16 4스테이지(맨 뒤에 덧붙임)
 
     /// <summary>
     /// 해역 차별화(2026-10-11 점검 K04). 스테이지 1 = 군도, 2 = 좁은 수로, 3 = 개방해역.
@@ -76,6 +76,18 @@ namespace Game.World
                 CardWeights = new() { ["mod_sam"] = 1.4f, ["mod_ciws"] = 1.4f, ["mod_vls"] = 1.35f, ["mod_decoy"] = 1.3f, ["mod_ew"] = 1.3f, ["mod_radar"] = 1.2f,
                                       ["mod_nobong"] = 0.9f, ["mod_rambow"] = 0.8f },
             },
+            new()
+            {
+                // 2026-11-16 4스테이지 "내해의 괴물": 잔잔하고 얕은 내해. 섬 대신 유전 플랫폼, 곳곳에 모래톱(IslandField)
+                Kind = SeaKind.InlandSea, Name = "내해", Title = "제4 해역 · 내해",
+                Tactics = "잔잔하고 얕은 바다 — 수면을 스치듯 나는 위그선은 어뢰·기뢰가 통하지 않고 레이더에 늦게 잡힌다. 유전 플랫폼 포대 · 모래톱(속력 감소) 주의.",
+                Radar = 0.95f, P0 = 0.9f, P1 = 1f, P2 = 1f, MinSpacing = 40f, RockyChance = 0.8f, BatteryChance = 0f,
+                Deep = new Color(0.11f, 0.24f, 0.22f), Scatter = new Color(0.27f, 0.42f, 0.36f), Transmission = new Color(0.25f, 0.40f, 0.33f),
+                FogDensity = 0.004f,
+                EnemyWeights = new() { ["ene_submarine"] = 0.4f, ["ene_attack_submarine"] = 0.5f, ["ene_cruise_submarine"] = 0.4f, ["ene_minelayer"] = 0.5f },
+                CardWeights = new() { ["mod_sam"] = 1.35f, ["mod_ciws"] = 1.35f, ["mod_ew"] = 1.25f, ["mod_decoy"] = 1.25f, ["mod_gun76"] = 1.25f, ["mod_vls"] = 1.15f,
+                                      ["mod_asw"] = 0.6f, ["mod_sonar"] = 0.6f, ["mod_torpedotube"] = 0.75f, ["mod_minerail"] = 0.6f, ["mod_helideck"] = 0.85f },
+            },
         };
 
         public static bool Active { get; private set; }
@@ -84,7 +96,13 @@ namespace Game.World
         public static Profile For(SeaKind kind) => s_profiles[Mathf.Clamp((int)kind, 0, s_profiles.Length - 1)];
 
         /// <summary>스테이지 번호(1부터) → 해역.</summary>
-        public static SeaKind ForStage(int stageNumber) => stageNumber <= 1 ? SeaKind.Archipelago : stageNumber == 2 ? SeaKind.Strait : SeaKind.Open;
+        public static SeaKind ForStage(int stageNumber) => stageNumber switch
+        {
+            <= 1 => SeaKind.Archipelago,
+            2 => SeaKind.Strait,
+            4 => SeaKind.InlandSea,   // 1챕터 최종 — 내해(2026-11-16)
+            _ => SeaKind.Open,
+        };
 
         public static Vector3 ChannelOrigin { get; private set; }
         public static Vector3 ChannelAxis { get; private set; } = Vector3.forward;

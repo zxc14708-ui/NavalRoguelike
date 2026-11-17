@@ -62,6 +62,7 @@ namespace Game.Combat
             {
                 var e = list[i];
                 if (e == null || !e.IsAlive || e.Transform == null || e is Game.Enemies.SeaMine) continue;   // 적 기뢰에는 반응하지 않는다
+                if (e is Game.Enemies.Hovercraft) continue;   // 공기부양정은 수면 위에 떠 있어 기뢰가 닿지 않는다(4스테이지)
                 Vector3 p = e.Transform.TryGetComponent<Collider>(out var hull) && hull.enabled ? hull.ClosestPoint(self) : e.Transform.position;
                 p.y = self.y;
                 if ((p - self).sqrMagnitude > triggerDistance * triggerDistance) continue;
@@ -79,7 +80,7 @@ namespace Game.Combat
             for (int i = 0; i < list.Count; i++)
             {
                 var e = list[i];
-                if (e == null || !e.IsAlive || e.Transform == null) continue;
+                if (e == null || !e.IsAlive || e.Transform == null || e is Game.Enemies.Hovercraft) continue;
                 Vector3 d = e.Transform.position - self; d.y = 0f;
                 if (d.sqrMagnitude <= r2) _victims.Add(e);
             }

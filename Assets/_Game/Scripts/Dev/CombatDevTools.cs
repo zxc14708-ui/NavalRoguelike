@@ -102,7 +102,8 @@ namespace Game.Dev
                 runner.CarrierBossOnly = System.Array.IndexOf(args, "-carrierBossOnly") >= 0; // 3스테이지 항공전함 개편(2026-11-14)
                 runner.HarborBossOnly = System.Array.IndexOf(args, "-harborBossOnly") >= 0;
                 runner.SfxOnly = System.Array.IndexOf(args, "-sfxOnly") >= 0;   // 무장 효과음 교체(2026-11-15)
-                runner.BaseIslandsOnly = System.Array.IndexOf(args, "-baseIslandsOnly") >= 0;   // Codex 섬 · 기지 팩(2026-11-15)   // 2스테이지 보스 무대 = 수로 출구 군항(2026-11-15)
+                runner.BaseIslandsOnly = System.Array.IndexOf(args, "-baseIslandsOnly") >= 0;   // Codex 섬 · 기지 팩(2026-11-15)
+                runner.Stage4Only = System.Array.IndexOf(args, "-stage4Only") >= 0;   // 4스테이지 내해의 괴물(2026-11-16)   // 2스테이지 보스 무대 = 수로 출구 군항(2026-11-15)
                 runner.RouteMapOnly = System.Array.IndexOf(args, "-routeMapOnly") >= 0;
                 runner.JuiceOnly = System.Array.IndexOf(args, "-juiceOnly") >= 0;
                 runner.BlockHitOnly = System.Array.IndexOf(args, "-blockHitOnly") >= 0;

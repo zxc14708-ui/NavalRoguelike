@@ -320,7 +320,7 @@ namespace Game.UI
             // 해역 차별화(점검 K04): 스테이지마다 해역이 정해져 있다
             sb.Clear();
             sb.AppendLine($"<color={Muted}>스테이지마다 바다가 다르다 — 섬·레이더·적 구성·정비 카드가 해역에 따라 바뀐다.</color>").AppendLine();
-            foreach (var kind in new[] { Game.World.SeaKind.Archipelago, Game.World.SeaKind.Strait, Game.World.SeaKind.Open })
+            foreach (var kind in new[] { Game.World.SeaKind.Archipelago, Game.World.SeaKind.Strait, Game.World.SeaKind.Open, Game.World.SeaKind.InlandSea })
             {
                 var sea = Game.World.SeaRegion.For(kind);
                 Row(sb, $"<b>{sea.Title}</b>", sea.Tactics);

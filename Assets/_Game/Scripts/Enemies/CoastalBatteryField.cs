@@ -37,6 +37,12 @@ namespace Game.Enemies
         public EnemyDefinition Definition => _def != null ? _def : _def = Resources.Load<EnemyDefinition>(DefinitionPath);
         /// <summary>해안 미사일 포대(2026-11-15, 적 기지 섬의 포대 자리).</summary>
         public EnemyDefinition MissileDefinition => _missileDef != null ? _missileDef : _missileDef = Resources.Load<EnemyDefinition>(MissileDefinitionPath);
+        private readonly Dictionary<string, EnemyDefinition> _defsByPath = new();
+        private EnemyDefinition DefinitionAt(string path)
+        {
+            if (!_defsByPath.TryGetValue(path, out var d)) _defsByPath[path] = d = Resources.Load<EnemyDefinition>(path);
+            return d;
+        }
         public int ActiveCount => _placed.Count;
         public int DestroyedCount => _destroyed.Count;
         public IEnumerable<EnemyController> Placed => _placed.Values;
@@ -146,17 +152,18 @@ namespace Game.Enemies
                 }
                 return;
             }
-            // 적 기지 섬(군도, 2026-11-15): 섬마다 정해진 포대 자리에 해안 미사일 포대. 바다 쪽(섬 가운데에서 바깥)을 보고 선다
-            if (MissileDefinition != null)
-                foreach (var island in Islands.All)
+            // 적 기지 섬(군도, 2026-11-15) · 무장 유전 플랫폼(내해, 2026-11-16): 섬마다 정해진 포대 자리에 고정 적. 바다 쪽(섬 가운데에서 바깥)을 보고 선다
+            foreach (var island in Islands.All)
                 {
                     if (island == null || !island.MilitaryBase || island.BatterySpots == null || island.Root == null) continue;
+                    var def = string.IsNullOrEmpty(island.BatteryEnemy) ? MissileDefinition : DefinitionAt(island.BatteryEnemy);
+                    if (def == null) continue;
                     for (int i = 0; i < island.BatterySpots.Length; i++)
                     {
                         Vector3 pos = island.BatterySpots[i];
                         Vector3 outward = pos - island.Center; outward.y = 0f;
                         var rot = Quaternion.LookRotation(outward.sqrMagnitude > 0.01f ? outward.normalized : Vector3.forward, Vector3.up);
-                        _candidates.Add((Key(2, Mathf.RoundToInt(pos.x * 4f), Mathf.RoundToInt(pos.z * 4f)), pos, rot, Flat(pos - me), MissileDefinition));
+                        _candidates.Add((Key(2, Mathf.RoundToInt(pos.x * 4f), Mathf.RoundToInt(pos.z * 4f)), pos, rot, Flat(pos - me), def));
                     }
                 }
             if (profile.BatteryChance <= 0f) return;

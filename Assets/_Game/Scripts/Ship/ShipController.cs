@@ -334,6 +334,18 @@ namespace Game.Ship
             }
             else IsAground = false;
 
+            // 모래톱(내해, 2026-11-16): 얕은 물에서는 최고 속력의 55%까지만
+            if (Game.World.Islands.InSandbar(next))
+            {
+                float cap = BaseMaxSpeed * 0.55f;
+                if (Mathf.Abs(_currentSpeed) > cap) _currentSpeed = Mathf.MoveTowards(_currentSpeed, Mathf.Sign(_currentSpeed) * cap, BaseMaxSpeed * 1.2f * dt);
+                if (Time.time - _lastSandbarWarning > 8f)
+                {
+                    _lastSandbarWarning = Time.time;
+                    GameEvents.RaiseBanner("모래톱 — 얕은 물에서는 속력이 줄어듭니다");
+                }
+            }
+
             // 좁은 수로(점검 K04): 양안 너머로는 나갈 수 없다(보이지 않는 경계 — 기슭 콜라이더 사이로 새어 나가도 막는다)
             if (Game.World.SeaRegion.ClampToChannel(ref next, -2f))
             {
@@ -492,6 +504,8 @@ namespace Game.Ship
         }
 
         /// <summary>DamageResolver가 모듈 몫을 뗀 뒤 남은 선체 피해를 적용한다. cause가 없으면 지금 처리 중인 피해의 출처.</summary>
+        private float _lastSandbarWarning = -99f;
+
         public void ApplyHullDamage(float amount, string cause = null)
         {
             if (amount <= 0f || !IsAlive) return;

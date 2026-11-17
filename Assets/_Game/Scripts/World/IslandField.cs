@@ -213,6 +213,9 @@ namespace Game.World
                 }
             }
 
+            // 내해(4스테이지, 2026-11-16): 섬 대신 유전 플랫폼 · 모래톱(난수 따로)
+            if (sea != null && sea.Kind == SeaKind.InlandSea) GenerateInlandSea(key, kitRng, list, sea);
+
             for (int n = 0; n < count; n++)
             {
                 bool rocky = rng.NextDouble() < (sea != null ? sea.RockyChance : 0.55);
@@ -257,6 +260,65 @@ namespace Game.World
                 list.Add(info);
             }
             return list;
+        }
+
+        /// <summary>내해 구역마다: 유전 플랫폼 30%(대 40% · 무장 대 55% · 소 40%), 모래톱 30%(반경 10~18m).</summary>
+        public const double PlatformChance = 0.3, SandbarChance = 0.3;
+
+        private void GenerateInlandSea(Vector2Int key, System.Random r, List<IslandInfo> list, SeaRegion.Profile sea)
+        {
+            double pRoll = r.NextDouble(), pSize = r.NextDouble(), pArmed = r.NextDouble(), sRoll = r.NextDouble(), sSize = r.NextDouble();
+            if (pRoll < PlatformChance)
+            {
+                bool large = pSize < 0.4;
+                bool armed = pArmed < (large ? 0.55 : 0.4);
+                float radius = large ? 15.5f : 9f;
+                if (TryPlace(key, r, radius, sea.MinSpacing, out var c))
+                {
+                    var info = IslandBuilder.BuildPlatform(c, large, armed, new System.Random(r.Next()), transform);
+                    if (info != null) list.Add(info);
+                }
+            }
+            if (sRoll < SandbarChance)
+            {
+                float radius = Mathf.Lerp(10f, 18f, (float)sSize);
+                if (TryPlace(key, r, radius, 12f, out var c))
+                    list.Add(IslandBuilder.BuildSandbar(c, radius, new System.Random(r.Next()), transform));
+            }
+        }
+
+        private bool TryPlace(Vector2Int key, System.Random r, float radius, float spacing, out Vector3 center)
+        {
+            float margin = Mathf.Min(radius + 8f, ChunkSize * 0.5f - 1f);
+            for (int tries = 0; tries < 6; tries++)
+            {
+                center = new Vector3((key.x + (float)r.NextDouble()) * ChunkSize, 0f, (key.y + (float)r.NextDouble()) * ChunkSize);
+                center.x = Mathf.Clamp(center.x, key.x * ChunkSize + margin, (key.x + 1) * ChunkSize - margin);
+                center.z = Mathf.Clamp(center.z, key.y * ChunkSize + margin, (key.y + 1) * ChunkSize - margin);
+                if (FarFromOthers(center, radius, spacing) && Horizontal(center - _origin) > ClearRadius + radius && !NearShips(center, radius + 12f)) return true;
+            }
+            center = default;
+            return false;
+        }
+
+        /// <summary>검증용: 유전 플랫폼 · 모래톱을 지정한 자리에 놓는다.</summary>
+        public IslandInfo PlacePlatform(Vector3 center, bool large, bool armed, int seed = 1)
+        {
+            var key = new Vector2Int(int.MinValue, int.MinValue);
+            if (!_chunks.TryGetValue(key, out var list)) _chunks[key] = list = new List<IslandInfo>();
+            var info = IslandBuilder.BuildPlatform(center, large, armed, new System.Random(seed), transform);
+            if (info != null) list.Add(info);
+            Physics.SyncTransforms();
+            return info;
+        }
+
+        public IslandInfo PlaceSandbar(Vector3 center, float radius, int seed = 1)
+        {
+            var key = new Vector2Int(int.MinValue, int.MinValue);
+            if (!_chunks.TryGetValue(key, out var list)) _chunks[key] = list = new List<IslandInfo>();
+            var info = IslandBuilder.BuildSandbar(center, radius, new System.Random(seed), transform);
+            list.Add(info);
+            return info;
         }
 
         /// <summary>검증용: Codex 섬 모델 하나를 지정한 자리에 놓는다(해안 소품 포함 여부 선택).</summary>

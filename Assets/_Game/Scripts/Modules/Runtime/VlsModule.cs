@@ -191,7 +191,7 @@ namespace Game.Modules.Runtime
                     target = FindSubmarine();
                     break;
                 default:
-                    target = _targeting.GetBest(transform.position, Stats.Range, TargetClass.Surface,
+                    target = _targeting.GetBest(transform.position, Stats.Range, TargetClass.Surface | TargetClass.Skimmer,   // 수면 비행체(위그선)도
                                                 _toughestUncovered, _beyondMinRange);
                     break;
             }

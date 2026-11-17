@@ -51,6 +51,11 @@ namespace Game.Combat
         public IReadOnlyList<Vector3> SuspectedSonar => _suspectedSonar;
         public IReadOnlyList<ITargetable> IncomingMissiles => _incomingMissiles;
         public IReadOnlyList<ITargetable> DetectedAircraft => _detectedAircraft;
+        /// <summary>탐지한 항공 표적 가운데 수면 비행 중인 것(위그선).</summary>
+        public IReadOnlyList<ITargetable> DetectedSkimmers => _detectedSkimmers;
+        private readonly List<ITargetable> _detectedSkimmers = new();
+        /// <summary>수면에 붙어 나는 표적은 레이더에 늦게 잡힌다(탐지 거리 배율).</summary>
+        public const float SkimmerRadarMultiplier = 0.75f;
 
         /// <summary>현재 레이더 탐지거리(개발용 표시). 적 전자전 방해 중이면 줄어든다(육안 거리 아래로는 안 줄어듦).</summary>
         public float RadarRange => systems != null
@@ -132,6 +137,8 @@ namespace Game.Combat
             // 미사일은 위협이라 수 제한 없이 모두 추적한다
             Collect(TargetKind.Missile, self, radarRange, int.MaxValue, false, _incomingMissiles);
             Collect(TargetKind.Aircraft, self, radarRange, maxTracked, false, _detectedAircraft);
+            _detectedSkimmers.Clear();
+            foreach (var t in _detectedAircraft) if (t is ISkimmer s && s.Skimming) _detectedSkimmers.Add(t);
             UpdateSonarContacts(self, sonarRange);
             // 소나 확정 접촉 또는 실제 부상한 잠수함만 목록에 넣는다.
             Collect(TargetKind.Submarine, self, sonarRange, maxTracked, true, _detectedSubmarine);
@@ -212,6 +219,9 @@ namespace Game.Combat
 
                 float actualDistance = (t.Transform.position - origin).sqrMagnitude;
                 bool inRange = actualDistance <= sqr;
+                // 수면 비행체는 레이더 수평선 아래라 더 가까워야 잡힌다(육안 거리 안은 그대로)
+                if (inRange && kind == TargetKind.Aircraft && t is ISkimmer skim && skim.Skimming)
+                    inRange = actualDistance <= Mathf.Max(sqr * SkimmerRadarMultiplier * SkimmerRadarMultiplier, visualRange * visualRange);
 
                 // 소나 범위 밖이라도 이미 드러난 잠수함은 계속 추적한다
                 if (requireRevealed && !t.IsRevealed && (t is not SubmarineBase sub || !sub.IsContactConfirmed)) continue;
@@ -296,6 +306,7 @@ namespace Game.Combat
             if ((classes & TargetClass.Surface) != 0) Consider(_detectedSurface, false);
             if ((classes & TargetClass.Submarine) != 0) Consider(_detectedSubmarine, true);
             if ((classes & TargetClass.Air) != 0) Consider(_detectedAircraft, false);
+            else if ((classes & TargetClass.Skimmer) != 0) Consider(_detectedSkimmers, false);
             if ((classes & TargetClass.Missile) != 0) Consider(_incomingMissiles, false);
             return best;
         }
@@ -305,7 +316,7 @@ namespace Game.Combat
         /// 한 발이 강한 무기가 가장 가까운 고속정에 낭비되지 않게 한다.
         /// </summary>
         public ITargetable GetToughestAttackable(Vector3 from, float maxRange, System.Predicate<Vector3> filter = null)
-            => GetBest(from, maxRange, TargetClass.Surface | TargetClass.Submarine, (t, sqr) =>
+            => GetBest(from, maxRange, TargetClass.Surface | TargetClass.Submarine | TargetClass.Skimmer, (t, sqr) =>
             {
                 float hp = t is Game.Enemies.EnemyController e && e.Definition != null ? e.Definition.MaxHp : 0f;
                 return -hp * 10000f + sqr;   // 체력 우선, 같으면 가까운 쪽
@@ -360,5 +371,7 @@ namespace Game.Combat
         Submarine = 2,
         Air = 4,
         Missile = 8,
+        /// <summary>수면 비행체(위그선, 2026-11-16 4스테이지): 항공 표적 가운데 수면에 붙어 나는 것. 대함 유도탄(VLS · 유도로켓)이 수상 표적과 함께 노린다.</summary>
+        Skimmer = 16,
     }
 }

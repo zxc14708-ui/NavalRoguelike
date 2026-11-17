@@ -79,7 +79,7 @@ namespace Game.Modules.Runtime
             _ammo.Tick(dt);
             if (_targeting == null || rocketPrefab == null) return;
 
-            var target = _targeting.GetBest(transform.position, Stats.Range, TargetClass.Surface | TargetClass.Submarine, _score, _inArc);
+            var target = _targeting.GetBest(transform.position, Stats.Range, TargetClass.Surface | TargetClass.Submarine | TargetClass.Skimmer, _score, _inArc);   // 수면 비행체(위그선)도
 
             // 연발 진행 중: 발마다 표적을 다시 골라 여러 척에 나눠 쏜다
             if (_salvoLeft > 0)

@@ -183,7 +183,11 @@ namespace Game.UI
             var gm = GameManager.Instance;
             var ship = gm.Player;
             string headline;
-            if (victory) headline = "<color=#FFD27A>모든 해역 돌파 — 작전 성공</color>";
+            var stageDir = FindFirstObjectByType<StageDirector>();
+            // 1챕터(4스테이지 내해 · 룬급, 2026-11-16)를 끝까지 돌파했으면 챕터 완료로 알린다
+            if (victory && stageDir != null && stageDir.StageCount >= 4 && stageDir.StageNumber >= stageDir.StageCount)
+                headline = "<color=#FFD27A>1챕터 완료 — 내해의 괴물 격침 · 작전 성공</color>\n<size=70%><color=#9fb3c0>다음 챕터는 준비 중입니다</color></size>";
+            else if (victory) headline = "<color=#FFD27A>모든 해역 돌파 — 작전 성공</color>";
             else
             {
                 string last = ship != null ? ship.LastHullDamageCause : null;

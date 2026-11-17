@@ -272,7 +272,17 @@ namespace Game.View
 
             int baked = 0;
             var rims = new List<(Vector2[] rim, bool closed, bool pier)>();
-            foreach (var island in Islands.All) rims.Add((island.Rim, !island.Bank, false));   // 수로 기슭은 열린 선이라 안쪽 판정을 하지 않는다
+            foreach (var island in Islands.All)
+            {
+                if (island.Platform && island.Rim != null)
+                {
+                    // 유전 플랫폼(4스테이지): 윤곽 = 기둥 중심들 — 기둥 사이 바다를 얕은 물로 칠하지 않고 기둥마다 작은 고리만
+                    foreach (var leg in island.Rim)
+                        rims.Add((new[] { leg + new Vector2(-1.4f, -1.4f), leg + new Vector2(1.4f, -1.4f), leg + new Vector2(1.4f, 1.4f), leg + new Vector2(-1.4f, 1.4f) }, true, false));
+                    continue;
+                }
+                rims.Add((island.Rim, !island.Bank, false));   // 수로 기슭은 열린 선이라 안쪽 판정을 하지 않는다
+            }
             foreach (var extra in s_extraRims) rims.Add((extra, true, false));
             foreach (var (rim, closed, pier) in rims)
             {

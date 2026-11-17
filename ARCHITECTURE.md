@@ -515,6 +515,31 @@ ECS 미사용, 외부 유료 플러그인 미사용.
   - 웨이브 동시 수에 세지 않는다(`EnemySpawner.SpawnFixed`), 스테이지 전환 때 함께 치운다.
 - 검사 환경(`PrepareSandbox`)은 해역을 벗어난 상태(예전 섬·레이더)로 돌고, 해역 검사(`-seaOnly`)만 해역에 들어간다.
 
+### 4스테이지 "내해의 괴물" — 1챕터 최종 (2026-11-17, `Editor/NavalStage4Builder` · 기획 `Docs/STAGE4_EKRANOPLAN_PLAN_2026-11-16.md`)
+- **연결**: `RoundSet_Stage3.nextStage` → `RoundSet_Stage4`(7구간), 해역 `SeaKind.InlandSea`(`ForStage(4)`, 레이더 ×0.95). 모델은 Codex `ArtSource/Stage4Ekranoplan_v1`(적 7종 + 모스킷 미사일 → `Art/Models/Stage4`, 환경 4종 → `Resources/Environment/Stage4`). 프리팹 · 데이터 · 웨이브만 다시: 메뉴 **Naval/Add Stage 4 (Inland Sea · Lun)**.
+- **수면 비행 규칙**(`ISkimmer`, `Enemies/WigEnemy`): 날고 있는 위그선은 항공 표적 + `TargetClass.Skimmer` — 기관포 · CIWS · 함대공 · 76mm에 더해 대함 유도탄(VLS · 유도로켓)도 노린다. 곡사포 · 기뢰 · 충각 · 헬기 · 어뢰는 못 노림. 레이더에는 평소의 75% 거리(육안 24m 안은 그대로). 내려앉으면(`SetLanded`) 수상 표적으로 다시 등록.
+- **내해 지형**(`IslandBuilder.Stage4`, `IslandField.GenerateInlandSea`): 구역마다 유전 플랫폼 30% · 모래톱 30%.
+  - 유전 플랫폼(대 · 소): 기둥 4개에만 판정(모델 루트 축척 100 — 판정 상자는 월드 크기로 나눠 맞춤), 가스 불기둥(`FlareFlame`) · 크레인 회전(`View/PartSpin`). 무장 플랫폼은 받침(`BatteryMount_0n`)에 **플랫폼 포대**(`Resources/Enemies/ene_platform_battery`, `IslandInfo.BatteryEnemy` — CoastalBatteryField가 섬별 적 데이터로 세움). 포대가 부서지면 `OilSlickPoint`에 **불타는 기름띠**(`World/OilSlick`, 반경 9 · 22초 · 초당 3).
+  - 모래톱: 판정 없음, 해안 물빛이 얕은 물로 칠하고 표지 부표 3~4개. 기함은 안에서 최고 속력 55%(`Islands.InSandbar`, `ShipController` 안내 띠).
+- **새 적**:
+
+  | 적 | 체력 | 행동 |
+  |---|---|---|
+  | 경위그선 `ene_light_wig` | 22 | 수면 비행 전투기(`LightWig : FighterJet`) — 떼로 지나가며 기관포 소사 |
+  | 강습 위그선 `ene_assault_wig` | 120 | 기함 근처에 내려앉아(수상 표적) 기수 문을 열고 자폭 보트 2척 → 다시 뜸(`AssaultWig`) |
+  | 공기부양정 `ene_hovercraft` | 170 | 곡사 로켓 지원정(`Hovercraft : ArtilleryBoat`), 기뢰가 닿지 않음 |
+  | 수중익정 `ene_hydrofoil` | 60 | 미사일정(`Hydrofoil : MissileBoat`) — 속력에 따라 선체가 최대 1.2m 떠오름, 모스킷 2발 |
+  | 미사일 초계함 `ene_missile_corvette`(엘리트) | 170 | 선회하며 모스킷 2발 · 선수포 점사(`MissileCorvette`) |
+  | 플랫폼 포대 `ene_platform_battery` | 90 | 해안 미사일 포대와 같은 예고 후 2발, 부서지면 기름띠(`PlatformBattery`) |
+
+- **보스 룬급 위그선**(`ene_boss4`, 체력 3600, `LunBoss` — 부위 13: 엔진 8 · 발사관 3 · 꼬리 포탑 · 레이돔):
+  - 1단계 통과 공격: 기함 옆 15m를 지나는 **붉은 통과선**을 수면에 띄운 뒤 고속 통과 · 모스킷 일제사격 · 꼬리 기관포 · 제트 후류.
+  - 2단계(65%): 탄이 떨어지면 맑은 물에 **보급 바지선**(`ENV_RearmBarge`)을 띄우고 옆에 내려앉아 재장전 — 그동안 수상 표적, 받는 피해 1.5배.
+  - 3단계(35%) · 4단계(12%): 통과가 잦아지고 일제사격이 늘어남. **엔진 5기가 부서지면** 다시 뜨지 못하고 수면 활주(수상 표적) → 예고 뒤 돌진(들이받으면 28).
+- **구간**(스폰 속도 0.95 → 1.45, 동시 24 → 38): 1 내해 진입 · 2 수면 습격(경위그선 떼) · 3 유전 지대(수중익정) · 4 상륙 선단(공기부양정 · 강습 위그선) · 5 미사일 포화(초계함 · 전자전) · 6 총공세 · 7 룬급 위그선(+ 호위 경위그선 4).
+- **1챕터 완료**: 4스테이지 보스를 격침하면 결과 화면에 "1챕터 완료 — 내해의 괴물 격침". 도전 과제 "작전 성공" 조건 글도 4스테이지 룬급으로.
+- 검사 `-stage4Only`(스테이지 연결 · 플랫폼 · 모래톱 감속 · 수면 비행 규칙 · 새 적 행동 · 플랫폼 포대 · 기름띠 · 룬급 전 단계).
+
 ### Codex 시안 적용 — 플레이어 헬기데크·헬기 T1~T3, 노봉 v22 (2026-10-11, `Editor/NavalPlayerAviationArt`)
 - 모델: `ArtSource/PlayerAviation_v24`(데크 3단계·대잠 헬기 T1~T3), `ArtSource/NobongAutomated_v22`(노봉 3단계) → `Art/Models/Aviation`, `Art/Models/Nobong`. 축 변환을 굽고 재질은 이름으로 기존 팔레트에 연결. 위·앞 방향과 크기는 노드 위치로 판정(로터·착함점·고각부가 위, 기수·포구가 +Z, 데크 1.8m 기준) — 이번 파일은 모두 그대로 맞았다(배율 1).
 - **헬기데크 강화**(새 `Resources/Upgrades/UPG_HeliDeck`, 예전엔 강화 불가 블록): 단계마다 데크와 주기 헬기가 바뀌고(Visual_Level1~3 = 데크 + HeliSpot + ParkedHelicopter) 그 단계 헬기가 출격한다(`HEL_PlayerAsw_T1~T3`, 기존 HEL_Asw의 무장·수치 그대로).
@@ -979,6 +1004,7 @@ WWII         NavalWw2Builder(패치 B 프리팹·데이터·규칙 집합, Naval
 
 | 날짜 | 변경 | 이유 |
 |---|---|---|
+| 2026-11-17 | **4스테이지 "내해의 괴물"(1챕터 최종)**: Codex `Stage4Ekranoplan_v1` 모델로 새 해역 내해(유전 플랫폼 · 플랫폼 포대 · 불타는 기름띠 · 모래톱 감속), 수면 비행 규칙(위그선 = 항공 + 대함 유도탄 표적, 레이더 75%, 내려앉으면 수상), 새 적 6종(경위그선 · 강습 위그선 · 공기부양정 · 수중익정 · 미사일 초계함 · 플랫폼 포대), 보스 룬급 위그선(체력 3600 · 통과선 예고 · 바지선 재장전 · 엔진 5기 파괴 시 추락 활주 돌진), 웨이브 7구간, 1챕터 완료 결과 화면. 검사 `-stage4Only` | 사용자: 룬급 위그선 보스 · 4스테이지를 1챕터 최종으로 |
 | 2026-11-15 | **Codex 섬 · 기지 팩 · 적 도색**: 군도에 적 기지 섬 소 · 중 · 대(Codex 지형 + 시설 조립) · 해안 미사일 포대 새 고정 적(발사관 들어 올림 예고 후 2발) · Codex 모래섬 · 바위섬 · 절차형 섬 야자수/사람 흔적/난파 보트 장식. 적 항공기는 회색 동체 + 붉은 포인트, 항공전함 비행갑판은 칠하지 않음. 섬을 치울 때 공유 메시를 지우던 문제 수정. 검사 `-baseIslandsOnly` | 사용자: 비행갑판 회색 · 항공기 회색+붉은 포인트 · 기지 섬 · 미사일 포대 · 무인도 장식 |
 | 2026-11-15 | **기함 피격음 무기 종류별 5종**: 기관포탄 · 포탄/유폭 · 미사일 · 어뢰/기뢰 · 충돌/좌초 — 합성 음원(`ArtSource/Audio/HullHitSfx_v1`). 검사 `-sfxOnly`에 피격음 대응 추가 | 사용자: 피격음이 8비트 소리 하나뿐 |
 | 2026-11-15 | **무장 효과음 교체**: 사용자 제공 기관포 · CIWS · 76mm · 40mm 쌍열포 소리를 48kHz 모노 WAV로 통일해 적용(76mm · 40mm는 전용 클립 — 예전엔 기관포 클립을 낮춰 씀). 76mm 클립을 쓰는 곡사포 · 적 함포 음높이 재조정 | 사용자 요청 |

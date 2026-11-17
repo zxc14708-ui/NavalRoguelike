@@ -6,6 +6,16 @@ namespace Game.Combat
     /// <summary>표적 분류. 무기마다 노리는 종류가 다르다(기관포=수상함, CIWS=미사일).</summary>
     public enum TargetKind { Surface, Missile, Submarine, Decoy, Aircraft }
 
+    /// <summary>
+    /// 수면 비행체(위그선, 2026-11-16 4스테이지). 항공 표적(TargetKind.Aircraft)이지만 수면 몇 미터 위를 난다 —
+    /// 대공 무기와 함께 대함 유도탄(VLS · 유도로켓)도 노릴 수 있고, 수상 표적 전용 무기(곡사포 · 기뢰 · 충각 · 헬기)는 못 노린다.
+    /// 내려앉으면(Skimming = false, Kind = Surface) 수상함과 같다.
+    /// </summary>
+    public interface ISkimmer
+    {
+        bool Skimming { get; }
+    }
+
     /// <summary>탐지/조준의 대상이 되는 모든 것. 진영(Faction)으로 적·아군을 가른다.</summary>
     public interface ITargetable : IFactionMember
     {

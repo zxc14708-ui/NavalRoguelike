@@ -29,6 +29,13 @@ namespace Game.World
         public bool MilitaryBase;
         public int BaseSize;
         public Vector3[] BatterySpots;
+        /// <summary>포대 자리에 세울 고정 적(Resources 경로). 비면 해안 미사일 포대.</summary>
+        public string BatteryEnemy;
+        /// <summary>유전 플랫폼(2026-11-16 내해): 포대가 부서지면 기름띠가 번질 수면 자리. 이미 번졌으면 Spilled.</summary>
+        public bool Platform, Spilled;
+        public Vector3 OilSlickPoint;
+        /// <summary>모래톱(내해): 판정 없음 — 기함이 지나가면 느려진다(Islands.InSandbar).</summary>
+        public bool Sandbar;
     }
 
     /// <summary>
@@ -98,6 +105,19 @@ namespace Game.World
             }
             if (moved) normal = normal.sqrMagnitude > 1e-6f ? normal.normalized : Vector3.zero;
             return moved;
+        }
+
+        /// <summary>그 자리가 모래톱 위인가(내해, 2026-11-16). 판정 콜라이더가 없어 반경으로 본다.</summary>
+        public static bool InSandbar(Vector3 p)
+        {
+            for (int i = 0; i < s_all.Count; i++)
+            {
+                var s = s_all[i];
+                if (!s.Sandbar) continue;
+                float dx = p.x - s.Center.x, dz = p.z - s.Center.z;
+                if (dx * dx + dz * dz <= s.Radius * s.Radius) return true;
+            }
+            return false;
         }
 
         /// <summary>진행 방향 앞(length)에 섬이 있으면 그 법선(수평)을 준다. 적 회피 조타용.</summary>
