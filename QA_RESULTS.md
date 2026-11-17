@@ -21,8 +21,8 @@
 | -defenseOnly | 통과 | 예전 커밋 | 2026-11-04 00:11 | ce3a323 | 35 | 135281 | 0:42 | Windows 11  (10.0.26300) · NVIDIA GeForce RTX 3070 · 1920×1080 · Unity 6000.3.23f1 | — |
 | -enemyOnly | 통과 | 예전 커밋 | 2026-10-13 01:01 | 565a99e | 11 | 884671 | 0:28 | Windows 11  (10.0.26300) · NVIDIA GeForce RTX 3070 · 1920×1080 · Unity 6000.3.23f1 | — |
 | -escortArmsOnly | 통과 | 예전 커밋 | 2026-11-01 01:01 | 9d5c706 | 19 | 320812 | 0:27 | Windows 11  (10.0.26300) · NVIDIA GeForce RTX 3070 · 1920×1080 · Unity 6000.3.23f1 | — |
-| -escortOnly | 통과 | 예전 커밋 | 2026-11-03 23:32 | ce3a323 | 30 | 827765 | 0:24 | Windows 11  (10.0.26300) · NVIDIA GeForce RTX 3070 · 1920×1080 · Unity 6000.3.23f1 | — |
-| -formationOnly | 통과 | 예전 커밋 | 2026-11-03 23:33 | ce3a323 | 30 | 856312 | 0:58 | Windows 11  (10.0.26300) · NVIDIA GeForce RTX 3070 · 1920×1080 · Unity 6000.3.23f1 | — |
+| -escortOnly | 통과 | 최신 | 2026-11-17 17:15 | 8db6dae | 12 | 484671 | 0:23 | Windows 11  (10.0.26300) · NVIDIA GeForce RTX 3070 · 1920×1080 · Unity 6000.3.23f1 | — |
+| -formationOnly | 통과 | 최신 | 2026-11-17 17:14 | 8db6dae | 12 | 409375 | 1:11 | Windows 11  (10.0.26300) · NVIDIA GeForce RTX 3070 · 1920×1080 · Unity 6000.3.23f1 | — |
 | -growthOnly | 통과 | 예전 커밋 | 2026-11-01 12:33 | c5376ef | 53 | 536156 | 0:08 | Windows 11  (10.0.26300) · NVIDIA GeForce RTX 3070 · 1920×1080 · Unity 6000.3.23f1 | — |
 | -harborAAOnly | 통과 | 예전 커밋 | 2026-11-01 01:04 | 9d5c706 | 19 | 515218 | 0:20 | Windows 11  (10.0.26300) · NVIDIA GeForce RTX 3070 · 1920×1080 · Unity 6000.3.23f1 | — |
 | -harborBuildingsOnly | 통과 | 예전 커밋 | 2026-11-03 23:26 | ce3a323 | 30 | — | 0:16 | Windows 11  (10.0.26300) · NVIDIA GeForce RTX 3070 · 1920×1080 · Unity 6000.3.23f1 | — |
@@ -31,11 +31,11 @@
 | -islandOnly | 통과 | 예전 커밋 | 2026-11-03 23:32 | ce3a323 | 30 | 785171 | 0:37 | Windows 11  (10.0.26300) · NVIDIA GeForce RTX 3070 · 1920×1080 · Unity 6000.3.23f1 | — |
 | -juiceOnly | 통과 | 예전 커밋 | 2026-11-01 01:07 | 9d5c706 | 19 | 655234 | 0:06 | Windows 11  (10.0.26300) · NVIDIA GeForce RTX 3070 · 1920×1080 · Unity 6000.3.23f1 | — |
 | -lifeOnly | 통과 | 예전 커밋 | 2026-10-31 13:39 | 594a21c | 23 | 407187 | 0:25 | Windows 11  (10.0.26300) · NVIDIA GeForce RTX 3070 · 1920×1080 · Unity 6000.3.23f1 | — |
-| -perfOnly (창 모드) | 통과 | 최신 | 2026-11-09 21:52 | cf9e3d4 | 22 | 150843 | 4:02 | Windows 11  (10.0.26300) · NVIDIA GeForce RTX 3070 · 1920×1080 · Unity 6000.3.23f1 | — |
+| -perfOnly (창 모드) | 통과 | 예전 커밋 | 2026-11-09 21:52 | cf9e3d4 | 22 | 150843 | 4:02 | Windows 11  (10.0.26300) · NVIDIA GeForce RTX 3070 · 1920×1080 · Unity 6000.3.23f1 | — |
 | -perfOnly -perfMinutes 30 (배치 모드) | 통과 | 예전 커밋 | 2026-10-12 22:38 | 6356259 | 6 | 322156 | 31:04 | Windows 11  (10.0.26300) · NVIDIA GeForce RTX 3070 · 1920×1080 · Unity 6000.3.23f1 | — |
 | -polishOnly | 통과 | 예전 커밋 | 2026-11-04 00:10 | ce3a323 | 35 | 88078 | 0:16 | Windows 11  (10.0.26300) · NVIDIA GeForce RTX 3070 · 1920×1080 · Unity 6000.3.23f1 | — |
 | -routeMapOnly | 통과 | 예전 커밋 | 2026-11-01 01:07 | 9d5c706 | 19 | 648546 | 0:03 | Windows 11  (10.0.26300) · NVIDIA GeForce RTX 3070 · 1920×1080 · Unity 6000.3.23f1 | — |
-| -routeOnly | 실패 1 | 예전 커밋 | 2026-11-01 01:17 | 9d5c706 | 21 | 249296 | 0:17 | Windows 11  (10.0.26300) · NVIDIA GeForce RTX 3070 · 1920×1080 · Unity 6000.3.23f1 | 예상 항로가 실제 항적과 많이 다름 |
+| -routeOnly | 통과 | 최신 | 2026-11-17 17:13 | 8db6dae | 12 | 387984 | 0:17 | Windows 11  (10.0.26300) · NVIDIA GeForce RTX 3070 · 1920×1080 · Unity 6000.3.23f1 | — |
 | -runFlowOnly | 통과 | 예전 커밋 | 2026-11-03 23:42 | ce3a323 | 30 | 405531 | 0:14 | Windows 11  (10.0.26300) · NVIDIA GeForce RTX 3070 · 1920×1080 · Unity 6000.3.23f1 | — |
 | -seaOnly | 통과 | 예전 커밋 | 2026-11-01 03:05 | f43920e | 31 | 765500 | 0:38 | Windows 11  (10.0.26300) · NVIDIA GeForce RTX 3070 · 1920×1080 · Unity 6000.3.23f1 | — |
 | -shoreOnly | 통과 | 예전 커밋 | 2026-11-04 00:11 | ce3a323 | 35 | 182296 | 0:19 | Windows 11  (10.0.26300) · NVIDIA GeForce RTX 3070 · 1920×1080 · Unity 6000.3.23f1 | — |
@@ -54,6 +54,10 @@
 
 | 실행 시각 | 검사 | 결과 | 커밋 | 소요 |
 |---|---|---|---|---|
+| 2026-11-17 17:15 | -escortOnly | 통과 | 8db6dae +12 | 0:23 |
+| 2026-11-17 17:14 | -formationOnly | 통과 | 8db6dae +12 | 1:11 |
+| 2026-11-17 17:13 | -routeOnly | 통과 | 8db6dae +12 | 0:17 |
+| 2026-11-17 17:13 | -routeOnly | 통과 | 8db6dae +12 | 0:17 |
 | 2026-11-09 21:52 | -perfOnly (창 모드) | 통과 | cf9e3d4 +22 | 4:02 |
 | 2026-11-04 00:11 | -shoreOnly | 통과 | ce3a323 +35 | 0:19 |
 | 2026-11-04 00:11 | -defenseOnly | 통과 | ce3a323 +35 | 0:42 |
@@ -90,7 +94,3 @@
 | 2026-11-01 12:47 | -decorOnly | 통과 | c5376ef +53 | 0:24 |
 | 2026-11-01 12:46 | -islandOnly | 통과 | c5376ef +53 | 0:37 |
 | 2026-11-01 12:42 | -ww2BattleOnly | 통과 | c5376ef +53 | 4:36 |
-| 2026-11-01 12:39 | -ww2Only | 통과 | c5376ef +53 | 2:44 |
-| 2026-11-01 12:39 | -runFlowOnly | 통과 | c5376ef +53 | 0:13 |
-| 2026-11-01 12:38 | -bundleDOnly | 통과 | c5376ef +53 | 0:42 |
-| 2026-11-01 12:38 | -bundleCOnly | 통과 | c5376ef +53 | 0:14 |
