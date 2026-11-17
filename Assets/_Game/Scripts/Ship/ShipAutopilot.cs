@@ -14,8 +14,11 @@ namespace Game.Ship
     ///   - 마지막 목표를 지나면 그때의 침로로 계속 직진한다(침로 유지).
     ///   - 조함 키(W/S/A/D/X, 게임패드 스틱)를 누르면 항로와 침로 유지를 모두 풀고 수동 조함으로 돌아간다.
     /// 예상 항로는 같은 조함 식(<see cref="ShipController.StepHelm"/>)으로 앞을 계산해 만든다. 표시는 <see cref="Game.View.NavRouteView"/>.
+    /// 타각은 물리 스텝마다 정한다(<see cref="FixedUpdate"/>, ShipController보다 먼저) — 프레임 단위로 정하면 긴 프레임(화면 저장·로딩 끊김)에
+    /// 물리 스텝 여러 번이 옛 타각으로 돌아 예상 항로에서 벗어났다(2026-11-01, 0° 배치 7.5~9.0m).
     /// </summary>
     [DisallowMultipleComponent]
+    [DefaultExecutionOrder(-50)]
     public sealed class ShipAutopilot : MonoBehaviour
     {
         public const int MaxWaypoints = 5;
@@ -28,6 +31,7 @@ namespace Game.Ship
         private const float LandClearance = 3f;
 
         private ShipController _ship;
+        private Rigidbody _body;
         private readonly List<Vector3> _route = new();
         private Leg _leg;
         private bool _holding;
@@ -67,6 +71,7 @@ namespace Game.Ship
         private void Awake()
         {
             _ship = GetComponent<ShipController>();
+            _body = GetComponent<Rigidbody>();
             _ship.ManualHelm += Cancel;
         }
 
@@ -105,7 +110,7 @@ namespace Game.Ship
             if (index < 0 || index >= _route.Count) return;
             _route.RemoveAt(index);
             if (index == 0) BeginLeg();
-            if (_route.Count == 0) Hold(Heading(transform.forward));
+            if (_route.Count == 0) Hold(Heading(Forward));
             _nextPredict = 0f;
         }
 
@@ -125,13 +130,23 @@ namespace Game.Ship
             if (gm.State != GameState.Playing || Time.timeScale <= 0f) return;
 
             HandleClick();
-            Steer();
             if (Time.unscaledTime >= _nextPredict)
             {
                 _nextPredict = Time.unscaledTime + 0.1f;
                 Predict();
             }
         }
+
+        private void FixedUpdate()
+        {
+            var gm = GameManager.Instance;
+            if (_ship == null || gm == null || gm.Player != _ship || !_ship.IsAlive || gm.State != GameState.Playing) return;
+            Steer(Time.fixedDeltaTime);
+        }
+
+        /// <summary>물리 자세(보간 전) — 실제 조함과 예상 항로가 같은 출발점을 쓴다.</summary>
+        private Vector3 Position => Flat(_body != null ? _body.position : transform.position);
+        private Vector3 Forward => (_body != null ? _body.rotation : transform.rotation) * Vector3.forward;
 
         private void Release()
         {
@@ -177,22 +192,20 @@ namespace Game.Ship
             return best;
         }
 
-        private void Steer()
+        private void Steer(float dt)
         {
-            if (_route.Count == 0)
-            {
-                _ship.AutoRudder = _holding ? RudderFor(_holdHeading, Heading(transform.forward), _ship.YawRate) : (float?)null;
-                return;
-            }
-
-            Vector3 pos = Flat(transform.position);
-            float heading = Heading(transform.forward);
-            if (Passed(pos, heading, _ship.CurrentSpeed, _route[0], ref _leg, Time.deltaTime))
+            Vector3 pos = Position;
+            float heading = Heading(Forward);
+            // 예상 항로 계산(Simulate)과 같은 순서: 이번 스텝에 지난 목표를 모두 넘기고 남은 목표로 타각을 잡는다
+            while (_route.Count > 0 && Passed(pos, heading, _ship.CurrentSpeed, _route[0], ref _leg, dt))
             {
                 _route.RemoveAt(0);
                 BeginLeg();
                 if (_route.Count == 0) Hold(heading);
-                Steer();
+            }
+            if (_route.Count == 0)
+            {
+                _ship.AutoRudder = _holding ? RudderFor(_holdHeading, heading, _ship.YawRate) : (float?)null;
                 return;
             }
             _ship.AutoRudder = SteerTo(pos, heading, _ship.CurrentSpeed, _ship.YawRate, _route[0]);
@@ -246,51 +259,60 @@ namespace Game.Ship
         }
 
         /// <summary>같은 조함 식·같은 통과 규칙으로 앞으로의 항로를 계산한다(섬 충돌은 보지 않는다).</summary>
-        private void Predict()
-        {
-            Predicted.Clear();
-            PredictedTailStart = 0;
-            if (_route.Count == 0) return;
+        private void Predict() => PredictedTailStart = Simulate(PredictStep, Predicted, null);
 
-            Vector3 pos = Flat(transform.position);
-            float heading = Heading(transform.forward);
+        /// <summary>
+        /// 개발·검증용: 지금 상태에서 dt 간격으로 예상 항로를 계산해 path에 넣는다(times = 점마다 지금부터의 시간).
+        /// 반환 = 마지막 목표 뒤 직진 구간이 시작하는 인덱스.
+        /// </summary>
+        public int SimulateRoute(float dt, List<Vector3> path, List<float> times) => Simulate(dt, path, times);
+
+        private int Simulate(float dt, List<Vector3> path, List<float> times)
+        {
+            path.Clear();
+            times?.Clear();
+            if (_route.Count == 0) return 0;
+
+            Vector3 pos = Position;
+            float heading = Heading(Forward);
             float speed = _ship.CurrentSpeed, yaw = _ship.YawRate, rudder = _ship.RudderInput;
             float throttle = _ship.ThrottleInput;
-            float step = _ship.RudderStep(PredictStep);
+            float step = _ship.RudderStep(dt);
             var leg = _leg;
-            int i = 0;
+            int i = 0, tailStart = 0;
             bool holding = false;
             float holdHeading = 0f, tail = 0f;
-            Predicted.Add(pos);
+            path.Add(pos);
+            times?.Add(0f);
 
-            for (float t = 0f; t < PredictSeconds; t += PredictStep)
+            for (float t = 0f; t < PredictSeconds; t += dt)
             {
                 float goal;
-                if (!holding && Passed(pos, heading, speed, _route[i], ref leg, PredictStep))
+                while (!holding && Passed(pos, heading, speed, _route[i], ref leg, dt))
                 {
                     leg = default;
                     if (++i >= _route.Count)
                     {
                         holding = true;
                         holdHeading = heading;
-                        PredictedTailStart = Predicted.Count - 1;
+                        tailStart = path.Count - 1;
                     }
                 }
                 if (!holding) goal = SteerTo(pos, heading, speed, yaw, _route[i]);
                 else
                 {
                     goal = RudderFor(holdHeading, heading, yaw);
-                    tail += PredictStep;
+                    tail += dt;
                     if (tail > TailSeconds) break;
                 }
 
                 rudder = Mathf.MoveTowards(rudder, goal, step);
-                _ship.StepHelm(throttle, rudder, ref speed, ref yaw, PredictStep);
-                heading += yaw * PredictStep;
-                pos += Quaternion.Euler(0f, heading, 0f) * Vector3.forward * (speed * PredictStep);
-                if (Vector3.Distance(Predicted[Predicted.Count - 1], pos) > 0.6f) Predicted.Add(pos);
+                _ship.StepHelm(throttle, rudder, ref speed, ref yaw, dt);
+                heading += yaw * dt;
+                pos += Quaternion.Euler(0f, heading, 0f) * Vector3.forward * (speed * dt);
+                if (Vector3.Distance(path[path.Count - 1], pos) > 0.6f) { path.Add(pos); times?.Add(t + dt); }
             }
-            if (!holding) PredictedTailStart = Predicted.Count;
+            return holding ? tailStart : path.Count;
         }
 
         private static Vector3 Flat(Vector3 v) => new(v.x, 0f, v.z);
