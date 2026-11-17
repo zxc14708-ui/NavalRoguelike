@@ -13,6 +13,8 @@ namespace Game.Modules.Runtime
     public class VlsModule : ModuleRuntime, IAmmoUser
     {
         public enum PayloadMode { Surface, Air, AntiSubmarine }
+        /// <summary>대공 탄의 피해 = 한 발 피해 × 이 비율(표적 효율 대신, 정비 카드 대공 등급에도 쓴다).</summary>
+        public const float AirPayloadDamageRatio = 0.45f;
         [Header("Selected payload")]
         [SerializeField] private PayloadMode payloadMode = PayloadMode.Surface;
         [SerializeField] private GameObject interceptorPrefab;
@@ -259,7 +261,7 @@ namespace Game.Modules.Runtime
                 missile?.LaunchAsw(sub.LastKnownPosition + sub.LastKnownVelocity * 1.5f,
                                    aswTorpedoPrefab, Stats.Damage * 0.8f);
             else
-                missile?.Launch(target.Transform, mode == PayloadMode.Air ? Stats.Damage * 0.45f : DamageAgainst(target));
+                missile?.Launch(target.Transform, mode == PayloadMode.Air ? Stats.Damage * AirPayloadDamageRatio : DamageAgainst(target));
         }
 
         private ITargetable FindSubmarine()

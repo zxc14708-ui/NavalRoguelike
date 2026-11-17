@@ -75,7 +75,8 @@ namespace Game.Dev
                 _report.AppendLine($"- 다시 뽑기: {Yes(rerolled)} · 남은 {before} → {after} · 카드 {ui.CardCount}장 · 새 첫 카드 \"{firstAfter}\"");
                 if (!summary.Contains("대공") || !summary.Contains("대잠")) Fail("정비 카드 화면에 함선 역할 구성이 없음(K01)");
                 bool anyImpact = false;
-                for (int i = 0; i < ui.CardCount; i++) if (ui.CardStatsText(i).Contains("함선 변화")) anyImpact = true;
+                // 무장 설치 카드는 간단한 카드(2026-11-17 — 등급 · 공격력 · 탄약 · 사거리, 함선 변화 줄 없음)
+                for (int i = 0; i < ui.CardCount; i++) if (ui.CardStatsText(i).Contains("함선 변화") || ui.CardStatsText(i).Contains("공격력")) anyImpact = true;
                 if (!anyImpact) Fail("카드에 함선 변화 줄이 없음(K01)");
                 if (!rerolled || after != before - 1 || ui.CardCount < 3) Fail("다시 뽑기가 횟수를 쓰고 카드를 새로 뽑지 않음(K02)");
                 Game.Refit.RefitDraft.SetRerolls(0);

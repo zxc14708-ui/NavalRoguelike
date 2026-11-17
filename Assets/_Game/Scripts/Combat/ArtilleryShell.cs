@@ -172,7 +172,7 @@ namespace Game.Combat
             foreach (var t in _victims)
             {
                 if (t is not IDamageable dmg || !dmg.IsAlive) continue;
-                float eff = _efficiency.For(TargetInfo.Category(t));
+                float eff = _efficiency.Against(t);
                 if (eff <= 0f) continue;
                 Vector3 d = t.Transform.position - _to;
                 d.y = 0f;

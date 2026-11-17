@@ -43,6 +43,12 @@ namespace Game.Enemies
 
         public int MinesLaid { get; private set; }
 
+        /// <summary>모든 부설 주체(기뢰부설정 · 도주 보급선)가 함께 지키는 동시 기뢰 수 한도.</summary>
+        public const int GlobalMineCap = 12;
+        public static int MinesAlive { get { s_allMines.RemoveAll(m => m == null || !m.IsAlive); return s_allMines.Count; } }
+        /// <summary>다른 부설 주체(도주 보급선, 2026-11-17)가 깐 기뢰도 전체 한도에 센다.</summary>
+        public static void TrackMine(SeaMine mine) { if (mine != null) s_allMines.Add(mine); }
+
         /// <summary>기뢰는 기함 진로에 깐다.</summary>
         protected override bool TargetsEscorts => false;
 

@@ -119,6 +119,8 @@ namespace Game.Dev
                 runner.BundleBOnly = System.Array.IndexOf(args, "-bundleBOnly") >= 0;
                 runner.BundleCOnly = System.Array.IndexOf(args, "-bundleCOnly") >= 0;
                 runner.BundleDOnly = System.Array.IndexOf(args, "-bundleDOnly") >= 0;
+                runner.FieldEventsOnly = System.Array.IndexOf(args, "-fieldEventsOnly") >= 0;   // 전장 이벤트(2026-11-17)
+                runner.CardsNumbersOnly = System.Array.IndexOf(args, "-cardsNumbersOnly") >= 0;   // 간단한 무장 카드 · 전투 숫자(2026-11-17)
                 runner.AviationOnly = System.Array.IndexOf(args, "-aviationOnly") >= 0;
                 runner.SeaOnly = System.Array.IndexOf(args, "-seaOnly") >= 0;
                 runner.PerfOnly = System.Array.IndexOf(args, "-perfOnly") >= 0;   // 성능 측정(O04)

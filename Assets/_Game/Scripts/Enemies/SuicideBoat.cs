@@ -43,6 +43,34 @@ namespace Game.Enemies
             _playerShip = player != null ? player.GetComponent<Game.Ship.ShipController>() : null;
             _phase = Random.value * Mathf.PI * 2f;
             Detonated = false;
+            _pincer = null;
+        }
+
+        // --- 3방향 협공 돌진(2026-11-17, Game.Missions.PincerAttack): 정해진 방향으로 곧게만 달린다(함선을 따라 꺾지 않는다)
+        private Game.Missions.PincerAttack _pincer;
+        private Vector3 _chargeDir;
+
+        /// <summary>협공 돌진 중인가.</summary>
+        public bool Charging => _pincer != null;
+
+        /// <summary>협공 돌진 시작: dir 방향으로 전속 직진. 함체에 닿으면 평소처럼 터진다.</summary>
+        public void BeginCharge(Game.Missions.PincerAttack pincer, Vector3 dir)
+        {
+            dir.y = 0f;
+            _pincer = pincer;
+            _chargeDir = dir.sqrMagnitude > 1e-4f ? dir.normalized : transform.forward;
+            transform.rotation = Quaternion.LookRotation(_chargeDir, Vector3.up);
+        }
+
+        /// <summary>협공이 끝났는데 살아남았다(혼자 남음): 평소 자폭 보트처럼 함선을 쫓는다.</summary>
+        public void EndCharge() => _pincer = null;
+
+        /// <summary>협공 보트끼리 한가운데서 부딪혀 터진다: 격침으로 친다(경험치 · 격침 수).</summary>
+        public void CollideInPincer()
+        {
+            if (!IsAlive) return;
+            _pincer = null;
+            Die();
         }
 
         /// <summary>자폭 공격(한 방 큰 피해)은 호위함에 쓰지 않는다 — 위협은 기함에 모은다(대함미사일·어뢰와 같은 규칙).</summary>
@@ -53,6 +81,14 @@ namespace Game.Enemies
         protected override void UpdateBehaviour(float dt)
         {
             Vector3 self = transform.position;
+            if (_pincer != null)
+            {
+                Steer(_chargeDir, 1f, dt);
+                Vector3 hull = _playerHull != null ? _playerHull.ClosestPoint(self) : Player.position;
+                hull.y = self.y;
+                if ((hull - self).sqrMagnitude <= detonateDistance * detonateDistance * 1.7f) Detonate(hull);
+                return;
+            }
             Vector3 target = Player.position;
 
             // 만나는 점으로(함선 속력이 더 느리므로 해가 있다)
@@ -85,6 +121,7 @@ namespace Game.Enemies
         private void Detonate(Vector3 hitPoint)
         {
             Detonated = true;
+            if (_pincer != null) { _pincer.NoteHit(this); _pincer = null; }
             if (Player.TryGetComponent<IDamageable>(out var target) && target.IsAlive)
                 target.TakeDamage(new DamageInfo(Definition.AttackDamage, hitPoint, transform.forward, DamageSource.Missile));
 

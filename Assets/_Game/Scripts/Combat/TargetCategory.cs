@@ -55,6 +55,20 @@ namespace Game.Combat
             TargetCategory.Missile => Missile,
             _ => 1f,
         };
+
+        /// <summary>
+        /// 표적 하나에 대한 효율(무장이 실제로 쓰는 값). 부상한(드러난) 잠수함은 수상함으로 본다(2026-11-17):
+        /// 대함 효율(중형함)과 대잠 효율 중 높은 쪽 — 함포·미사일은 대함 값으로, 폭뢰·경어뢰는 대잠 값 그대로.
+        /// 그래서 카드의 대잠 등급은 잠항한 잠수함을 잡는 무장에만 붙는다.
+        /// </summary>
+        public float Against(ITargetable t)
+        {
+            var c = TargetInfo.Category(t);
+            float v = For(c);
+            if (c == TargetCategory.Submarine && t != null && t.Kind == TargetKind.Submarine && t.IsRevealed)
+                v = Mathf.Max(v, MediumSurface);
+            return v;
+        }
     }
 
     /// <summary>표적의 분류와 가치(VLS 같은 한정 탄약 무기가 낭비하지 않도록).</summary>

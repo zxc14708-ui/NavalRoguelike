@@ -128,6 +128,10 @@ namespace Game.Dev
         public bool BundleCOnly;
         [Tooltip("점검 D 묶음 검사만 돌린다(-bundleDOnly): 배포 기본·사운드·기록/도전 과제·선택 임무")]
         public bool BundleDOnly;
+        [Tooltip("전장 이벤트 검사만 돌린다(-fieldEventsOnly, 2026-11-17): 자폭 보트 협공 · 위치 노출 · 구조 활동 · 적 보급선 추격")]
+        public bool FieldEventsOnly;
+        [Tooltip("간단한 무장 카드 · 부상 잠수함 대함 판정 · 전투 숫자 검사만 돌린다(-cardsNumbersOnly, 2026-11-17)")]
+        public bool CardsNumbersOnly;
         [Tooltip("Codex 시안 적용 검사만 돌린다(-aviationOnly): 헬기데크·헬기 T1~T3·노봉 v22")]
         public bool AviationOnly;
         [Tooltip("해역 차별화 검사만 돌린다(-seaOnly): 해역별 섬·레이더·적 구성·카드·물색, 좁은 수로 경계, 해안포대")]
@@ -247,6 +251,20 @@ namespace Game.Dev
             {
                 yield return AviationCheck();
                 SaveLog("aviation");
+                Finish();
+                yield break;
+            }
+            if (CardsNumbersOnly)
+            {
+                yield return CardsNumbersCheck();
+                SaveLog("cardsnumbers");
+                Finish();
+                yield break;
+            }
+            if (FieldEventsOnly)
+            {
+                yield return FieldEventsCheck();
+                SaveLog("fieldevents");
                 Finish();
                 yield break;
             }

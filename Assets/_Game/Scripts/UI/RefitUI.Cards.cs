@@ -133,7 +133,8 @@ namespace Game.UI
 
                 // 설치 카드
                 if (name != null) name.text = $"<color=#e0c05a>[{i + 1}]</color> {def.DisplayName}";
-                SetCardDecor(i, CategoryAccent(def.Type), ModuleCardText.BuildTag(def), null);
+                bool simple = ModuleCardText.IsSimpleWeapon(def.Type);   // 무장은 간단한 카드(2026-11-17): 등급 · 공격력 · 탄약 · 사거리
+                SetCardDecor(i, CategoryAccent(def.Type), simple ? ModuleCardText.BuildSimpleTag(def) : ModuleCardText.BuildTag(def), null);
                 if (icon != null)
                 {
                     icon.sprite = def.Icon;
@@ -143,9 +144,13 @@ namespace Game.UI
                 }
                 if (stats != null)
                 {
-                    stats.text = ModuleCardText.BuildStats(def);
-                    string impact = BuildGuide.InstallImpact(def, grid);
-                    if (impact != null) stats.text = impact + "\n" + stats.text;
+                    if (simple) stats.text = ModuleCardText.BuildWeaponCard(def);
+                    else
+                    {
+                        stats.text = ModuleCardText.BuildStats(def);
+                        string impact = BuildGuide.InstallImpact(def, grid);
+                        if (impact != null) stats.text = impact + "\n" + stats.text;
+                    }
                     // 지금은 놓을 자리가 없는 블록(대잠 보장 카드 등) — 고르기 전에 알린다(2026-10-11 점검 B04)
                     if (grid != null && !grid.HasAnyValidPlacement(def))
                         stats.text += "\n<color=#e0956a>지금은 놓을 자리가 없음 — 배치 화면에서 다른 블록을 옮기거나 철거해 자리를 만드세요</color>";

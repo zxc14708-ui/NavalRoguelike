@@ -207,6 +207,7 @@ namespace Game.UI
             var background = GetComponent<Image>();
             if (background != null) background.raycastTarget = false;
             IdentityMarkersUI.Create(transform);   // 적아 식별 표식(다른 HUD 패널 밑)
+            CombatNumbersUI.Create(transform, _navalFont);   // 피해 숫자 · 적 체력(2026-11-17)
             BossBarUI.Create(transform, _navalFont);   // 보스 막대(단계·다음 공격·대응)
             AchievementTracker.Create(transform);       // 출격 기록·도전 과제(점검 K06)
             SeaRegionCardUI.Create(transform, _navalFont);   // 해역 안내 카드(점검 K04)

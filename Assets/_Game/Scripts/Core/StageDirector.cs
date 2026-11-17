@@ -201,7 +201,14 @@ namespace Game.Core
             _totalDuration = 0f;
             foreach (var p in Phases.Rounds) _totalDuration += Mathf.Max(5f, p.Duration);
             EnterPhase(0);
+            // 전장 이벤트(2026-11-17): 자폭 보트 협공 · 구조 활동 · 적 보급선 추격 · 위치 노출 게이지 — 현대 판만
+            var ship = player != null ? player.GetComponent<Game.Ship.ShipController>() : null;
+            if (!_ww2 && ship != null) Game.Missions.FieldEventDirector.BeginStage(ship, experience, StageNumber, () => InBossPhase);
+            else Game.Missions.FieldEventDirector.EndStage();
         }
+
+        /// <summary>지금 마지막(보스) 구간인가.</summary>
+        public bool InBossPhase => Phases != null && _index >= Phases.Count - 1;
 
         private void Update()
         {
@@ -239,6 +246,7 @@ namespace Game.Core
         private void OnBossDefeated()
         {
             if (_stageTransitioning || RunOver) return;
+            Game.Missions.FieldEventDirector.EndStage();
             int next = _stageIndex + 1;
             bool hasNext = stages != null && next < stages.Length && stages[next] != null && stages[next].Count > 0;
 

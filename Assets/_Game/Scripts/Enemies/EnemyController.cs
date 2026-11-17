@@ -396,7 +396,11 @@ namespace Game.Enemies
             float before = _hp;
             _hp -= info.Amount * (Time.time < _markedUntil ? _markMultiplier : 1f);
             // 결과 분석: 실제로 깎은 체력과 격침(마지막 한 방)을 무장별로(점검 O02)
-            if (Factions.GrantsReward(this)) RunReport.RecordDamage(info.Tag, info.Source, before - Mathf.Max(0f, _hp), _hp <= 0f);
+            if (Factions.GrantsReward(this))
+            {
+                RunReport.RecordDamage(info.Tag, info.Source, before - Mathf.Max(0f, _hp), _hp <= 0f);
+                Game.UI.CombatNumbersUI.Note(this, before - Mathf.Max(0f, _hp), _hp <= 0f);   // 피해 숫자(2026-11-17)
+            }
             if (_hp <= 0f)
             {
                 // 마지막 한 방(무엇에 · 어디를 맞았는지)에 따라 침몰 방식이 달라진다(ShipWreck.SinkMode)

@@ -196,6 +196,103 @@ namespace Game.UI
             return sb.ToString().TrimEnd();
         }
 
+        // ------------------------------------------------------------ 간단한 무장 카드(2026-11-17)
+
+        private const string PipOn = "#7fd08a", PipOff = "#2c3a46";
+
+        /// <summary>정비 카드에서 간단한 무장 카드(등급 · 공격력 · 탄약 · 사거리)로 보여 주는 블록.</summary>
+        public static bool IsSimpleWeapon(ModuleType t) => t is ModuleType.Autocannon or ModuleType.Nobong or ModuleType.NavalGun
+            or ModuleType.Howitzer or ModuleType.GuidedRocket or ModuleType.Vls or ModuleType.SamLauncher or ModuleType.Ciws
+            or ModuleType.AswLauncher or ModuleType.TorpedoTube
+            or ModuleType.Ww2DualPurposeGun or ModuleType.Ww2HeavyGun or ModuleType.Ww2QuadAa or ModuleType.Ww2BroadsideTorpedo;
+
+        /// <summary>정비 카드 분류 줄(간단): "근거리 무장 · 1×1".</summary>
+        public static string BuildSimpleTag(ModuleDefinition def)
+            => def == null ? string.Empty : $"<color={CategoryColor(def.Type)}>{Category(def.Type)}</color>  ·  {def.Width}×{def.Height}";
+
+        /// <summary>
+        /// 무장 카드 본문(2026-11-17 — 설명을 줄였다): 대공 · 대함 · 대잠 등급(초록 칸 5개) · 공격력 · 탄약 · 사거리(근 · 중 · 장).
+        /// 등급은 표적 효율 평균 × 5(대공 = 드론·항공기·미사일, 대함 = 소형·중형·대형함, 대잠 = 잠수함). 0.6 아래인 분야는 줄을 뺀다.
+        /// 대잠 줄은 잠항한 잠수함을 잡는 무장에만 — 부상한 잠수함은 대함으로 맞는다(TargetEfficiency.Against).
+        /// 자세한 수치(발사 간격 · 보급 · 상성)는 도감(BuildStats)에 남긴다.
+        /// </summary>
+        public static string BuildWeaponCard(ModuleDefinition def)
+        {
+            if (def == null) return string.Empty;
+            var sb = new StringBuilder();
+            foreach (var (name, value) in Ratings(def))
+                sb.AppendLine($"<b>{name}</b><pos=26%>{Pips(value)}");
+            var s = def.Stats;
+            sb.AppendLine();
+            sb.AppendLine($"<size=78%><color={Muted}>공격력<pos=36%>탄약<pos=66%>사거리</color></size>");
+            string ammo = s.MagazineCapacity > 0 ? $"{s.MagazineCapacity}" : "—";
+            sb.AppendLine($"<size=120%><b>{DamageText(def)}<pos=36%>{ammo}<pos=66%></b>{RangeBand(s.Range)}</size>");
+
+            string zone = def.Placement.Zone switch
+            {
+                PlacementZone.BowOnly => "뱃머리만",
+                PlacementZone.SternOnly => "선미만",
+                PlacementZone.SideOrStern => "옆이나 뒤가 트인 자리",
+                PlacementZone.SideOnly => "좌현이나 우현이 트인 자리",
+                _ => null,
+            };
+            if (zone != null) sb.AppendLine($"<size=80%><color={Key}>배치  {zone}</color></size>");
+            return sb.ToString().TrimEnd();
+        }
+
+        /// <summary>카드에 보일 등급 줄(이름, 효율 0~). 검증에서도 쓴다.</summary>
+        public static List<(string name, float value)> Ratings(ModuleDefinition def)
+        {
+            var list = new List<(string, float)>();
+            if (def == null) return list;
+            var e = def.TargetEfficiency;
+            float air = (e.Drone + e.Air + e.Missile) / 3f;
+            if (def.Type == ModuleType.Vls) air = Game.Modules.Runtime.VlsModule.AirPayloadDamageRatio;   // 대공 탄은 효율 대신 피해 45%
+            float surface = (e.SmallSurface + e.MediumSurface + e.LargeSurface) / 3f;
+            bool hunter = def.Type is ModuleType.AswLauncher or ModuleType.TorpedoTube or ModuleType.Vls or ModuleType.HelicopterDeck;
+            if (air >= 0.6f || (def.Type == ModuleType.Vls && air > 0f)) list.Add(("대공", air));
+            if (surface >= 0.6f) list.Add(("대함", surface));
+            if (hunter && e.Submarine >= 0.6f) list.Add(("대잠", e.Submarine));
+            return list;
+        }
+
+        /// <summary>효율 → 초록 칸 수(1~5).</summary>
+        public static int PipCount(float value) => Mathf.Clamp(Mathf.RoundToInt(value * 5f), 1, 5);
+
+        private static string Pips(float value)
+        {
+            int n = PipCount(value);
+            return $"<color={PipOn}>{new string('■', n)}</color><color={PipOff}>{new string('■', 5 - n)}</color>";
+        }
+
+        /// <summary>사거리 단계: 30m 미만 근 · 40m까지 중 · 그 너머 장.</summary>
+        public static string RangeName(float range) => range < 30f ? "근" : range <= 40f ? "중" : "장";
+
+        private static string RangeBand(float range)
+        {
+            string on = RangeName(range);
+            var sb = new StringBuilder();
+            foreach (var band in new[] { "근", "중", "장" })
+            {
+                if (sb.Length > 0) sb.Append(' ');
+                sb.Append(band == on ? $"<color={PipOn}><b>{band}</b></color>" : $"<color={PipOff}>{band}</color>");
+            }
+            return sb.ToString();
+        }
+
+        /// <summary>한 번 쏠 때의 피해(쌍열 · 부채꼴처럼 한꺼번에 나가면 ×수).</summary>
+        private static string DamageText(ModuleDefinition def)
+        {
+            float d = def.Stats.Damage;
+            string v = d >= 10f ? $"{d:0}" : $"{d:0.##}";
+            return def.Type switch
+            {
+                ModuleType.AswLauncher or ModuleType.Nobong => $"{v}×2",
+                ModuleType.TorpedoTube => $"{v}×3",
+                _ => v,
+            };
+        }
+
         /// <summary>
         /// 무장 강화 카드(독립 카드): 단계 · 전후 수치(3줄) · 적용 · 공간.
         /// </summary>
@@ -207,7 +304,6 @@ namespace Game.UI
             sb.AppendLine($"<color={Good}><b>무장 강화</b></color>{ValueColumn}<b>{step}</b>");
             foreach (var line in UpgradeDiff(def, fromLevel, fromLevel + 1, 3, aligned: true).Split('\n'))
                 if (!string.IsNullOrEmpty(line)) sb.AppendLine(line);
-            Row(sb, "적용", $"대상 선택 → <color={Good}>바로 전투 재개</color>");
             Row(sb, "공간", $"<color={Good}>추가 사용 없음</color>");
             return sb.ToString().TrimEnd();
         }
@@ -243,7 +339,6 @@ namespace Game.UI
                 string step = lo <= 0 ? "기본 → 강화 I" : $"강화 {ModuleUpgrades.Roman(lo)} → {ModuleUpgrades.Roman(lo + 1)}";
                 Row(sb, counts[d] > 1 ? $"{d.DisplayName} ×{counts[d]}" : d.DisplayName, $"<color={Good}>{step}</color>");
             }
-            Row(sb, "적용", $"대상 선택 → <color={Good}>바로 전투 재개</color>");
             Row(sb, "공간", $"<color={Good}>추가 사용 없음</color>");
             return sb.ToString().TrimEnd();
         }
@@ -437,7 +532,6 @@ namespace Game.UI
                         or RunStat.AirDefenseRate or RunStat.Magazine or RunStat.Range or RunStat.SkillRate or RunStat.Repair)
                     sb.AppendLine($"<color={Warn}>지금 함선에는 바뀌는 장비 없음 — 나중에 설치하면 적용</color>");
             }
-            sb.AppendLine($"<color={Muted}>고르면 즉시 적용 · </color><color={Good}>바로 전투 재개</color>");
             return sb.ToString().TrimEnd();
         }
 
@@ -642,7 +736,6 @@ namespace Game.UI
             Row(sb, "선체", $"{Game.TaskForce.TaskForceEscortFormation.MaxHullFor(0):0} · 손실 {Game.TaskForce.TaskForceEscortFormation.RecoverSeconds:0}초 뒤 복귀");
             Row(sb, "슬롯", "빈 슬롯 중 선택 · 슬롯마다 진형 자리 고정");
             Row(sb, "역할", "편대 강화 카드로");
-            Row(sb, "적용", $"공간 불필요 · <color={Good}>바로 전투 재개</color>");
             return sb.ToString().TrimEnd();
         }
 
@@ -665,7 +758,6 @@ namespace Game.UI
                     : $"개량 {info.Tier} → <color={Good}>{info.Tier + 1}</color>";
                 Row(sb, $"{s + 1}번 <color=#{hex}>{Game.TaskForce.TaskForceEscortFormation.RoleCode(info.Role)}</color>", what);
             }
-            Row(sb, "적용", $"공간 불필요 · <color={Good}>바로 전투 재개</color>");
             return sb.ToString().TrimEnd();
         }
 
@@ -679,7 +771,6 @@ namespace Game.UI
                 string hex = ColorUtility.ToHtmlStringRGB(Game.TaskForce.TaskForceEscortFormation.RoleColor(role));
                 Row(sb, $"<color=#{hex}>{Game.TaskForce.TaskForceEscortFormation.RoleCode(role)}</color>", Game.TaskForce.TaskForceEscortFormation.RoleSummary(role));
             }
-            Row(sb, "적용", $"공간 불필요 · <color={Good}>바로 전투 재개</color>");
             return sb.ToString().TrimEnd();
         }
 
@@ -691,7 +782,6 @@ namespace Game.UI
             sb.AppendLine($"<color={Muted}>{Game.TaskForce.TaskForceEscortFormation.TierDescription(role, to)}</color>");
             Row(sb, "개량 단계", $"{fromTier} → <color={Good}>{to}</color> (최대 {Game.TaskForce.TaskForceEscortFormation.MaxUpgradeLevel})");
             Row(sb, "선체", $"{Game.TaskForce.TaskForceEscortFormation.MaxHullFor(fromTier):0} → <color={Good}>{Game.TaskForce.TaskForceEscortFormation.MaxHullFor(to):0}</color>");
-            Row(sb, "적용", $"함체 확대 · <color={Good}>바로 전투 재개</color>");
             Row(sb, "공간", $"<color={Good}>배치 공간 불필요</color>");
             return sb.ToString().TrimEnd();
         }

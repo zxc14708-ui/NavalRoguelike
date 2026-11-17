@@ -97,7 +97,7 @@ namespace Game.Modules
 
         /// <summary>이 무기의 표적 분류별 효율(데이터). 1 = 기준, 0 = 공격하지 않음.</summary>
         protected float EfficiencyAgainst(Game.Combat.ITargetable target)
-            => Definition != null ? Definition.TargetEfficiency.For(Game.Combat.TargetInfo.Category(target)) : 1f;
+            => Definition != null ? Definition.TargetEfficiency.Against(target) : 1f;   // 부상 잠수함 = 대함(2026-11-17)
 
         /// <summary>효율을 반영한 한 발 피해.</summary>
         protected float DamageAgainst(Game.Combat.ITargetable target) => Stats.Damage * EfficiencyAgainst(target);

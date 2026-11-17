@@ -520,6 +520,19 @@ ECS 미사용, 외부 유료 플러그인 미사용.
   - 웨이브 동시 수에 세지 않는다(`EnemySpawner.SpawnFixed`), 스테이지 전환 때 함께 치운다.
 - 검사 환경(`PrepareSandbox`)은 해역을 벗어난 상태(예전 섬·레이더)로 돌고, 해역 검사(`-seaOnly`)만 해역에 들어간다.
 
+### 전장 이벤트 — 계속 움직일 동기 (2026-11-17, `Scripts/Missions`)
+- **진행** `FieldEventDirector`: `StageDirector.BeginStage`가 연다(현대 판만 — WWII 시험 전투 · 첫 출격 훈련에서는 안 돈다), 보스 격침 · 판 종료에 정리(`EndStage`). 이벤트는 한 번에 하나, 시작 35초 뒤 첫 이벤트, 끝나면 45~65초 쉬고 다음. 이번 스테이지에 아직 안 나온 종류부터. 구조 · 추격은 스테이지마다 한 번, 협공은 되풀이. **보스 구간(`StageDirector.InBossPhase`) · 보급선 호위 임무 중에는 협공만**. 적 정의는 이미 불러온 것에서 id로 찾는다(`FindEnemy`, 지금 규칙 집합이 허락하는 것만).
+- **자폭 보트 3방향 협공** `PincerAttack`: 2.6초 예고(기함을 따라 움직이는 붉은 돌진선 셋 · 가운데 표적 원) → 기함 예상 위치(속력 × 도착 시간 × 0.6 앞)를 굳히고 그 둘레 62m 원 위 세 곳(120° 간격, 섬에 막히면 원을 15°씩 돌림)에서 `ene_suicide_boat`가 동시에 나와 곧게 돌진(`SuicideBoat.BeginCharge` — 꺾지 않음). 제자리면 부딪혀 평소 자폭 피해. 피하면 한가운데서 보트끼리 부딪혀 터지고(격침 · 경험치) 둘레 14m 적에게 40 피해, 하나도 안 맞았으면 "협공 회피" 보너스 경험치(다음 레벨까지의 15%). 혼자 남은 보트는 평소처럼 쫓는다.
+- **구조 활동** `RescueMission`: 85~150m 떨어진 세 곳(약 120° 간격)에 구명정(주황 기둥 · 구조 원 16m · 가장 가까운 곳까지 주황 선), 저체온 시간 55 · 75 · 95초를 섞어 배정. 원 안에서 **8노트 이하로 3초** → 구조: 선체 수리 10% · 경험치(다음 레벨까지의 20%). 전원 구조면 다시 뽑기 +1. 시간이 다 되면 가라앉는다(벌칙 없음). 화면 위 막대(남은 표류자 · 가까운 거리 · 저체온 · 구조 진행).
+- **적 보급선 추격** `RunnerMission`: 기함 옆 비스듬히 앞 120m에 적 보급선(보급선 호위의 화물선 모델을 붉게 · 붉은 기, Enemy 레이어 · 적 수상 표적 · `IHasVelocity`로 리드 사격 받음)이 나와 650m 항로(`SupplyEscortMission.PlanRoute`)를 9m/s로 달아난다(기함 최고 약 15m/s). 고속정 둘이 따라 나오고, 4.5초마다 함미로 부유 기뢰(`ene_sea_mine`, 자기 6개 · 전체 `MineLayer.GlobalMineCap` 12개) — 뒤를 따라가면 기뢰밭. 체력 200 + 스테이지마다 90. 격침: 연쇄 폭발 · 선체 수리 25% · 정비 1회. 항로 끝에 닿으면 도주(보상 없음).
+- **위치 노출 게이지** `ExposureGauge`: 스테이지 내내. 기준점 28m 안에 있으면 14초에 걸쳐 차고, 벗어나면 기준점을 옮기며 35% 줄어든다(빨리 다니면 바닥, 느릿느릿 기면 조금씩 참). 시작 20초는 유예. 다 차면 집중 포격 5발(0.35초 간격, 각 2.2초 전 착탄 원 — 첫 발은 기함 예상 위치) · 반경 7m 기함 선체에 10 + 스테이지마다 4. 30% 이상일 때 화면 아래 가운데(경험치 막대 위)에 막대.
+- 표시 공용 `MissionMarks`(수면 선 · 원 · 기둥 · 화면 막대). 검사 `-fieldEventsOnly`.
+
+### 간단한 무장 카드 · 부상 잠수함 = 대함 · 전투 숫자 (2026-11-17)
+- **무장 설치 카드**(`ModuleCardText.BuildWeaponCard`, `IsSimpleWeapon` 무장만): 분류 줄은 "근거리 무장 · 1×1"만, 본문은 **대공 · 대함 · 대잠 초록 칸 5개 · 공격력 · 탄약 · 사거리(근 · 중 · 장)**, 배치 제약이 있으면 한 줄. 칸 수 = 표적 효율 평균 × 5 반올림(대공 = 드론 · 항공기 · 미사일, 대함 = 소형 · 중형 · 대형함, 대잠 = 잠수함), 0.6 아래 분야는 줄을 뺀다. VLS 대공은 대공 탄 피해 비율(`VlsModule.AirPayloadDamageRatio` 0.45). 대잠 줄은 잠항한 잠수함을 잡는 무장(폭뢰 · 경어뢰 · VLS · 헬기)만. 사거리 30m 미만 근 · 40m까지 중 · 그 너머 장. 공격력은 한 번 쏠 때 피해(쌍열 · 폭뢰 ×2, 경어뢰 ×3). 발사 간격 · 보급 · 상성 같은 자세한 수치는 도감(`BuildStats`)에 남는다. 무장 카드에서는 "함선 변화" 줄을 뺐다(제목 아래 함선 역할 구성은 그대로). 지원 · 센서 블록 카드 · 강화 · 성장 · 편대 카드는 예전 그대로.
+- **부상한 잠수함 = 대함 표적**(`TargetEfficiency.Against`): 드러난(부상) 잠수함에는 대함(중형함) 효율과 대잠 효율 중 높은 쪽 — 함포 · 미사일은 대함 값, 폭뢰 · 경어뢰는 대잠 값 그대로. 무장 효율 · 곡사포 포탄 · 기함 기뢰가 모두 이것을 쓴다.
+- **전투 숫자**(`UI/CombatNumbersUI`, HUD가 만든다): 적대 진영이 받은 피해(`EnemyController.TakeDamage`)를 적마다 0.3초씩 합쳐 하나의 숫자로 띄운다(격침한 한 방은 주황 "격침"). 마우스를 올린 적(화면 70px 안, 없으면 2초 안에 맞힌 적 하나) 머리 위에 "이름 남은 체력 / 최대"와 막대 — 보스는 보스 막대가 맡아 뺀다. 설정 › 그래픽 › 전투 숫자(`DisplaySettings.CombatNumbers`, 기본 켜기). 적 체력은 도감에도 있다. 검사 `-cardsNumbersOnly`.
+
 ### 4스테이지 "내해의 괴물" — 1챕터 최종 (2026-11-17, `Editor/NavalStage4Builder` · 기획 `Docs/STAGE4_EKRANOPLAN_PLAN_2026-11-16.md`)
 - **연결**: `RoundSet_Stage3.nextStage` → `RoundSet_Stage4`(7구간), 해역 `SeaKind.InlandSea`(`ForStage(4)`, 레이더 ×0.95). 모델은 Codex `ArtSource/Stage4Ekranoplan_v1`(적 7종 + 모스킷 미사일 → `Art/Models/Stage4`, 환경 4종 → `Resources/Environment/Stage4`). 프리팹 · 데이터 · 웨이브만 다시: 메뉴 **Naval/Add Stage 4 (Inland Sea · Lun)**.
 - **수면 비행 규칙**(`ISkimmer`, `Enemies/WigEnemy`): 날고 있는 위그선은 항공 표적 + `TargetClass.Skimmer` — 기관포 · CIWS · 함대공 · 76mm에 더해 대함 유도탄(VLS · 유도로켓)도 노린다. 곡사포 · 기뢰 · 충각 · 헬기 · 어뢰는 못 노림. 레이더에는 평소의 75% 거리(육안 24m 안은 그대로). 내려앉으면(`SetLanded`) 수상 표적으로 다시 등록.
@@ -870,6 +883,8 @@ Combat/       TargetingSystem, ITargetable(TargetRegistry), TargetCategory, Comb
               EnemyJamming(적 전자전 레이더 감쇠), CombatStats, CombatLog, PooledEffect, DamageInfo
 TaskForce/    TaskForceBootstrap, TaskForceEscortFormation(슬롯 1~4·자율 기동), FleetFormation(함대원형진·단종진·자율),
               EscortDefense, EscortTurrets, TaskForceWorldFeedback, SupplyEscortMission(선택 임무 — 보급선 호위)
+Missions/     전장 이벤트(2026-11-17) — FieldEventDirector(진행), PincerAttack(자폭 보트 3방향 협공), RescueMission(구조 활동),
+              RunnerMission(적 보급선 추격), ExposureGauge(위치 노출 게이지), MissionMarks(표시 공용)
 Enemies/      공통 — EnemyController, EnemySpawner, EnemyFireCutout, AirEnemy, SubmarineBase
               수상 — FastAttackBoat(고속정·장갑 돌격정·무인 공격정, 전자전 코르벳·방공 프리깃 동체), MissileBoat, SuicideBoat,
                      TorpedoBoat, ArtilleryBoat, MineLayer(+SeaMine), RepairBoat, PccCorvette(엘리트 초계함),
@@ -1009,6 +1024,9 @@ WWII         NavalWw2Builder(패치 B 프리팹·데이터·규칙 집합, Naval
 
 | 날짜 | 변경 | 이유 |
 |---|---|---|
+| 2026-11-17 | **전장 이벤트 4종 — 계속 움직일 동기**(`Scripts/Missions`): 자폭 보트 3방향 협공(피하면 보트끼리 충돌 폭발 · 회피 보너스) · 구조 활동(구명정 3척, 원 안 8노트 이하 3초) · 적 보급선 추격(달아나며 기뢰, 격침하면 수리 · 정비 1회) · 위치 노출 게이지(한곳에 머물면 집중 포격). `FieldEventDirector`가 스테이지마다 하나씩 차례로, 보스 구간에는 협공만. `SuicideBoat` 직진 돌진 모드, `MineLayer` 전체 기뢰 한도 공유, `StageDirector.InBossPhase`. 검사 `-fieldEventsOnly` · `-bundleDOnly` | 사용자: 구조 활동 · 3방향 자폭 보트 · 위치 노출 · 도주 보급선 |
+| 2026-11-17 | **간단한 무장 카드 · 부상 잠수함 = 대함 · 전투 숫자**: 무장 설치 카드를 대공 · 대함 · 대잠 초록 등급 · 공격력 · 탄약 · 사거리(근 · 중 · 장)로 줄임(`ModuleCardText.BuildWeaponCard`, 자세한 수치는 도감). 부상한 잠수함은 대함 효율과 대잠 효율 중 높은 쪽으로 맞는다(`TargetEfficiency.Against`). 적이 받은 피해를 0.3초씩 합쳐 띄우는 피해 숫자와 마우스를 올린 적의 체력 숫자(`CombatNumbersUI`, 설정 › 그래픽에서 끔). 검사 `-cardsNumbersOnly` | 사용자: 카드 설명 줄이기 · 적 체력과 피해 숫자 · 부상 잠수함 대함 판정 |
+| 2026-11-17 | **무기 발사음 2배**: 기함 · 편대 · 적의 발사음(기관포 · CIWS · 함포 · 쌍열포 · 미사일/어뢰 발사 · 기만체)에 `SfxLibrary.weaponFireGain`(기본 2, 인스펙터 1~2) 배율. AudioSource 음량 한계(1)를 넘는 몫은 같은 클립을 같은 음높이로 보이스 하나 더 겹쳐 낸다(`AudioManager.StartVoice` · `SfxHandle` 둘째 보이스, CIWS 꼬리 건너뛰기도 같이). 보이스 최소 32개, 발사음은 동시 재생 한도 2배. 명중 · 폭발 · 피격음은 그대로 | 사용자: 발사음 2배 |
 | 2026-11-17 | **장비 강화 · 편대 카드도 고르면 바로 전투 재개**: 성장 카드(11-14)처럼 장비 강화(대상 블록 선택 뒤) · 편대 배치 · 편대 강화 · 역할 지정이 적용되면 배치 화면 · 편대 결과 화면 없이 바로 재개하고 결과는 안내 띠로(`RefitUI.ResumeWithBanner`). 편대 결과 화면의 재개 · 함선 배치 버튼 삭제, 카드 "적용" 줄 문구. 검사 `-upgradeOnly` · `-escortOnly` · `-growthOnly` · `-bundleDOnly` | 사용자: 다음 작업 1-3 진행 |
 | 2026-11-17 | **브랜치 정리 · `main` 병합 · 태그 `v0.1.0`(1챕터 완성)**: 남아 있던 워크트리 두 개의 커밋되지 않은 완성 작업(우클릭 항로 예상 오차 수정 · 넓은 기함 자율 진형 간격, 2026-11-01~02 변경 기록 참고)을 지금 브랜치에 맞춰 넣고 다시 검사(`-routeOnly` 2.1m · `-formationOnly` 5.1m · `-escortOnly` 통과)한 뒤 워크트리 삭제. 에디터 재저장 에셋 · Codex 1단계 무장 시안(미연결)은 따로 커밋. `ww2/codex-v31-models`를 `main`에 병합 | 사용자: 미커밋 주제별 커밋 · 워크트리 정리 · main 병합 · 태그 |
 | 2026-11-17 | **4스테이지 "내해의 괴물"(1챕터 최종)**: Codex `Stage4Ekranoplan_v1` 모델로 새 해역 내해(유전 플랫폼 · 플랫폼 포대 · 불타는 기름띠 · 모래톱 감속), 수면 비행 규칙(위그선 = 항공 + 대함 유도탄 표적, 레이더 75%, 내려앉으면 수상), 새 적 6종(경위그선 · 강습 위그선 · 공기부양정 · 수중익정 · 미사일 초계함 · 플랫폼 포대), 보스 룬급 위그선(체력 3600 · 통과선 예고 · 바지선 재장전 · 엔진 5기 파괴 시 추락 활주 돌진), 웨이브 7구간, 1챕터 완료 결과 화면. 검사 `-stage4Only` | 사용자: 룬급 위그선 보스 · 4스테이지를 1챕터 최종으로 |

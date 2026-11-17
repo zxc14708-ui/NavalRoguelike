@@ -88,7 +88,7 @@ namespace Game.Combat
             foreach (var e in _victims)
             {
                 if (e is not IDamageable dmg || !dmg.IsAlive) continue;
-                float eff = _efficiency.For(TargetInfo.Category(e));
+                float eff = _efficiency.Against(e);
                 if (eff <= 0f) continue;
                 Vector3 d = e.Transform.position - self; d.y = 0f;
                 float falloff = Mathf.Lerp(1f, edgeRatio, Mathf.Clamp01(d.magnitude / Mathf.Max(0.01f, blastRadius)));

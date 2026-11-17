@@ -135,6 +135,10 @@ namespace Game.Data
         [SerializeField] private SfxEntry escortTorpedoLaunch = new();
         [SerializeField] private SfxEntry escortJam = new();
 
+        [Header("Weapon fire gain (무기 발사음 배율, 2026-11-17)")]
+        [Tooltip("무기 발사음(기함 · 편대 · 적) 음량 배율. AudioSource 음량은 1이 한계라 넘는 몫은 같은 소리를 보이스 하나 더로 겹쳐 낸다(최대 2배)")]
+        [SerializeField, Range(1f, 2f)] private float weaponFireGain = 2f;
+
         [Header("Missile Warning (2D loop)")]
         [SerializeField] private AudioClip missileWarning;
         [SerializeField, Range(0f, 1f)] private float missileWarningVolume = 0.3f;
@@ -180,6 +184,14 @@ namespace Game.Data
         public AudioClip BattleMusic => battleMusic;
         public AudioClip BossMusic => bossMusic;
         public float MusicVolume => musicVolume;
+
+        public float WeaponFireGain => weaponFireGain;
+
+        /// <summary>무기 발사음인가(발사 · 연사 · 미사일/어뢰 발사 · 기만체 발사). 명중 · 폭발 · 피격음은 아니다.</summary>
+        public static bool IsWeaponFire(SfxId id) => id is SfxId.AutocannonShot or SfxId.CiwsBurst or SfxId.MissileLaunch
+            or SfxId.NavalGunShot or SfxId.TwinGunShot or SfxId.EscortGunShot or SfxId.EscortMissileLaunch
+            or SfxId.EscortTorpedoLaunch or SfxId.EnemyGunShot or SfxId.TorpedoLaunch or SfxId.EnemyAutocannonShot
+            or SfxId.ChaffLaunch;
 
         public float MinDistance => minDistance;
         public float MaxDistance => maxDistance;

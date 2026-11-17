@@ -13,21 +13,25 @@ namespace Game.Core
     {
         private readonly AudioSource _source;
         private readonly AudioClip _clip;
+        private readonly AudioSource _twin;   // 음량 1을 넘는 몫을 겹쳐 내는 둘째 보이스(무기 발사음 배율, 2026-11-17)
 
-        public SfxHandle(AudioSource source, AudioClip clip)
+        public SfxHandle(AudioSource source, AudioClip clip, AudioSource twin = null)
         {
             _source = source;
             _clip = clip;
+            _twin = twin;
         }
 
         public bool IsPlaying => _source != null && _clip != null && _source.isPlaying && _source.clip == _clip;
         public float Time => IsPlaying ? _source.time : 0f;
 
-        /// <summary>재생 위치를 옮긴다. 연사음을 끊을 때 꼬리 부분으로 건너뛰는 데 쓴다.</summary>
+        /// <summary>재생 위치를 옮긴다. 연사음을 끊을 때 꼬리 부분으로 건너뛰는 데 쓴다(겹친 보이스도 같이).</summary>
         public void SkipTo(float seconds)
         {
             if (!IsPlaying) return;
-            _source.time = Mathf.Clamp(seconds, 0f, _clip.length - 0.01f);
+            float t = Mathf.Clamp(seconds, 0f, _clip.length - 0.01f);
+            _source.time = t;
+            if (_twin != null && _twin.isPlaying && _twin.clip == _clip) _twin.time = t;
         }
     }
 
@@ -144,11 +148,13 @@ namespace Game.Core
 
         private void CreateVoices()
         {
-            _voices = new AudioSource[voiceCount];
-            _voiceIds = new SfxId[voiceCount];
-            _voiceStartTimes = new float[voiceCount];
+            // 무기 발사음이 보이스 둘을 쓸 수 있어(2026-11-17) 최소 32개를 둔다
+            int count = Mathf.Max(voiceCount, 32);
+            _voices = new AudioSource[count];
+            _voiceIds = new SfxId[count];
+            _voiceStartTimes = new float[count];
 
-            for (int i = 0; i < voiceCount; i++)
+            for (int i = 0; i < count; i++)
             {
                 var src = new GameObject($"Voice_{i:00}").AddComponent<AudioSource>();
                 src.transform.SetParent(transform, false);
@@ -196,34 +202,54 @@ namespace Game.Core
                 return default;
             _lastPlayed[id] = now;
 
-            int voice = PickVoice(id, entry.MaxVoices);
-            var src = _voices[voice];
-
-            src.Stop();
-            src.transform.position = position;
-            src.clip = entry.Clip;
-            src.spatialBlend = entry.SpatialBlend;
             // 미사일 경보가 울리는 동안 다른 효과음은 줄여 경보가 연사음에 묻히지 않게(점검 O06)
             float duck = _warning != null && _warning.isPlaying ? 0.55f : 1f;
-            src.volume = entry.Volume * volumeScale * masterVolume * GameSettings.Volume(SoundChannel.Effects) * duck;
-            src.pitch = pitchScale * (1f + Random.Range(-entry.PitchJitter, entry.PitchJitter));
-            src.Play();
+            float volume = entry.Volume * volumeScale * masterVolume * GameSettings.Volume(SoundChannel.Effects) * duck;
+            // 무기 발사음 배율(2026-11-17, 기본 2배). AudioSource 음량은 1이 한계라 넘는 몫은 같은 클립을
+            // 같은 음높이 · 같은 순간에 보이스 하나 더로 틀어 겹친다(파형이 그대로 더해져 진폭이 커진다).
+            bool fire = SfxLibrary.IsWeaponFire(id) && library.WeaponFireGain > 1f;
+            if (fire) volume *= library.WeaponFireGain;
+            int limit = fire ? entry.MaxVoices * 2 : entry.MaxVoices;   // 겹친 보이스도 같은 소리로 세므로 한도를 함께 늘린다
+            float pitch = pitchScale * (1f + Random.Range(-entry.PitchJitter, entry.PitchJitter));
 
+            int voice = PickVoice(id, limit);
+            var src = StartVoice(voice, id, entry.Clip, entry.SpatialBlend, position, Mathf.Min(1f, volume), pitch, now);
+
+            AudioSource twin = null;
+            if (volume > 1.001f)
+            {
+                int second = PickVoice(id, limit, voice);
+                twin =StartVoice(second, id, entry.Clip, entry.SpatialBlend, position, Mathf.Min(1f, volume - 1f), pitch, now);
+            }
+            return new SfxHandle(src, entry.Clip, twin);
+        }
+
+        private AudioSource StartVoice(int voice, SfxId id, AudioClip clip, float spatialBlend, Vector3 position, float volume, float pitch, float now)
+        {
+            var src = _voices[voice];
+            src.Stop();
+            src.transform.position = position;
+            src.clip = clip;
+            src.spatialBlend = spatialBlend;
+            src.volume = volume;
+            src.pitch = pitch;
+            src.Play();
             _voiceIds[voice] = id;
             _voiceStartTimes[voice] = now;
-            return new SfxHandle(src, entry.Clip);
+            return src;
         }
 
         /// <summary>
         /// 같은 소리가 이미 한도만큼 울리고 있으면 그중 가장 오래된 것을,
         /// 아니면 빈 보이스를, 그것도 없으면 전체에서 가장 오래된 것을 고른다.
         /// </summary>
-        private int PickVoice(SfxId id, int maxVoices)
+        private int PickVoice(SfxId id, int maxVoices, int exclude = -1)
         {
-            int sameCount = 0, oldestSame = -1, free = -1, oldestAny = 0;
+            int sameCount = 0, oldestSame = -1, free = -1, oldestAny = exclude == 0 ? 1 : 0;
 
             for (int i = 0; i < _voices.Length; i++)
             {
+                if (i == exclude) continue;   // 방금 튼 첫 보이스(겹침용 둘째를 고를 때)
                 if (!_voices[i].isPlaying)
                 {
                     if (free < 0) free = i;

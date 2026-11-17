@@ -174,6 +174,12 @@ namespace Game.UI
                 DisplaySettings.SetCloudShadow((cloud + d + n) % n);
                 ShowSettingsTab(3);
             });
+            Next();
+            Cycler(page, y, "전투 숫자", DisplaySettings.CombatNumbers ? "켜기 — 피해 숫자 · 마우스를 올린 적 체력" : "끄기", _ =>
+            {
+                DisplaySettings.SetCombatNumbers(!DisplaySettings.CombatNumbers);
+                ShowSettingsTab(3);
+            });
         }
 
         /// <summary>설정 한 줄: 이름 | ◀ 값 ▶. 값을 누르면 다음 값(▶와 같다).</summary>
