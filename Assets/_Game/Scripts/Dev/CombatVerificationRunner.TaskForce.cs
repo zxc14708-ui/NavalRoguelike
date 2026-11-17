@@ -638,6 +638,9 @@ namespace Game.Dev
                 yield return Shot($"formation_{f.ToString().ToLowerInvariant()}");
             }
             if (formation.Formation != Game.TaskForce.FleetFormation.Autonomous) Fail("진형 전환이 마지막 진형에 오지 않음");
+            // 넓은 기함(2026-11-02): 기본 회귀는 앞 검사들이 블록을 붙여 반폭 7m가 된 기함으로 이 검사를 돌아 자율 간격이 아슬했다
+            // (1.7~6.2m, 단독 실행은 반폭 1m라 10m). 단독 실행에서도 그 모양을 보도록 좌우로 블록을 붙여 단종진 → 자율을 한 번 더 본다.
+            if (ext.z < 5f) yield return WideFlagshipAutonomousCheck(formation, ship);
             formation.CycleFormation();
             bool wrapped = formation.Formation == Game.TaskForce.FleetFormation.Circular;
             // 진형 선택판 클릭(도식 칸)으로도 바뀐다
@@ -808,7 +811,49 @@ namespace Game.Dev
         /// 자율 진형(2026-10-03): 위협이 없으면 기함 둘레를 스스로 돈다(자리가 바뀐다) · 기함에서 AutoLeash 안 · 화면 안 · 기함과 겹치지 않음,
         /// 적 고속정이 나타나면 수상 교전 쪽으로 나간다.
         /// </summary>
-        private IEnumerator AutonomousFormationCheck(Game.TaskForce.TaskForceEscortFormation formation, Game.Ship.ShipController ship)
+        /// <summary>
+        /// 넓은 기함으로 단종진 → 자율(기본 회귀에서 이 검사를 돌 때의 기함 모양): 좌우 3칸까지 1칸 블록을 이어 붙여 반폭을 7m 가까이로 넓히고,
+        /// 단종진 9초 뒤 자율로 바꿔 같은 자율 검사를 돈 다음 블록을 뗀다.
+        /// </summary>
+        private IEnumerator WideFlagshipAutonomousCheck(Game.TaskForce.TaskForceEscortFormation formation, Game.Ship.ShipController ship)
+        {
+            var factory = Object.FindFirstObjectByType<ModuleFactory>();
+            if (factory == null || ship.Grid == null) { _report.AppendLine("- 넓은 기함 자율: 블록 공장이 없어 건너뜀"); yield break; }
+            var defs = new List<ModuleDefinition>();
+            foreach (var id in new[] { "mod_autocannon", "mod_decoy", "mod_ciws", "mod_sonar", "mod_ew" })
+                if (CombatDevTools.FindModule(id) is { } d) defs.Add(d);
+            var added = new List<ModuleInstance>();
+            ship.Grid.GetExtent(out var min, out var max);
+            foreach (int side in new[] { 1, -1 })
+                for (int zz = 1; zz <= 3; zz++)
+                {
+                    ModuleInstance placed = null;
+                    for (int x = min.X; x <= max.X && placed == null; x++)
+                        foreach (var def in defs)
+                        {
+                            var c = new GridCoord(x, side * zz);
+                            if (!ship.Grid.CanPlace(def, c, 0, out _)) continue;
+                            placed = factory.Install(def, c, 0);
+                            if (placed != null) break;
+                        }
+                    if (placed != null) added.Add(placed);
+                }
+            ship.Systems?.Recalculate();
+            foreach (var e in Object.FindObjectsByType<Game.TaskForce.EscortDefense>(FindObjectsSortMode.None)) e.enabled = false;
+            foreach (var m in added) if (m.Runtime != null) m.Runtime.enabled = false;   // 마지막 자율 교전의 적 고속정을 기함이 쏘지 않게
+            yield return new WaitForSecondsRealtime(1.5f);   // 기함 크기는 1초마다 다시 잰다
+            var ext = formation.FlagshipExtent;
+            _report.AppendLine($"- 넓은 기함 자율: 좌우로 블록 {added.Count}개를 붙여 반폭 {ext.z:0.#}m(선수 {ext.x:0.#} · 선미 {ext.y:0.#}) → 단종진 9초 → 자율");
+            if (ext.z < 5f) Fail("넓은 기함 자율: 기함을 넓히지 못함");
+            formation.SetFormation(Game.TaskForce.FleetFormation.Column);
+            yield return new WaitForSeconds(9f);
+            formation.SetFormation(Game.TaskForce.FleetFormation.Autonomous);
+            yield return AutonomousFormationCheck(formation, ship, "넓은 기함 ");
+            foreach (var m in added) CombatDevTools.RemoveModule(m);
+            yield return new WaitForSecondsRealtime(1.5f);
+        }
+
+        private IEnumerator AutonomousFormationCheck(Game.TaskForce.TaskForceEscortFormation formation, Game.Ship.ShipController ship, string label = "")
         {
             var ext = formation.FlagshipExtent;
             var cam = Camera.main;
@@ -817,9 +862,72 @@ namespace Game.Dev
             for (int i = 0; i < n; i++) start[i] = ship.transform.InverseTransformPoint(formation.GetEscort(i).transform.position);
             float maxDist = 0f, clearance = float.MaxValue, moved = 0f;
             int offScreen = 0;
+            T Prop<T>(Component c, string name) => c != null && c.GetType().GetProperty(name) is { } pi ? (T)pi.GetValue(c) : default;
+            // 선체(선수~선미 중심선 + 반폭)에서 기함 기준 로컬 점까지의 간격
+            float HullGap(Vector3 lp) => new Vector2(lp.x, lp.z - Mathf.Clamp(lp.z, ext.y, ext.x)).magnitude - ext.z;
+            // 계측(2026-11-02): 0.5초 표본 사이도 매 프레임 재고, 호위함마다 가장 가까웠던 때의 상태를 남긴다
+            float t0 = Time.time;
+            var worstGap = new float[n];
+            var worstHull = new float[n];
+            var worstNote = new string[n];
+            for (int i = 0; i < n; i++) { worstGap[i] = worstHull[i] = float.MaxValue; worstNote[i] = ""; }
+            var trace = new StringBuilder();
+            float nextTrace = 0f;
+            string Snapshot(int i, float t)
+            {
+                var esc = formation.GetEscort(i);
+                var lp = ship.transform.InverseTransformPoint(esc.transform.position);
+                var goal = formation.AutonomousGoalOffset(i, out var cur);
+                var gl = ship.transform.InverseTransformDirection(goal);
+                var cl = ship.transform.InverseTransformDirection(cur);
+                return $"t{t:0.00} 위치({lp.x:0.0},{lp.z:0.0}) 간격 {HullGap(lp):0.0} · 자리({cl.x:0},{cl.z:0}) 간격 {HullGap(cl):0.0} · 판단 목표({gl.x:0},{gl.z:0}) 간격 {HullGap(gl):0.0} · " +
+                       $"속력 {Prop<float>(esc, "Speed"):0.0} 침로차 {Mathf.DeltaAngle(ship.transform.eulerAngles.y, Prop<float>(esc, "Heading")):0}° · " +
+                       $"우회 {Yes(Prop<bool>(esc, "Detouring"))} 급함 {Prop<float>(esc, "Urgency"):0.00} · {formation.AutonomousTask(i)}";
+            }
+            // 호위함 자체 폭까지 넣은 선체끼리 간격: 호위함 상자 둘레 8점 중 기함 선체에 가장 가까운 점
+            float EscortHullGap(Component esc)
+            {
+                var box = esc.GetComponent<BoxCollider>();
+                if (box == null) return HullGap(ship.transform.InverseTransformPoint(esc.transform.position));
+                float best = float.MaxValue;
+                for (int a = -1; a <= 1; a++)
+                    for (int b = -1; b <= 1; b++)
+                    {
+                        if (a == 0 && b == 0) continue;
+                        var w = esc.transform.TransformPoint(box.center + new Vector3(a * box.size.x * 0.5f, 0f, b * box.size.z * 0.5f));
+                        best = Mathf.Min(best, HullGap(ship.transform.InverseTransformPoint(w)));
+                    }
+                return best;
+            }
             for (int k = 0; k < 16; k++)
             {
-                yield return new WaitForSeconds(0.5f);
+                float until = t0 + (k + 1) * 0.5f;
+                while (Time.time < until)
+                {
+                    yield return null;
+                    float t = Time.time - t0;
+                    if (t >= 1f)   // 아래 표본 측정과 같이 첫 1초는 뺀다
+                        for (int i = 0; i < n; i++)
+                        {
+                            var esc = formation.GetEscort(i);
+                            float g = HullGap(ship.transform.InverseTransformPoint(esc.transform.position));
+                            worstHull[i] = Mathf.Min(worstHull[i], EscortHullGap(esc));
+                            if (g < worstGap[i]) { worstGap[i] = g; worstNote[i] = Snapshot(i, t); }
+                        }
+                    if (t >= nextTrace)
+                    {
+                        nextTrace = t + 0.5f;
+                        trace.Append($"  - t{t:0.0}: ");
+                        for (int i = 0; i < n; i++)
+                        {
+                            var lp = ship.transform.InverseTransformPoint(formation.GetEscort(i).transform.position);
+                            formation.AutonomousGoalOffset(i, out var cur);
+                            var cl = ship.transform.InverseTransformDirection(cur);
+                            trace.Append($"{formation.GetInfo(i).RosterSlot + 1}번 ({lp.x:0},{lp.z:0}) 간격 {HullGap(lp):0.0}→자리({cl.x:0},{cl.z:0}) {HullGap(cl):0.0}{(Prop<bool>(formation.GetEscort(i), "Detouring") ? " 우회" : "")} | ");
+                        }
+                        trace.AppendLine();
+                    }
+                }
                 for (int i = 0; i < n; i++)
                 {
                     var esc = formation.GetEscort(i);
@@ -839,13 +947,19 @@ namespace Game.Dev
             }
             var tasks = new StringBuilder();
             for (int i = 0; i < n; i++) tasks.Append($"{formation.GetInfo(i).RosterSlot + 1}번 {formation.AutonomousTask(i)} ");
-            _report.AppendLine($"- 자율(위협 없음 8초): 할 일 {tasks}· 기함 중심에서 최대 {maxDist:0.0}m(한도 {Game.TaskForce.TaskForceEscortFormation.AutoLeash:0}) · " +
+            _report.AppendLine($"- {label}자율(위협 없음 8초): 할 일 {tasks}· 기함 중심에서 최대 {maxDist:0.0}m(한도 {Game.TaskForce.TaskForceEscortFormation.AutoLeash:0}) · " +
                                $"기함 현측과 최소 간격 {clearance:0.0}m · 화면 밖 {offScreen}회 · 스스로 자리 옮김 최대 {moved:0.0}m");
-            if (maxDist > Game.TaskForce.TaskForceEscortFormation.AutoLeash + 8f) Fail("자율: 호위함이 기함에서 너무 멀리 감");
-            if (clearance < 2f) Fail("자율: 호위함이 기함과 겹침");
-            if (offScreen > 0) Fail("자율: 호위함이 화면 밖으로 나감");
-            if (moved < 3f) Fail("자율: 위협이 없을 때 호위함이 스스로 움직이지 않음(초계)");
-            yield return Shot("formation_autonomous");
+            float frameGap = float.MaxValue, hullGap = float.MaxValue;
+            for (int i = 0; i < n; i++) { frameGap = Mathf.Min(frameGap, worstGap[i]); hullGap = Mathf.Min(hullGap, worstHull[i]); }
+            _report.AppendLine($"  - 매 프레임 계측: 중심 기준 최소 간격 {frameGap:0.0}m · 호위함 선체 둘레까지 넣은 최소 간격 {hullGap:0.0}m · 섬 {Game.World.Islands.All.Count}개 · 기함 반폭 {ext.z:0.#}m");
+            for (int i = 0; i < n; i++)
+                _report.AppendLine($"  - {formation.GetInfo(i).RosterSlot + 1}번 가장 가까울 때(선체끼리 {worstHull[i]:0.0}m): {worstNote[i]}");
+            if (frameGap < 4f) _report.Append(trace);   // 아슬하면 0.5초마다 궤적(기함 기준 위치 → 자율 자리)
+            if (maxDist > Game.TaskForce.TaskForceEscortFormation.AutoLeash + 8f) Fail($"{label}자율: 호위함이 기함에서 너무 멀리 감");
+            if (Mathf.Min(clearance, frameGap) < 2f) Fail($"{label}자율: 호위함이 기함과 겹침");   // 2026-11-02부터 0.5초 표본 사이도(매 프레임)
+            if (offScreen > 0) Fail($"{label}자율: 호위함이 화면 밖으로 나감");
+            if (moved < 3f) Fail($"{label}자율: 위협이 없을 때 호위함이 스스로 움직이지 않음(초계)");
+            yield return Shot(label.Length > 0 ? "formation_autonomous_wide" : "formation_autonomous");
 
             // 적 고속정이 우현 앞에 나타나면 수상 교전으로 나간다
             var spawner = EnemySpawner.Instance;
@@ -865,8 +979,8 @@ namespace Game.Dev
                 if (formation.AutonomousTask(i) == "수상 교전") engaging++;
                 if (foe != null) after = Mathf.Min(after, Vector3.Distance(formation.GetEscort(i).transform.position, foe.transform.position));
             }
-            _report.AppendLine($"- 자율 교전: 적 고속정 출현 → 수상 교전 {engaging}척 · 가장 가까운 호위함 거리 {before:0}m → {after:0}m");
-            if (engaging == 0) Fail("자율: 적 수상함이 나타나도 교전하러 나가지 않음");
+            _report.AppendLine($"- {label}자율 교전: 적 고속정 출현 → 수상 교전 {engaging}척 · 가장 가까운 호위함 거리 {before:0}m → {after:0}m");
+            if (engaging == 0) Fail($"{label}자율: 적 수상함이 나타나도 교전하러 나가지 않음");
             foreach (var d in holdFire) if (d != null) d.enabled = true;
             if (foe != null) foe.RemoveWithoutReward();
             yield return null;

@@ -428,6 +428,14 @@ namespace Game.TaskForce
             return _formation == FleetFormation.Autonomous && v != null ? _autoTask[v.RosterSlot] ?? "" : "";
         }
 
+        /// <summary>검증용: 자율 진형에서 index번 호위함의 판단 목표 · 지금 옮겨 가는 자리(기함 기준 월드 축 오프셋).</summary>
+        public Vector3 AutonomousGoalOffset(int index, out Vector3 current)
+        {
+            var v = Vessel(index);
+            current = v != null ? _autoOffset[v.RosterSlot] : Vector3.zero;
+            return v != null ? _autoGoal[v.RosterSlot] : Vector3.zero;
+        }
+
         private void ResetAutonomous()
         {
             for (int s = 0; s < MaxEscorts; s++) { _autoReady[s] = false; _autoTask[s] = null; }
@@ -754,6 +762,9 @@ namespace Game.TaskForce
             public float Heading => _heading;
             public float Speed => _speed;
             public float YawRate => _yawRate;
+            /// <summary>검증용: 지난 프레임에 기함 우회 경유점으로 갔는가 · 회피 급함(0~1).</summary>
+            public bool Detouring { get; private set; }
+            public float Urgency { get; private set; }
 
             public static EscortVessel Create(TaskForceEscortFormation owner, Transform flagship, int number)
             {
@@ -1052,15 +1063,23 @@ namespace Game.TaskForce
 
                 float maxSpeed = _disabled ? WithdrawSpeed : MaxSpeed;
                 // 진형 자리가 섬에 걸리면 가까운 바다 쪽 자리로(2026-10-31)
-                Vector3 aim = OpenWater(target);
-                // 곧장 가는 길이 기함 선체를 가로지르면 지금 있는 현 쪽 옆구리를 돌아 간다(2026-10-31)
-                bool detour = !_disabled && RouteAroundFlagship(pos, aim, out aim);
+                Vector3 slotAim = OpenWater(target);
+                // 곧장 가는 길이 기함 선체에 붙으면 선체 둘레를 따라 돌아 간다(2026-10-31 · 11-02)
+                Vector3 aim = slotAim;
+                bool detour = !_disabled && RouteAroundFlagship(pos, slotAim, out aim);
                 Vector3 toAim = aim - pos; toAim.y = 0f;
                 // 슬롯 가까이(2m 안)는 오차를 부드럽게 줄여 제자리에서 흔들리지 않게
                 Vector3 correction = detour ? toAim.normalized * Mathf.Min(maxSpeed, 9f) : toAim * ArriveGain * Mathf.Clamp01(toAim.magnitude / 2f);
-                Vector3 avoid = Avoidance(pos, out float urgency);
+                Vector3 avoid = Avoidance(pos, slotAim, out float urgency);
+                Detouring = detour;
+                Urgency = urgency;
+                // 우회 중이거나 기함 옆(현측 AutoHullMargin 안)이면 자리의 속도에서 기함 쪽으로 다가가는 성분을 뺀다(2026-11-02): 기함 둘레를
+                // 앞서 도는 자리(자율 초계)의 속도는 선체 쪽을 향해, 15m쯤 뒤처져 따라가는 배가 그대로 더하면 옆구리를 지나며 안쪽으로 휘었고
+                // 우회 중에도 경유점 쪽 보정(9m/s)보다 커서 넓은 기함 옆구리로 끌려 들어갔다(간격 1.9m).
+                bool nearHull = HullGap(_flagship.InverseTransformPoint(pos), _owner.FlagshipExtent) < AutoHullMargin;
+                Vector3 feed = detour || nearHull ? WithoutInward(_targetVel, pos) : _targetVel;
                 // 기함·섬에 바짝 붙었으면(급함) 자리로 끌어당기는 힘을 줄여 회피가 이기게 한다
-                Vector3 desired = _targetVel + correction * (1f - 0.7f * urgency) + avoid;
+                Vector3 desired = feed + correction * (1f - 0.7f * urgency) + avoid;
                 desired.y = 0f;
                 // 대열이 나아가는 중에 뒤 자리로 갈 때는 돌아서지 않고 속력만 줄여(최저 1m/s 전진) 대열이 지나가게 둔다 —
                 // 뒤로 돌아 크게 원을 그리며 처지는 일을 막는다. 대열이 멈춰 있으면 후진으로 물러난다(아래).
@@ -1116,40 +1135,89 @@ namespace Game.TaskForce
             private float _openWaterAt = -99f;
             private static Vector3 Flat2(Vector3 v) { v.y = 0f; return v; }
 
-            /// <summary>기함 우회 경유점을 현측에서 이만큼(m) 밖에 둔다.</summary>
+            /// <summary>기함 우회 경유점을 현측에서 적어도 이만큼(m) + 1.5m 밖에 둔다.</summary>
             private const float FlagshipClear = 5f;
             /// <summary>
-            /// 막힌 길 · 예측 회피에서 기함 선체로 보는 현측 여유(m). 종렬진 1번 자리처럼 원래 선미 9m 뒤에 붙는 자리가 있어
-            /// 우회 여유(FlagshipClear)보다 작게 둔다 — 크게 두면 그 자리로 가는 길을 늘 막힌 것으로 보고 옆에서 맴돌았다.
+            /// 막힌 길 · 예측 회피에서 기함 선체로 보는 현측 여유의 하한(m). 넓은 기함(반폭 7m)의 종렬진 1번 자리는 선체(양 끝을 반폭으로 둥글린 캡슐)에서
+            /// 2m밖에 안 떨어져 있어, 여유를 그 자리보다 크게 두면 그 자리로 가는 길을 늘 막힌 것으로 보고 옆에서 맴돌았다 —
+            /// 그래서 여유는 언제나 목표 자리 간격 − 0.5m를 넘지 않게 하고(<see cref="BlockGap"/>), 이 값은 그때의 바닥이다.
             /// </summary>
             private const float HullBody = 1.5f;
+            /// <summary>
+            /// 막힌 길로 보는 현측 간격 = 호위함 반폭 + 이 값(2026-11-02). 예전에는 HullBody(1.5m, 호위함 중심 기준)뿐이라 뒤에서 앞 자리로
+            /// 쫓아가는 길이 넓은 기함의 옆구리를 2~4m로 스쳤고(호위함 반폭 0.9~1.6m를 빼면 거의 맞닿음), 실제 궤적은 그보다 더 안쪽으로 휘었다.
+            /// </summary>
+            private const float PathMargin = 3.5f;
+            /// <summary>예측 회피에서 피할 현측 간격 = 호위함 반폭 + 이 값.</summary>
+            private const float PredictMargin = 2f;
+            /// <summary>우회 경유점을 지금 방위에서 목표 방위 쪽으로 최대 이만큼(°) 앞에 둔다.</summary>
+            private const float DetourStep = 40f;
             /// <summary>예측 회피가 내다보는 시간(초).</summary>
             private const float AvoidHorizon = 2f;
 
+            /// <summary>호위함 자체 반폭(m) — 선체 상자 폭의 절반(개량할수록 커진다, T0 0.9 → T3 1.6).</summary>
+            private float HalfBeam => _hullCollider != null ? _hullCollider.size.x * 0.5f : 0.9f;
+
+            /// <summary>기함 기준 로컬 점에서 기함 선체(선수~선미 중심선 + 반폭, 양 끝은 반폭으로 둥글림)까지의 간격(m). 안이면 음수.</summary>
+            private static float HullGap(Vector3 local, Vector3 ext) =>
+                new Vector2(local.x, local.z - Mathf.Clamp(local.z, ext.y, ext.x)).magnitude - ext.z;
+
+            /// <summary>막힌 길 · 예측 회피에서 피할 현측 간격: 호위함 반폭 + margin, 단 목표 자리 간격 − 0.5m를 넘지 않고 HullBody 아래로는 내리지 않는다.</summary>
+            private float BlockGap(float margin, float targetGap) => Mathf.Max(HullBody, Mathf.Min(HalfBeam + margin, targetGap - 0.5f));
+
+            private float _detourTurn;   // 우회 중 도는 방향(+1 = 선수에서 우현 쪽으로 시계 방향), 0 = 우회 안 함
+
+            /// <summary>속도에서 기함에 대해 선체 쪽(가장 가까운 선체 중심선 점 쪽)으로 다가가는 성분을 뺀다.</summary>
+            private Vector3 WithoutInward(Vector3 velocity, Vector3 pos)
+            {
+                var ext = _owner.FlagshipExtent;
+                Vector3 local = _flagship.InverseTransformPoint(pos);
+                Vector3 n = _flagship.TransformDirection(new Vector3(local.x, 0f, local.z - Mathf.Clamp(local.z, ext.y, ext.x)));
+                n.y = 0f;
+                if (n.sqrMagnitude < 1e-4f) return velocity;
+                n.Normalize();
+                float inward = Vector3.Dot(velocity - _flagVel, n);
+                return inward < 0f ? velocity - n * inward : velocity;
+            }
+
             /// <summary>
-            /// 기함 우회(Unity Movement AI의 장애물 회피 · 오프셋 추종 방식, 2026-10-31): 지금 자리에서 목표로 곧장 가는 길이
-            /// 기함 선체(선수~선미 중심선 + 현측 + FlagshipClear)를 가로지르면, 지금 있는 현 쪽 옆구리 → 목표 쪽 끝을 지나는 경유점을 향한다.
+            /// 기함 우회(Unity Movement AI의 장애물 회피 · 오프셋 추종 방식, 2026-10-31 · 2026-11-02 다시 씀): 지금 자리에서 목표로 곧장 가는 길이
+            /// 기함 선체에서 <see cref="BlockGap"/> 안으로 들어가면 막힌 길. 그때는 선체 한가운데에서 본 지금 방위를 목표 방위 쪽으로 최대 DetourStep°
+            /// 돌린 방향에서 현측 + FlagshipClear + 1.5m(지금 · 목표 간격이 더 크면 그 중 작은 쪽) 둘레의 점을 경유점으로 삼는다 — 선체 둘레를 따라 돌다가
+            /// 길이 트이면 곧장 간다. 예전(옆구리 → 끝 두 단계)은 넓은 기함 옆구리를 스치는 길을 못 막았고, 선수를 넘어 반대 현으로 가는 길이면
+            /// 선수 쪽 끝 · 선미 쪽 끝 경유점을 오갈 수 있었다. 정반대 쪽(150° 넘게)으로 갈 때는 도는 방향을 정해 두고 바꾸지 않는다
+            /// (처음엔 지금 있는 현을 따라 목표 쪽 끝으로).
             /// </summary>
             private bool RouteAroundFlagship(Vector3 pos, Vector3 target, out Vector3 waypoint)
             {
                 waypoint = target;
                 var ext = _owner.FlagshipExtent;   // x = 선수, y = 선미, z = 반폭
-                float r = ext.z + FlagshipClear, body = ext.z + HullBody;
                 Vector3 a = _flagship.InverseTransformPoint(pos), b = _flagship.InverseTransformPoint(target);
-                // 곧장 가는 길이 선체(반폭 + HullBody)를 실제로 관통할 때만 막힌 길
+                a.y = b.y = 0f;
+                float gapA = HullGap(a, ext), gapB = HullGap(b, ext);
+                float block = BlockGap(PathMargin, gapB);
                 bool blocked = false;
-                for (int i = 1; i < 10 && !blocked; i++)
+                for (int i = 1; i < 10 && !blocked; i++) blocked = HullGap(Vector3.Lerp(a, b, i / 10f), ext) < block;
+                if (!blocked) { _detourTurn = 0f; return false; }
+
+                float mid = (ext.x + ext.y) * 0.5f;
+                float angA = Mathf.Atan2(a.x, a.z - mid) * Mathf.Rad2Deg, angB = Mathf.Atan2(b.x, b.z - mid) * Mathf.Rad2Deg;
+                float delta = Mathf.DeltaAngle(angA, angB);
+                if (_detourTurn == 0f || Mathf.Abs(delta) < 150f)
+                    _detourTurn = Mathf.Abs(delta) < 150f ? Mathf.Sign(delta)
+                        : (b.z < a.z ? 1f : -1f) * (a.x >= 0f ? 1f : -1f);   // 우현이면 선미 쪽 = 시계 방향
+                float left = Mathf.Sign(delta) == _detourTurn ? Mathf.Abs(delta) : 360f - Mathf.Abs(delta);
+                float ang = (angA + _detourTurn * Mathf.Min(left, DetourStep)) * Mathf.Deg2Rad;
+                var dir = new Vector3(Mathf.Sin(ang), 0f, Mathf.Cos(ang));
+                float ring = Mathf.Max(FlagshipClear + 1.5f, Mathf.Min(gapA, gapB));
+                // 선체 한가운데(선체 중심선 위)에서 나가는 반직선을 따라 간격은 늘기만 한다 — 그 둘레 간격이 되는 거리를 이분 탐색
+                float lo = 0f, hi = ring + ext.z + Mathf.Max(ext.x - mid, mid - ext.y) + 1f;
+                for (int i = 0; i < 12; i++)
                 {
-                    var q = Vector3.Lerp(a, b, i / 10f);
-                    float z = Mathf.Clamp(q.z, ext.y, ext.x);
-                    blocked = new Vector2(q.x, q.z - z).sqrMagnitude < body * body;
+                    float s = (lo + hi) * 0.5f;
+                    if (HullGap(new Vector3(0f, 0f, mid) + dir * s, ext) < ring) lo = s; else hi = s;
                 }
-                if (!blocked) return false;
-                float side = Mathf.Abs(a.x) > 0.5f ? Mathf.Sign(a.x) : Mathf.Abs(b.x) > 0.5f ? Mathf.Sign(b.x) : (_number % 2 == 0 ? 1f : -1f);
-                // 옆구리에 아직 못 왔으면 옆구리로, 옆구리에 붙었으면 목표 쪽 끝(선수 또는 선미 너머)으로
-                float zEnd = b.z > a.z ? ext.x + r * 0.7f : ext.y - r * 0.7f;
-                float zWp = Mathf.Abs(a.x) < r ? Mathf.Clamp(a.z, ext.y, ext.x) : zEnd;
-                waypoint = _flagship.TransformPoint(new Vector3(side * (r + 1.5f), 0f, zWp));
+                waypoint = _flagship.TransformPoint(new Vector3(0f, 0f, mid) + dir * hi);
                 waypoint.y = pos.y;
                 return true;
             }
@@ -1209,7 +1277,7 @@ namespace Game.TaskForce
             ///   - 섬: 앞 · 좌우 30° 세 갈래 탐지선(벽 회피) — 부딪힐 점에서 법선 쪽으로 6m 떨어진 곳을 향한다.
             /// (2026-10-31 Unity Movement AI의 CollisionAvoidance · WallAvoidance 방식을 이 배 조함에 맞춰 다시 씀)
             /// </summary>
-            private Vector3 Avoidance(Vector3 pos, out float urgency)
+            private Vector3 Avoidance(Vector3 pos, Vector3 slotAim, out float urgency)
             {
                 urgency = 0f;
                 Vector3 push = Vector3.zero;
@@ -1250,14 +1318,23 @@ namespace Game.TaskForce
                 Vector3 nearest = _flagship.TransformPoint(new Vector3(0f, local.y, Mathf.Clamp(local.z, ext.y, ext.x)));
                 Vector3 away = pos - nearest; away.y = 0f;
                 float clear = ext.z + 4f, md = away.magnitude;
+                // 기함 옆(우회 둘레 + 호위함 반폭 안)에서는 호위함끼리 비키는 힘이 기함 쪽으로 밀지 않게 한다(2026-11-02): 바깥 옆의 호위함을
+                // 추월하며 비킬 때 기함 쪽으로 밀려, 우회 중에도 넓은 기함 옆구리를 간격 3m 안으로 스쳤다.
+                if (md > 0.01f && md - ext.z < FlagshipClear + 1.5f + HalfBeam)
+                {
+                    float inward = Vector3.Dot(push, away / md);
+                    if (inward < 0f) push -= away / md * inward;
+                }
                 if (md < clear && md > 0.01f)
                 {
                     push += away / md * (clear - md) * 2.5f;
                     urgency = Mathf.Max(urgency, 1f - md / clear);
                 }
-                // 기함 예측 회피: 기함 속도까지 넣어 AvoidHorizon초 안에 현측 + FlagshipClear 안으로 들어가면 미리 옆으로
+                // 기함 예측 회피: 기함 속도까지 넣어 AvoidHorizon초 안에 현측 + (호위함 반폭 + PredictMargin — 목표 자리가 더 붙어 있으면 그 간격 − 0.5m)
+                // 안으로 들어가면 미리 옆으로(2026-11-02: 예전에는 호위함 반폭을 빼고 현측 + 2.5m)
                 if (!_disabled)
                 {
+                    float predictGap = BlockGap(PredictMargin, HullGap(_flagship.InverseTransformPoint(slotAim), ext));
                     Vector3 rv = myVel - _flagVel; rv.y = 0f;
                     float rv2 = rv.sqrMagnitude;
                     if (rv2 > 0.25f)
@@ -1269,7 +1346,7 @@ namespace Game.TaskForce
                             Vector3 futureLocal = _flagship.InverseTransformDirection(rp + rv * t);
                             float fz = Mathf.Clamp(futureLocal.z, ext.y, ext.x);
                             Vector3 fAway = _flagship.TransformDirection(new Vector3(futureLocal.x, 0f, futureLocal.z - fz)); fAway.y = 0f;
-                            float fd = fAway.magnitude, fClear = ext.z + HullBody + 1f;
+                            float fd = fAway.magnitude, fClear = ext.z + predictGap;
                             if (fd < fClear)
                             {
                                 Vector3 outward = fd > 0.01f ? fAway / fd : Vector3.Cross(Vector3.up, rv).normalized;
