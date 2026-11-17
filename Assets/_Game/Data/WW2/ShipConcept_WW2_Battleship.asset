@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c095edf580e07e41bff79fd7e0dee96, type: 3}
+  m_Name: ShipConcept_WW2_Battleship
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.StartingShipConcept
+  id: ww2_hull_battleship
+  title: "\uC804\uD568 (WWII \uC2DC\uD5D8)"
+  description: "WWII \uAE30\uC220\uC758 \uC804\uD568. \uB300\uAD6C\uACBD \uC8FC\uD3EC
+    3\uAE30\uB85C \uD070 \uBC30\uB97C \uBA40\uB9AC\uC11C \uBD80\uC21C\uB2E4. \uAC00\uC7A5
+    \uB290\uB9AC\uACE0 \uBB34\uAC81\uAC8C \uB3CC\uC9C0\uB9CC \uC120\uCCB4\xB7\uC7A5\uAC11\uC774
+    \uAC00\uC7A5 \uB450\uAECD\uB2E4. \uD56D\uACF5\uAE30\xB7\uC5B4\uB8B0\uB294 \uD53C\uD558\uAE30
+    \uC5B4\uB835\uB2E4 \u2014 \uB300\uACF5\uD3EC\uC640 \uC591\uC6A9\uD3EC\uB85C \uB9C9\uB294\uB2E4."
+  kind: 6
+  color: {r: 0.86, g: 0.74, b: 0.62, a: 1}
+  startLoadout: {fileID: 11400000, guid: d5ab0ceadbd87e344af23856deac60b3, type: 2}
+  expandedLoadout: {fileID: 11400000, guid: d5ab0ceadbd87e344af23856deac60b3, type: 2}
+  bridgeDefinition: {fileID: 11400000, guid: 3f19cdf1ee1fe3e488750ef6c1482f22, type: 2}
+  startPreviewPrefab: {fileID: 0}
+  expandedPreviewPrefab: {fileID: 0}
+  startSummary: "\uB300\uAD6C\uACBD \uC8FC\uD3EC 3 \xB7 \uC591\uC6A9\uD3EC 2 \xB7
+    4\uC5F0\uC7A5 \uB300\uACF5\uD3EC 4 \xB7 \uD638\uC704\uD568 \uC5C6\uC74C"
+  initialEscortCount: 0
+  hullProfile: {fileID: 11400000, guid: 51ca77667c0a4124cbfd13151c486cbf, type: 2}
+  hpMultiplier: 1
+  armorMultiplier: 1
+  speedMultiplier: 1
+  turnMultiplier: 1
+  projectileDamageMultiplier: 1
+  projectileRangeMultiplier: 1
+  projectileFireRateMultiplier: 1
+  missileDamageMultiplier: 1
+  missileRangeMultiplier: 1
+  missileReloadMultiplier: 1
+  helicopterDamageMultiplier: 1
+  helicopterCooldownMultiplier: 1
+  escortStart: 0
+  escortMax: 0
+  allowedWeapons: 
+  futureBlocks: []
+  mechanicsImplemented: 0

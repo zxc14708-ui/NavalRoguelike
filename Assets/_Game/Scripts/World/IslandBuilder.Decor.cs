@@ -28,8 +28,10 @@ namespace Game.World
             s_glow = Resources.Load<Material>("Effects/MAT_FxSoft");
         }
 
-        private static (bool lighthouse, bool wreck, int seals) Decorate(Transform root, float radius, float height, bool rocky, System.Random rng)
+        private static (bool lighthouse, bool wreck, int seals) Decorate(Transform root, float radius, float height, bool rocky, System.Random rng,
+                                                                         System.Func<float, float> shape = null)
         {
+            shape ??= _ => 1f;
             LoadDecorMaterials();
             Physics.SyncTransforms();   // 방금 만든 섬 콜라이더에 땅 높이를 물어본다
 
@@ -40,9 +42,9 @@ namespace Game.World
             if (force || rng.NextDouble() < (rocky ? (radius >= 7f ? 0.25 : 0.0) : 0.4))
                 lighthouse = AddLighthouse(root, radius, height, rocky, rng);
             if (!rocky && (force || rng.NextDouble() < 0.3))
-                wreck = AddBeachedWreck(root, radius, rng);
+                wreck = AddBeachedWreck(root, radius, rng, shape);
             if (force || rng.NextDouble() < (rocky ? 0.55 : 0.25))
-                seals = AddSeals(root, radius, rocky, rocky ? rng.Next(2, 5) : rng.Next(1, 4), rng);
+                seals = AddSeals(root, radius, rocky, rocky ? rng.Next(2, 5) : rng.Next(1, 4), rng, shape);
 
             return (lighthouse, wreck, seals);
         }
@@ -100,7 +102,7 @@ namespace Game.World
 
         // ------------------------------------------------------------ 해안 난파선
 
-        private static bool AddBeachedWreck(Transform root, float radius, System.Random rng)
+        private static bool AddBeachedWreck(Transform root, float radius, System.Random rng, System.Func<float, float> shape)
         {
             float a = (float)rng.NextDouble() * Mathf.PI * 2f;
             var radial = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
@@ -111,7 +113,7 @@ namespace Game.World
             ship.SetParent(root, false);
             Vector3 fwd = Quaternion.Euler(0f, side * Range(30f, 50f, rng), 0f) * -radial;   // 선수가 섬 쪽으로
             ship.localRotation = Quaternion.LookRotation(fwd, Vector3.up) * Quaternion.Euler(-Range(4f, 8f, rng), 0f, side * Range(14f, 22f, rng));
-            ship.localPosition = radial * radius * 0.9f + Vector3.up * (SeaY + H * 0.35f);
+            ship.localPosition = radial * radius * shape(a) * 0.9f + Vector3.up * (SeaY + H * 0.35f);
 
             var hull = Prism(new[] { new Vector2(-0.5f, -0.5f), new Vector2(0.5f, -0.5f), new Vector2(0.5f, 0.22f), new Vector2(0f, 0.5f), new Vector2(-0.5f, 0.22f) },
                              new Vector3(B, H, L), keelScale: new Vector2(0.35f, 0.88f));
@@ -132,13 +134,13 @@ namespace Game.World
 
         // ------------------------------------------------------------ 물개
 
-        private static int AddSeals(Transform root, float radius, bool rocky, int count, System.Random rng)
+        private static int AddSeals(Transform root, float radius, bool rocky, int count, System.Random rng, System.Func<float, float> shape)
         {
             int placed = 0;
             for (int tries = 0; tries < count * 5 && placed < count; tries++)
             {
                 float a = (float)rng.NextDouble() * Mathf.PI * 2f;
-                float d = radius * (rocky ? Range(0.75f, 1.2f, rng) : Range(0.8f, 0.95f, rng));
+                float d = radius * (rocky ? Range(0.75f, 1.2f, rng) : Range(0.8f, 0.95f, rng)) * shape(a);
                 Vector3 local = new(Mathf.Cos(a) * d, 0f, Mathf.Sin(a) * d);
                 if (!Ground(root, local, out float y, out Vector3 n) || n.y < 0.6f) continue;
                 if (y < SeaY + 0.15f || y > 2.6f) continue;   // 물가 낮은 바위·모래 위만

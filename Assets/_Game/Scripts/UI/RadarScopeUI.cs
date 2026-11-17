@@ -298,6 +298,7 @@ namespace Game.UI
             for (int i = 0; i < islands.Count; i++)
             {
                 var isl = islands[i];
+                if (isl.Sandbar || isl.Rim == null) continue;   // 모래톱은 물속이라 레이더에 땅으로 찍지 않는다
                 var c = new Vector2(isl.Center.x - self.x, isl.Center.z - self.z);
                 if (c.magnitude - isl.Radius > _range) continue;
                 PaintLandPoint(c, from, delta, period);

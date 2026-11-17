@@ -31,6 +31,8 @@ namespace Game.Modules.Runtime
         protected virtual bool HasSmokeRounds => true;
 
         public bool CarriesSmoke => HasSmokeRounds;
+        /// <summary>연막 재사용 시간(초, 스킬 회복 카드 적용 전). 정비 카드 미리보기용.</summary>
+        public float SmokeCooldownSeconds => smokeCooldown;
         public bool SmokeReady => HasSmokeRounds && _smokeCooldown <= 0f && Instance != null && Instance.IsOperational;
         public float SmokeReadiness01 => smokeCooldown > 0f ? 1f - Mathf.Clamp01(_smokeCooldown / smokeCooldown) : 1f;
 
@@ -39,10 +41,13 @@ namespace Game.Modules.Runtime
             if (!SmokeReady) return;
             SmokeScreen.Instance?.Deploy(smokeDuration);
             _smokeCooldown = smokeCooldown;
-            AudioManager.Play(Game.Data.SfxId.MissileLaunch, transform.position, 0.35f, 0.8f);
+            AudioManager.Play(Game.Data.SfxId.ChaffLaunch, transform.position, 0.8f, 0.85f);
         }
 
-        public bool IsReady => _cooldown <= 0f && decoyPrefab != null && Instance != null && Instance.IsOperational;
+        /// <summary>기만체를 쏘는가. WWII 함교는 기만체가 없다(패치 A 9.1) — 기만체 스킬이 이 장비를 세지 않는다.</summary>
+        public virtual bool DecoyEnabled => true;
+
+        public bool IsReady => DecoyEnabled && _cooldown <= 0f && decoyPrefab != null && Instance != null && Instance.IsOperational;
 
         public float Readiness01 => Stats.ReloadTime > 0f
             ? 1f - Mathf.Clamp01(_cooldown / Stats.ReloadTime)
@@ -91,7 +96,7 @@ namespace Game.Modules.Runtime
             }
 
             _cooldown = Mathf.Max(0.5f, Stats.ReloadTime);
-            AudioManager.Play(Game.Data.SfxId.MissileLaunch, origin.position, 0.4f, 1.7f);
+            AudioManager.Play(Game.Data.SfxId.ChaffLaunch, origin.position);
         }
 
         private static Vector3 RandomFlat()

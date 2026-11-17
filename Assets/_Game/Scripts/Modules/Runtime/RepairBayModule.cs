@@ -6,42 +6,18 @@ using Game.Ship;
 namespace Game.Modules.Runtime
 {
     /// <summary>
-    /// 손상 통제반. 선체와 손상된 모듈을 서서히 수리한다.
+    /// 손상 통제반. 주변(3칸) 손상된 모듈을 서서히 수리하고, 방수·소화로 받는 피해를 줄인다.
     /// 파괴된(HP 0) 모듈은 복구하지 않는다 — 잃은 것은 잃은 것으로 둔다.
-    /// 즉시 회복이 아니라 지속 회복이라, 맞으면서 버티는 것보다 피하는 쪽이 여전히 유리하다.
     ///
-    /// 위기 때 한 번 크게 고치는 응급 수리 스킬[R]을 제공한다.
+    /// 2026-10-11 손상통제 개편: 선체 자동 회복과 응급 수리[R]는 함교가 맡는다(<see cref="BridgeModule"/>).
+    /// 이 블록은 하나마다 함교의 선체 자동 회복 상한(50% → 67 → 83 → 100%)·속도(+50%)와 응급 수리 횟수(+1회)를 늘린다.
+    /// 블록이 없어도 응급 수리 1회·상한 50%는 있다 — 블록 하나의 유무로 생존력이 극단적으로 갈리지 않게.
     /// </summary>
-    public class RepairBayModule : ModuleRuntime, IRepairBurstSource
+    public class RepairBayModule : ModuleRuntime
     {
         [SerializeField] private DamageControlCrew crew = new();
 
-        [Header("Emergency Repair [R]")]
-        [SerializeField] private float burstHull = 30f;
-        [Tooltip("모든 (파괴되지 않은) 모듈을 최대 내구의 이 비율만큼 수리")]
-        [SerializeField, Range(0f, 1f)] private float burstModuleRatio = 0.4f;
-        [SerializeField] private float burstCooldown = 35f;
-        [SerializeField] private GameObject burstEffect;
-
-        private float _burstCooldown;
         private bool _fortified;
-
-        public bool BurstReady => _burstCooldown <= 0f && Ship != null && Instance != null && Instance.IsOperational;
-        public float BurstReadiness01 => burstCooldown > 0f ? 1f - Mathf.Clamp01(_burstCooldown / burstCooldown) : 1f;
-
-        public void Burst()
-        {
-            if (!BurstReady) return;
-
-            Ship.RepairHull(burstHull);
-            if (Grid != null)
-                foreach (var m in Grid.Modules)
-                    if (m != null && !m.IsDestroyed) m.Repair(m.MaxHp * burstModuleRatio);
-
-            PooledEffect.Spawn(burstEffect, Ship.transform.position);
-            AudioManager.Play(Game.Data.SfxId.SonarPing, transform.position, 0.6f, 0.8f);
-            _burstCooldown = burstCooldown;
-        }
 
         /// <summary>손상 통제는 수리뿐 아니라 방수·소화로 피해 자체도 줄인다.</summary>
         public override void ContributeToShipSystems(ShipSystems systems)
@@ -52,9 +28,8 @@ namespace Game.Modules.Runtime
 
         protected override void Tick(float dt)
         {
-            if (_burstCooldown > 0f) _burstCooldown -= dt * RunUpgrades.SkillRate;   // 성장 카드: 스킬 회복 속도
-            crew.Tick(Ship, Grid, Instance, Stats.HullRepairPerSecond,
-                Stats.ModuleRepairPerSecond * (_fortified ? 1.15f : 1f), dt);
+            // 선체는 함교가 고친다(상한·속도는 손상통제반 수로) — 여기서는 주변 모듈만
+            crew.Tick(Ship, Grid, Instance, 0f, Stats.ModuleRepairPerSecond * (_fortified ? 1.15f : 1f), dt);
         }
     }
 }

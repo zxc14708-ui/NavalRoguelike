@@ -192,6 +192,7 @@ namespace Game.EditorTools
             NavalDataBuilder.BuildAll(prefabs);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
+            NavalPlayerAviationArt.ReapplyAfterSetup();   // 2026-10-12: 생성기가 헬기데크를 예전 단일 외형으로 되돌리지 않게
             Debug.Log("[Art Refresh] 새 해군 모델과 프리팹 참조 갱신 완료.");
         }
 
@@ -245,6 +246,8 @@ namespace Game.EditorTools
 
                 EditorUtility.DisplayProgressBar("Naval Setup", "씬 조립", 0.85f);
                 NavalSceneBuilder.Build(prefabs, data);
+                // 2026-10-12: 그레이박스 생성기는 헬기데크를 예전 단일 외형으로 만든다 — Codex 강화 외형(데크·헬기 T1~T3)·노봉 v22를 다시 넣는다
+                NavalPlayerAviationArt.ReapplyAfterSetup();
 
                 Debug.Log("[Setup] 완료. Prototype_Main 씬을 열고 재생하세요.");
             }

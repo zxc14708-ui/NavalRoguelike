@@ -54,6 +54,22 @@ namespace Game.UI
         }
 
         public Button ButtonAt(int index) => _tiles != null && index >= 0 && index < _tiles.Length ? _tiles[index].Button : null;
+        /// <summary>칸 그림을 바꾼다(함정 고유 스킬 — 고른 함정마다 다르다).</summary>
+        public void SetIcon(int index, Sprite sprite)
+        {
+            if (_tiles == null || index < 0 || index >= _tiles.Length || sprite == null) return;
+            var t = _tiles[index];
+            if (t.Base != null && t.Base.sprite != sprite) t.Base.sprite = sprite;
+            if (t.Fill != null && t.Fill.sprite != sprite) t.Fill.sprite = sprite;
+        }
+
+        /// <summary>칸을 보이거나 숨긴다(WWII 판: 기만체·재밍·고유 스킬 칸이 없다).</summary>
+        public void SetTileVisible(int index, bool visible)
+        {
+            if (_tiles != null && index >= 0 && index < _tiles.Length && _tiles[index].Button != null)
+                _tiles[index].Button.gameObject.SetActive(visible);
+        }
+
         public void SetKeyLabel(int index, string label)
         {
             if (_tiles != null && index >= 0 && index < _tiles.Length && _tiles[index].Key != null)

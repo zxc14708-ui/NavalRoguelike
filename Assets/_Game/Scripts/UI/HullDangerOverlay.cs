@@ -135,11 +135,12 @@ namespace Game.UI
                 // 심장 박동처럼: 짧게 치솟고 천천히 가라앉는다
                 float beat = Mathf.Pow(0.5f + 0.5f * Mathf.Cos(t * hz * Mathf.PI * 2f), 3f);
                 float baseA = Level == 2 ? 0.34f : 0.20f, pulseA = Level == 2 ? 0.30f : 0.24f;
+                if (DisplaySettings.ReduceFlashes) beat = 0.35f;   // 번쩍임 줄이기: 맥박 없이 고른 테두리
                 alpha = baseA + pulseA * beat;
             }
             if (_flash > 0f)
             {
-                alpha = Mathf.Max(alpha, 0.7f * Mathf.Min(1f, _flash));
+                alpha = Mathf.Max(alpha, 0.7f * DisplaySettings.FlashScale * Mathf.Min(1f, _flash));
                 // 한 프레임이 길어도(명중 순간 끊김) 번쩍임을 건너뛰지 않게 프레임당 감소를 제한한다
                 _flash = Mathf.Max(0f, _flash - Mathf.Min(Time.unscaledDeltaTime, 0.05f) / 0.5f);
             }

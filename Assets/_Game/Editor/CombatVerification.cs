@@ -76,7 +76,19 @@ namespace Game.EditorTools
                 target = BuildTarget.StandaloneWindows64,
                 options = BuildOptions.Development,
             };
-            var report = UnityEditor.BuildPipeline.BuildPlayer(options);
+            // 데이터 동기화 검사(O05): 오류가 있으면 빌드하지 않는다(-skipDataSync로 건너뜀)
+            if (DataSyncCheck.GateEnabled && Array.IndexOf(args, "-skipDataSync") < 0 && !DataSyncCheck.RunBeforeVerificationBuild())
+            {
+                Debug.LogError($"[CombatVerification] 빌드 결과: DataSyncFailed → {DataSyncCheck.ReportPath}");
+                if (Application.isBatchMode) EditorApplication.Exit(1);
+                return;
+            }
+            // 성능 측정(O04)이 CPU 메인 스레드·GPU 시간을 읽도록 검증 빌드에만 Frame Timing Stats를 켠다(끝나면 원래대로)
+            bool frameTiming = PlayerSettings.enableFrameTimingStats;
+            PlayerSettings.enableFrameTimingStats = true;
+            UnityEditor.Build.Reporting.BuildReport report;
+            try { report = UnityEditor.BuildPipeline.BuildPlayer(options); }
+            finally { PlayerSettings.enableFrameTimingStats = frameTiming; }
             Debug.Log($"[CombatVerification] 빌드 결과: {report.summary.result}, {report.summary.totalErrors} errors → {output}");
             if (Application.isBatchMode) EditorApplication.Exit(report.summary.result == UnityEditor.Build.Reporting.BuildResult.Succeeded ? 0 : 1);
         }

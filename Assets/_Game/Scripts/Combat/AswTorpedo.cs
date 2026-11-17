@@ -25,6 +25,9 @@ namespace Game.Combat
         private bool _fromTube;   // 발사관: 입수하는 동안에도 발사 방향으로 미끄러져 나간다
         private string _statsKey;
 
+        /// <summary>결과 분석·통계에서 쓰는 무장 이름. 같은 탄을 쓰는 호위함·항공대는 발사 뒤 따로 이름을 붙인다(RunReport).</summary>
+        public string StatsKey { get => _statsKey; set => _statsKey = value; }
+
         private void Awake()
         {
             if (transform.childCount != 0) return;
@@ -103,7 +106,7 @@ namespace Game.Combat
             _target.TakeDamage(new DamageInfo(_damage, transform.position, transform.forward, DamageSource.Torpedo, _statsKey));
             CombatStats.RecordHit(_statsKey, transform.position);
             PooledEffect.Spawn(impactEffect, new Vector3(transform.position.x, 0f, transform.position.z));
-            AudioManager.Play(Game.Data.SfxId.Explosion, transform.position, 0.8f, 0.65f);
+            AudioManager.Play(Game.Data.SfxId.UnderwaterBlast, transform.position, 0.9f);
             Despawn();
         }
 

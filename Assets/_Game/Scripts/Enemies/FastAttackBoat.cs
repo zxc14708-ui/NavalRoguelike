@@ -84,7 +84,7 @@ namespace Game.Enemies
             var muzzle = weapon.Muzzle != null ? weapon.Muzzle : transform;
             float damage = Definition.AttackDamage / burstCount;
 
-            AudioManager.Play(Game.Data.SfxId.AutocannonShot, muzzle.position, 0.35f, 1.25f);
+            AudioManager.Play(Game.Data.SfxId.EnemyAutocannonShot, muzzle.position, 0.35f, 1.25f);
 
             var go = projectilePrefab != null
                 ? PoolManager.Instance?.Spawn(projectilePrefab, muzzle.position, muzzle.rotation)

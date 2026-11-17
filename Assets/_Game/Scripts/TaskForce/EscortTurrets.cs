@@ -10,12 +10,13 @@ namespace Game.TaskForce
     ///     <see cref="Engage"/>로 표적을 주면 그쪽으로 돌고(초당 회전 한도), 잠시 쏠 일이 없으면 제자리로 돌아온다.
     ///   - 센서: 탐색 레이더·안테나는 계속 돌고, 전자전 배열은 좌우로 훑고, 사통 레이더는 함포 표적을 따라간다.
     /// 축 보정과 상관없이 동작하도록 회전은 모두 "함의 위 방향"을 기준으로 월드에서 계산해 로컬로 되돌린다.
-    /// 판정과는 무관한 연출이다(발사 판정은 EscortDefense가 즉시 처리).
+    /// 2026-10-11 호위함 실제 무장: 포탑마다 따로 표적을 겨눠(<see cref="EngageMount"/>) EscortDefense가 그 포구에서 실제 탄·미사일을 쏜다.
+    /// 새 가동부: 현측 기관총(SideMG_Pivot), 현측포(BroadsideGun_±1Pivot), CIWS(따로 — 미사일 요격), 대잠 로켓(ASWRocketPivot).
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class EscortTurrets : MonoBehaviour
     {
-        public enum MountKind { Gun, Sam, Strike, Decoy }
+        public enum MountKind { Gun, Sam, Strike, Decoy, Ciws, Asw }
 
         private sealed class Mount
         {
@@ -30,6 +31,7 @@ namespace Game.TaskForce
             public float HoldUntil;
             public int NextMuzzle;
             public bool Director;            // 사통 레이더: 함포 표적을 따라 돈다(쏘지 않음)
+            public bool Light;               // 기관총(가볍고 빠르게, 사거리 짧게)
         }
 
         private readonly List<Mount> _mounts = new();
@@ -73,9 +75,13 @@ namespace Game.TaskForce
                 {
                     case "PrimaryGunPivot": AddMount(MountKind.Gun, t, "PrimaryGunElevation", "PrimaryGunMuzzle", 150f, -5f, 65f, 160f); break;
                     case "AftGunPivot": AddMount(MountKind.Gun, t, "AftGunElevation", "AftGunMuzzle", 150f, -5f, 65f, 160f); break;
-                    case "CIWSPivot": AddMount(MountKind.Gun, t, "CIWSElevationPivot", "CIWSMuzzle", 170f, -5f, 80f, 260f); break;
-                    case "RWS_PPivot": AddMount(MountKind.Gun, t, null, "RWS_PMuzzle", 110f, -5f, 45f, 200f); break;
-                    case "RWS_SPivot": AddMount(MountKind.Gun, t, null, "RWS_SMuzzle", 110f, -5f, 45f, 200f); break;
+                    case "CIWSPivot": AddMount(MountKind.Ciws, t, "CIWSElevationPivot", "CIWSMuzzle", 170f, -5f, 80f, 260f); break;
+                    case "RWS_PPivot": Light(AddMount(MountKind.Gun, t, null, "RWS_PMuzzle", 110f, -5f, 45f, 200f)); break;
+                    case "RWS_SPivot": Light(AddMount(MountKind.Gun, t, null, "RWS_SMuzzle", 110f, -5f, 45f, 200f)); break;
+                    case "SideMG_Pivot": Light(AddMount(MountKind.Gun, t, null, "SideMG_Muzzle", 120f, -5f, 45f, 220f)); break;
+                    case "BroadsideGun_-1Pivot": AddMount(MountKind.Gun, t, "BroadsideGun_-1Elevation", "BroadsideGun_-1Muzzle", 110f, -5f, 65f, 150f); break;
+                    case "BroadsideGun_1Pivot": AddMount(MountKind.Gun, t, "BroadsideGun_1Elevation", "BroadsideGun_1Muzzle", 110f, -5f, 65f, 150f); break;
+                    case "ASWRocketPivot": AddMount(MountKind.Asw, t, null, "ASWLaunchPoint", 150f, 0f, 0f, 90f); break;
                     case "SAM_TrainPivot": AddMount(MountKind.Sam, t, "SAM_ElevationPivot", "SAMLaunchPoint", 170f, 20f, 70f, 120f); break;
                     case "RocketTrainPivot": AddMount(MountKind.Strike, t, "RocketElevationPivot", "RocketLaunchPoint", 160f, 10f, 40f, 110f); break;
                     case "MissileBankPortPivot": AddMount(MountKind.Strike, t, null, "LaunchPoint_MissileBankPort", 75f, 0f, 0f, 70f); break;
@@ -100,6 +106,8 @@ namespace Game.TaskForce
             // 레이더 안의 레이더(AirSearchRadarPivot)는 바깥 RadarPivot과 함께 돈다 — 겹쳐 돌리지 않는다
             _spin.RemoveAll(s => { for (var p = s.parent; p != null; p = p.parent) if (_spin.Contains(p)) return true; return false; });
         }
+
+        private static void Light(Mount m) { if (m != null) m.Light = true; }
 
         private Mount AddMount(MountKind kind, Transform yaw, string pitchName, string muzzlePrefix, float arc, float minElev, float maxElev, float speed)
         {
@@ -166,6 +174,58 @@ namespace Game.TaskForce
             }
             else muzzle = (best.Pitch != null ? best.Pitch : best.Yaw).position;
             return true;
+        }
+
+        // ------------------------------------------------------------ 포탑마다 따로(실제 무장)
+
+        /// <summary>그 종류 포탑 수(사통 레이더 제외).</summary>
+        public int Mounts(MountKind kind) => CountOf(kind);
+
+        private Mount MountAt(MountKind kind, int index)
+        {
+            int n = 0;
+            foreach (var m in _mounts)
+                if (m.Kind == kind && !m.Director) { if (n == index) return m; n++; }
+            return null;
+        }
+
+        /// <summary>그 포탑이 기관총인가(가볍고 빠르게, 사거리 짧게).</summary>
+        public bool IsLight(MountKind kind, int index) => MountAt(kind, index)?.Light ?? false;
+
+        /// <summary>그 포탑의 위치(선회 피벗). 없으면 false.</summary>
+        public bool MountPosition(MountKind kind, int index, out Vector3 position)
+        {
+            var m = MountAt(kind, index);
+            position = m != null && m.Yaw != null ? m.Yaw.position : default;
+            return m != null && m.Yaw != null;
+        }
+
+        /// <summary>
+        /// 그 포탑 하나를 표적으로 돌린다. 사격각 밖이면 false. aligned = 이미 향했는가(수평 오차 10° 안).
+        /// muzzle = 이번에 쏠 포구(여러 개면 돌아가며).
+        /// </summary>
+        public bool EngageMount(MountKind kind, int index, Vector3 target, out Vector3 muzzle, out bool aligned, float hold = 1.2f)
+        {
+            muzzle = default;
+            aligned = false;
+            var m = MountAt(kind, index);
+            if (m == null || m.Yaw == null) return false;
+            if (Mathf.Abs(YawOffsetFromRest(m, target)) > m.Arc) return false;
+            m.Target = target;
+            m.HoldUntil = Time.time + hold;
+            if (kind == MountKind.Gun) { _lastGunTarget = target; _lastGunTargetUntil = Time.time + hold; }
+            aligned = AimError(m, target) < 10f;
+            if (m.Muzzles.Length > 0) { muzzle = m.Muzzles[m.NextMuzzle % m.Muzzles.Length].position; m.NextMuzzle++; }
+            else muzzle = (m.Pitch != null ? m.Pitch : m.Yaw).position;
+            return true;
+        }
+
+        /// <summary>이름이 prefix로 시작하는 소켓 전부(발사점 여러 개 — 미사일 발사관·대잠 로켓·헬기).</summary>
+        public List<Transform> Sockets(string prefix)
+        {
+            var list = new List<Transform>();
+            foreach (var c in GetComponentsInChildren<Transform>(true)) if (Clean(c.name).StartsWith(prefix)) list.Add(c);
+            return list;
         }
 
         private readonly Dictionary<string, Transform> _sockets = new();

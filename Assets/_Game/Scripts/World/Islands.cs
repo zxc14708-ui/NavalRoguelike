@@ -11,6 +11,10 @@ namespace Game.World
         public float Height;
         public bool Rocky;            // 바위섬이면 true, 무인도면 false
         public Vector2[] Rim;         // 수면 윤곽 표본(월드 xz)
+        /// <summary>절차형 섬의 해안 반경(섬 로컬 방향 라디안 → m, IslandShape). 원이거나 Codex 모델 섬이면 null.</summary>
+        public System.Func<float, float> ShoreAt;
+        /// <summary>절차형 섬의 길쭉함(1 = 원).</summary>
+        public float Aspect = 1f;
         public GameObject Root;
         /// <summary>장식: 등대가 있는가, 해안에 얹힌 난파선이 있는가, 물개 수.</summary>
         public bool Lighthouse, Wreck;
@@ -19,6 +23,19 @@ namespace Game.World
         public string Art;
         /// <summary>둘레에 놓인 해안 소품(어선·부잔교·방파제·해식 아치·어구·부표) 수.</summary>
         public int CoastProps;
+        /// <summary>좁은 수로의 기슭 구간(섬이 아님, 점검 K04).</summary>
+        public bool Bank;
+        /// <summary>적 기지 섬(2026-11-15, IslandBuilder.BuildKit): 규모(1 소 · 2 중 · 3 대)와 해안 미사일 포대 자리(월드).</summary>
+        public bool MilitaryBase;
+        public int BaseSize;
+        public Vector3[] BatterySpots;
+        /// <summary>포대 자리에 세울 고정 적(Resources 경로). 비면 해안 미사일 포대.</summary>
+        public string BatteryEnemy;
+        /// <summary>유전 플랫폼(2026-11-16 내해): 포대가 부서지면 기름띠가 번질 수면 자리. 이미 번졌으면 Spilled.</summary>
+        public bool Platform, Spilled;
+        public Vector3 OilSlickPoint;
+        /// <summary>모래톱(내해): 판정 없음 — 기함이 지나가면 느려진다(Islands.InSandbar).</summary>
+        public bool Sandbar;
     }
 
     /// <summary>
@@ -88,6 +105,19 @@ namespace Game.World
             }
             if (moved) normal = normal.sqrMagnitude > 1e-6f ? normal.normalized : Vector3.zero;
             return moved;
+        }
+
+        /// <summary>그 자리가 모래톱 위인가(내해, 2026-11-16). 판정 콜라이더가 없어 반경으로 본다.</summary>
+        public static bool InSandbar(Vector3 p)
+        {
+            for (int i = 0; i < s_all.Count; i++)
+            {
+                var s = s_all[i];
+                if (!s.Sandbar) continue;
+                float dx = p.x - s.Center.x, dz = p.z - s.Center.z;
+                if (dx * dx + dz * dz <= s.Radius * s.Radius) return true;
+            }
+            return false;
         }
 
         /// <summary>진행 방향 앞(length)에 섬이 있으면 그 법선(수평)을 준다. 적 회피 조타용.</summary>

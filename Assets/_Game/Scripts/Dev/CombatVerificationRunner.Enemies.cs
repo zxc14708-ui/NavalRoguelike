@@ -146,6 +146,62 @@ namespace Game.Dev
             CombatDevTools.ClearBattlefield();
         }
 
+        /// <summary>
+        /// 적 도색(2026-10-19): 수상함은 갑판만 적갈색 사본(선체 옆면은 그대로), 항공기는 동체까지, 잠수함은 동체 윗면까지.
+        /// 풀에서 다시 나와도 겹쳐 칠하지 않고, 플레이어 함선은 칠하지 않는다.
+        /// </summary>
+        private IEnumerator EnemyPaintCheck()
+        {
+            var ship = GameManager.Instance.Player;
+            CombatDevTools.ClearBattlefield();
+            yield return null;
+            var pcc = CombatDevTools.SpawnRing("ene_pcc_corvette", 1, 34f, 30f);
+            var jet = CombatDevTools.SpawnRing("ene_fighter", 1, 40f, 150f);
+            var sub = CombatDevTools.SpawnRing("ene_submarine", 1, 36f, 260f);
+            foreach (var e in pcc) e.DevFrozen = true;
+            foreach (var e in jet) e.DevFrozen = true;
+            foreach (var e in sub) e.DevFrozen = true;
+            yield return new WaitForSeconds(0.3f);
+
+            static List<string> Painted(Component c)
+            {
+                var names = new List<string>();
+                if (c == null) return names;
+                foreach (var r in c.GetComponentsInChildren<Renderer>(true))
+                    foreach (var m in r.sharedMaterials)
+                        if (Game.View.EnemyPaint.IsPainted(m) && !names.Contains(m.name)) names.Add(m.name);
+                return names;
+            }
+            var pPcc = Painted(pcc.Count > 0 ? pcc[0] : null);
+            var pJet = Painted(jet.Count > 0 ? jet[0] : null);
+            var pSub = Painted(sub.Count > 0 ? sub[0] : null);
+            var pShip = Painted(ship);
+            bool deck = pPcc.Exists(n => n.StartsWith("Stealth deck") || n.StartsWith("Deck Grey"));
+            bool hullKept = !pPcc.Exists(n => n.StartsWith("Enemy hull grey") || n.StartsWith("Naval Blue Grey"));
+            bool jetBody = pJet.Exists(n => n.StartsWith("Enemy hull grey") || n.StartsWith("Naval Blue Grey"));
+            bool subHull = pSub.Exists(n => n.StartsWith("Submarine green"));
+            if (pcc.Count > 0) yield return CloseShot("enemy_paint_pcc", pcc[0].transform, 14f);
+
+            // 풀 재사용: 같은 적을 다시 꺼내도 같은 사본(겹쳐 칠하지 않음)
+            CombatDevTools.ClearBattlefield();
+            yield return null;
+            var again = CombatDevTools.SpawnRing("ene_pcc_corvette", 1, 34f, 30f);
+            foreach (var e in again) e.DevFrozen = true;
+            yield return null;
+            var pAgain = Painted(again.Count > 0 ? again[0] : null);
+            bool noDouble = pAgain.Count == pPcc.Count && !pAgain.Exists(n => n.Contains("(enemy paint) (enemy paint)"));
+
+            _report.AppendLine($"- 적 도색: 초계함 [{string.Join(", ", pPcc)}] · 전투기 [{string.Join(", ", pJet)}] · 잠수함 [{string.Join(", ", pSub)}] · " +
+                               $"다시 꺼낸 초계함 {pAgain.Count}종 · 플레이어 함선 {pShip.Count}종");
+            if (!deck) Fail("적 수상함 갑판이 칠해지지 않음");
+            if (!hullKept) Fail("적 수상함 선체 옆면까지 칠해짐(갑판만 칠해야 함)");
+            if (!jetBody) Fail("적 항공기 동체가 칠해지지 않음");
+            if (!subHull) Fail("적 잠수함 동체 윗면이 칠해지지 않음");
+            if (!noDouble) Fail("풀에서 다시 나온 적이 겹쳐 칠해짐");
+            if (pShip.Count > 0) Fail("플레이어 함선이 적 도색으로 칠해짐");
+            CombatDevTools.ClearBattlefield();
+        }
+
         // ------------------------------------------------------------ 자폭 보트
 
         /// <summary>
@@ -430,6 +486,7 @@ namespace Game.Dev
         private IEnumerator NewEnemyCheck()
         {
             _report.AppendLine("\n## 스테이지 2 추가 적");
+            yield return EnemyPaintCheck();
             var ship = GameManager.Instance.Player;
             var targeting = ship.GetComponentInChildren<TargetingSystem>();
 

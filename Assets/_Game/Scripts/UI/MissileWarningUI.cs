@@ -15,6 +15,9 @@ namespace Game.UI
     /// 화면 밖 표식에는 표적 쪽을 가리키는 작은 화살표가 붙는다.
     /// 가까운 순으로 몇 개만 보이고, 서로 겹치거나 HUD 패널(진행·스킬·함 현황·레이더) 위에 놓이지 않게 밀어낸다.
     /// 자동으로 카메라를 돌리지 않는다 — 방향만 알려 준다.
+    /// 2026-10-11 점검 G02: 미사일은 충돌까지 남은 시간이 짧은 순으로 놓고, 가장 급한 미사일 표식은 크게(▶).
+    /// 화면 밖에서 같은 방향(18° 안)에 몰린 미사일은 표식 하나로 묶어 "미사일 ×3 · 21 · 2.4초"(가장 가까운·가장 급한 값),
+    /// 함정·항공기도 같은 종류끼리 묶는다(고속정 ×4 58) — 포화 공격 때 글자가 겹치지 않고 가장 급한 위협이 먼저 읽힌다.
     /// </summary>
     public class MissileWarningUI : MonoBehaviour
     {
@@ -49,7 +52,25 @@ namespace Game.UI
         }
 
         private readonly List<Indicator> _pool = new();
-        private readonly List<(ITargetable t, float dist, bool missile)> _threats = new(32);
+        private readonly List<(ITargetable t, float dist, bool missile, float eta)> _threats = new(32);
+        private const float GroupAngle = 18f;
+
+        /// <summary>화면 밖 가장자리 표식 하나에 묶인 위협들.</summary>
+        private sealed class Group
+        {
+            public Vector2 Dir;
+            public bool Missile, Urgent;
+            public string Label;
+            public Indicator Ind;
+            public int Count;
+            public float MinDist, MinEta;
+        }
+        private readonly List<Group> _groups = new(16);
+        private readonly Stack<Group> _groupPool = new();
+        private bool _urgentPlaced;
+
+        /// <summary>검증용: 이번 프레임에 화면 밖 표식 하나로 묶인 위협 수의 최댓값.</summary>
+        public int LargestGroup { get; private set; }
         private readonly List<Vector2> _placed = new(16);
         private readonly List<Rect> _avoid = new(8);
         private RectTransform[] _avoidRects = System.Array.Empty<RectTransform>();
@@ -83,13 +104,19 @@ namespace Game.UI
             GatherThreats(player);
             GatherAvoidRects();
             _placed.Clear();
+            foreach (var g in _groups) _groupPool.Push(g);
+            _groups.Clear();
+            _urgentPlaced = false;
 
             int used = 0;
-            foreach (var (t, dist, missile) in _threats)
+            foreach (var (t, dist, missile, eta) in _threats)
             {
                 if (used >= maxIndicators) break;
-                if (Place(GetIndicator(used), t, dist, missile)) used++;
+                if (Place(GetIndicator(used), t, dist, missile, eta)) used++;
             }
+            int largest = 0;
+            foreach (var g in _groups) largest = Mathf.Max(largest, g.Count);
+            LargestGroup = largest;
 
             for (int i = used; i < _pool.Count; i++)
                 if (_pool[i].Root.gameObject.activeSelf) _pool[i].Root.gameObject.SetActive(false);
@@ -111,7 +138,7 @@ namespace Game.UI
                     if (kind == TargetKind.Missile && t is Missile projectile && !projectile.IsThreat) continue;
                     float d = Vector3.Distance(new Vector3(origin.x, 0f, origin.z), new Vector3(t.Transform.position.x, 0f, t.Transform.position.z));
                     if (d > range) continue;
-                    _threats.Add((t, d, missile));
+                    _threats.Add((t, d, missile, missile ? SecondsToImpact(t) : -1f));
                 }
             }
 
@@ -124,7 +151,7 @@ namespace Game.UI
                 var t = torpedoes[i];
                 if (t == null || !t.IsAlive) continue;
                 float d = Vector3.Distance(new Vector3(origin.x, 0f, origin.z), new Vector3(t.transform.position.x, 0f, t.transform.position.z));
-                if (d <= offscreenRange) _threats.Add((t, d, true));
+                if (d <= offscreenRange) _threats.Add((t, d, true, SecondsToImpact(t)));
             }
 
             // 사격 제원을 잡은 어뢰 잠수함(곧 발사): 잠항 중이어도 "어뢰 준비"로 알린다
@@ -134,7 +161,7 @@ namespace Game.UI
                 var s = preparing[i];
                 if (s == null || !s.IsAlive) continue;
                 // 사격 제원 경고는 전역 경고다. 잠항 중인 잠수함의 실제 거리와 위치를 표시하지 않는다.
-                _threats.Add((s, float.MaxValue, true));
+                _threats.Add((s, float.MaxValue, true, -1f));
                 break;
             }
 
@@ -142,8 +169,11 @@ namespace Game.UI
             Add(TargetKind.Surface, false, offscreenRange);
             Add(TargetKind.Submarine, false, offscreenRange);
 
-            // 미사일 먼저, 그다음 가까운 순
-            _threats.Sort((a, b) => a.missile != b.missile ? (a.missile ? -1 : 1) : a.dist.CompareTo(b.dist));
+            // 미사일 먼저 — 미사일끼리는 충돌까지 남은 시간이 짧은 순(모르면 뒤로), 나머지는 가까운 순
+            static float Urgency(float eta) => eta > 0f ? eta : 999f;
+            _threats.Sort((a, b) => a.missile != b.missile ? (a.missile ? -1 : 1)
+                : a.missile && Urgency(a.eta) != Urgency(b.eta) ? Urgency(a.eta).CompareTo(Urgency(b.eta))
+                : a.dist.CompareTo(b.dist));
         }
 
         private void GatherAvoidRects()
@@ -162,7 +192,7 @@ namespace Game.UI
         private float UiScale => canvasRoot != null && canvasRoot.lossyScale.x > 0f ? canvasRoot.lossyScale.x : 1f;
 
         /// <summary>화면 밖이면 가장자리에 방향·종류·거리를, 화면 안이면 미사일만 대상 위에 표식.</summary>
-        private bool Place(Indicator ind, ITargetable t, float dist, bool missile)
+        private bool Place(Indicator ind, ITargetable t, float dist, bool missile, float eta)
         {
             bool hiddenPreparation = t is Submarine { IsPreparingTorpedo: true } preparing &&
                                      !preparing.IsRevealed && !preparing.IsContactConfirmed;
@@ -193,11 +223,28 @@ namespace Game.UI
 
             float uiScale = UiScale;
             Color color = missile ? MissileColor : ColorFor(t);
+
+            // 화면 밖: 같은 방향(18° 안)에 이미 놓은 같은 종류 표식이 있으면 그 표식에 묶는다(새 표식 없음)
+            string label = LabelFor(t, missile);
+            Vector2 toward = new Vector2(sp.x - Screen.width * 0.5f, sp.y - Screen.height * 0.5f);
+            if (!onScreen && toward.sqrMagnitude > 1f)
+                foreach (var g in _groups)
+                {
+                    if (g.Missile != missile || g.Label != label || Vector2.Angle(g.Dir, toward) > GroupAngle) continue;
+                    g.Count++;
+                    g.MinDist = Mathf.Min(g.MinDist, dist);
+                    if (eta > 0f) g.MinEta = g.MinEta > 0f ? Mathf.Min(g.MinEta, eta) : eta;
+                    g.Ind.Label.text = GroupText(g);
+                    return false;
+                }
+
+            bool urgent = missile && !_urgentPlaced && t is not Submarine;
+            if (urgent) _urgentPlaced = true;
             ind.Root.gameObject.SetActive(true);
             ind.Shape.color = color;
 
-            // 미사일은 정사각 괄호, 나머지는 45° 마름모(돌리면 대각선이 길어져 조금 작게)
-            float size = (onScreen ? missileMarkerSize : edgeMarkerSize) * (missile ? 1f : 0.82f);
+            // 미사일은 정사각 괄호, 나머지는 45° 마름모(돌리면 대각선이 길어져 조금 작게). 가장 급한 미사일은 크게.
+            float size = (onScreen ? missileMarkerSize : edgeMarkerSize) * (missile ? 1f : 0.82f) * (urgent ? 1.3f : 1f);
             var shapeRot = Quaternion.Euler(0f, 0f, missile ? 0f : 45f);
             ind.Shape.rectTransform.sizeDelta = ind.Shadow.rectTransform.sizeDelta = new Vector2(size, size);
             ind.Shape.rectTransform.localRotation = ind.Shadow.rectTransform.localRotation = shapeRot;
@@ -206,8 +253,7 @@ namespace Game.UI
             {
                 ind.Root.position = new Vector3(sp.x, sp.y, 0f);
                 ind.Arrow.enabled = false;
-                float eta = SecondsToImpact(t);
-                ind.Label.text = eta > 0f && eta < 20f ? $"{eta:0.0}초" : "";
+                ind.Label.text = eta > 0f && eta < 20f ? $"{(urgent ? "▶ " : "")}{eta:0.0}초" : "";
                 ind.Label.color = color;
                 ind.Label.rectTransform.anchoredPosition = new Vector2(0f, -32f);
                 _placed.Add(sp);
@@ -234,13 +280,22 @@ namespace Game.UI
             ind.Arrow.rectTransform.anchoredPosition = n * (size * 0.5f + 11f);
             ind.Arrow.rectTransform.localRotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(n.y, n.x) * Mathf.Rad2Deg - 90f);
 
-            float impactTime = SecondsToImpact(t);
-            ind.Label.text = impactTime > 0f && impactTime < 20f
-                ? $"{LabelFor(t, missile)} {dist:0} · {impactTime:0.0}초"
-                : $"{LabelFor(t, missile)} {dist:0}";
+            var group = _groupPool.Count > 0 ? _groupPool.Pop() : new Group();
+            group.Dir = n; group.Missile = missile; group.Label = label; group.Urgent = urgent; group.Ind = ind;
+            group.Count = 1; group.MinDist = dist; group.MinEta = missile ? eta : -1f;
+            _groups.Add(group);
+            ind.Label.text = GroupText(group);
             ind.Label.color = color;
             ind.Label.rectTransform.anchoredPosition = LabelOffset(n);   // 가장자리 안쪽으로 글자
             return true;
+        }
+
+        /// <summary>가장자리 표식 글자: "미사일 ×3 · 21 · 2.4초" / "고속정 58".</summary>
+        private static string GroupText(Group g)
+        {
+            string head = (g.Urgent ? "▶ " : "") + g.Label;
+            string eta = g.Missile && g.MinEta > 0f && g.MinEta < 20f ? $" · {g.MinEta:0.0}초" : "";
+            return g.Count > 1 ? $"{head} ×{g.Count} · {g.MinDist:0}{eta}" : $"{head} {g.MinDist:0}{eta}";
         }
 
         private static float SecondsToImpact(ITargetable threat)
@@ -261,7 +316,8 @@ namespace Game.UI
         /// <summary>HUD 패널 위라면 화면 안쪽으로, 다른 표식과 겹치면 가장자리를 따라 비켜 놓는다.</summary>
         private Vector2 Resolve(Vector2 p, Vector2 outward, Vector2 tangent, float uiScale)
         {
-            float sep = minSeparation * uiScale;
+            // 위·아래 가장자리에서는 글자가 표식 옆으로 길게 붙으므로 글자 폭만큼 띄운다(좌우 가장자리는 표식 간격)
+            float sep = (Mathf.Abs(tangent.x) > 0.5f ? LabelHalfWidth * 2f + 60f : minSeparation) * uiScale;
             foreach (float k in SlideSteps)
             {
                 Vector2 candidate = PushOutOfPanels(p + tangent * (k * sep), outward, uiScale);

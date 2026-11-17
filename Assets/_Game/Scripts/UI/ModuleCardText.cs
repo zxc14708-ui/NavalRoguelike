@@ -110,11 +110,11 @@ namespace Game.UI
                     Row(sb, "지원 거리", $"{s.SupportRadiusCells}칸 (기관포·76mm)");
                     Row(sb, $"<color={Warn}>유폭</color>", $"<color={Warn}>{s.CookOffDamage:0}</color>");
                     break;
-                case ModuleType.RepairBay:
+                case ModuleType.RepairBay:   // 2026-10-11: 선체 회복·응급 수리는 함교가 — 이 블록은 함교를 키운다
+                    Row(sb, "선체 자동 회복", $"<color={Good}>상한 +17%p · 속도 +50%</color>");
+                    Row(sb, "<color=" + Key + ">[R]</color> 응급 수리", $"<color={Good}>+1회</color>");
+                    Row(sb, "모듈 수리", $"{s.ModuleRepairPerSecond:0.0} /초 (3칸)");
                     Row(sb, "피해 감소", $"{s.DamageReduction * 100f:0}%");
-                    Row(sb, "선체 회복", $"{s.HullRepairPerSecond:0.0} /초");
-                    Row(sb, "모듈 수리", $"{s.ModuleRepairPerSecond:0.0} /초");
-                    Row(sb, "<color=" + Key + ">[R]</color> 응급 수리", "재장전 35 초");
                     break;
                 case ModuleType.HelicopterDeck:
                     Row(sb, "출격 간격", $"{s.SortieCooldown:0} 초");
@@ -122,7 +122,35 @@ namespace Game.UI
                     break;
                 case ModuleType.Bridge:
                     Row(sb, "탐지 거리", $"{s.DetectionRange:0} m");
-                    Row(sb, "선체 회복", $"{s.HullRepairPerSecond:0.0} /초");
+                    Row(sb, "선체 회복", $"{s.HullRepairPerSecond:0.0} /초 (50%까지)");
+                    Row(sb, "<color=" + Key + ">[R]</color> 응급 수리", "1회 · 스테이지마다 다시");
+                    if (def.Id != null && def.Id.StartsWith(Game.Core.Ruleset.Ww2Prefix))
+                        Row(sb, "<color=" + Key + ">[F]</color> 연막", "함교 연막 · 기만체 없음(WWII)");
+                    break;
+                // WWII(패치 B 2026-10-17)
+                case ModuleType.Ww2DualPurposeGun:
+                    Row(sb, "교전 거리", $"수상 {s.MinRange:0} ~ {s.Range:0} m · 대공 {s.Range * Game.WW2.Ww2DualPurposeGunModule.AirRangeRatio:0} m");
+                    Row(sb, "피해", $"{s.Damage:0.#} (항공기에는 {def.TargetEfficiency.Air * 100f:0}%)");
+                    Row(sb, "발사 간격", $"{s.ReloadTime:0.0#} 초 · 선회 {s.TurretTurnRate:0}°/초 · 탄속 {s.ProjectileSpeed:0} m/초");
+                    Ammo(sb, s);
+                    break;
+                case ModuleType.Ww2HeavyGun:
+                    Row(sb, "교전 거리", $"수상 {s.MinRange:0} ~ {s.Range:0} m · 항공기는 쏘지 않음");
+                    Row(sb, "피해", $"{s.Damage:0.#} × 연장 동시 발사 · 큰 배에 강하고 작은 배에 약함");
+                    Row(sb, "발사 간격", $"{s.ReloadTime:0.0#} 초 · 선회 {s.TurretTurnRate:0}°/초 · 탄속 {s.ProjectileSpeed:0} m/초");
+                    Row(sb, "<color=" + Key + $">[{Game.Core.Ww2Controls.BindingLabel(Game.Core.Ww2Control.MainSalvo)}]</color> 주포 일제", "누르고 겨눔 · 떼면 준비된 주포가 함께(탄착 좁게)");
+                    Ammo(sb, s);
+                    break;
+                case ModuleType.Ww2QuadAa:
+                    Row(sb, "교전 거리", $"대공 {s.Range:0} m · 경수상 {s.Range * Game.WW2.Ww2QuadAaModule.SurfaceRangeRatio:0} m");
+                    Row(sb, "피해", $"{s.Damage:0.#} × 4연장 번갈아 · 근접신관 없음(직격)");
+                    Row(sb, "발사 간격", $"{s.ReloadTime:0.0#} 초 · {Game.WW2.Ww2QuadAaModule.BurstRounds}발 쏘고 {Game.WW2.Ww2QuadAaModule.BurstPause:0.#} 초 쉼");
+                    Ammo(sb, s);
+                    break;
+                case ModuleType.Ww2BroadsideTorpedo:
+                    Row(sb, "<color=" + Key + ">[수동]</color> 일제 발사", $"{s.MagazineCapacity}발 · 좌/우 현측 정횡 ±{s.FireArcDegrees * 0.5f:0}°");
+                    Row(sb, "어뢰", $"피해 {s.Damage:0} · 직진 {s.Range:0} m · {s.ProjectileSpeed:0} m/초 · 유도 없음");
+                    Row(sb, "재장전", $"{s.AmmoReloadTime:0} 초 (전량) · 발사 후 {s.MinRange:0} m부터 작동");
                     break;
                 case ModuleType.FleetRelay:
                     Row(sb, "편대 재사용 속도", $"+{s.EscortFireRateBonus * 100f:0}%");
@@ -234,7 +262,27 @@ namespace Game.UI
                 sb.Append($"{label}{(aligned ? ValueColumn : " ")}{x.ToString(fmt)}{unit} → <color={Good}>{y.ToString(fmt)}{unit}</color>");
                 lines++;
             }
+            // 곡사포: 한 번에 쏘는 포탄 수(강화의 핵심이라 맨 앞)
+            var howitzer = def.Prefab != null ? def.Prefab.GetComponent<Game.Modules.Runtime.HowitzerModule>() : null;
+            if (howitzer != null) Line("한 번에", howitzer.ShellsAt(fromLevel), howitzer.ShellsAt(toLevel), "0", "발");
+            // 헬기데크(2026-10-11): 출격 간격 · 헬기 무장 피해 · 수색 반경(배율은 데크가 헬기에 넘긴다)
+            if (def.Type == ModuleType.HelicopterDeck)
+            {
+                float Mod(int level, System.Func<ModuleStatModifier, float> pick)
+                {
+                    var stage = level > 0 ? ModuleUpgrades.ProfileFor(def)?.GetStage(level) : null;
+                    float v = stage != null ? pick(stage.Modifier) : 1f;
+                    return v > 0f ? v : 1f;
+                }
+                Line("출격 간격", a.SortieCooldown, b.SortieCooldown, "0.#", "초");
+                Line("헬기 피해", 100f * Mod(fromLevel, m => m.damageMultiplier), 100f * Mod(toLevel, m => m.damageMultiplier), "0", "%");
+                Line("수색 반경", 100f * Mod(fromLevel, m => m.rangeMultiplier), 100f * Mod(toLevel, m => m.rangeMultiplier), "0", "%");
+            }
             Line("피해", a.Damage, b.Damage, "0.##");
+            Line("내구", def.MaxHp * ModuleUpgrades.MaxHpMultiplier(def, fromLevel), def.MaxHp * ModuleUpgrades.MaxHpMultiplier(def, toLevel), "0");
+            if (def.Type == ModuleType.RamBow)
+                Line("반동 피해", Game.Modules.Runtime.RamBowModule.BaseSelfDamageRatio * 100f * ModuleUpgrades.SelfDamageMultiplier(def, fromLevel),
+                     Game.Modules.Runtime.RamBowModule.BaseSelfDamageRatio * 100f * ModuleUpgrades.SelfDamageMultiplier(def, toLevel), "0", "%");
             Line("탄창", a.MagazineCapacity, b.MagazineCapacity, "0");
             Line("발사 간격", a.ReloadTime, b.ReloadTime, "0.###", "초");
             Line("선회", a.TurretTurnRate, b.TurretTurnRate, "0", "°/초");
@@ -310,6 +358,10 @@ namespace Game.UI
             ModuleType.TurboIntake => "기관 보조",
             ModuleType.FireControlArray => "사격 통제",
             ModuleType.MissileLogistics => "미사일 보급",
+            ModuleType.Ww2DualPurposeGun => "중거리 무장",
+            ModuleType.Ww2HeavyGun => "주포",
+            ModuleType.Ww2QuadAa => "방공",
+            ModuleType.Ww2BroadsideTorpedo => "대수상 어뢰",
             _ => "함체",
         };
 
@@ -326,6 +378,10 @@ namespace Game.UI
             ModuleType.TurboIntake => "#e0956a",
             ModuleType.FireControlArray => "#8fd0ff",
             ModuleType.MissileLogistics => "#7fb8e0",
+            ModuleType.Ww2DualPurposeGun => "#e0c05a",
+            ModuleType.Ww2HeavyGun => "#e0c05a",
+            ModuleType.Ww2QuadAa => "#8fd0ff",
+            ModuleType.Ww2BroadsideTorpedo => "#e0956a",
             _ => "#c8d4dc",
         };
 
@@ -348,8 +404,12 @@ namespace Game.UI
             return $"<size=190%><b>+{def.ValueOf(tier) * 100f:0.#}%</b></size>\n<color=#{color}><b>{def.Name}</b></color>";
         }
 
-        /// <summary>성장 카드 본문: 효과 한 줄 + 이번 카드 · 누적 변화 · 대상 · 공간.</summary>
-        public static string BuildGrowthStats(RunStatDefinition def, CardTier tier)
+        /// <summary>
+        /// 성장 카드 본문(2026-11-14 — 실제 수치): 효과 한 줄 · 이번 카드 · 누적 · <b>함선 변화</b>(지금 함선의 실제 값 → 고른 뒤 값 —
+        /// 무장마다 한 발 피해·발사 간격·장탄·사거리, 스킬마다 재사용 시간, 선체 최대·회복, 속력, 받는 피해, 수리·탐지) · 적용.
+        /// 고른 뒤 값은 RunUpgrades.Preview 범위 안에서 같은 계산식(ModuleUpgrades.Compute)으로 구한다. ship이 없으면 비율만.
+        /// </summary>
+        public static string BuildGrowthStats(RunStatDefinition def, CardTier tier, Game.Ship.ShipController ship = null)
         {
             if (def == null) return string.Empty;
             var sb = new StringBuilder();
@@ -361,11 +421,200 @@ namespace Game.UI
             Row(sb, "누적", cur > 0f
                 ? $"{RunUpgrades.Describe(def.Stat, cur, true)} → <color={Good}>{RunUpgrades.Describe(def.Stat, cur + add, true)}</color>"
                 : $"없음 → <color={Good}>{RunUpgrades.Describe(def.Stat, add, true)}</color>");
-            Row(sb, "대상", def.Scope);
-            Row(sb, "적용", "즉시 · 이번 출격 내내");
-            Row(sb, "공간", $"<color={Good}>배치 공간 불필요</color>");
+
+            var rows = GrowthChanges(def.Stat, add, ship, out string what, out int more);
+            if (rows.Count > 0)
+            {
+                sb.AppendLine($"<color={Key}>함선 변화</color><color={Muted}> · {what}</color>");
+                foreach (var (label, before, after) in rows)
+                    sb.AppendLine($"  {label}{ChangeColumn}{before} → <color={Good}>{after}</color>");
+                if (more > 0) sb.AppendLine($"<color={Muted}>  외 {more}종</color>");
+            }
+            else
+            {
+                Row(sb, "대상", def.Scope);
+                if (ship != null && def.Stat is RunStat.Damage or RunStat.GunDamage or RunStat.MissileDamage or RunStat.FireRate
+                        or RunStat.AirDefenseRate or RunStat.Magazine or RunStat.Range or RunStat.SkillRate or RunStat.Repair)
+                    sb.AppendLine($"<color={Warn}>지금 함선에는 바뀌는 장비 없음 — 나중에 설치하면 적용</color>");
+            }
+            sb.AppendLine($"<color={Muted}>고르면 즉시 적용 · </color><color={Good}>바로 전투 재개</color>");
             return sb.ToString().TrimEnd();
         }
+
+        // 함선 변화 줄은 이름이 길어(무장 이름 · 강화 단계 · 수량) 값 열을 조금 오른쪽에
+        private const string ChangeColumn = "<pos=54%>";
+        private const int MaxChangeRows = 4;
+
+        /// <summary>성장 카드를 고르면 지금 함선에서 바뀌는 실제 값들(이름, 지금, 고른 뒤). what = 무슨 값인지("한 발 피해"), more = 줄 수를 넘어 숨긴 종류 수.</summary>
+        public static List<(string label, string before, string after)> GrowthChanges(RunStat stat, float add, Game.Ship.ShipController ship, out string what, out int more)
+        {
+            var rows = new List<(string, string, string)>();
+            what = "";
+            more = 0;
+            if (ship == null || add <= 0f) return rows;
+            float cur = 1f + RunUpgrades.Get(stat), next = cur + add;   // 선형 배율(1 + 누적) — 함선 쪽 값은 비율로
+            var grid = ship.Grid;
+            var systems = ship.Systems;
+            switch (stat)
+            {
+                case RunStat.Damage: case RunStat.GunDamage: case RunStat.MissileDamage:
+                    what = "한 발 피해";
+                    WeaponChanges(stat, add, grid, rows, ref more);
+                    break;
+                case RunStat.FireRate: case RunStat.AirDefenseRate:
+                    what = "발사 간격";
+                    WeaponChanges(stat, add, grid, rows, ref more);
+                    break;
+                case RunStat.Magazine:
+                    what = "장탄";
+                    WeaponChanges(stat, add, grid, rows, ref more);
+                    break;
+                case RunStat.Range:
+                    what = "사거리";
+                    WeaponChanges(stat, add, grid, rows, ref more);
+                    break;
+                case RunStat.SkillRate:
+                    what = "재사용 시간";
+                    SkillChanges(ship, cur, next, rows, ref more);
+                    break;
+                case RunStat.Speed:
+                {
+                    what = "최고 속력";
+                    float v = Game.Ship.ShipController.ToKnots(ship.BaseMaxSpeed);
+                    rows.Add(("최고 속력", $"{v:0.0}kn", $"{v * next / cur:0.0}kn"));
+                    break;
+                }
+                case RunStat.HullMax:
+                {
+                    what = "선체";
+                    float max = ship.HullMaxHp, after = max * next / cur;
+                    rows.Add(("선체 최대", $"{max:0}", $"{after:0}"));
+                    rows.Add(("지금 선체(바로 회복)", $"{ship.HullHp:0}", $"{Mathf.Min(after, ship.HullHp + after - max):0}"));
+                    break;
+                }
+                case RunStat.Defense:
+                    what = "받는 피해";
+                    rows.Add(("적 공격 100당", $"{100f / cur:0.#}", $"{100f / next:0.#}"));
+                    break;
+                case RunStat.Repair:
+                    what = "수리 속도";
+                    RepairChanges(grid, cur, next, rows);
+                    break;
+                case RunStat.Detection:
+                    what = "탐지 거리";
+                    if (systems != null)
+                    {
+                        rows.Add(("레이더", $"{systems.DetectionRange:0}m", $"{systems.DetectionRange * next / cur:0}m"));
+                        if (systems.SonarCount > 0) rows.Add(("소나", $"{systems.SonarRange:0}m", $"{systems.SonarRange * next / cur:0}m"));
+                    }
+                    break;
+            }
+            return rows;
+        }
+
+        /// <summary>무장 줄: 같은 블록·같은 강화 단계는 한 줄(×수량). 지금 값은 실제 무장 수치(함선 지원·탄약고 보너스 포함), 고른 뒤는 같은 비율·차이로.</summary>
+        private static void WeaponChanges(RunStat stat, float add, Game.Ship.ShipGrid grid, List<(string, string, string)> rows, ref int more)
+        {
+            if (grid == null) return;
+            var keys = new List<(ModuleDefinition def, int level)>();
+            var counts = new List<int>();
+            var lines = new List<(string before, string after)>();
+            foreach (var m in grid.Modules)
+            {
+                var def = m?.Definition;
+                if (def == null || m.Runtime == null || !RunUpgrades.IsWeapon(def.Type)) continue;
+                int k = keys.IndexOf((def, m.UpgradeLevel));
+                if (k >= 0) { counts[k]++; continue; }
+
+                var before = ModuleUpgrades.Compute(def, m.UpgradeLevel);
+                ModuleStats after;
+                using (RunUpgrades.Preview(stat, add)) after = ModuleUpgrades.Compute(def, m.UpgradeLevel);
+                var live = m.Runtime.Stats;
+                (string, string)? line = null;
+                switch (stat)
+                {
+                    case RunStat.Damage: case RunStat.GunDamage: case RunStat.MissileDamage:
+                        if (before.Damage > 0f && after.Damage > before.Damage + 1e-4f)
+                            line = (Num(live.Damage), Num(live.Damage * after.Damage / before.Damage));
+                        break;
+                    case RunStat.FireRate: case RunStat.AirDefenseRate:
+                        if (before.ReloadTime > 0f && after.ReloadTime < before.ReloadTime - 1e-5f)
+                            line = (Seconds(live.ReloadTime), Seconds(live.ReloadTime * after.ReloadTime / before.ReloadTime));
+                        break;
+                    case RunStat.Magazine:
+                        if (before.MagazineCapacity > 0 && after.MagazineCapacity != before.MagazineCapacity)
+                            line = ($"{live.MagazineCapacity}발", $"{live.MagazineCapacity + after.MagazineCapacity - before.MagazineCapacity}발");
+                        break;
+                    case RunStat.Range:
+                        if (before.Range > 0f && after.Range > before.Range + 1e-4f)
+                            line = ($"{live.Range:0}m", $"{live.Range * after.Range / before.Range:0}m");
+                        break;
+                }
+                if (line == null) continue;
+                keys.Add((def, m.UpgradeLevel));
+                counts.Add(1);
+                lines.Add(line.Value);
+            }
+            for (int i = 0; i < keys.Count; i++)
+            {
+                if (rows.Count >= MaxChangeRows) { more++; continue; }
+                string level = keys[i].level > 0 ? " " + ModuleUpgrades.Roman(keys[i].level) : "";
+                string count = counts[i] > 1 ? $" ×{counts[i]}" : "";
+                rows.Add(($"{keys[i].def.DisplayName}{level}{count}", lines[i].before, lines[i].after));
+            }
+        }
+
+        /// <summary>스킬 줄: 기만체·연막·재밍·전속·응급 수리 충전·고유 스킬의 실제 재사용 시간(타이머가 1+누적 배로 흐른다).</summary>
+        private static void SkillChanges(Game.Ship.ShipController ship, float cur, float next, List<(string, string, string)> rows, ref int more)
+        {
+            var seen = new HashSet<string>();
+            var all = new List<(string name, float seconds)>();
+            void Add(string name, float seconds)
+            {
+                if (seconds > 0f && seen.Add(name)) all.Add((name, seconds));
+            }
+            var sig = ship.GetComponent<Game.Ship.SignatureSkill>();
+            if (sig != null && sig.Ability != null) Add(sig.Ability.Title, sig.Ability.Cooldown);
+            if (ship.Grid != null)
+                foreach (var m in ship.Grid.Modules)
+                {
+                    if (m?.Runtime == null) continue;
+                    if (m.Runtime is Game.Modules.Runtime.DecoyLauncherModule d)
+                    {
+                        if (d.DecoyEnabled) Add("기만체", Mathf.Max(0.5f, d.Stats.ReloadTime));
+                        if (d.CarriesSmoke) Add("연막", d.SmokeCooldownSeconds);
+                    }
+                    if (m.Runtime is Game.Modules.Runtime.BridgeModule b)
+                    {
+                        Add("전속", b.FlankCooldownSeconds);
+                        Add("응급 수리 1회 충전", b.ChargeRechargeSeconds);
+                    }
+                    if (m.Runtime is Game.Modules.Runtime.EwSuiteModule e) Add("재밍", Mathf.Max(1f, e.Stats.ReloadTime));
+                }
+            foreach (var (name, seconds) in all)
+            {
+                if (rows.Count >= MaxChangeRows) { more++; continue; }
+                rows.Add((name, $"{seconds / cur:0.#}초", $"{seconds / next:0.#}초"));
+            }
+        }
+
+        /// <summary>수리 줄: 함교 선체 자동 회복(손상통제반 수에 따라) · 손상통제반 모듈 수리.</summary>
+        private static void RepairChanges(Game.Ship.ShipGrid grid, float cur, float next, List<(string, string, string)> rows)
+        {
+            if (grid == null) return;
+            float moduleRepair = 0f;
+            foreach (var m in grid.Modules)
+            {
+                if (m?.Runtime is Game.Modules.Runtime.BridgeModule b && b.HullRepairRate > 0f && rows.Count == 0)
+                    rows.Add(("선체 자동 회복", $"{b.HullRepairRate:0.##}/초", $"{b.HullRepairRate * next / cur:0.##}/초"));
+                if (m?.Runtime is Game.Modules.Runtime.RepairBayModule r) moduleRepair += r.Stats.ModuleRepairPerSecond;
+            }
+            if (moduleRepair > 0f) rows.Add(("모듈 수리(통제반 합)", $"{moduleRepair:0.##}/초", $"{moduleRepair * next / cur:0.##}/초"));
+        }
+
+        private static string Num(float v) => v >= 100f ? $"{v:0}" : $"{v:0.#}";
+        /// <summary>발사 간격: 1초 아래는 소수 셋째 자리까지(CIWS 0.040 → 0.034처럼 변화가 보이게).</summary>
+        private static string Seconds(float v) => v < 1f ? $"{v:0.000}초" : $"{v:0.00}초";
 
         /// <summary>지금까지 쌓은 성장 카드 요약(현황판·정비 화면). 없으면 빈 문자열.</summary>
         public static string BuildGrowthSummary(string separator = "  ·  ")
@@ -473,6 +722,10 @@ namespace Game.UI
             ModuleType.TurboIntake => "기관 보조 — 빠르게 항해할 때 실탄 화력 증가",
             ModuleType.FireControlArray => "사격 통제 — 동시 추적과 유도 무장 사거리 증가",
             ModuleType.MissileLogistics => "미사일 발사와 셀 보급 대기 시간을 단축",
+            ModuleType.Ww2DualPurposeGun => "수상함 우선 · 공격해 오는 항공기 보조 — 한 번에 한 표적",
+            ModuleType.Ww2HeavyGun => "큰 수상함을 멀리서 — 느리게 돌고 오래 장전, 주포 일제로 한꺼번에",
+            ModuleType.Ww2QuadAa => "항공기 우선 · 가까운 경수상함 보조 — 구조물에 가리면 못 쏜다",
+            ModuleType.Ww2BroadsideTorpedo => "현측으로 직진 어뢰 일제 발사 — 예측해서 쏘고 오래 재장전",
             _ => "",
         };
 

@@ -8,6 +8,22 @@ namespace Game.Combat
     /// 함재 헬기. 반복 교전하며 표적 소멸 시 재탐색하고, 적이 없을 때만 귀함한다.
     /// 첫 프로토타입에서는 비행 물리를 쓰지 않고 단순 보간으로 움직인다.
     /// </summary>
+    /// <summary>대잠 헬기의 모함(함선 헬기갑판 블록·대잠 호위함, 2026-10-11 호위함 실제 무장).</summary>
+    public interface IHelicopterBase
+    {
+        bool CanOperate { get; }
+        HelicopterPolicy Policy { get; }
+        float SearchPersistence { get; }
+        /// <summary>0 이하면 헬기 기본 속력.</summary>
+        float HelicopterSpeed { get; }
+        bool IsTargetInRange(ITargetable target);
+        Vector3 PatrolPoint();
+        ITargetable FindTarget();
+        ITargetable FindTargetFromHelicopter(Vector3 position);
+        bool TryGetSearchCue(out Vector3 cue);
+        void OnHelicopterReturned();
+    }
+
     public class AswHelicopter : MonoBehaviour, IPoolable
     {
         private static readonly HashSet<AswHelicopter> ActiveSorties = new();
@@ -31,6 +47,10 @@ namespace Game.Combat
         [SerializeField] private float idleReturnDelay = 8f;
         [SerializeField] private float searchInterval = 0.35f;
         private float _weaponTimer, _idleTimer, _searchTimer, _orbitAngle;
+        private float _damageScale = 1f;   // 모함 강화 단계의 무장 피해 배율(헬기데크 강화, 2026-10-11)
+        // 로터 회전축(로터 자기 좌표). 모델마다 로터 노드의 축이 달라(Codex v24는 위가 Y가 아님) 기체의 위·오른쪽을 로터 좌표로 바꿔 둔다
+        private Vector3 _rotorAxis = Vector3.up, _tailAxis = Vector3.right;
+        private bool _axesReady;
 
         [Header("Weapons")]
         [Tooltip("수상함 공격용 유도로켓")]
@@ -52,13 +72,14 @@ namespace Game.Combat
         private HelicopterPolicy _lastPolicy;
 
         /// <summary>돌아갈 격납고. 착함하면 다시 갑판에 세워준다.</summary>
-        private Game.Modules.Runtime.HelicopterDeckModule _deck;
+        private IHelicopterBase _deck;
 
-        /// <summary>헬기데크가 출격시킬 때 호출한다.</summary>
+        /// <summary>헬기데크(함선 블록 또는 대잠 호위함, IHelicopterBase)가 출격시킬 때 호출한다.</summary>
         public void Sortie(Transform home, ITargetable target,
-                           Game.Modules.Runtime.HelicopterDeckModule deck = null, Vector3 searchPoint = default)
+                           IHelicopterBase deck = null, Vector3 searchPoint = default, float damageScale = 1f)
         {
             _home = home;
+            _damageScale = Mathf.Max(0.1f, damageScale);
             _target = target;
             _searchPoint = searchPoint;
             _deck = deck;
@@ -68,15 +89,15 @@ namespace Game.Combat
             _weaponTimer = 0f;
             _idleTimer = 0f;
             _searchTimer = 0f;
-            if (deck != null && deck.Stats.HelicopterSpeed > 0f)
-                speed = deck.Stats.HelicopterSpeed;
+            if (deck != null && deck.HelicopterSpeed > 0f)
+                speed = deck.HelicopterSpeed;
         }
 
         private void Update()
         {
             float dt = Time.deltaTime;
             if (dt <= 0f) return;
-            if (_home == null || _deck == null || !_deck.CanOperate)
+            if (_home == null || !IsAlive(_deck) || !_deck.CanOperate)
             {
                 Despawn();
                 return;
@@ -196,7 +217,7 @@ namespace Game.Combat
                 if (go != null && go.TryGetComponent<DepthCharge>(out var charge))
                 {
                     var point = _target is Game.Enemies.SubmarineBase sub ? sub.LastKnownPosition : _target.Transform.position;
-                    charge.Launch(from, point, attackDamage);
+                    charge.Launch(from, point, AttackDamage);
                     return;
                 }
             }
@@ -207,7 +228,7 @@ namespace Game.Combat
                 var go = PoolManager.Instance?.Spawn(rocketPrefab, from, rot);
                 if (go != null && go.TryGetComponent<Missile>(out var rocket))
                 {
-                    rocket.Launch(_target.Transform, attackDamage);
+                    rocket.Launch(_target.Transform, AttackDamage);
                     return;
                 }
             }
@@ -218,16 +239,31 @@ namespace Game.Combat
             if (_target is IDamageable d && d.IsAlive)
             {
                 var source = _target.Kind == TargetKind.Submarine ? DamageSource.Torpedo : DamageSource.Missile;
-                d.TakeDamage(new DamageInfo(attackDamage, _target.Transform.position, Vector3.down, source));
+                d.TakeDamage(new DamageInfo(AttackDamage, _target.Transform.position, Vector3.down, source));
             }
         }
+
+        /// <summary>한 번 공격의 피해(모함 강화 배율 포함).</summary>
+        public float AttackDamage => attackDamage * _damageScale;
 
         /// <summary>로터가 돌아야 헬기로 보인다.</summary>
         private void SpinRotors(float dt)
         {
-            if (rotor != null) rotor.Rotate(Vector3.up, rotorRpm * 6f * dt, Space.Self);
-            if (tailRotor != null) tailRotor.Rotate(Vector3.right, rotorRpm * 8f * dt, Space.Self);
+            EnsureRotorAxes();
+            if (rotor != null) rotor.Rotate(_rotorAxis, rotorRpm * 6f * dt, Space.Self);
+            if (tailRotor != null) tailRotor.Rotate(_tailAxis, rotorRpm * 8f * dt, Space.Self);
         }
+
+        private void EnsureRotorAxes()
+        {
+            if (_axesReady) return;
+            _axesReady = true;
+            if (rotor != null) _rotorAxis = rotor.InverseTransformDirection(transform.up).normalized;
+            if (tailRotor != null) _tailAxis = tailRotor.InverseTransformDirection(transform.right).normalized;
+        }
+
+        /// <summary>검증용: 메인 로터가 도는 축(월드). 기체가 수평이면 위를 향해야 한다.</summary>
+        public Vector3 RotorAxisWorld { get { EnsureRotorAxes(); return rotor != null ? rotor.TransformDirection(_rotorAxis) : Vector3.zero; } }
 
         private bool TargetValid() => _deck != null && _deck.IsTargetInRange(_target) &&
             (_target is not Game.Enemies.SubmarineBase sub || sub.IsContactConfirmed || sub.IsRevealed);
@@ -257,10 +293,13 @@ namespace Game.Combat
             MoveTowards(center + offset, dt);
         }
 
+        /// <summary>파괴된 MonoBehaviour는 인터페이스로 들고 있으면 null로 보이지 않는다.</summary>
+        private static bool IsAlive(IHelicopterBase deck) => deck is Object o ? o != null : deck != null;
+
         private void Despawn()
         {
             // 착함 보고. 갑판에 다시 헬기가 서고 쿨다운이 시작된다.
-            if (_deck != null) _deck.OnHelicopterReturned();
+            if (IsAlive(_deck)) _deck.OnHelicopterReturned();
             _deck = null;
 
             if (PoolManager.Instance != null) PoolManager.Instance.Despawn(gameObject);

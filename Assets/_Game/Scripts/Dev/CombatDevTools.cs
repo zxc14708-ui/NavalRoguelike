@@ -36,13 +36,26 @@ namespace Game.Dev
 
         public static CombatDevTools Instance { get; private set; }
 
+        /// <summary>
+        /// 자동 검증은 창이 포커스를 잃어도 계속 돈다. 빌드 설정은 백그라운드 실행을 꺼 두어(일반 플레이는 다른 창을 누르면 멈춤),
+        /// 창 모드 검사 창이 앞으로 나오지 못하면(다른 창을 쓰는 중) 시작하자마자 멈춘 채 시간 초과됐다(2026-10-31).
+        /// </summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void KeepVerificationRunning()
+        {
+            if (System.Array.IndexOf(System.Environment.GetCommandLineArgs(), "-combatVerify") >= 0)
+                Application.runInBackground = true;
+        }
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void AutoCreate()
         {
             if (Instance != null || Object.FindFirstObjectByType<ShipController>() == null) return;
             new GameObject("CombatDevTools").AddComponent<CombatDevTools>();
 
-            // 개발 빌드를 "-combatVerify <폴더>"로 실행하면 자동 전투 검증을 돌리고 끝나면 종료한다
+            // 개발 빌드를 "-combatVerify <폴더>"로 실행하면 자동 전투 검증을 돌리고 끝나면 종료한다.
+            // 재출격(RunRestart)으로 씬을 다시 열 때도 이 함수가 다시 불린다 — 검증은 처음 연 씬에서만 만든다.
+            if (RunRestart.InProgress || RunRestart.Restarts > 0) return;
             var args = System.Environment.GetCommandLineArgs();
             for (int i = 0; i < args.Length - 1; i++)
             {
@@ -83,6 +96,39 @@ namespace Game.Dev
                 runner.PccSoak = System.Array.IndexOf(args, "-pccSoak") >= 0;
                 runner.RouteOnly = System.Array.IndexOf(args, "-routeOnly") >= 0;
                 runner.VlsOnly = System.Array.IndexOf(args, "-vlsOnly") >= 0;
+                runner.BlastOnly = System.Array.IndexOf(args, "-blastOnly") >= 0;
+                runner.ShoreOnly = System.Array.IndexOf(args, "-shoreOnly") >= 0;   // 해안 물빛 시험 비교
+                runner.PolishOnly = System.Array.IndexOf(args, "-polishOnly") >= 0; // 전투 기능 · 바다 후속 묶음
+                runner.CarrierBossOnly = System.Array.IndexOf(args, "-carrierBossOnly") >= 0; // 3스테이지 항공전함 개편(2026-11-14)
+                runner.HarborBossOnly = System.Array.IndexOf(args, "-harborBossOnly") >= 0;
+                runner.SfxOnly = System.Array.IndexOf(args, "-sfxOnly") >= 0;   // 무장 효과음 교체(2026-11-15)
+                runner.BaseIslandsOnly = System.Array.IndexOf(args, "-baseIslandsOnly") >= 0;   // Codex 섬 · 기지 팩(2026-11-15)
+                runner.Stage4Only = System.Array.IndexOf(args, "-stage4Only") >= 0;   // 4스테이지 내해의 괴물(2026-11-16)   // 2스테이지 보스 무대 = 수로 출구 군항(2026-11-15)
+                runner.RouteMapOnly = System.Array.IndexOf(args, "-routeMapOnly") >= 0;
+                runner.JuiceOnly = System.Array.IndexOf(args, "-juiceOnly") >= 0;
+                runner.BlockHitOnly = System.Array.IndexOf(args, "-blockHitOnly") >= 0;
+                runner.WeaponPackOnly = System.Array.IndexOf(args, "-weaponPackOnly") >= 0;
+                runner.HarborAAOnly = System.Array.IndexOf(args, "-harborAAOnly") >= 0;
+                runner.HarborBuildingsOnly = System.Array.IndexOf(args, "-harborBuildingsOnly") >= 0;
+                runner.SignatureOnly = System.Array.IndexOf(args, "-signatureOnly") >= 0;
+                runner.EscortArmsOnly = System.Array.IndexOf(args, "-escortArmsOnly") >= 0;
+                runner.RunFlowOnly = System.Array.IndexOf(args, "-runFlowOnly") >= 0;
+                runner.Ww2Only = System.Array.IndexOf(args, "-ww2Only") >= 0;           // WWII 패치 B 규칙 검사
+                runner.Ww2BattleOnly = System.Array.IndexOf(args, "-ww2BattleOnly") >= 0;   // WWII 시험 전투 한 판
+                runner.Ww2HeavyOnly = System.Array.IndexOf(args, "-ww2HeavyOnly") >= 0;     // WWII 패치 C2·C3a(마운트 등급·전함·주포)
+                runner.BundleBOnly = System.Array.IndexOf(args, "-bundleBOnly") >= 0;
+                runner.BundleCOnly = System.Array.IndexOf(args, "-bundleCOnly") >= 0;
+                runner.BundleDOnly = System.Array.IndexOf(args, "-bundleDOnly") >= 0;
+                runner.AviationOnly = System.Array.IndexOf(args, "-aviationOnly") >= 0;
+                runner.SeaOnly = System.Array.IndexOf(args, "-seaOnly") >= 0;
+                runner.PerfOnly = System.Array.IndexOf(args, "-perfOnly") >= 0;   // 성능 측정(O04)
+                runner.ArtOnly = System.Array.IndexOf(args, "-artOnly") >= 0;   // 시각 규칙 점검(G06)
+                int perfMinutes = System.Array.IndexOf(args, "-perfMinutes");
+                if (perfMinutes >= 0 && perfMinutes < args.Length - 1 &&
+                    float.TryParse(args[perfMinutes + 1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float minutes))
+                    runner.PerfMinutes = minutes;
+                int qa = System.Array.IndexOf(args, "-qaTable");   // QA 결과표(O03)
+                if (qa >= 0 && qa < args.Length - 1) runner.QaTablePath = args[qa + 1];
                 break;
             }
         }

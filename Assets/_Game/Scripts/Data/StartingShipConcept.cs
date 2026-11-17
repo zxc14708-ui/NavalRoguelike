@@ -10,6 +10,9 @@ namespace Game.Data
         Command = 1,
         Assault = 2,
         MissileDestroyer = 3,
+        Ww2Destroyer = 4,   // WWII 시험 전투 구축함(패치 B 2026-10-17, 끝에만 덧붙임) — 현대 시작 함정 목록에는 없다
+        Ww2Cruiser = 5,     // WWII 순양함(패치 C1 2026-10-18, 끝에만 덧붙임)
+        Ww2Battleship = 6,  // WWII 전함(패치 C3a 2026-10-18, 끝에만 덧붙임)
     }
 
     /// <summary>
@@ -37,6 +40,9 @@ namespace Game.Data
         [Header("Playable Start")]
         [SerializeField, TextArea(2, 5)] private string startSummary;
         [SerializeField, Range(0, 4)] private int initialEscortCount;
+        [Tooltip("함종 실제 수치(WWII 패치 C1). 있으면 선택할 때 함선에 적용된다. 현대 함정은 비워 둔다(아래 배율은 설명용 명세)")]
+        [SerializeField] private HullProfile hullProfile;
+        public HullProfile HullProfile => hullProfile;
         public string StartSummary => startSummary;
         public int InitialEscortCount => initialEscortCount;
 

@@ -103,10 +103,14 @@ namespace Game.UI
                 holder.SetActive(false);
                 var source = Instantiate(prefab, holder.transform);
                 source.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+                // 적은 전투에서와 같은 도색으로(갑판 적갈색)
+                if (source.TryGetComponent<Game.Enemies.EnemyController>(out var enemy) && enemy.Faction == Game.Combat.CombatFaction.Hostile)
+                    Game.View.EnemyPaint.Apply(source, enemy.Kind == Game.Combat.TargetKind.Aircraft);
                 Transform only = string.IsNullOrEmpty(onlyChild) ? null : FindDeep(source.transform, onlyChild);
                 foreach (var r in source.GetComponentsInChildren<Renderer>(true))
                 {
-                    if (!r.enabled || !Visible(r.transform, source.transform, only)) continue;
+                    // Runtime warning lamps are not part of the encyclopedia model.
+                    if (r.name == "TorpedoLamp" || !r.enabled || !Visible(r.transform, source.transform, only)) continue;
                     Mesh mesh = r is SkinnedMeshRenderer skinned ? skinned.sharedMesh
                         : r is MeshRenderer && r.TryGetComponent<MeshFilter>(out var mf) ? mf.sharedMesh : null;
                     if (mesh == null) continue;

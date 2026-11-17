@@ -25,22 +25,29 @@ Material:
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
-    - _CloudShade: 0.16
-    - _Glossiness: 650
+    - _Caustics: 0.15
+    - _CloudReflection: 0.55
+    - _CloudShade: 0.4
+    - _CrestFoam: 0.3
+    - _Glossiness: 700
     - _GridStrength: 0
     - _NormalStrength: 0.85
-    - _Reflection: 0.26
-    - _RippleStrength: 0.46
+    - _Reflection: 0.16
+    - _RippleStrength: 0.72
     - _ShadowStrength: 0.055
+    - _ShoreFoam: 0.5
     - _Specular: 0.6
-    - _Translucency: 0.05
+    - _Translucency: 0.25
     - _WaveSpeed: 1
-    - _Whitecaps: 0.22
+    - _WaveTexScale: 38
+    - _WaveTexStrength: 0.75
+    - _Whitecaps: 0.26
     m_Colors:
-    - _DeepColor: {r: 0.14, g: 0.22, b: 0.3, a: 1}
+    - _DeepColor: {r: 0.12, g: 0.41, b: 0.45, a: 1}
     - _FoamColor: {r: 0.92, g: 0.95, b: 0.97, a: 1}
-    - _ScatterColor: {r: 0.3, g: 0.39, b: 0.48, a: 1}
-    - _SkyColor: {r: 0.42, g: 0.5, b: 0.6, a: 1}
-    - _TransmissionColor: {r: 0.29, g: 0.38, b: 0.47, a: 1}
+    - _ScatterColor: {r: 0.22, g: 0.57, b: 0.59, a: 1}
+    - _ShallowColor: {r: 0.45, g: 0.8, b: 0.74, a: 1}
+    - _SkyColor: {r: 0.66, g: 0.82, b: 0.85, a: 1}
+    - _TransmissionColor: {r: 0.3, g: 0.68, b: 0.66, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

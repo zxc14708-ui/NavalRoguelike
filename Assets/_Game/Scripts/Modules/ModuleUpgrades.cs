@@ -71,13 +71,15 @@ namespace Game.Modules
             var stage = upgradeLevel > 0 ? ProfileFor(def)?.GetStage(upgradeLevel) : null;
             if (stage != null) ApplyStage(ref s, stage);
             ApplyRunUpgrades(def.Type, ref s);
+            MetaWorkshop.ApplyBridge(def, ref s);   // 정비창 함교 강화(함급 함교만)
             return s;
         }
 
         /// <summary>성장 카드: 무장 공격력·연사력·장탄수·사거리, 수리 효율. 원본 데이터는 바꾸지 않고 복사본(s)에만 곱한다.</summary>
         private static void ApplyRunUpgrades(ModuleType type, ref ModuleStats s)
         {
-            if (!RunUpgrades.Any) return;
+            // 예전엔 성장 카드가 하나도 없으면 여기서 바로 돌아갔다 — 그러면 해군 기술연구소 연구(함포계 공격력·사거리 등, RunUpgrades.Get에 포함)가
+            // 첫 성장 카드를 고르기 전까지 무장에 안 들어갔다(2026-11-14 고침). 보너스가 없으면 배율이 1이라 결과는 같다.
             if (RunUpgrades.IsWeapon(type))
             {
                 s.Damage *= RunUpgrades.DamageMultiplier(type);
@@ -99,6 +101,8 @@ namespace Game.Modules
             s.Damage *= M(m.damageMultiplier);
             s.Range *= M(m.rangeMultiplier);
             s.ReloadTime *= M(m.cooldownMultiplier);
+            s.SortieCooldown *= M(m.cooldownMultiplier);   // 헬기데크 출격 간격(다른 블록은 0)
+            s.HelicopterSpeed *= M(m.speedMultiplier);
             s.MagazineCapacity = ScaleCapacity(s.MagazineCapacity, M(m.magazineMultiplier), s.AmmoPerShot);
             s.AmmoReloadTime *= M(m.ammoReloadMultiplier);
             s.TurretTurnRate *= M(m.turnSpeedMultiplier);
@@ -115,6 +119,14 @@ namespace Game.Modules
         }
 
         private static float M(float v) => v > 0f ? v : 1f;
+
+        /// <summary>강화 단계의 최대 내구 배율(기본값 대비). 강화가 없으면 1.</summary>
+        public static float MaxHpMultiplier(ModuleDefinition def, int upgradeLevel)
+            => upgradeLevel > 0 && ProfileFor(def)?.GetStage(upgradeLevel) is { } stage ? M(stage.Modifier.maxHpMultiplier) : 1f;
+
+        /// <summary>강화 단계의 반동 피해 배율(충각, 기본값 대비). 강화가 없으면 1.</summary>
+        public static float SelfDamageMultiplier(ModuleDefinition def, int upgradeLevel)
+            => upgradeLevel > 0 && ProfileFor(def)?.GetStage(upgradeLevel) is { } stage ? M(stage.Modifier.selfDamageMultiplier) : 1f;
 
         /// <summary>
         /// 정수 탄창: 반올림(0.5는 올림)하고 최소 1발(또는 한 번 쏘는 양). 한 번에 여러 발 쓰는 무기(CIWS)는 그 배수로 맞춘다.

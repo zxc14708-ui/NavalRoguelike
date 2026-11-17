@@ -9,7 +9,8 @@ namespace Game.View
     ///   - Smoke: 연돌 배기 연기(회색, 커지며 흐려짐)
     ///   - WreckSmoke: 격침 연기 기둥(검은색, 크게 퍼짐)
     ///   - Fire: 불꽃(주황, 줄어들며 사라짐)
-    /// 재질은 기존 효과와 같은 부드러운 원 스프라이트(Resources/Effects/MAT_FxSoft).
+    ///   - BlastFire: 함체 명중 폭발 불덩이(노이즈를 따라 갈라지며 녹고, 녹는 가장자리가 빛남 — Naval/BlastFire)
+    /// 재질은 기존 효과와 같은 부드러운 원 스프라이트(Resources/Effects/MAT_FxSoft), BlastFire만 Resources/Effects/MAT_BlastFire.
     /// 씬이 바뀌면 시스템이 함께 사라지고 다음에 쓸 때 다시 만든다.
     /// </summary>
     public static class DecorFx
@@ -18,10 +19,12 @@ namespace Game.View
         public static readonly Vector3 Wind = new(2.2f, 0f, 1.2f);
 
         private static Transform s_root;
-        private static ParticleSystem s_spray, s_smoke, s_wreckSmoke, s_fire, s_sparks, s_flash;
-        private static Material s_material;
+        private static ParticleSystem s_spray, s_smoke, s_wreckSmoke, s_fire, s_sparks, s_flash, s_blastFire, s_chaff;
+        private static Material s_material, s_blastMaterial;
 
         public static ParticleSystem Spray => Get(ref s_spray, "Bow spray", 2000, 1f, 1.7f, 0.75f, false);
+        /// <summary>기만체 은박(채프): 작은 반짝이가 아주 천천히 떨어진다(크기 그대로, 2026-11-09)</summary>
+        public static ParticleSystem Chaff => Get(ref s_chaff, "Decoy chaff", 1500, 1f, 0.9f, 0.04f, false);
         public static ParticleSystem Smoke => Get(ref s_smoke, "Funnel smoke", 2500, 1f, 3.4f, 0f, true);
         public static ParticleSystem WreckSmoke => Get(ref s_wreckSmoke, "Wreck smoke", 1200, 1f, 3.6f, 0f, true);
         public static ParticleSystem Fire => Get(ref s_fire, "Wreck fire", 900, 1f, 0.35f, -0.05f, false);
@@ -29,6 +32,24 @@ namespace Game.View
         public static ParticleSystem Sparks => Get(ref s_sparks, "Blast sparks", 800, 1f, 0.4f, 1f, false, stretched: true);
         /// <summary>폭발 순간 섬광(아주 짧고 크게)</summary>
         public static ParticleSystem Flash => Get(ref s_flash, "Blast flash", 120, 0.6f, 1.4f, 0f, false);
+        /// <summary>
+        /// 함체 명중 폭발 불덩이. 정점 알파가 디졸브 진행이라(1 = 막 터짐) 색 알파는 1로 준다.
+        /// 수명 동안 부풀며 노랑 → 주황 → 검붉게 식고, 얇은 곳부터 갈라져 사라진다. 재질이 없으면 null.
+        /// </summary>
+        public static ParticleSystem BlastFire
+        {
+            get
+            {
+                if (s_blastFire != null) return s_blastFire;
+                if (s_blastMaterial == null) s_blastMaterial = Resources.Load<Material>("Effects/MAT_BlastFire");
+                if (s_blastMaterial == null || !s_blastMaterial.shader.isSupported) return null;
+                var cool = new Gradient();
+                cool.SetKeys(
+                    new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(new Color(1f, 0.62f, 0.38f), 0.35f), new GradientColorKey(new Color(0.42f, 0.2f, 0.14f), 1f) },
+                    new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(0.82f, 0.3f), new GradientAlphaKey(0f, 1f) });
+                return Get(ref s_blastFire, "Blast fireball", 600, 0.8f, 1.55f, -0.04f, false, material: s_blastMaterial, gradient: cool);
+            }
+        }
 
         /// <summary>검증용: 지금 떠 있는 파티클 수.</summary>
         public static int Count(ParticleSystem ps) => ps != null ? ps.particleCount : 0;
@@ -36,6 +57,9 @@ namespace Game.View
         public static void Emit(ParticleSystem ps, Vector3 position, Vector3 velocity, float lifetime, float size, Color color)
         {
             if (ps == null) return;
+            if (ps == s_flash) color.a *= Game.Core.DisplaySettings.FlashScale;   // 번쩍임 줄이기(섬광 입자)
+            else if (ps != s_sparks && Random.value > Game.Core.DisplaySettings.DecorDensity) return;   // 장식 효과 품질(폭발 불똥·섬광은 그대로)
+            if (Game.Core.DisplaySettings.ThinSmoke && (ps == s_smoke || ps == s_wreckSmoke)) color.a *= 0.5f;   // 연기 옅게
             var p = new ParticleSystem.EmitParams
             {
                 position = position,
@@ -49,7 +73,8 @@ namespace Game.View
         }
 
         private static ParticleSystem Get(ref ParticleSystem cache, string name, int capacity,
-                                          float startScale, float endScale, float gravity, bool fadeIn, bool stretched = false)
+                                          float startScale, float endScale, float gravity, bool fadeIn, bool stretched = false,
+                                          Material material = null, Gradient gradient = null)
         {
             if (cache != null) return cache;
             if (s_root == null) s_root = new GameObject("Decor FX").transform;
@@ -81,7 +106,7 @@ namespace Game.View
                 fadeIn
                     ? new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, 0.12f), new GradientAlphaKey(0.6f, 0.55f), new GradientAlphaKey(0f, 1f) }
                     : new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(0.8f, 0.45f), new GradientAlphaKey(0f, 1f) });
-            color.color = fade;
+            color.color = gradient ?? fade;
 
             var size = ps.sizeOverLifetime;
             size.enabled = true;
@@ -99,7 +124,7 @@ namespace Game.View
             }
 
             var r = go.GetComponent<ParticleSystemRenderer>();
-            if (s_material != null) r.sharedMaterial = s_material;
+            if ((material ?? s_material) != null) r.sharedMaterial = material ?? s_material;
             r.renderMode = stretched ? ParticleSystemRenderMode.Stretch : ParticleSystemRenderMode.Billboard;
             if (stretched) { r.velocityScale = 0.06f; r.lengthScale = 1.2f; }
             r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;

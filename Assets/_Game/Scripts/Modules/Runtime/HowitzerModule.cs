@@ -12,6 +12,9 @@ namespace Game.Modules.Runtime
     ///   - 착탄까지 1.4~3초 — 표적이 지금 진로를 유지하면 있을 곳(착탄 시각 기준)을 겨눈다. 급선회하면 빗나간다.
     ///   - 최소 사거리가 있다(높은 탄도). 항공기·잠항 잠수함은 노리지 않는다(드러난 잠수함은 맞는다).
     ///   - 주변에 적이 많이 몰린 표적을 먼저 친다 — 고속정 무리에 강하고 단일 표적 화력은 76mm보다 약하다.
+    ///   - 강화(2026-10-11, UPG_Howitzer): 한 번에 쏘는 포탄 수가 1 → 2 → 3발(shellsByLevel). 같은 포신에서 shellSpacing초
+    ///     간격으로 이어 쏘고, 착탄점을 적 진행 방향 앞뒤(3발이면 삼각형)로 벌려 진로를 바꾼 적도 맞게 한다.
+    ///     탄은 한 번 쏠 때 1발만 쓴다. 강화 II는 사거리 +15%도 붙는다.
     /// </summary>
     public class HowitzerModule : ModuleRuntime, IAmmoUser
     {
@@ -36,6 +39,14 @@ namespace Game.Modules.Runtime
         [Tooltip("이 각도 안으로 포탑이 돌면 쏜다")]
         [SerializeField] private float aimTolerance = 6f;
 
+        [Header("Upgrade Volley")]
+        [Tooltip("강화 단계(0·1·2)별 한 번에 쏘는 포탄 수")]
+        [SerializeField] private int[] shellsByLevel = { 1, 2, 3 };
+        [Tooltip("여러 발일 때 이어 쏘는 간격(초)")]
+        [SerializeField] private float shellSpacing = 0.2f;
+        [Tooltip("여러 발일 때 착탄점을 조준점에서 벌리는 거리(m). 착탄 반경 4m와 겹치게")]
+        [SerializeField] private float volleySpread = 3.5f;
+
         [Header("Target Priority")]
         [SerializeField] private float clusterRadius = 6f;
         [SerializeField] private float clusterBonus = 0.8f;
@@ -49,12 +60,25 @@ namespace Game.Modules.Runtime
         private System.Predicate<Vector3> _inBand;
         private float _cooldown, _lastShotTime = -999f, _recoil;
         private Vector3 _barrelRest;
+        private readonly System.Collections.Generic.List<(float at, Vector3 impact, float flight)> _queued = new();
 
         public AmmoMagazine Ammo => _ammo;
         public bool IsEngaged => Time.time - _lastShotTime < 1.5f;
         public int Shots { get; private set; }
         public Vector3 LastImpact { get; private set; }
         public float BlastRadius => blastRadius;
+        /// <summary>지금 강화 단계에서 한 번에 쏘는 포탄 수.</summary>
+        public int ShellsPerVolley
+        {
+            get => ShellsAt(Instance != null ? Instance.UpgradeLevel : 0);
+        }
+        /// <summary>강화 단계(0·1·2)에서 한 번에 쏘는 포탄 수(카드 표시용, 설치 전 프리팹에서도 읽는다).</summary>
+        public int ShellsAt(int level)
+            => shellsByLevel == null || shellsByLevel.Length == 0 ? 1 : Mathf.Max(1, shellsByLevel[Mathf.Clamp(level, 0, shellsByLevel.Length - 1)]);
+        /// <summary>쏜 횟수(한 번에 여러 발이어도 1회).</summary>
+        public int Volleys { get; private set; }
+        /// <summary>마지막으로 쏜 한 번의 착탄점들(검사·표시용).</summary>
+        public System.Collections.Generic.List<Vector3> LastVolley { get; } = new();
 
         protected override void OnInitialized()
         {
@@ -72,6 +96,7 @@ namespace Game.Modules.Runtime
             _ammo.Tick(dt);
             if (_cooldown > 0f) _cooldown -= dt;
             Recoil(dt);
+            FireQueued();
             if (_targeting == null || shellPrefab == null) return;
 
             var target = _targeting.GetBest(transform.position, Stats.Range, TargetClass.Surface | TargetClass.Submarine, _score, _inBand);
@@ -84,27 +109,112 @@ namespace Game.Modules.Runtime
             if (!TurnTowards(impact, dt)) return;
             if (_cooldown > 0f || !_ammo.CanFire) return;
 
-            _ammo.Consume();
+            _ammo.Consume();   // 한 번에 여러 발이어도 탄은 1발
             _cooldown = Mathf.Max(0.5f, Stats.ReloadTime);
-            Fire(from, impact, flight);
+            Volleys++;
+            LastVolley.Clear();
+            int shells = ShellsPerVolley;
+            Vector3 along = target is EnemyController e && e.MoveVelocity.sqrMagnitude > 0.25f ? e.MoveVelocity : impact - from;
+            along.y = 0f;
+            along = along.sqrMagnitude > 1e-4f ? along.normalized : transform.forward;
+            Vector3 across = Vector3.Cross(Vector3.up, along);
+            for (int i = 0; i < shells; i++)
+            {
+                Vector3 p = impact + VolleyOffset(i, shells, along, across);
+                LastVolley.Add(p);
+                if (i == 0) Fire(from, p, flight);
+                else _queued.Add((Time.time + shellSpacing * i, p, flight));
+            }
         }
 
-        /// <summary>표적이 진로를 유지하면 탄이 떨어질 때 있을 곳(두 번 고쳐 잡는다).</summary>
+        /// <summary>착탄점 벌림: 2발 = 진행 방향 앞뒤, 3발 = 앞 하나 + 뒤 좌우 둘(삼각형). 1발 = 조준점 그대로.</summary>
+        private Vector3 VolleyOffset(int index, int count, Vector3 along, Vector3 across)
+        {
+            if (count <= 1) return Vector3.zero;
+            float r = volleySpread;
+            if (count == 2) return along * (index == 0 ? r * 0.5f : -r * 0.5f);
+            float angle = index * 360f / count * Mathf.Deg2Rad;   // 0 = 앞
+            return (along * Mathf.Cos(angle) + across * Mathf.Sin(angle)) * (r * 0.6f);
+        }
+
+        /// <summary>이어 쏘는 포탄. 착탄점은 처음 쏠 때 정한 그대로(같은 표적 둘레를 덮는다).</summary>
+        private void FireQueued()
+        {
+            for (int i = _queued.Count - 1; i >= 0; i--)
+            {
+                if (Time.time < _queued[i].at) continue;
+                var q = _queued[i];
+                _queued.RemoveAt(i);
+                Vector3 from = muzzle != null ? muzzle.position : transform.position;
+                Fire(from, q.impact, q.flight);
+            }
+        }
+
+        /// <summary>강화 외형(Visual_Level1~3)을 바꾼 뒤 새 포탑·포신·포구에 다시 연결한다.</summary>
+        public override void BindUpgradeVisual(Transform visualRoot)
+        {
+            var newTurret = FindVisualPart(visualRoot, "TurretPivot");
+            var newBarrel = FindVisualPart(visualRoot, "Barrel");
+            var newMuzzle = FindVisualPart(visualRoot, "Muzzle");
+            if (newTurret == null || newMuzzle == null)
+            {
+                Debug.LogError("[Howitzer] 강화 모델의 TurretPivot/Muzzle을 찾지 못했습니다.", this);
+                return;
+            }
+            if (barrel != null) barrel.localPosition = _barrelRest;   // 이전 외형의 반동을 되돌린다
+            if (turret != null) newTurret.rotation = turret.rotation;  // 겨누던 방향 유지
+            turret = newTurret;
+            barrel = newBarrel;
+            muzzle = newMuzzle;
+            _recoil = 0f;
+            if (barrel != null) _barrelRest = barrel.localPosition;
+        }
+
+        /// <summary>
+        /// 표적이 지금 조함(속력·선회율)을 유지하면 탄이 떨어질 때 있을 곳(2026-11-01).
+        ///   1) 수평 등속 포물선과 등속 표적이 만나는 시간을 정확히 푼다(Ballistics.SolveLateralIntercept — lib_fts 방식 참고).
+        ///   2) 표적이 돌고 있으면(초당 1.5° 넘게) 그 선회율을 유지한 원호 위 자리로 고쳐 잡는다(세 번).
+        /// 예전에는 직선 예측만 해서 플레이어 둘레를 도는 적에게 원 바깥으로 빗나갔다.
+        /// </summary>
         private Vector3 PredictImpact(ITargetable target, Vector3 from, out float flight)
         {
             Vector3 pos = target.Transform.position;
             Vector3 vel = target is EnemyController e ? e.MoveVelocity : Vector3.zero;
-            Vector3 aim = pos;
-            flight = minFlightTime;
-            for (int i = 0; i < 2; i++)
+            float speed = Mathf.Max(1f, horizontalSpeed);
+            Ballistics.SolveLateralIntercept(from, pos, vel, speed, minFlightTime, out var aim, out flight);
+            float yaw = TrackYawRate(target, vel, Time.deltaTime);
+            if (Mathf.Abs(yaw) > 1.5f && vel.sqrMagnitude > 0.25f)
             {
-                Vector3 d = aim - from;
-                d.y = 0f;
-                flight = Mathf.Max(minFlightTime, d.magnitude / Mathf.Max(1f, horizontalSpeed));
-                aim = pos + vel * flight;
+                for (int i = 0; i < 3; i++)
+                {
+                    aim = Ballistics.PredictTurning(pos, vel, yaw, flight);
+                    Vector3 d = aim - from; d.y = 0f;
+                    flight = Mathf.Max(minFlightTime, d.magnitude / speed);
+                }
+                aim = Ballistics.PredictTurning(pos, vel, yaw, flight);
             }
-            aim.y = 0f;
             return aim;
+        }
+
+        private ITargetable _track;
+        private Vector3 _trackVel;
+        private float _trackYaw;
+
+        /// <summary>검증용: 지금 표적의 선회율 추정(도/초).</summary>
+        public float TrackedYawRate => _trackYaw;
+
+        /// <summary>같은 표적의 속도 방향 변화로 선회율을 잰다(부드럽게, ±60°/s). 표적이 바뀌면 0부터.</summary>
+        private float TrackYawRate(ITargetable target, Vector3 vel, float dt)
+        {
+            vel.y = 0f;
+            if (!ReferenceEquals(target, _track)) { _track = target; _trackVel = vel; _trackYaw = 0f; return 0f; }
+            if (dt > 0f && vel.sqrMagnitude > 0.25f && _trackVel.sqrMagnitude > 0.25f)
+            {
+                float now = Mathf.Clamp(Vector3.SignedAngle(_trackVel, vel, Vector3.up) / dt, -60f, 60f);
+                _trackYaw = Mathf.Lerp(_trackYaw, now, 1f - Mathf.Exp(-dt * 4f));
+            }
+            _trackVel = vel;
+            return _trackYaw;
         }
 
         private void Fire(Vector3 from, Vector3 impact, float flight)
@@ -121,7 +231,7 @@ namespace Game.Modules.Runtime
             _lastShotTime = Time.time;
             _recoil = recoilDistance;
             if (muzzleFlash != null) PooledEffect.Spawn(muzzleFlash, from);
-            AudioManager.Play(Game.Data.SfxId.NavalGunShot, from, 1f, 0.42f);   // 76mm보다 낮고 무거운 포성
+            AudioManager.Play(Game.Data.SfxId.NavalGunShot, from, 1f, 0.75f);   // 76mm 클립을 낮춰 더 무거운 포성
             CombatLog.Add("곡사포", $"{LogName} 발사 — 착탄 {flight:0.0}초 뒤");
         }
 

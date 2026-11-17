@@ -80,7 +80,7 @@ namespace Game.Modules
             new() { Stat = RunStat.Defense, Name = "방어력", Scope = "함선", Effect = "받는 피해가 줄어든다", Values = new[] { 0.03f, 0.06f, 0.12f }, Weight = 0.9f, InverseDisplay = true },
             new() { Stat = RunStat.Repair, Name = "수리 효율", Scope = "손상 통제반", Effect = "선체·모듈 수리 속도가 빨라진다", Values = new[] { 0.10f, 0.20f, 0.40f }, Weight = 0.7f, RequiresAny = new[] { ModuleType.RepairBay } },
             new() { Stat = RunStat.Detection, Name = "탐지 거리", Scope = "레이더·소나", Effect = "탐지 거리가 늘어난다", Values = new[] { 0.08f, 0.16f, 0.32f }, Weight = 0.6f },
-            new() { Stat = RunStat.GunDamage, Name = "함포계 공격력", Scope = "기관포 · 노봉 · 76mm 함포", Effect = "포탄 무장의 한 발 피해가 크게 늘어난다", Values = new[] { 0.08f, 0.16f, 0.32f }, Weight = 0.8f, RequiresAny = GunTypes },
+            new() { Stat = RunStat.GunDamage, Name = "함포계 공격력", Scope = "기관포 · 40mm 쌍열포 · 76mm 함포", Effect = "포탄 무장의 한 발 피해가 크게 늘어난다", Values = new[] { 0.08f, 0.16f, 0.32f }, Weight = 0.8f, RequiresAny = GunTypes },
             new() { Stat = RunStat.MissileDamage, Name = "미사일계 공격력", Scope = "VLS · 유도로켓", Effect = "미사일 무장의 한 발 피해가 크게 늘어난다", Values = new[] { 0.08f, 0.16f, 0.32f }, Weight = 0.8f, RequiresAny = MissileTypes },
             new() { Stat = RunStat.AirDefenseRate, Name = "방공계 연사력", Scope = "CIWS · 함대공", Effect = "방공 무장의 발사 간격이 짧아진다", Values = new[] { 0.08f, 0.16f, 0.32f }, Weight = 0.7f, RequiresAny = AirDefenseTypes },
         };
@@ -102,8 +102,35 @@ namespace Game.Modules
 
         // ------------------------------------------------------------ 누적 값
 
-        /// <summary>누적 보너스 비율(0.15 = +15%).</summary>
-        public static float Get(RunStat stat) => Bonus[(int)stat];
+        /// <summary>
+        /// 누적 보너스 비율(0.15 = +15%) = 이번 판 성장 카드 + 해군 기술연구소 연구(MetaResearch — 판 밖의 기본 보너스, 2026-10-28).
+        /// </summary>
+        public static float Get(RunStat stat) => Bonus[(int)stat] + MetaResearch.Bonus(stat) + ((int)stat == s_previewStat ? s_previewAdd : 0f);
+
+        // 카드 미리보기(2026-11-14): 이 카드를 고르면 실제 수치가 어떻게 바뀌는지 같은 계산식(ModuleUpgrades.Compute 등)으로 구한다.
+        // 범위 안에서만 Get이 이 값을 더한다 — Changed를 부르지 않고 누적·기록도 건드리지 않는다.
+        private static int s_previewStat = -1;
+        private static float s_previewAdd;
+
+        /// <summary>using 범위 안에서 stat 보너스를 add만큼 더한 것처럼 계산한다(카드 표시용).</summary>
+        public static PreviewScope Preview(RunStat stat, float add)
+        {
+            s_previewStat = (int)stat;
+            s_previewAdd = add;
+            return default;
+        }
+
+        public readonly struct PreviewScope : IDisposable
+        {
+            public void Dispose()
+            {
+                s_previewStat = -1;
+                s_previewAdd = 0f;
+            }
+        }
+
+        /// <summary>이번 판 성장 카드만의 누적(연구 제외).</summary>
+        public static float CardBonus(RunStat stat) => Bonus[(int)stat];
 
         public static bool Any
         {
@@ -133,6 +160,8 @@ namespace Game.Modules
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetOnPlay()
         {
+            s_previewStat = -1;
+            s_previewAdd = 0f;
             Array.Clear(Bonus, 0, Bonus.Length);
             History.Clear();
             Changed = null;
@@ -144,6 +173,20 @@ namespace Game.Modules
             // 새 게임: 씬이 처음부터 다시 열리면(Single) 성장도 0부터
             SceneManager.sceneLoaded -= OnSceneLoaded;
             SceneManager.sceneLoaded += OnSceneLoaded;
+            // 연구·규칙 집합(현대 / WWII 프로필)이 바뀌면 연구 보너스를 다시 읽고 모듈·선체·탐지를 다시 계산한다
+            MetaResearch.Changed -= OnResearchChanged;
+            MetaResearch.Changed += OnResearchChanged;
+            MetaWorkshop.Changed -= OnResearchChanged;   // 정비창 함교 강화 — 함교 최종 수치를 다시 계산
+            MetaWorkshop.Changed += OnResearchChanged;
+            Game.Core.Ruleset.Changed -= OnRulesetChanged;
+            Game.Core.Ruleset.Changed += OnRulesetChanged;
+        }
+
+        private static void OnResearchChanged() => Changed?.Invoke();
+        private static void OnRulesetChanged()
+        {
+            MetaResearch.Invalidate();
+            Changed?.Invoke();
         }
 
         private static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -157,7 +200,8 @@ namespace Game.Modules
         public static bool IsWeapon(ModuleType t) => t is ModuleType.Autocannon or ModuleType.NavalGun or ModuleType.Vls
             or ModuleType.GuidedRocket or ModuleType.Ciws or ModuleType.SamLauncher or ModuleType.AswLauncher
             or ModuleType.TorpedoTube or ModuleType.Howitzer or ModuleType.RamBow or ModuleType.MineRail
-            or ModuleType.Nobong;
+            or ModuleType.Nobong or ModuleType.Ww2DualPurposeGun or ModuleType.Ww2QuadAa or ModuleType.Ww2BroadsideTorpedo
+            or ModuleType.Ww2HeavyGun;
 
         /// <summary>이 종류의 무장이 받는 공격력 배율.</summary>
         public static float DamageMultiplier(ModuleType t)
@@ -178,7 +222,8 @@ namespace Game.Modules
             return 1f + b;
         }
 
-        public static float MagazineMultiplier(ModuleType t) => IsWeapon(t) ? 1f + Get(RunStat.Magazine) : 1f;
+        public static float MagazineMultiplier(ModuleType t)
+            => IsWeapon(t) && t != ModuleType.Ww2BroadsideTorpedo ? 1f + Get(RunStat.Magazine) : 1f;   // 어뢰 발사관 수는 장탄수 카드로 늘지 않는다(WWII 패치 A 6장)
         public static float RangeMultiplier(ModuleType t) => IsWeapon(t) ? 1f + Get(RunStat.Range) : 1f;
         public static float RepairMultiplier => 1f + Get(RunStat.Repair);
         public static float DetectionMultiplier => 1f + Get(RunStat.Detection);

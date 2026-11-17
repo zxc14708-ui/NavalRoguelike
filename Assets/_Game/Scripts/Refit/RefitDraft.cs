@@ -35,8 +35,9 @@ namespace Game.Refit
         /// <summary>3번 자유 자리에서 편대 배치·편대 강화 카드의 몫(설치 0.30 · 성장 0.40 · 강화와 함께 가중 추첨).</summary>
         public const float FleetDeployWeight = 0.22f, FleetUpgradeWeight = 0.30f;
 
+        /// <summary>편대 카드의 대상. 편대를 쓰지 않는 규칙 집합(WWII 패치 B)이면 없음 — 편대 카드가 나오지 않는다.</summary>
         private static TaskForceEscortFormation Fleet
-            => GameManager.Instance != null && GameManager.Instance.Player != null
+            => ContentRegistry.AllowsEscorts && GameManager.Instance != null && GameManager.Instance.Player != null
                 ? GameManager.Instance.Player.GetComponent<TaskForceEscortFormation>() : null;
 
         /// <summary>무장 강화 카드가 나올 몫(성장 슬롯 안). 레벨 1 = 30%, 레벨당 +4%p, 최대 65%.</summary>
@@ -77,6 +78,15 @@ namespace Game.Refit
             }
 
             EnsureAntiSub(result);
+            if (ForceAntiSubOnce && result.Count > 0)
+            {
+                // 첫 출격 훈련: 다음 정비에 대잠 블록 카드를 한 번 넣는다(이미 있으면 그대로)
+                ForceAntiSubOnce = false;
+                bool has = false;
+                foreach (var c in result) if (c.Kind == RefitCardKind.Install && c.Module != null && IsAntiSub(c.Module.Type)) has = true;
+                var def = has ? null : PickAntiSub();
+                if (def != null) result[0] = RefitCard.Install(def);
+            }
             return result;
         }
 
@@ -141,7 +151,7 @@ namespace Game.Refit
         private RefitCard DrawInstall(HashSet<ModuleDefinition> used)
         {
             BuildInstallPool(used);
-            var def = PickWeighted(_installPool, d => Mathf.Max(0.01f, d.Weight));
+            var def = PickWeighted(_installPool, d => Mathf.Max(0.01f, d.Weight * Game.World.SeaRegion.CardWeight(d.Id)));   // 해역별 가중치(점검 K04)
             return def != null ? RefitCard.Install(def) : null;
         }
 
@@ -154,6 +164,7 @@ namespace Game.Refit
             {
                 if (def == null || used.Contains(def)) continue;
                 if (grid != null && !grid.HasAnyValidPlacement(def)) continue;
+                if (BridgeCovers(def, grid)) continue;               // 함교가 이미 같은 효과를 낸다(함급 패시브, 2026-10-23)
                 _installPool.Add(def);
             }
             if (_installPool.Count > 0) return;
@@ -162,6 +173,8 @@ namespace Game.Refit
             {
                 if (def == null || used.Contains(def)) continue;
                 if (def.MaxCount > 0 && grid != null && grid.CountOf(def) >= def.MaxCount) continue;
+                if (grid != null && grid.NeverFits(def)) continue;   // 함종이 못 다는 블록(WWII 마운트 등급·탑재 예산, 패치 C2)
+                if (BridgeCovers(def, grid)) continue;               // 함교가 이미 같은 효과를 낸다(함급 패시브, 2026-10-23)
                 _installPool.Add(def);
             }
         }
@@ -176,7 +189,15 @@ namespace Game.Refit
             var definitions = new List<ModuleDefinition>();
             void Add(ModuleDefinition def)
             {
-                if (def != null && def.Weight > 0f && !definitions.Contains(def)) definitions.Add(def);
+                if (def != null && def.Weight > 0f && !definitions.Contains(def) && ContentRegistry.Allows(def)) definitions.Add(def);
+            }
+
+            // WWII(패치 B): 규칙 집합 목록의 블록만 — 현대 카드 풀·Resources/Modules는 보지 않는다
+            var ruleset = Ruleset.Active;
+            if (ruleset != null)
+            {
+                foreach (var def in ruleset.Modules) Add(def);
+                return definitions;
             }
 
             if (progression != null)
@@ -231,6 +252,7 @@ namespace Game.Refit
         /// <summary>계열·수리 카드는 그 장비가 있을 때만, 장탄수는 탄약을 쓰는 무장이 있을 때만 나온다.</summary>
         private bool StatEligible(RunStatDefinition def)
         {
+            if (!ContentRegistry.AllowsStat(def.Stat)) return false;   // 규칙 집합에 없는 능력(WWII: 미사일계·방공계 등)
             if (grid == null) return true;
             if (def.RequiresAny != null)
             {
@@ -259,16 +281,90 @@ namespace Game.Refit
         private void EnsureAntiSub(List<RefitCard> cards)
         {
             if (cards.Count == 0 || GameManager.Instance == null || GameManager.Instance.ElapsedTime < 180f || HasAntiSubCapability()) return;
+            if (ContentRegistry.Filtering) return;   // WWII 시험 전투에는 잠수함이 없다(대잠은 패치 C)
             if (cards[0].Kind != RefitCardKind.Install) return;
-            foreach (var def in config.Pool)
+            foreach (var c in cards)
+                if (c.Kind == RefitCardKind.Install && c.Module != null && IsAntiSub(c.Module.Type)) return;   // 이미 대잠 카드가 있다
+            var def = PickAntiSub();
+            if (def != null) cards[0] = RefitCard.Install(def);
+        }
+
+        /// <summary>다음 정비 카드에 대잠 블록을 한 번 넣는다(첫 출격 훈련).</summary>
+        public static bool ForceAntiSubOnce;
+
+        /// <summary>카드 다시 뽑기(2026-10-11 점검 K02): 한 판에 이만큼. 보스를 격침할 때마다 1회 더(최대 RerollsPerRun).</summary>
+        public const int BaseRerolls = 3;
+        /// <summary>한 판의 다시 뽑기: 기본 3 + 해군 기술연구소 "작전 기획"(2026-10-28, 최대 +2).</summary>
+        public static int RerollsPerRun => BaseRerolls + Game.Modules.MetaResearch.ExtraRerolls;
+        // 초기값에 RerollsPerRun(연구 → 프로필 파일)을 쓰면 안 된다: 정적 생성자가 MonoBehaviour 생성 중(씬 불러오기)에 돌면
+        // Application.persistentDataPath가 예외를 던지고 이 형식 전체가 그 실행 동안 망가져, 첫 레벨업에서 정비 화면이 안 열리고
+        // 게임이 정비 상태(시간 정지)로 멈췄다(2026-10-31). 한 판 몫은 씬을 연 뒤 OnSceneLoaded가 채운다.
+        public static int RerollsLeft { get; private set; } = BaseRerolls;
+        public static bool TryUseReroll() { if (RerollsLeft <= 0) return false; RerollsLeft--; return true; }
+        public static void GrantReroll() => RerollsLeft = Mathf.Min(RerollsPerRun, RerollsLeft + 1);
+        /// <summary>저장 불러오기용.</summary>
+        public static void SetRerolls(int left) => RerollsLeft = Mathf.Clamp(left, 0, RerollsPerRun);
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() { ForceAntiSubOnce = false; RerollsLeft = BaseRerolls; }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]
+        private static void HookNewRun()
+        {
+            // 새 판(씬을 처음부터 다시 연다): 다시 뽑기를 한 판 몫(연구 포함)으로 — 이어하기는 그 뒤 RunSave가 저장된 값으로 덮는다
+            UnityEngine.SceneManagement.SceneManager.sceneLoaded -= OnSceneLoaded;
+            UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnSceneLoaded;
+        }
+
+        private static void OnSceneLoaded(UnityEngine.SceneManagement.Scene scene, UnityEngine.SceneManagement.LoadSceneMode mode)
+        {
+            if (mode == UnityEngine.SceneManagement.LoadSceneMode.Single) RerollsLeft = RerollsPerRun;
+        }
+
+        private static readonly ModuleType[] AntiSubOrder = { ModuleType.AswLauncher, ModuleType.TorpedoTube, ModuleType.HelicopterDeck };
+        private static bool IsAntiSub(ModuleType t) => System.Array.IndexOf(AntiSubOrder, t) >= 0;
+
+        /// <summary>
+        /// 함교가 이미 같은 효과를 내는 함급 블록인가(2026-10-23 함급 패시브 — 통신 중계·흡기·사격통제·재장전 구획).
+        /// 효과는 겹치지 않고(큰 값 하나) 블록은 1개 한도라, 함교가 그만큼 내면 카드로 낼 까닭이 없다. 다른 함급은 그대로 얻는다.
+        /// </summary>
+        public static bool BridgeCovers(ModuleDefinition def, ShipGrid grid)
+        {
+            if (def == null || grid == null) return false;
+            foreach (var m in grid.Modules)
             {
-                if (def == null || def.Type != ModuleType.AswLauncher) continue;
-                bool dup = false;
-                foreach (var c in cards) if (c.Kind == RefitCardKind.Install && c.Module == def) dup = true;
-                if (dup) return;
-                cards[0] = RefitCard.Install(def);
-                return;
+                if (m?.Definition == null || m.Definition.Type != ModuleType.Bridge) continue;
+                var b = m.Definition.Stats; var d = def.Stats;
+                return def.Type switch
+                {
+                    ModuleType.FleetRelay => b.EscortFireRateBonus > 0f && b.EscortFireRateBonus >= d.EscortFireRateBonus,
+                    ModuleType.TurboIntake => b.SpeedBonus > 0f && b.SpeedBonus >= d.SpeedBonus && b.AccelerationBonus >= d.AccelerationBonus,
+                    ModuleType.FireControlArray => b.GuidedRangeBonus > 0f && b.GuidedRangeBonus >= d.GuidedRangeBonus,
+                    ModuleType.MissileLogistics => b.MissileReloadReduction > 0f && b.MissileReloadReduction >= d.MissileReloadReduction,
+                    _ => false,
+                };
             }
+            return false;
+        }
+
+        /// <summary>
+        /// 내밀 대잠 블록(2026-10-11 점검 B04): 지금 놓을 자리가 있는 것을 폭뢰 → 경어뢰 → 헬기갑판 순으로.
+        /// 셋 다 자리가 없으면 개수 제한에 걸리지 않은 것(정비 화면에서 다른 블록을 옮기거나 철거해 자리를 만들면 놓인다).
+        /// 개수 제한까지 다 찼으면(파괴된 대잠 블록이 자리를 차지 — 정비에서 수리된다) 억지로 바꾸지 않는다.
+        /// </summary>
+        private ModuleDefinition PickAntiSub()
+        {
+            var definitions = CollectInstallDefinitions(config);
+            ModuleDefinition fallback = null;
+            foreach (var type in AntiSubOrder)
+                foreach (var def in definitions)
+                {
+                    if (def == null || def.Type != type) continue;
+                    if (def.MaxCount > 0 && grid != null && grid.CountOf(def) >= def.MaxCount) continue;
+                    if (grid == null || grid.HasAnyValidPlacement(def)) return def;
+                    fallback ??= def;
+                }
+            return fallback;
         }
 
         private bool HasAntiSubCapability()

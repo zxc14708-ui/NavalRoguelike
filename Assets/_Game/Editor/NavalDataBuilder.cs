@@ -15,6 +15,11 @@ namespace Game.EditorTools
     /// </summary>
     public static class NavalDataBuilder
     {
+        /// <summary>손상통제반 설명(2026-10-11 손상통제 개편 — NavalStarterArmament도 쓴다).</summary>
+        public const string RepairBayDescription =
+            "주변 모듈을 서서히 수리하고, 방수·소화로 받는 피해를 10% 줄인다. 하나마다 함교의 선체 자동 회복 상한(기본 50%)을 " +
+            "약 17%p, 속도를 50% 올리고 응급 수리[R]를 1회 늘린다(3개면 상한 100%). 파괴된 모듈은 복구하지 못한다. 최대 3개.";
+
         public class Result
         {
             public ShipConfig Ship;
@@ -284,9 +289,7 @@ namespace Game.EditorTools
                     Set(so, "stats.HelicopterSpeed", 18f);
                 });
 
-            r.RepairBay = Module("mod_repairbay", "손상 통제반",
-                "방수·소화로 받는 피해를 10% 줄이고, 선체와 손상된 모듈을 서서히 수리한다. " +
-                "파괴된 모듈은 복구하지 못한다. 최대 3개.",
+            r.RepairBay = Module("mod_repairbay", "손상 통제반", RepairBayDescription,
                 ModuleType.RepairBay, 1, 1, true, PlacementZone.Anywhere,
                 hp: 30f, Rarity.Uncommon, 1.3f, p.RepairBay, modDir, so =>
                 {

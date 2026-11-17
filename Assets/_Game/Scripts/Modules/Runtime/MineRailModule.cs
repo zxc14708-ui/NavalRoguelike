@@ -72,7 +72,7 @@ namespace Game.Modules.Runtime
             Drops++;
             _lastDrop = Time.time;
             _cooldown = Mathf.Max(0.5f, Stats.ReloadTime);
-            AudioManager.Play(Game.Data.SfxId.EscortTorpedoLaunch, transform.position, 0.6f, 0.5f);   // 레일을 굴러 떨어지는 소리
+            AudioManager.Play(Game.Data.SfxId.DepthDrop, transform.position, 1f, 0.85f);   // 레일을 굴러 떨어지는 소리
             CombatLog.Add("기뢰", $"{LogName} 기뢰 투하");
         }
 

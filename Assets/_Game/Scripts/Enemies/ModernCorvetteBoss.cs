@@ -23,9 +23,29 @@ namespace Game.Enemies
     ///     어뢰 2발 — 하나는 지금 침로·속력의 만나는 점, 하나는 그보다 앞쪽. 수상함 어뢰라 소나 없이도 보인다(수면 항적).
     ///   - 체력 50% 이하: 공격 간격 ×0.75, 거리 순환도 빨라지고, 어뢰 뒤에 함포 예고 사격을 이어 쏜다. 연기(75%부터)·화재(50%부터).
     /// 연막 안이거나 섬 뒤면 쏘지 않는다. 정찰기가 있으면 재장전이 빨라진다(다른 적과 같다).
+    /// 부위 파괴(2026-11-01, <see cref="BossParts"/>): 선수·선미 함포(각 최대 체력 13%), 좌·우현 미사일 발사대(각 12%), 좌·우현 어뢰 발사관(각 10%).
+    ///   함포가 하나 부서지면 남은 포만 쏘고, 둘 다면 함포 예고 사격이 없다. 발사대·발사관은 그 현측의 미사일·어뢰가 없어진다.
     /// </summary>
-    public class ModernCorvetteBoss : EnemyController
+    public class ModernCorvetteBoss : EnemyController, IBossTelegraph, IBossParts
     {
+        // ---- 보스 학습(점검 K05): 거리에 따라 쓸 공격이 정해진다 — 그중 가장 먼저 준비되는 것.
+        public string PhaseName => Hurt ? "화재 — 공격이 빨라지고 어뢰 뒤 함포" : "거리 순환 — 원거리 미사일 · 중거리 함포 · 근거리 어뢰";
+        public float[] PhaseThresholds => new[] { hurtAt };
+        public (string name, float seconds) NextAttack
+        {
+            get
+            {
+                if (Player == null) return (null, 0f);
+                float d = Vector3.Distance(transform.position, Player.position);
+                (string, float) best = (null, float.MaxValue);
+                void Consider(string n, float t, bool usable) { if (usable && t < best.Item2) best = (n, Mathf.Max(0f, t)); }
+                Consider("현측 어뢰 2발", _torpedoTimer, d <= torpedoRange && (TorpedoSideAlive(false) || TorpedoSideAlive(true)));
+                Consider("함포 예고 사격", _gunTimer, d >= gunMinRange && d <= gunMaxRange && GunsLeft);
+                Consider("미사일 2발", _missileTimer, d >= missileMinRange && d <= missileMaxRange && (MissileSideAlive(false) || MissileSideAlive(true)));
+                return best.Item1 != null ? best : (null, 0f);
+            }
+        }
+
         [Header("Range cycle (원거리 → 중거리 → 근거리)")]
         [SerializeField] private float[] cycleRanges = { 44f, 30f, 19f };
         [SerializeField] private float[] cycleSeconds = { 11f, 10f, 9f };
@@ -78,8 +98,16 @@ namespace Game.Enemies
 
         private readonly WeaponController _bowGun = new();
         private readonly WeaponController _aftGun = new();
+        private readonly BossParts _parts = new();
+        private BossParts.Part _bowPart, _aftPart, _portMissilePart, _stbdMissilePart, _portTorpedoPart, _stbdTorpedoPart;
         private ShipController _playerShip;
         private Collider _playerHull;
+
+        /// <summary>검증용: 부위 목록.</summary>
+        public BossParts Parts => _parts;
+        private bool GunsLeft => !_parts.IsDestroyed(_bowPart) || !_parts.IsDestroyed(_aftPart);
+        private bool MissileSideAlive(bool starboard) => !_parts.IsDestroyed(starboard ? _stbdMissilePart : _portMissilePart);
+        private bool TorpedoSideAlive(bool starboard) => !_parts.IsDestroyed(starboard ? _stbdTorpedoPart : _portTorpedoPart);
         private MuzzleBurstVfx _muzzleFx;
         private Coroutine _attack;
         private float _missileTimer, _gunTimer, _torpedoTimer, _cycleTimer;
@@ -107,6 +135,12 @@ namespace Game.Enemies
             public readonly List<Renderer> Lamps = new();
         }
 
+        /// <summary>검증용: 시작한 공격 수(어뢰 · 함포 · 미사일).</summary>
+        public int DevTorpedoAttacks { get; private set; }
+        public int DevGunAttacks { get; private set; }
+        public int DevMissileAttacks { get; private set; }
+        public int DevAttacks => DevTorpedoAttacks + DevGunAttacks + DevMissileAttacks;
+
         /// <summary>경고 표시용: 어뢰 사격 제원을 정하고 발사관 등이 깜빡이는 중.</summary>
         public bool IsPreparingTorpedo => _preparing;
 
@@ -128,6 +162,7 @@ namespace Game.Enemies
             _torpedoTimer = 5f;
             _cycle = 0;
             _missileSalvos = 0;
+            DevTorpedoAttacks = DevGunAttacks = DevMissileAttacks = 0;
             _cycleTimer = cycleSeconds.Length > 0 ? cycleSeconds[0] : 10f;
             _damageStage = 0;
             _smokeDebt = _fireDebt = 0f;
@@ -136,6 +171,7 @@ namespace Game.Enemies
             _pending.Clear();
 
             BindModel();
+            BindParts(def != null ? def.MaxHp : 1500f);
             _muzzleFx ??= GetComponent<MuzzleBurstVfx>() ?? gameObject.AddComponent<MuzzleBurstVfx>();
             SetLamps(null, 0f);
             GameEvents.RaiseBossPhaseChanged("현대화 초계함 출현 — 원거리 미사일 · 중거리 함포 · 근거리 어뢰");
@@ -211,8 +247,31 @@ namespace Game.Enemies
             _aftFire = Find("AftFirePoint");
         }
 
+        /// <summary>부위: 함포 둘 · 미사일 발사대 둘(현측별 첫 발사점과 그 부모) · 어뢰 발사관 둘(피벗).</summary>
+        private void BindParts(float maxHp)
+        {
+            _parts.Clear();
+            _bowPart = _parts.Add("선수 함포", "선수 포 사격 중지", _bowTurret, 2.6f, maxHp * 0.13f, _bowTurret);
+            _aftPart = _parts.Add("선미 함포", "선미 포 사격 중지", _aftTurret, 2.6f, maxHp * 0.13f, _aftTurret);
+            Transform MissileSocket(bool starboard)
+            {
+                if (missileLaunchPoints == null) return null;
+                foreach (var t in missileLaunchPoints)
+                    if (t != null && (transform.InverseTransformPoint(t.position).x >= 0f) == starboard) return t;
+                return null;
+            }
+            var port = MissileSocket(false); var stbd = MissileSocket(true);
+            _portMissilePart = _parts.Add("좌현 미사일 발사대", "좌현 미사일 중지", port, 2.4f, maxHp * 0.12f, port != null ? port.parent : null);
+            _stbdMissilePart = _parts.Add("우현 미사일 발사대", "우현 미사일 중지", stbd, 2.4f, maxHp * 0.12f, stbd != null ? stbd.parent : null);
+            var portTorp = _launchers.Find(l => l.Torpedo && !l.Starboard);
+            var stbdTorp = _launchers.Find(l => l.Torpedo && l.Starboard);
+            _portTorpedoPart = _parts.Add("좌현 어뢰 발사관", "좌현 어뢰 중지", portTorp?.Pivot, 2.2f, maxHp * 0.10f, portTorp?.Pivot);
+            _stbdTorpedoPart = _parts.Add("우현 어뢰 발사관", "우현 어뢰 중지", stbdTorp?.Pivot, 2.2f, maxHp * 0.10f, stbdTorp?.Pivot);
+        }
+
         protected override void UpdateBehaviour(float dt)
         {
+            _parts.Tick(dt);
             float distance = Vector3.Distance(transform.position, Player.position);
 
             // 거리 순환: 원거리 → 중거리 → 근거리. 다친 뒤엔 더 빨리 돈다.
@@ -243,20 +302,24 @@ namespace Game.Enemies
             if (_attack != null || PlayerConcealed || PlayerBehindIsland) return;
 
             // 가까운 거리의 공격부터
-            if (_torpedoTimer <= 0f && distance <= torpedoRange && torpedoPrefab != null && PlayerAbeam(out bool starboard))
+            if (_torpedoTimer <= 0f && distance <= torpedoRange && torpedoPrefab != null && PlayerAbeam(out bool starboard) && TorpedoSideAlive(starboard))
             {
                 _torpedoTimer = torpedoInterval * IntervalScale;
                 _attack = StartCoroutine(TorpedoAttack(starboard));
+                DevTorpedoAttacks++;
             }
-            else if (_gunTimer <= 0f && distance >= gunMinRange && distance <= gunMaxRange && shellPrefab != null)
+            else if (_gunTimer <= 0f && distance >= gunMinRange && distance <= gunMaxRange && shellPrefab != null && GunsLeft)
             {
                 _gunTimer = gunInterval * IntervalScale;
                 _attack = StartCoroutine(GunVolley());
+                DevGunAttacks++;
             }
-            else if (_missileTimer <= 0f && distance >= missileMinRange && distance <= missileMaxRange && Definition.MissilePrefab != null)
+            else if (_missileTimer <= 0f && distance >= missileMinRange && distance <= missileMaxRange && Definition.MissilePrefab != null
+                     && MissileSideAlive(transform.InverseTransformPoint(Player.position).x >= 0f))
             {
                 _missileTimer = missileInterval * IntervalScale;
                 _attack = StartCoroutine(MissileSalvo());
+                DevMissileAttacks++;
             }
         }
 
@@ -313,8 +376,8 @@ namespace Game.Enemies
             {
                 if (!IsAlive || Player == null || PlayerConcealed || PlayerBehindIsland) yield break;
                 Vector3 target = Player.position;
-                bool bowBears = _bowGun.Muzzle != null && _bowGun.IsInFireArc(target);
-                bool aftBears = _aftGun.Muzzle != null && _aftGun.IsInFireArc(target);
+                bool bowBears = _bowGun.Muzzle != null && !_parts.IsDestroyed(_bowPart) && _bowGun.IsInFireArc(target);
+                bool aftBears = _aftGun.Muzzle != null && !_parts.IsDestroyed(_aftPart) && _aftGun.IsInFireArc(target);
                 if (bowBears || aftBears)
                 {
                     var gun = aftBears && (!bowBears || _useAftNext) ? _aftGun : _bowGun;
@@ -359,7 +422,7 @@ namespace Game.Enemies
             _pending.Add((impact, Time.time + shellFlightTime));
             Vector3 dir = (impact + Vector3.up * 6f - muzzle.position).normalized;
             _muzzleFx.Emit(muzzle.position, dir, MuzzleBurstVfx.Style.NavalGun, gunFlashMaterialSource, true);
-            AudioManager.Play(SfxId.NavalGunShot, muzzle.position, 0.85f, 0.95f);
+            AudioManager.Play(SfxId.EnemyGunShot, muzzle.position, 0.85f, 1f);
         }
 
         // ------------------------------------------------------------ 근거리: 측면 어뢰
@@ -493,6 +556,7 @@ namespace Game.Enemies
         {
             base.TakeDamage(info);
             if (!IsAlive) return;
+            _parts.Hit(info, this);
             int stage = HpFraction <= 0.25f ? 3 : HpFraction <= hurtAt ? 2 : HpFraction <= 0.75f ? 1 : 0;
             if (stage <= _damageStage) return;
             _damageStage = stage;
@@ -534,6 +598,7 @@ namespace Game.Enemies
 
         public override void OnDespawned()
         {
+            _parts.Clear();
             if (_attack != null) StopCoroutine(_attack);
             _attack = null;
             _preparing = false;

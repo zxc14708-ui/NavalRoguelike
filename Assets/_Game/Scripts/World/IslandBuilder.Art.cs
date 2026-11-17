@@ -163,7 +163,7 @@ namespace Game.World
             var art = root.GetComponentInChildren<EnvironmentArt>();
             float scale = art != null && art.island ? art.transform.localScale.x : 1f;
             bool hasArt = art != null && art.island;
-            float Rim(float a) => hasArt ? art.RimAt(a) * scale : info.Radius * 0.92f;
+            float Rim(float a) => hasArt ? art.RimAt(a) * scale : info.ShoreAt != null ? info.ShoreAt(a) * 0.92f : info.Radius * 0.92f;
             float Angle(double t) => (float)t * Mathf.PI * 2f;
             Physics.SyncTransforms();
             float reach = info.Radius;

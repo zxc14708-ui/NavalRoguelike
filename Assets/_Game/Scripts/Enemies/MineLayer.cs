@@ -95,7 +95,7 @@ namespace Game.Enemies
             _mines.Add(mine);
             s_allMines.Add(mine);
             MinesLaid++;
-            AudioManager.Play(Game.Data.SfxId.HullImpact, p, 0.35f, 0.6f);
+            AudioManager.Play(Game.Data.SfxId.DepthDrop, p, 0.8f, 0.85f);
         }
     }
 }

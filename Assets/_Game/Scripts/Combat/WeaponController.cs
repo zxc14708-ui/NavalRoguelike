@@ -56,7 +56,12 @@ namespace Game.Combat
         }
 
         public void SetFireArc(FireArc arc) => _arc = arc;
+
+        /// <summary>고각 한도(도). 높은 곳에서 가까운 적을 내려다 쏘는 무기(함교 지붕 기관총)가 더 숙인다.</summary>
+        public void SetElevationLimits(float min, float max) { minElevation = min; maxElevation = max; }
         public bool IsReady => _cooldown <= 0f;
+        /// <summary>다음 발사까지 남은 초(0이면 준비).</summary>
+        public float CooldownLeft => Mathf.Max(0f, _cooldown);
 
         /// <summary>탄약고 근접 보너스 등 외부 요인을 반영한다. 1.0 = 보정 없음.</summary>
         public void SetReloadMultiplier(float m) => _reloadMultiplier = Mathf.Max(0.1f, m);
@@ -141,7 +146,26 @@ namespace Game.Combat
                 ? turret.parent.InverseTransformDirection(barrel)
                 : barrel;
             _barrelInTurret = turret.InverseTransformDirection(barrel);
-            if (elevationPivot != null) _barrelInElevation = elevationPivot.InverseTransformDirection(barrel);
+            if (elevationPivot != null)
+            {
+                // 포신을 든 채 저장된 모델: 수평으로 눕힌 방향이 아니라 실제 "고각부 → 포구" 방향을 포신 축으로 쓴다.
+                Vector3 trueBarrel = muzzle != null ? muzzle.position - elevationPivot.position : Vector3.zero;
+                bool raised = _restPoseRaised && trueBarrel.sqrMagnitude > 0.0001f;
+                _barrelInElevation = elevationPivot.InverseTransformDirection(raised ? trueBarrel.normalized : barrel);
+            }
+        }
+
+        private bool _restPoseRaised;
+
+        /// <summary>
+        /// 모델의 중립 자세가 포신을 든 자세일 때 켠다(노봉 v22: 고각부가 18° 들린 채 저장됨, 포구는 고각축 위).
+        /// 끄면(기본) 중립 자세를 수평으로 본다 — 그러면 든 만큼 늘 더 높이 겨눈 것처럼 보이고 수상 표적에도 포신이 내려오지 않는다.
+        /// </summary>
+        public void SetRestPoseRaised(bool raised)
+        {
+            if (_restPoseRaised == raised) return;
+            _restPoseRaised = raised;
+            _calibrated = false;
         }
 
         /// <summary>선회축. 함선과 함께 기울어도 따라가도록 포탑 부모 기준으로 계산한다.</summary>

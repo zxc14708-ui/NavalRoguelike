@@ -23,6 +23,8 @@ namespace Game.Combat
     {
         [Header("Flight")]
         [SerializeField] private MissileProfile profile = MissileProfile.PopUp;
+        /// <summary>이번 비행만의 궤적(FlyDirect). Launch가 지운다 — 같은 프리팹을 다른 발사기와 풀에서 함께 쓴다.</summary>
+        private MissileProfile? _profileOverride;
         [SerializeField] private float speed = 24f;
         [SerializeField] private float turnRateDegPerSec = 120f;
         [SerializeField] private float lifeTime = 12f;
@@ -103,6 +105,9 @@ namespace Game.Combat
 
         // 개발용 통계
         private string _statsKey;
+
+        /// <summary>결과 분석·통계에서 쓰는 무장 이름. 같은 탄을 쓰는 호위함·항공대는 발사 뒤 따로 이름을 붙인다(RunReport).</summary>
+        public string StatsKey { get => _statsKey; set => _statsKey = value; }
         private float _screenEnteredAt = -1f;
 
         // --- ITargetable
@@ -119,6 +124,10 @@ namespace Game.Combat
 
         /// <summary>전투 기록 번호(적 미사일만).</summary>
         public int LogId { get; private set; }
+        /// <summary>발사마다 새 번호(풀에서 다시 나온 미사일을 같은 미사일로 헷갈리지 않게 — 보스 대공 판정이 쓴다).</summary>
+        public int LaunchSerial { get; private set; }
+        private static int s_launchSerial;
+        private IAimPointProvider _aimProvider;   // 보스: 열린 약점·가까운 부분을 겨눈다(2026-11-14)
         public string LogName => isThreat ? $"미사일 #{LogId}" : $"{name.Replace("(Clone)", "")}";
         public float CurrentHp => _hp;
 
@@ -131,6 +140,7 @@ namespace Game.Combat
         /// <summary>발사 직후 1회 설정한다.</summary>
         public void Launch(Transform target, float damageOverride = -1f)
         {
+            LaunchSerial = ++s_launchSerial;
             _aswDelivery = false;
             _aswTorpedo = null;
             SetTarget(target);
@@ -147,6 +157,7 @@ namespace Game.Combat
             _jamUntil = 0f;
             _diving = false;
             _approachActive = false;
+            _profileOverride = null;
             _screenEnteredAt = -1f;
             if (damageOverride > 0f) damage = damageOverride;
 
@@ -176,6 +187,11 @@ namespace Game.Combat
                 CombatLog.Add("아군 유도탄", $"{LogName} 발사 → {CombatLog.Describe(_targetable)}");
             }
         }
+
+        /// <summary>
+        /// Launch 직후 부른다: 이번 비행은 솟구치거나 내리꽂지 않고 낮게 곧장 표적으로 날아간다(직사 — 호위함 고정 발사관 대함 미사일, 2026-10-27).
+        /// </summary>
+        public void FlyDirect() => _profileOverride = MissileProfile.Direct;
 
         /// <summary>
         /// Launch 직후 부른다: 표적으로 곧장 오지 않고, 발사 위치→표적 선을 angleDeg만큼 돌린 방향의 표적 둘레 radius m 경유점으로
@@ -234,6 +250,7 @@ namespace Game.Combat
             if (target != _claimTarget) ReleaseClaim();
             _target = target;
             _targetable = target != null ? target.GetComponent<ITargetable>() : null;
+            _aimProvider = target != null ? target.GetComponent<IAimPointProvider>() : null;
         }
 
         private void ReleaseClaim()
@@ -339,6 +356,11 @@ namespace Game.Combat
         private Vector3 AimPoint()
         {
             Vector3 p = _target.position;
+            if (_aimProvider != null)
+            {
+                Vector3 a = _aimProvider.AimPointFor(transform.position, true);   // 위에서 꽂히므로 열린 엘리베이터도 노린다
+                p.x = a.x; p.z = a.z;
+            }
             p.y = Mathf.Max(p.y + _aimOffset, minAltitude);
             return p;
         }
@@ -366,7 +388,7 @@ namespace Game.Combat
                 return;
             }
 
-            switch (profile)
+            switch (_profileOverride ?? profile)
             {
                 case MissileProfile.ClimbDive:
                     SteerClimbDive(hitPoint, dt);
@@ -476,9 +498,10 @@ namespace Game.Combat
             if (_hp > 0f) return;
 
             // 공중 요격은 명중 폭발보다 크게, 높은 음으로 — 수면 명중과 구별된다
-            PooledEffect.Spawn(blastEffect, transform.position, 1.5f);
-            Game.View.Explosions.Spawn(transform.position, 0.9f, Game.View.Explosions.Kind.Air);
-            AudioManager.Play(Game.Data.SfxId.Explosion, transform.position, 0.45f, 1.35f);
+            PooledEffect.Spawn(blastEffect, transform.position, 2.2f);
+            Game.View.Explosions.Spawn(transform.position, 1.4f, Game.View.Explosions.Kind.Air);
+            ShockRing(transform.position, 1.4f);
+            AudioManager.Play(Game.Data.SfxId.MissileBurst, transform.position, 0.8f);   // 공중 폭파 전용 소리(2026-11-16)
             if (isThreat)
             {
                 CombatStats.RecordIntercept(info.Tag, transform.position);
@@ -507,17 +530,32 @@ namespace Game.Combat
             // 요격(표적이 미사일)은 맞은 미사일이 요격으로 센다 — 여기서 또 세면 두 번 센다
             else if (damaged && !(hit.TryGetComponent<Missile>(out _))) CombatStats.RecordHit(_statsKey, transform.position);
 
-            PooledEffect.Spawn(blastEffect, transform.position);
-            // 폭발 연출: 미사일끼리(요격)는 공중 폭발, 함체·표적은 명중 폭발, 표적 없이 떨어지면 물기둥
-            float blast = Mathf.Clamp(0.55f + damage / 40f, 0.6f, 1.4f);
+            // 폭발 연출(2026-10-27 키움): 미사일끼리(요격)는 공중 폭발, 함체·표적은 명중 폭발, 표적 없이 떨어지면 물기둥
+            float blast = Mathf.Clamp(1.0f + damage / 30f, 1.2f, 2.2f);
             var kind = hit != null && hit.TryGetComponent<Missile>(out _) ? Game.View.Explosions.Kind.Air
                      : hit == null && transform.position.y < 0.6f ? Game.View.Explosions.Kind.Water
                      : Game.View.Explosions.Kind.Impact;
-            Game.View.Explosions.Spawn(transform.position, kind == Game.View.Explosions.Kind.Air ? 0.7f : blast, kind);
-            AudioManager.Play(Game.Data.SfxId.Explosion, transform.position, 0.75f);
+            float size = kind == Game.View.Explosions.Kind.Air ? 1.2f : blast;
+            PooledEffect.Spawn(blastEffect, transform.position, 1.2f + size * 0.6f);
+            Game.View.Explosions.Spawn(transform.position, size, kind);
+            if (kind == Game.View.Explosions.Kind.Impact)
+            {
+                // 명중: 잔불 한 번 더(0.15초 뒤 같은 자리 작은 2차 폭발처럼 보이게 살짝 위에) + 충격파
+                Game.View.Explosions.Spawn(transform.position + Vector3.up * 0.6f, size * 0.55f, Game.View.Explosions.Kind.Air);
+                ShockRing(transform.position, size);
+            }
+            else if (kind == Game.View.Explosions.Kind.Air) ShockRing(transform.position, size * 0.8f);
+            // 소리(2026-11-16): 함체·표적 명중 = 미사일 명중음(기함이 맞으면 기함 피격음이 함께 나므로 줄인다) · 공중 = 공중 폭파 · 수면 = 예전 폭발음
+            if (kind == Game.View.Explosions.Kind.Impact) AudioManager.Play(Game.Data.SfxId.MissileHit, transform.position, isThreat && damaged ? 0.5f : 1f);
+            else if (kind == Game.View.Explosions.Kind.Air) AudioManager.Play(Game.Data.SfxId.MissileBurst, transform.position);
+            else AudioManager.Play(Game.Data.SfxId.Explosion, transform.position, 0.75f);
 
             Kill(false);
         }
+
+        /// <summary>폭발 자리에서 빠르게 퍼지는 밝은 충격파 고리 — 작은 화면에서도 명중이 확실히 읽히게.</summary>
+        private static void ShockRing(Vector3 at, float size)
+            => Game.Ship.SignatureFx.Ring(new Vector3(at.x, Mathf.Max(at.y, 0.2f), at.z), 3.2f * size, 0.35f, new Color(1f, 0.82f, 0.5f, 0.85f), 0.35f * size);
 
         /// <summary>소멸 공통 경로.</summary>
         private void EndThreat(ThreatOutcome outcome)

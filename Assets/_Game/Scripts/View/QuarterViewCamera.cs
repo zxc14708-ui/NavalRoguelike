@@ -4,6 +4,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 using Game.Core;
+using PrimeTween;
 
 namespace Game.View
 {
@@ -67,6 +68,23 @@ namespace Game.View
 
         private Camera _camera;
         private Vector3 _velocity;
+        // 화면 흔들림(2026-10-31): 세기는 PrimeTween이 줄여 가고, 지난 프레임에 더한 흔들림은 다음 프레임 추적 전에 뺀다
+        private float _shake;
+        private Vector3 _shakeApplied;
+        private Tween _shakeTween;
+        private const float ShakeMeters = 0.45f;
+
+        /// <summary>검증용: 지금 흔들림 세기(0 = 멈춤).</summary>
+        public float ShakeAmount => _shake;
+
+        /// <summary>화면 흔들림. strength 0~1(1 ≈ 0.45m). 더 센 흔들림이 오면 그것으로 바꾼다. 배치 모드에서는 흔들지 않는다.</summary>
+        public void Shake(float strength, float duration = 0.4f)
+        {
+            strength = Mathf.Clamp01(strength);
+            if (_buildFraming || strength <= 0.01f || strength < _shake) return;
+            if (_shakeTween.isAlive) _shakeTween.Stop();
+            _shakeTween = Tween.Custom(this, strength, 0f, duration, (cam, v) => cam._shake = v, Ease.OutQuad, useUnscaledTime: true);
+        }
         private bool _buildFraming;
         private float _zoomTarget;
         private float _zoomCurrent;
@@ -155,6 +173,8 @@ namespace Game.View
 
             // 시간이 멈춘 배치 모드에서도 카메라는 움직여야 하므로 unscaled를 쓴다
             float dt = Time.unscaledDeltaTime;
+            transform.position -= _shakeApplied;
+            _shakeApplied = Vector3.zero;
 
             if (!_buildFraming) HandleZoom();
             _zoomCurrent = Mathf.SmoothDamp(_zoomCurrent, _zoomTarget, ref _zoomVelocity, zoomSmoothTime, Mathf.Infinity, dt);
@@ -183,6 +203,12 @@ namespace Game.View
             transform.position = Vector3.SmoothDamp(transform.position, desired, ref _velocity,
                                                     followSmoothTime, Mathf.Infinity, dt);
             transform.rotation = Quaternion.Slerp(transform.rotation, rot, blend);
+            if (_shake > 0.001f && !_buildFraming)
+            {
+                float t = Time.unscaledTime * 24f;
+                _shakeApplied = (transform.right * (Mathf.PerlinNoise(t, 0.3f) - 0.5f) + transform.up * (Mathf.PerlinNoise(0.7f, t) - 0.5f)) * (2f * ShakeMeters * _shake);
+                transform.position += _shakeApplied;
+            }
             UpdateMiniatureFocus();
         }
 

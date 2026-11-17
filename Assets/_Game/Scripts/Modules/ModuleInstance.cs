@@ -44,7 +44,9 @@ namespace Game.Modules
         /// <summary>사격각 판정에 쓰는 높이. 올리면 높음으로 취급한다(중간 블록에 가리지 않고, 이웃에게는 높은 장애물).</summary>
         public ModuleHeight EffectiveHeight => IsRaised ? ModuleHeight.High : Definition.HeightClass;
 
-        public float MaxHp => Definition != null ? Definition.MaxHp * (IsRaised ? RaisedHpMultiplier : 1f) : 1f;
+        public float MaxHp => Definition != null
+            ? Definition.MaxHp * ModuleUpgrades.MaxHpMultiplier(Definition, UpgradeLevel) * (IsRaised ? RaisedHpMultiplier : 1f)
+            : 1f;
 
         /// <summary>자리로 정해지는 형태(소나·폭뢰). 격자가 바뀔 때마다 ShipGrid.RefreshVariants가 다시 정한다.</summary>
         public ModuleVariant Variant { get; private set; }
@@ -69,8 +71,8 @@ namespace Game.Modules
         public ModuleInstance(ModuleDefinition definition, ModuleUpgradeState carriedUpgrade = null)
         {
             Definition = definition;
-            Hp = definition != null ? definition.MaxHp : 1f;
             Upgrade = carriedUpgrade ?? new ModuleUpgradeState();
+            Hp = definition != null ? MaxHp : 1f;   // 강화 단계를 이어받으면 그 단계의 최대 내구로
             RecalculateStats();
         }
 
@@ -133,7 +135,9 @@ namespace Game.Modules
         public bool ApplyUpgrade()
         {
             if (!CanUpgrade) return false;
+            float before = MaxHp;
             Upgrade.Level++;
+            Hp = Mathf.Min(MaxHp, Hp + Mathf.Max(0f, MaxHp - before));   // 최대 내구가 늘면 늘어난 만큼 바로 채운다
             RecalculateStats();
             Runtime?.GetComponent<ModuleUpgradeVisuals>()?.ApplyLevel(Level, Runtime);
             Runtime?.HandleUpgraded();

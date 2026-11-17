@@ -14,10 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Game.Modules.ModuleDefinition
   id: mod_bridge_command
   displayName: "\uC9C0\uD718\uD568 \uD568\uAD50"
-  description: "3\uCE78 \uD568\uAD50 \uC544\uD2B8 \uC2DC\uC81C\uD488. \uAE30\uC874
-    \uD568\uAD50 \uAE30\uB2A5\uC744 \uC720\uC9C0\uD558\uBA70 \uD568\uAE09\uBCC4 \uC131\uB2A5
-    \uBCF4\uB108\uC2A4\uB294 StartingShipConcept \uC124\uACC4\uAC12\uC73C\uB85C\uB9CC
-    \uC800\uC7A5\uB428."
+  description: "3\uCE78 \uD568\uAD50. \uC9C0\uD718\xB7\uC190\uC0C1\uD1B5\uC81C\xB7\uAE30\uB9CC\uCCB4\xB7\uC804\uC18D\xB7\uD56D\uD574
+    \uB808\uC774\uB354\uC5D0 \uD568\uAE09 \uD328\uC2DC\uBE0C: \uC804\uD22C\uB2E8
+    \uD1B5\uC2E0 \uC911\uACC4 \uB0B4\uC7A5 \u2014 \uD638\uC704\uD568 \uB2A5\uB825
+    \uC7AC\uC0AC\uC6A9 \uC18D\uB3C4 +15%. \uD568\uAD50\uAC00 \uBD80\uC11C\uC9C0\uBA74
+    \uD568\uAED8 \uC783\uB294\uB2E4."
   type: 0
   icon: {fileID: 21300000, guid: 24eb7b9144e42214c889442b81521555, type: 3}
   width: 3
@@ -30,6 +31,8 @@ MonoBehaviour:
   maxHp: 120
   rarity: 0
   weight: 0
+  tonnage: 0
+  mountClass: 0
   prefab: {fileID: 5981520296579951006, guid: 4eb659644e6b0c84e8e2661a8d92c061, type: 3}
   stats:
     Range: 18
@@ -56,7 +59,7 @@ MonoBehaviour:
     ModuleRepairPerSecond: 0.8
     SortieCooldown: 0
     HelicopterSpeed: 0
-    EscortFireRateBonus: 0
+    EscortFireRateBonus: 0.15
     SpeedBonus: 0
     AccelerationBonus: 0
     MovingGunDamageBonus: 0

@@ -24,15 +24,18 @@ namespace Game.Modules.Runtime
         private ModuleInstance _target;
         private float _retargetTimer;
 
+        /// <param name="hullCap">선체 자동 회복 상한(최대 선체 대비 0~1). 넘으면 고치지 않는다(2026-10-11 손상통제 개편).</param>
         public void Tick(ShipController ship, ShipGrid grid, ModuleInstance self,
-                         float hullPerSecond, float modulePerSecond, float dt)
+                         float hullPerSecond, float modulePerSecond, float dt, float hullCap = 1f)
         {
             if (ship == null) return;
 
-            if (hullPerSecond > 0f)
+            float capHp = ship.HullMaxHp * Mathf.Clamp01(hullCap);
+            if (hullPerSecond > 0f && ship.HullHp < capHp)
             {
                 bool underFire = Time.time - ship.LastHullDamageTime < underFireWindow;
-                ship.RepairHull(hullPerSecond * (underFire ? underFireHullRepairRatio : 1f) * dt);
+                float amount = hullPerSecond * (underFire ? underFireHullRepairRatio : 1f) * dt;
+                ship.RepairHull(Mathf.Min(amount, capHp - ship.HullHp));
             }
             if (modulePerSecond <= 0f) return;
 

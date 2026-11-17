@@ -173,9 +173,11 @@ namespace Game.UI
 
             if (root != null) root.SetActive(true);
             if (titleText != null) titleText.text = bossReward ? "보스 격침 보상 — 배치 · 강화" : $"레벨 {level} 정비 — 배치 · 강화";
+            Game.Core.UiSound.Play(Game.Core.UiSound.Cue.LevelUp);
             if (shipCamera != null) shipCamera.enabled = true;
 
             EnsureHighlight();
+            _deal++;
             ShowCards();
             UpdateCamera();
             Refresh();
@@ -183,6 +185,7 @@ namespace Game.UI
 
         public void Close()
         {
+            _reroll = null;
             _choosing = false;
             _upgradePicking = false;
             _rolePicking = false;
@@ -387,7 +390,8 @@ namespace Game.UI
             if (statusText != null && systems != null)
             {
                 statusText.text = $"모듈 {grid.Modules.Count}   탐지 {systems.DetectionRange:0}   " +
-                                  $"피해 감소 {systems.DamageReduction * 100f:0}%";
+                                  $"피해 감소 {systems.DamageReduction * 100f:0}%" +
+                                  (grid.TonnageBudget > 0f ? $"   탑재 {grid.Tonnage:0.#}/{grid.TonnageBudget:0.#}t" : "");   // WWII 함종(패치 C1)
             }
 
             UpdateArcViews();

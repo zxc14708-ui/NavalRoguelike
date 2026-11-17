@@ -15,6 +15,7 @@ namespace Game.Combat
     /// 연출(2026-10-04, <see cref="Game.View.DecoyFx"/>): 발사 섬광·흰 연기 → 붉은 꼬리를 끄는 탄이 포물선으로 솟아
     /// burstAfter초 뒤 공중에서 터진다(하얀 섬광, 플레어 불똥이 사방으로 퍼져 떨어짐, 은박 반짝임) → flareSeconds초 동안 불타는 플레어가 떨어진다.
     /// 유인하는 자리는 탄 위치 그대로다(터진 뒤엔 바람에 흘러가며 천천히 내려온다). 프리팹의 구체 외형은 감춘다.
+    /// 터진 뒤 수명이 끝날 때까지 채프 구름이 남는다(DecoyFx.Lingering, 2026-11-09 — 썼는지 잘 보이게).
     /// </summary>
     public class Decoy : MonoBehaviour, IPoolable, ITargetable
     {
@@ -41,7 +42,7 @@ namespace Game.Combat
         private Vector3 _drift;
         private Vector3 _velocity, _flat;
         private bool _burst;
-        private float _burstAge, _fxDebt;
+        private float _burstAge, _fxDebt, _cloudDebt;
         private float _radiusMultiplier = 1f;
         private readonly HashSet<Missile> _tried = new();
 
@@ -62,6 +63,7 @@ namespace Game.Combat
             _velocity = _flat * launchSpeed + Vector3.up * launchClimb;
             _burst = false;
             _fxDebt = 0f;
+            _cloudDebt = 0f;
             _age = 0f;
             _lureTimer = 0f;
             Game.View.DecoyFx.Launch(transform.position, _velocity);
@@ -94,6 +96,8 @@ namespace Game.Combat
                 transform.position = p;
                 float t = (_age - _burstAge) / Mathf.Max(0.1f, flareSeconds);
                 if (t < 1f) Game.View.DecoyFx.Burning(p, t, dt, ref _fxDebt);
+                // 채프 구름: 기만체가 살아 있는 동안 계속(썼다는 것이 보이게, 2026-11-09)
+                Game.View.DecoyFx.Lingering(p, (_age - _burstAge) / Mathf.Max(0.1f, lifeTime - _burstAge), dt, ref _cloudDebt);
             }
             if (_age >= lifeTime) { Despawn(); return; }
 

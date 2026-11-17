@@ -10,10 +10,16 @@ namespace Game.Modules.Runtime
     ///
     /// 소나가 없어도 헬기 자체가 수색을 나간다 — 목표 상공에 도달하면 그 자리에서
     /// 잠수함을 드러낸다. 소나가 있으면 이미 드러난 목표로 곧장 가므로 훨씬 빠르다.
+    ///
+    /// 강화(2026-10-11, UPG_HeliDeck · Codex PlayerAviation v24): 단계마다 데크와 헬기 모델이 바뀐다(T1 → T2 경어뢰 2발 → T3 5엽 로터·디핑 소나).
+    /// 출격 간격·헬기 속력은 스탯(ModuleUpgrades), 헬기 무장 피해·수색 반경은 강화 단계 배율을 직접 읽는다.
+    /// 단계별 외형(Visual_Level1~3)마다 HeliSpot·ParkedHelicopter가 있어 외형을 바꾸면 다시 연결한다.
     /// </summary>
-    public class HelicopterDeckModule : ModuleRuntime
+    public class HelicopterDeckModule : ModuleRuntime, Game.Combat.IHelicopterBase
     {
         [SerializeField] private GameObject helicopterPrefab;
+        [Tooltip("강화 단계별 출격 헬기(0 = 기본 T1, 1 = 강화 I T2, 2 = 강화 II T3). 비어 있으면 helicopterPrefab")]
+        [SerializeField] private GameObject[] helicopterPrefabsByLevel;
         [SerializeField] private Transform landingSpot;
 
         [Tooltip("갑판에 서 있는 헬기 모델. 출격 중에는 숨긴다.")]
@@ -27,6 +33,7 @@ namespace Game.Modules.Runtime
         [SerializeField] private float searchRadius = 60f;
 
         private TargetingSystem _targeting;
+        private Vector3 _parkedRotorAxis = Vector3.up;   // 주기 로터 회전축(로터 자기 좌표, 데크의 위)
         private float _cooldown;
         private bool _sortieActive;
         private AswHelicopter _activeHelicopter;
@@ -36,6 +43,7 @@ namespace Game.Modules.Runtime
         public float SearchPersistence => (_pairedDeck ? 12f : 8f) +
             (Policy == HelicopterPolicy.AntiSubPatrol ? 4f : 0f);
         public bool CanOperate => isActiveAndEnabled && Instance != null && Instance.IsOperational;
+        public float HelicopterSpeed => Stats.HelicopterSpeed;
         public bool SortieActive => _sortieActive;
         public float CooldownRemaining => Mathf.Max(0f, _cooldown);
 
@@ -51,7 +59,43 @@ namespace Game.Modules.Runtime
             if (Policy == HelicopterPolicy.SurfaceStrike && target.Kind != TargetKind.Surface) return false;
             Vector3 delta = target.Transform.position - transform.position;
             delta.y = 0f;
-            return delta.sqrMagnitude <= searchRadius * searchRadius;
+            float r = SearchRadius;
+            return delta.sqrMagnitude <= r * r;
+        }
+
+        private ModuleStatModifier StageModifier =>
+            Instance != null && Instance.UpgradeLevel > 0 ? ModuleUpgrades.ProfileFor(Instance.Definition)?.GetStage(Instance.UpgradeLevel)?.Modifier : null;
+
+        /// <summary>헬기가 스스로 훑는 반경(강화 단계 사거리 배율).</summary>
+        public float SearchRadius => searchRadius * (StageModifier is { } m && m.rangeMultiplier > 0f ? m.rangeMultiplier : 1f);
+        /// <summary>헬기 무장 피해 배율(강화 단계).</summary>
+        public float DamageScale => StageModifier is { } m && m.damageMultiplier > 0f ? m.damageMultiplier : 1f;
+
+        /// <summary>지금 단계의 출격 헬기 프리팹.</summary>
+        public GameObject CurrentHelicopterPrefab
+        {
+            get
+            {
+                int level = Instance != null ? Instance.UpgradeLevel : 0;
+                if (helicopterPrefabsByLevel != null)
+                    for (int i = Mathf.Min(level, helicopterPrefabsByLevel.Length - 1); i >= 0; i--)
+                        if (helicopterPrefabsByLevel[i] != null) return helicopterPrefabsByLevel[i];
+                return helicopterPrefab;
+            }
+        }
+
+        /// <summary>강화 외형을 바꾼 뒤 그 단계의 착함점·주기 헬기·로터에 다시 연결한다.</summary>
+        public override void BindUpgradeVisual(Transform visualRoot)
+        {
+            var spot = FindVisualPart(visualRoot, "HeliSpot");
+            var parked = FindVisualPart(visualRoot, "ParkedHelicopter");
+            if (spot == null || parked == null) return;   // 예전 단일 외형 프리팹: 그대로 둔다
+            if (parkedHelicopter != null && parkedHelicopter != parked.gameObject) parkedHelicopter.SetActive(false);
+            landingSpot = spot;
+            parkedHelicopter = parked.gameObject;
+            parkedRotor = FindVisualPart(parked, "Rotor");
+            CacheRotorAxis();
+            SetParkedVisible(!_sortieActive && (Instance == null || Instance.IsOperational));
         }
 
         protected override void OnInitialized()
@@ -62,8 +106,15 @@ namespace Game.Modules.Runtime
             if (helicopterPrefab == null) Debug.LogError("[HeliDeck] helicopterPrefab 미할당.", this);
 
             SetParkedVisible(true);
+            CacheRotorAxis();
             OnShipLayoutChanged();
         }
+
+        private void CacheRotorAxis()
+            => _parkedRotorAxis = parkedRotor != null ? parkedRotor.InverseTransformDirection(transform.up).normalized : Vector3.up;
+
+        /// <summary>검증용: 주기 로터가 도는 축(월드).</summary>
+        public Vector3 ParkedRotorAxisWorld => parkedRotor != null ? parkedRotor.TransformDirection(_parkedRotorAxis) : Vector3.zero;
 
         protected override void OnShipLayoutChanged()
         {
@@ -77,7 +128,7 @@ namespace Game.Modules.Runtime
         {
             // 서 있는 동안에도 로터가 돌면 "살아있는 장비"로 보인다
             if (!_sortieActive && parkedRotor != null)
-                parkedRotor.Rotate(Vector3.up, parkedRotorRpm * 6f * dt, Space.Self);
+                parkedRotor.Rotate(_parkedRotorAxis, parkedRotorRpm * 6f * dt, Space.Self);
 
             if (_sortieActive)
             {
@@ -141,7 +192,7 @@ namespace Game.Modules.Runtime
         {
             cue = default;
             return Policy != HelicopterPolicy.SurfaceStrike && _targeting != null &&
-                   _targeting.TryGetLaunchCue(transform.position, searchRadius, out cue);
+                   _targeting.TryGetLaunchCue(transform.position, SearchRadius, out cue);
         }
 
         /// <summary>헬기 바로 아래의 잠수함만 자체 센서로 확인한다.</summary>
@@ -170,7 +221,7 @@ namespace Game.Modules.Runtime
         private void Sortie(ITargetable target, Vector3 searchPoint)
         {
             var spot = landingSpot != null ? landingSpot : transform;
-            var go = PoolManager.Instance?.Spawn(helicopterPrefab, spot.position, spot.rotation);
+            var go = PoolManager.Instance?.Spawn(CurrentHelicopterPrefab, spot.position, spot.rotation);
             if (go == null) return;
 
             var heli = go.GetComponent<AswHelicopter>();
@@ -185,7 +236,7 @@ namespace Game.Modules.Runtime
             _activeHelicopter = heli;
             SetParkedVisible(false);
 
-            heli.Sortie(spot, target, this, searchPoint);
+            heli.Sortie(spot, target, this, searchPoint, DamageScale);
         }
 
         /// <summary>헬기가 착함했을 때 AswHelicopter가 호출한다.</summary>

@@ -191,7 +191,94 @@ namespace Game.Dev
             if (field != null) { Game.World.IslandField.Disabled = false; field.Regenerate(0); }
         }
 
+        // ------------------------------------------------------------ 폭발 불덩이
+
+        /// <summary>함체 명중 폭발: 예전 불덩이와 디졸브 불덩이(Naval/BlastFire)를 같은 자리에서 터뜨려 시점별로 찍는다.</summary>
+        private IEnumerator BlastCheck()
+        {
+            _report.AppendLine("\n## 폭발 불덩이(함체 명중)");
+            CombatDevTools.ClearBattlefield();
+            Time.timeScale = 1f;
+            var ship = GameManager.Instance.Player;
+            var mark = new GameObject("Blast shot target").transform;
+            mark.position = ship.transform.position + ship.transform.forward * 14f + Vector3.up * 0.6f;
+            var fire = Game.View.DecorFx.BlastFire;
+            var mat = fire != null ? fire.GetComponent<ParticleSystemRenderer>().sharedMaterial : null;
+            _report.AppendLine($"- 디졸브 불덩이 재질: {(mat != null ? $"{mat.name} · {mat.shader.name} · 지원 {mat.shader.isSupported}" : "없음")}");
+            if (fire == null) Fail("디졸브 불덩이(MAT_BlastFire · Naval/BlastFire)를 쓸 수 없음");
+            foreach (bool dissolve in new[] { false, true })
+            {
+                Game.View.Explosions.DissolveFire = dissolve;
+                yield return new WaitForSeconds(2.5f);   // 앞 폭발이 다 사라질 때까지
+                int before = Game.View.DecorFx.Count(fire);
+                Game.View.Explosions.Spawn(mark.position, 1.2f, Game.View.Explosions.Kind.Impact);
+                float t0 = Time.time;
+                int peak = 0;
+                foreach (float at in new[] { 0.12f, 0.35f, 0.7f })
+                {
+                    while (Time.time - t0 < at) { peak = Mathf.Max(peak, Game.View.DecorFx.Count(fire)); yield return null; }
+                    yield return CloseShot($"blast_{(dissolve ? "dissolve" : "old")}_{Mathf.RoundToInt(at * 100):000}", mark, 14f);
+                }
+                _report.AppendLine($"- {(dissolve ? "디졸브" : "예전")} 불덩이: 사진 0.12·0.35·0.70초 · 디졸브 입자 최대 {peak}");
+                if (dissolve && peak <= before) Fail("함체 명중 폭발에서 디졸브 불덩이가 나오지 않음");
+                if (!dissolve && peak > before) Fail("예전 모양으로 껐는데 디졸브 불덩이가 나옴");
+            }
+            Game.View.Explosions.DissolveFire = true;
+
+            // 다른 폭발 종류 — 자폭·공중 격추·격침은 디졸브 불덩이, 수면 명중·포구 섬광처럼 작은 것은 없음
+            var sb = new StringBuilder();
+            var kinds = new (string name, string shot, float size, Game.View.Explosions.Kind kind, bool want)[]
+            {
+                ("자폭", "charge", 1.5f, Game.View.Explosions.Kind.Charge, true),
+                ("공중 격추", "air", 1.4f, Game.View.Explosions.Kind.Air, true),
+                ("수면 명중", "water", 1.1f, Game.View.Explosions.Kind.Water, false),
+                ("포구 섬광", "muzzle", 0.12f, Game.View.Explosions.Kind.Air, false),
+            };
+            foreach (var k in kinds)
+            {
+                yield return new WaitForSeconds(2.5f);
+                int before = Game.View.DecorFx.Count(fire);
+                Game.View.Explosions.Spawn(mark.position + (k.kind == Game.View.Explosions.Kind.Air ? Vector3.up * 4f : Vector3.zero), k.size, k.kind);
+                int peak = before;
+                for (float t = 0f; t < 0.35f; t += Time.deltaTime) { peak = Mathf.Max(peak, Game.View.DecorFx.Count(fire)); yield return null; }
+                if (k.want) yield return CloseShot($"blast_{k.shot}_035", mark, 16f);
+                bool got = peak > before;
+                sb.Append($"{k.name} {(got ? $"{peak - before}개" : "없음")} · ");
+                if (got != k.want) Fail(k.want ? $"{k.name} 폭발에서 디졸브 불덩이가 나오지 않음" : $"{k.name}에 디졸브 불덩이가 나옴(물기둥·작은 섬광만 나와야 함)");
+            }
+            // 격침 순간(ShipWreck) — 적 고속정 겉모습으로 잔해를 만든다
+            yield return new WaitForSeconds(2.5f);
+            var boat = EnemySpawner.Instance.SpawnAt(CombatDevTools.FindEnemy("ene_fastboat"), mark.position + ship.transform.right * 6f, Quaternion.identity);
+            int wb = Game.View.DecorFx.Count(fire);
+            if (boat != null) { boat.DevFrozen = true; Game.View.ShipWreck.Spawn(boat.transform, 0f); }
+            int wpeak = wb;
+            for (float t = 0f; t < 0.35f; t += Time.deltaTime) { wpeak = Mathf.Max(wpeak, Game.View.DecorFx.Count(fire)); yield return null; }
+            if (boat != null) yield return CloseShot("blast_wreck_035", boat.transform, 16f);
+            sb.Append($"격침 {(wpeak > wb ? $"{wpeak - wb}개" : "없음")}");
+            _report.AppendLine($"- 종류별 디졸브 불덩이(0.35초 안 최대 입자 증가): {sb}");
+            if (boat != null && wpeak <= wb) Fail("격침 순간에 디졸브 불덩이가 나오지 않음");
+            CombatDevTools.ClearBattlefield();
+
+            Destroy(mark.gameObject);
+            Time.timeScale = TimeScale;
+        }
+
         // ------------------------------------------------------------ 장식(격침·물보라·연기·구름)
+
+        /// <summary>구름 켬/끔 비교 그림(왼쪽 켬 · 오른쪽 끔)을 저장한다.</summary>
+        private void SaveCloudPair(Color32[] on, Color32[] off)
+        {
+            const int w = 320, h = 180;
+            var tex = new Texture2D(w * 2, h, TextureFormat.RGBA32, false);
+            for (int y = 0; y < h; y++)
+            for (int x = 0; x < w; x++)
+            {
+                tex.SetPixel(x, y, on[y * w + x]);
+                tex.SetPixel(w + x, y, off[y * w + x]);
+            }
+            File.WriteAllBytes(Path.Combine(OutputDirectory, "decor_clouds_on_off.png"), tex.EncodeToPNG());
+            Destroy(tex);
+        }
 
         /// <summary>
         /// 장식 효과: 구름 그림자 쿠키가 해에 붙어 흐르는지, 속력에 따라 뱃머리 물보라·연돌 연기가 나오는지(기어 올림 검은 연기),
@@ -214,7 +301,9 @@ namespace Game.Dev
             ship.DevRudderOverride = 0f;
             ship.SetEngineOrder(0f);
             yield return new WaitForSeconds(4f);
-            float drift = clouds != null ? (clouds.Offset - o0).magnitude : 0f;
+            // 쿠키 좌표는 한 장(TileSize)마다 되감기므로 축마다 가까운 쪽 차이로 잰다
+            float Wrapped(float d) => Mathf.Repeat(d + Game.View.CloudShadows.TileSize * 0.5f, Game.View.CloudShadows.TileSize) - Game.View.CloudShadows.TileSize * 0.5f;
+            float drift = clouds != null ? new Vector2(Wrapped(clouds.Offset.x - o0.x), Wrapped(clouds.Offset.y - o0.y)).magnitude : 0f;
             _report.AppendLine($"- 구름 그림자: {(clouds != null && clouds.Applied ? "해에 쿠키 적용" : "없음")} · 4초에 {drift:0.0}m 흐름");
             if (clouds == null || !clouds.Applied) Fail("구름 그림자 쿠키가 해에 붙지 않음");
             if (drift < 1f) Fail("구름 그림자가 흐르지 않음");
@@ -242,23 +331,63 @@ namespace Game.Dev
             // 구름 그림자가 실제로 그려지는지: 같은 장면을 켜고/끄고 찍어 밝기를 비교
             if (clouds != null)
             {
-                Time.timeScale = 0f;
-                var on = RenderMain();
-                clouds.enabled = false;
-                yield return null;
-                var offPx = RenderMain();
-                clouds.enabled = true;
-                Time.timeScale = TimeScale;
-                int darker = 0; double sumOn = 0, sumOff = 0;
-                for (int i = 0; i < on.Length; i++)
+                // 구름 무늬 위치는 무작위라 화면이 마침 맑은 틈에 걸릴 수 있다 — 그러면 무늬를 반 장 옮겨 한 번 더 잰다
+                float frac = 0f;
+                for (int attempt = 0; attempt < 2 && frac < 0.05f; attempt++)
                 {
-                    float a = on[i].r + on[i].g + on[i].b, b = offPx[i].r + offPx[i].g + offPx[i].b;
-                    sumOn += a; sumOff += b;
-                    if (a < b * 0.9f) darker++;
+                    if (attempt > 0) clouds.Nudge(Vector2.one * Game.View.CloudShadows.TileSize * 0.5f);
+                    Time.timeScale = 0f;
+                    var on = RenderMain();
+                    clouds.enabled = false;
+                    yield return null;
+                    var offPx = RenderMain();
+                    clouds.enabled = true;
+                    Time.timeScale = TimeScale;
+                    SaveCloudPair(on, offPx);
+                    int darker = 0; double sumOn = 0, sumOff = 0, shadeOn = 0, shadeOff = 0;
+                    for (int i = 0; i < on.Length; i++)
+                    {
+                        float a = on[i].r + on[i].g + on[i].b, b = offPx[i].r + offPx[i].g + offPx[i].b;
+                        sumOn += a; sumOff += b;
+                        if (a < b * 0.9f) { darker++; shadeOn += a; shadeOff += b; }
+                    }
+                    frac = darker / (float)on.Length;
+                    _report.AppendLine($"- 구름 켬/끔 비교{(attempt > 0 ? "(무늬 반 장 옮겨 다시)" : "")}(`decor_clouds_on_off.png`): 그늘진 화면 {frac:P0} · 그늘 밝기 {shadeOn / System.Math.Max(1.0, shadeOff):P0} · 화면 평균 밝기 {sumOn / Mathf.Max(1f, (float)sumOff):P0} (무늬 전체 그늘 비율 {Game.View.CloudShadows.ShadedFraction:P0})");
                 }
-                float frac = darker / (float)on.Length;
-                _report.AppendLine($"- 구름 켬/끔 비교: 그늘진 화면 {frac:P0} · 평균 밝기 {sumOn / Mathf.Max(1f, (float)sumOff):P0} (무늬 전체 그늘 비율 {Game.View.CloudShadows.ShadedFraction:P0})");
-                if (frac < 0.05f) Fail("구름 그림자가 화면에 그려지지 않음(쿠키 미적용)");
+                if (frac < 0.05f)
+                {
+                    // 마지막 렌더가 '끔'이면 쿠키 키워드·전역 쿠키 텍스처도 꺼진 상태라, 켬으로 한 번 더 그린 뒤 본다
+                    RenderMain();
+                    var cl = clouds.GetComponent<Light>();
+                    int dirs = 0; string names = "";
+                    foreach (var l in Object.FindObjectsByType<Light>(FindObjectsSortMode.None)) if (l.type == LightType.Directional && l.isActiveAndEnabled) { dirs++; names += $"{l.name}({l.intensity:0.##}) "; }
+                    _report.AppendLine($"  - 진단: 해 {RenderSettings.sun?.name ?? "없음"} · 구름 붙은 빛 {cl?.name} 켜짐 {cl?.isActiveAndEnabled} 세기 {cl?.intensity:0.##} 쿠키 {(cl != null && cl.cookie != null ? cl.cookie.name : "없음")} · 켜진 방향광 {dirs}: {names}· _LIGHT_COOKIES {Shader.IsKeywordEnabled("_LIGHT_COOKIES")} · 전역 주광 쿠키 {Shader.GetGlobalTexture("_MainLightCookieTexture")?.name ?? "없음"}");
+                    Fail("구름 그림자가 화면에 거의 안 보임(그늘진 화면 5% 미만 — 쿠키 미적용 또는 바다 재질 _CloudShade가 너무 약함)");
+                }
+
+                // 설정 › 그래픽 › 구름 그림자(진하게 · 보통 · 옅게 · 끄기): 같은 장면의 평균 밝기가 단계마다 달라지는지
+                Time.timeScale = 0f;
+                var sbc = new StringBuilder();
+                var bright = new double[4];
+                var applied = new bool[4];
+                for (int level = 0; level < 4; level++)
+                {
+                    DisplaySettings.SetCloudShadow(level);
+                    yield return null;
+                    var px = RenderMain();
+                    double sum = 0;
+                    foreach (var c in px) sum += c.r + c.g + c.b;
+                    bright[level] = sum;
+                    applied[level] = clouds.Applied;
+                    sbc.Append($"{DisplaySettings.CloudShadowNames[level]} {clouds.Strength:0.00}{(applied[level] ? "" : "(뗌)")} · ");
+                }
+                DisplaySettings.SetCloudShadow(1);
+                yield return null;
+                Time.timeScale = TimeScale;
+                _report.AppendLine($"- 구름 그림자 설정(그늘 세기): {sbc}화면 밝기 진하게/끄기 {bright[0] / System.Math.Max(1.0, bright[3]):P1} · 옅게/끄기 {bright[2] / System.Math.Max(1.0, bright[3]):P1} · 보통으로 되돌림 {Yes(clouds.Applied)}");
+                if (applied[3] || !applied[0] || !applied[2]) Fail("구름 그림자 '끄기'가 쿠키를 떼지 않거나 다른 단계에서 붙지 않음");
+                if (!(bright[0] < bright[1] && bright[1] < bright[2] && bright[2] < bright[3])) Fail("구름 그림자 설정 단계대로 화면 밝기가 달라지지 않음");
+                if (!clouds.Applied) Fail("구름 그림자를 보통으로 되돌려도 다시 붙지 않음");
             }
 
             // 3) 격침 잔해: 정지한 함선 앞쪽에 초계함·고속정·미사일정, 옆에 잠항 잠수함
@@ -681,6 +810,50 @@ namespace Game.Dev
         /// 섬: 자동 배치(출항 지점 비움, 간격), 포탄·어뢰 차단, 사선이 막히면 적이 쏘지 않음, 레이더 그림자,
         /// 함선 좌초(박히지 않고 멈춤), 적의 섬 회피. 캡처 포함.
         /// </summary>
+        /// <summary>
+        /// 절차형 섬 해안선(2026-10-31, IslandShape): 길쭉함·굴곡이 실제로 나오는지, 무인도 둘레 방향마다 수면 높이의
+        /// 콜라이더가 보이는 해안(파도 거품 안쪽)보다 바다 쪽으로 튀어나오지 않는지(보이지 않는 벽) 잰다.
+        /// </summary>
+        private void ShoreCheck(IReadOnlyList<Game.World.IslandInfo> all)
+        {
+            int shaped = 0, green = 0;
+            float minAspect = float.MaxValue, maxAspect = 0f, minRatio = float.MaxValue, maxRatio = 0f, worstSpread = 0f;
+            Physics.SyncTransforms();
+            foreach (var isl in all)
+            {
+                if (isl.ShoreAt == null || isl.Root == null) continue;
+                shaped++;
+                minAspect = Mathf.Min(minAspect, isl.Aspect);
+                maxAspect = Mathf.Max(maxAspect, isl.Aspect);
+                float lo = float.MaxValue, hi = 0f;
+                for (int i = 0; i < 24; i++)
+                {
+                    float a = i * Mathf.PI * 2f / 24f;
+                    float shore = isl.ShoreAt(a);
+                    lo = Mathf.Min(lo, shore); hi = Mathf.Max(hi, shore);
+                    if (isl.Rocky) continue;
+                    var dir = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+                    var from = isl.Center + dir * (shore * 2f + 10f) + Vector3.up * 0.2f;
+                    // 섬 본체(모래 해안·언덕)만 잰다 — 해안 소품(부두·방파제·어선)과 이웃 섬은 건너뛴다
+                    float best = float.MaxValue;
+                    foreach (var h in Physics.RaycastAll(from, -dir, shore * 2f + 10f, Game.World.Islands.Mask, QueryTriggerInteraction.Ignore))
+                        if (h.collider.transform.parent == isl.Root.transform && (h.collider.name == "Beach" || h.collider.name == "Hill"))
+                            best = Mathf.Min(best, h.distance);
+                    if (best == float.MaxValue) continue;
+                    var hitPoint = from - dir * best;
+                    float r = new Vector2(hitPoint.x - isl.Center.x, hitPoint.z - isl.Center.z).magnitude / shore;
+                    minRatio = Mathf.Min(minRatio, r); maxRatio = Mathf.Max(maxRatio, r);
+                }
+                if (!isl.Rocky) green++;
+                worstSpread = Mathf.Max(worstSpread, hi / Mathf.Max(0.01f, lo));
+            }
+            _report.AppendLine($"- 해안선(절차형 {shaped}개): 길쭉함 {(shaped > 0 ? minAspect : 0):0.00}~{maxAspect:0.00} · 가장 굴곡진 섬 긴/짧은 반경 {worstSpread:0.00}배 · " +
+                               $"무인도 {green}개 수면 충돌면/해안 반경 {(green > 0 ? minRatio : 0):0.00}~{maxRatio:0.00}");
+            if (shaped > 0 && worstSpread < 1.15f) Fail("절차형 섬 해안선이 모두 원에 가까움(모양 변화 없음)");
+            if (green > 0 && maxRatio > 1.05f) Fail("무인도 충돌면이 해안선보다 바다 쪽으로 튀어나옴(보이지 않는 벽)");
+            if (green > 0 && minRatio < 0.6f) Fail("무인도 충돌면이 보이는 해안보다 크게 안쪽(배가 섬에 파묻힘)");
+        }
+
         private IEnumerator IslandCheck()
         {
             _report.AppendLine("\n## 섬(엄폐)");
@@ -711,6 +884,7 @@ namespace Game.Dev
             _report.AppendLine($"- 자동 배치(시드 12345, 5×5 구역 = 550m): 섬 {all.Count}개(바위섬 {rocky}·무인도 {all.Count - rocky}) · 함선에서 가장 가까운 해안 {nearest:0}m · 섬 사이 최소 수로 {minGap:0}m");
             if (all.Count < 5) Fail("섬이 너무 적음");
             if (nearest < 30f) Fail("출항 지점 가까이에 섬이 있음");
+            ShoreCheck(all);
             yield return Shot("islands_overview");
             if (all.Count > 0)
             {

@@ -6,6 +6,16 @@ namespace Game.Combat
     /// <summary>표적 분류. 무기마다 노리는 종류가 다르다(기관포=수상함, CIWS=미사일).</summary>
     public enum TargetKind { Surface, Missile, Submarine, Decoy, Aircraft }
 
+    /// <summary>
+    /// 수면 비행체(위그선, 2026-11-16 4스테이지). 항공 표적(TargetKind.Aircraft)이지만 수면 몇 미터 위를 난다 —
+    /// 대공 무기와 함께 대함 유도탄(VLS · 유도로켓)도 노릴 수 있고, 수상 표적 전용 무기(곡사포 · 기뢰 · 충각 · 헬기)는 못 노린다.
+    /// 내려앉으면(Skimming = false, Kind = Surface) 수상함과 같다.
+    /// </summary>
+    public interface ISkimmer
+    {
+        bool Skimming { get; }
+    }
+
     /// <summary>탐지/조준의 대상이 되는 모든 것. 진영(Faction)으로 적·아군을 가른다.</summary>
     public interface ITargetable : IFactionMember
     {
@@ -15,6 +25,22 @@ namespace Game.Combat
 
         /// <summary>잠수함처럼 평소 조준 불가한 대상이 소나/헬기로 드러난 상태인지.</summary>
         bool IsRevealed { get; }
+    }
+
+    /// <summary>
+    /// 큰 표적(보스)의 겨냥점(2026-11-14): 무장이 표적 중심 대신 이 점을 겨눈다 — 쏘는 쪽 위치에 따라 가까운 부분(함수·함교·함미)을,
+    /// 약점이 열려 있으면(엘리베이터·함미 램프) 그쪽을. topAttack = 위에서 꽂히는 유도탄(미사일·로켓).
+    /// </summary>
+    public interface IAimPointProvider
+    {
+        Vector3 AimPointFor(Vector3 shooter, bool topAttack);
+    }
+
+    public static class AimPoints
+    {
+        /// <summary>표적의 겨냥점(겨냥점이 없으면 중심).</summary>
+        public static Vector3 Of(ITargetable target, Vector3 shooter, bool topAttack = false)
+            => target is IAimPointProvider p ? p.AimPointFor(shooter, topAttack) : target.Transform.position;
     }
 
     /// <summary>

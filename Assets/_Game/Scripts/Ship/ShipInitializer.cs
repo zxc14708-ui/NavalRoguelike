@@ -83,7 +83,8 @@ namespace Game.Ship
         }
 
         /// <summary>Only pre-launch changes are allowed. Validate the complete replacement before removing anything.</summary>
-        public bool TrySelect(StartingShipConcept concept, out string reason)
+        /// <param name="workshop">정비창 개조안을 쓴다(훈련은 기본형으로 — false).</param>
+        public bool TrySelect(StartingShipConcept concept, out string reason, bool workshop = true)
         {
             reason = null;
             if (SelectionLocked) { reason = "출항한 뒤에는 시작 함선을 변경할 수 없습니다."; return false; }
@@ -91,8 +92,9 @@ namespace Game.Ship
             var grid = ship != null ? ship.Grid : GetComponentInChildren<ShipGrid>();
             if (concept == null || concept.StartLoadout == null || factory == null || grid == null)
             { reason = "시작 함선 또는 모듈 생성기 설정이 없습니다."; return false; }
-            if (SelectedConcept == concept && _initialized) return true;
-            if (!ValidateLoadout(concept.StartLoadout, grid, out reason)) return false;
+            var start = workshop ? MetaWorkshop.ResolveLoadout(concept) : concept.StartLoadout;
+            if (SelectedConcept == concept && loadout == start && _initialized) return true;
+            if (!ValidateLoadout(concept, start, grid, out reason)) return false;
 
             var previous = new List<ModuleInstance>(grid.Modules);
             foreach (var instance in previous)
@@ -101,19 +103,28 @@ namespace Game.Ship
                 if (instance.Runtime != null) instance.Runtime.gameObject.SetActive(false);
                 factory.Uninstall(instance);
             }
-            loadout = concept.StartLoadout;
+            loadout = start;
             SelectedConcept = concept;
+            ApplyHull(concept, grid, ship);
             InstallLoadout();
             return true;
         }
 
-        private static bool ValidateLoadout(StartingLoadout candidate, ShipGrid target, out string reason)
+        /// <summary>함종 수치(격자 크기·탑재 예산·속력·선회·선체·장갑)를 적용한다. 현대 함정은 HullProfile이 없어 원래 값으로 돌아간다.</summary>
+        private static void ApplyHull(StartingShipConcept concept, ShipGrid grid, ShipController ship)
+        {
+            grid.ApplyHull(concept.HullProfile);
+            if (ship != null) ship.ApplyHull(concept.HullProfile);
+        }
+
+        private static bool ValidateLoadout(StartingShipConcept concept, StartingLoadout candidate, ShipGrid target, out string reason)
         {
             reason = null;
             var probeGo = new GameObject("Starting loadout validation") { hideFlags = HideFlags.HideAndDontSave };
             var probe = probeGo.AddComponent<ShipGrid>();
             // ShipGrid has only serialized extent/spacing settings; readonly occupancy is never copied.
             JsonUtility.FromJsonOverwrite(JsonUtility.ToJson(target), probe);
+            probe.ApplyHull(concept.HullProfile);
             try
             {
                 if (candidate.Entries.Count == 0) { reason = "시작 배치가 비어 있습니다."; return false; }
@@ -140,7 +151,7 @@ namespace Game.Ship
             if (SelectionLocked) return;
             SelectionLocked = true;
             int count = SelectedConcept != null ? SelectedConcept.InitialEscortCount : 0;
-            if (count <= 0) return;
+            if (count <= 0 || !ContentRegistry.AllowsEscorts) return;
             var formation = GetComponent<TaskForceEscortFormation>();
             if (formation == null) formation = gameObject.AddComponent<TaskForceEscortFormation>();
             for (int slot = 0; slot < Mathf.Min(count, TaskForceEscortFormation.MaxEscorts); slot++)

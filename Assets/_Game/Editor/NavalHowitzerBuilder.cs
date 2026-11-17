@@ -37,6 +37,7 @@ namespace Game.EditorTools
                 Configure(def, so => Set(so, "icon", icon));
                 EditorUtility.SetDirty(def);
             }
+            NavalWeaponUpgradeVisuals.ReapplyAfterRebuild("mod_howitzer");   // 그레이박스로 다시 만들어도 Codex 강화 외형(Visual_Level1~3)을 다시 넣는다
             AssetDatabase.SaveAssets();
             Debug.Log($"[Howitzer] 곡사포 블록을 만들었습니다: {PrefabPath}, {DefPath}, {ShellPath}");
         }

@@ -147,23 +147,12 @@ namespace Game.Dev
             yield return new WaitForSeconds(3f);
 
             var t = ship.transform;
-            // 섬이 없는 넓은 바다로 옮겨 시작한다(선회권까지 섬과 닿지 않게)
-            Vector3 open = t.position;
-            for (int ring = 0; ring <= 15 && !Game.World.Islands.IsClear(open, 130f); ring++)
-                for (int k = 0; k < 16; k++)
-                {
-                    float a = k / 16f * Mathf.PI * 2f;
-                    var cand = new Vector3(Mathf.Sin(a), 0f, Mathf.Cos(a)) * (ring * 60f);
-                    if (Game.World.Islands.IsClear(cand, 130f)) { open = cand; break; }
-                }
-            if (Vector3.Distance(open, t.position) > 1f)
-            {
-                open.y = t.position.y;
-                t.position = open;
-                if (ship.TryGetComponent<Rigidbody>(out var body)) body.position = open;
-                _report.AppendLine($"- 넓은 바다로 옮겨 시작 ({open.x:0}, {open.z:0})");
-                yield return new WaitForSeconds(1f);
-            }
+            // 항로 추종만 보므로 섬을 치우고 시작한다(2026-11-01). 예전에는 섬 없는 바다를 찾아 옮겼는데,
+            // 섬은 배가 그 구역에 도착한 뒤에 생겨 군도 무늬(섬 밀도) 뒤로는 옮긴 자리 바로 옆에 섬이 생겨 좌초했다.
+            var islandField = Game.World.IslandField.Instance;
+            if (islandField != null) { Game.World.IslandField.Disabled = true; islandField.ClearAll(); }
+            yield return new WaitForSeconds(0.5f);
+            _report.AppendLine($"- 섬 치움(항로 추종만 검사): 둘레 130m 섬 없음 {Yes(Game.World.Islands.IsClear(t.position, 130f))}");
             Vector3 o = new(t.position.x, 0f, t.position.z);
             Vector3 f = new Vector3(t.forward.x, 0f, t.forward.z).normalized, r = Vector3.Cross(Vector3.up, f);
             var points = new[] { o + f * 45f + r * 25f, o + f * 70f - r * 30f, o + f * 30f - r * 75f };
@@ -200,11 +189,24 @@ namespace Game.Dev
             yield return new WaitForSeconds(0.4f);
             var predicted = new List<Vector3>(pilot.Predicted);
             int tailStart = pilot.PredictedTailStart;
+            // 같은 순간에 같은 식으로 다시 계산: 표시 간격(0.1초)과 물리 간격(fixedDeltaTime) — 시점 차이와 간격 차이를 나눠 본다
+            var coarse = new List<Vector3>(); var fine = new List<Vector3>(); var fineTimes = new List<float>();
+            int coarseTail = pilot.SimulateRoute(0.1f, coarse, null);
+            int fineTail = pilot.SimulateRoute(Time.fixedDeltaTime, fine, fineTimes);
+            float copyAt = Time.time;
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            for (int k = 0; k < 10; k++) pilot.SimulateRoute(0.1f, coarse, null);
+            double coarseMs = sw.Elapsed.TotalMilliseconds / 10.0;
+            sw.Restart();
+            for (int k = 0; k < 10; k++) pilot.SimulateRoute(Time.fixedDeltaTime, fine, fineTimes);
+            double fineMs = sw.Elapsed.TotalMilliseconds / 10.0;
+            _report.AppendLine($"- 예상 항로 계산 시간(앞 {(fineTimes.Count > 0 ? fineTimes[fineTimes.Count - 1] : 0f):0}초 분량): 0.1초 간격 {coarseMs:0.00} ms · 물리 간격 {fineMs:0.00} ms");
             yield return Shot("route_set");
 
             float start = Time.time, maxPassDist = 0f;
             var reachedAt = new List<float>();
             var track = new List<Vector3>();
+            var trackLog = new List<(float time, int leg, float speed, float yaw, float rudder)>();
             int lastCount = pilot.Route.Count;
             float[] closest = { float.MaxValue, float.MaxValue, float.MaxValue };
             bool aground = false, midShot = false;
@@ -212,6 +214,7 @@ namespace Game.Dev
             {
                 Vector3 p = new(t.position.x, 0f, t.position.z);
                 track.Add(p);
+                trackLog.Add((Time.time - copyAt, points.Length - pilot.Route.Count, ship.CurrentSpeed, ship.YawRate, ship.RudderInput));
                 aground |= ship.IsAground;
                 int idx = points.Length - pilot.Route.Count;
                 if (idx >= 0 && idx < 3) closest[idx] = Mathf.Min(closest[idx], Vector3.Distance(p, points[idx]));
@@ -228,20 +231,15 @@ namespace Game.Dev
 
             // 예상 항로와 실제 항적: 실제 점마다 예상 선(직진 꼬리 앞까지)에서 가장 가까운 거리
             if (predicted.Count < 2) { Fail("예상 항로가 계산되지 않음"); pilot.Cancel(); yield break; }
-            float sum = 0f, worst = 0f; int n = 0;
-            int predEnd = Mathf.Clamp(tailStart + 1, 2, predicted.Count);
-            foreach (var p in track)
+            float sum = 0f, worst = 0f; int n = 0, worstAt = -1;
+            var dev = new float[track.Count];
+            for (int k = 0; k < track.Count; k++)
             {
-                float best = float.MaxValue;
-                for (int i = 0; i + 1 < predEnd; i++)
-                {
-                    Vector3 a = predicted[i], b = predicted[i + 1], ab = b - a;
-                    float u = ab.sqrMagnitude > 1e-4f ? Mathf.Clamp01(Vector3.Dot(p - a, ab) / ab.sqrMagnitude) : 0f;
-                    best = Mathf.Min(best, Vector3.Distance(p, a + ab * u));
-                }
-                if (best < float.MaxValue) { sum += best; worst = Mathf.Max(worst, best); n++; }
+                dev[k] = PathDistance(track[k], predicted, tailStart);
+                if (dev[k] < float.MaxValue) { sum += dev[k]; n++; if (dev[k] > worst) { worst = dev[k]; worstAt = k; } }
             }
             _report.AppendLine($"- 예상 항로 대비 실제 항적: 평균 {(n > 0 ? sum / n : 0f):0.0} m, 최대 {worst:0.0} m (예상 점 {predicted.Count}개)");
+            RouteDeviationDebug(o, f, r, points, predicted, tailStart, coarse, coarseTail, fine, fineTail, fineTimes, track, trackLog, dev, worstAt);
             if (n == 0 || worst > 8f) Fail("예상 항로가 실제 항적과 많이 다름");
 
             // 마지막 목표 뒤: 지날 때의 침로로 직진
@@ -273,6 +271,124 @@ namespace Game.Dev
             if (pilot.HasRoute || !pilot.IsHolding) Fail("앵커 취소가 이상함");
             pilot.Cancel();
             ship.SetEngineOrder(0f);
+        }
+
+        /// <summary>점 p에서 예상 선(직진 꼬리 앞까지)까지 가장 가까운 거리.</summary>
+        private static float PathDistance(Vector3 p, List<Vector3> path, int tailStart)
+        {
+            float best = float.MaxValue;
+            int end = Mathf.Clamp(tailStart + 1, 2, path.Count);
+            for (int i = 0; i + 1 < end; i++)
+            {
+                Vector3 a = path[i], b = path[i + 1], ab = b - a;
+                float u = ab.sqrMagnitude > 1e-4f ? Mathf.Clamp01(Vector3.Dot(p - a, ab) / ab.sqrMagnitude) : 0f;
+                best = Mathf.Min(best, Vector3.Distance(p, a + ab * u));
+            }
+            return best;
+        }
+
+        /// <summary>
+        /// 예상 항로 오차 진단: 가장 크게 벗어난 점(시각·구간·위치·조함 상태), 같은 순간 다시 계산한 예상(0.1초 간격 · 물리 간격)과의 차이,
+        /// 시간을 맞춘 차이, 점마다 값(route_track.csv)과 그림(route_debug.png: 초록 = 표시된 예상, 파랑 = 물리 간격 예상, 빨강 = 실제, 검정 = 경유지, 자홍 = 최대 차이 점).
+        /// </summary>
+        private void RouteDeviationDebug(Vector3 o, Vector3 f, Vector3 r, Vector3[] points,
+            List<Vector3> shown, int shownTail, List<Vector3> coarse, int coarseTail, List<Vector3> fine, int fineTail, List<float> fineTimes,
+            List<Vector3> track, List<(float time, int leg, float speed, float yaw, float rudder)> log, float[] dev, int worstAt)
+        {
+            Vector2 L(Vector3 p) => new(Vector3.Dot(p - o, r), Vector3.Dot(p - o, f));
+            Vector3 FineAt(float time)
+            {
+                if (fine.Count == 0) return o;
+                int j = fineTimes.BinarySearch(time);
+                if (j >= 0) return fine[j];
+                j = ~j;
+                if (j <= 0) return fine[0];
+                if (j >= fine.Count) return fine[fine.Count - 1];
+                float u = Mathf.InverseLerp(fineTimes[j - 1], fineTimes[j], time);
+                return Vector3.Lerp(fine[j - 1], fine[j], u);
+            }
+
+            var csv = new StringBuilder("t,leg,right,fwd,speed,yaw,rudder,dev_shown,dev_coarse_now,dev_fine_now,dev_time_aligned\n");
+            float worstCoarse = 0f, worstFine = 0f, worstAligned = 0f; int alignedAt = -1;
+            var legWorst = new float[points.Length + 1];
+            var devCoarse = new float[track.Count]; var devFine = new float[track.Count]; var devAligned = new float[track.Count];
+            for (int k = 0; k < track.Count; k++)
+            {
+                devCoarse[k] = PathDistance(track[k], coarse, coarseTail);
+                devFine[k] = PathDistance(track[k], fine, fineTail);
+                devAligned[k] = Vector3.Distance(track[k], FineAt(log[k].time));
+                worstCoarse = Mathf.Max(worstCoarse, devCoarse[k]);
+                worstFine = Mathf.Max(worstFine, devFine[k]);
+                if (devAligned[k] > worstAligned) { worstAligned = devAligned[k]; alignedAt = k; }
+                int leg = Mathf.Clamp(log[k].leg, 0, points.Length);
+                legWorst[leg] = Mathf.Max(legWorst[leg], dev[k]);
+                var lp = L(track[k]);
+                csv.AppendLine(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                    "{0:0.00},{1},{2:0.00},{3:0.00},{4:0.00},{5:0.00},{6:0.000},{7:0.00},{8:0.00},{9:0.00},{10:0.00}",
+                    log[k].time, log[k].leg, lp.x, lp.y, log[k].speed, log[k].yaw, log[k].rudder, dev[k], devCoarse[k], devFine[k], devAligned[k]));
+            }
+            float shownVsFine = 0f, coarseVsFine = 0f;
+            for (int i = 0; i < Mathf.Min(shownTail + 1, shown.Count); i++) shownVsFine = Mathf.Max(shownVsFine, PathDistance(shown[i], fine, fineTail));
+            for (int i = 0; i < Mathf.Min(coarseTail + 1, coarse.Count); i++) coarseVsFine = Mathf.Max(coarseVsFine, PathDistance(coarse[i], fine, fineTail));
+            File.WriteAllText(Path.Combine(OutputDirectory, "route_track.csv"), csv.ToString(), new UTF8Encoding(false));
+
+            if (worstAt >= 0)
+            {
+                var e = log[worstAt]; var wp = L(track[worstAt]);
+                _report.AppendLine($"  - 최대 차이 지점: 예측 뒤 {e.time:0.0}초 · {(e.leg < points.Length ? $"경유지 {e.leg + 1}로 가는 중" : "도착 뒤")} · 위치(우 {wp.x:0.0}, 앞 {wp.y:0.0}) · " +
+                                   $"속력 {e.speed:0.0} m/s · 선회율 {e.yaw:0.0}°/초 · 타 {e.rudder:0.00} → 표시 예상 {dev[worstAt]:0.0} / 같은 순간 0.1초 간격 {devCoarse[worstAt]:0.0} / 물리 간격 {devFine[worstAt]:0.0} m");
+            }
+            _report.AppendLine($"  - 구간별 최대 차이(표시 예상): {string.Join(" / ", System.Array.ConvertAll(legWorst, x => x.ToString("0.0")))} m (경유지 1·2·3으로 가는 중 · 도착 뒤)");
+            _report.AppendLine($"  - 실제 대비 같은 순간 다시 계산한 예상: 0.1초 간격 최대 {worstCoarse:0.0} m · 물리 간격({Time.fixedDeltaTime:0.00}초) 최대 {worstFine:0.0} m · " +
+                               $"예상끼리 차이: 표시↔물리 간격 {shownVsFine:0.0} m, 0.1초↔물리 간격 {coarseVsFine:0.0} m");
+            if (alignedAt >= 0)
+                _report.AppendLine($"  - 시간 맞춘 차이(물리 간격 예상, 같은 시각끼리): 최대 {worstAligned:0.0} m (예측 뒤 {log[alignedAt].time:0.0}초)");
+
+            // 그림: 지역 좌표(오른쪽 = 우현, 위 = 처음 선수 방향)
+            const int size = 1000, margin = 40;
+            Vector2 min = new(float.MaxValue, float.MaxValue), max = new(float.MinValue, float.MinValue);
+            void Grow(Vector3 p) { var q = L(p); min = Vector2.Min(min, q); max = Vector2.Max(max, q); }
+            Grow(o); foreach (var p in points) Grow(p); foreach (var p in track) Grow(p);
+            for (int i = 0; i < Mathf.Min(shownTail + 1, shown.Count); i++) Grow(shown[i]);
+            float scale = (size - margin * 2) / Mathf.Max(1f, Mathf.Max(max.x - min.x, max.y - min.y));
+            Vector2 Px(Vector3 p) { var q = L(p); return new Vector2(margin + (q.x - min.x) * scale, margin + (q.y - min.y) * scale); }
+            var tex = new Texture2D(size, size, TextureFormat.RGB24, false);
+            var px = new Color32[size * size];
+            for (int i = 0; i < px.Length; i++) px[i] = new Color32(250, 250, 250, 255);
+            void Dot(Vector2 c, int rad, Color32 col)
+            {
+                for (int y = -rad; y <= rad; y++)
+                for (int x = -rad; x <= rad; x++)
+                {
+                    int ix = Mathf.RoundToInt(c.x) + x, iy = Mathf.RoundToInt(c.y) + y;
+                    if (ix >= 0 && iy >= 0 && ix < size && iy < size && x * x + y * y <= rad * rad) px[iy * size + ix] = col;
+                }
+            }
+            void Line(List<Vector3> path, int end, Color32 col)
+            {
+                for (int i = 0; i + 1 < Mathf.Min(end + 1, path.Count); i++)
+                {
+                    Vector2 a = Px(path[i]), b = Px(path[i + 1]);
+                    int steps = Mathf.Max(1, Mathf.CeilToInt((b - a).magnitude));
+                    for (int s = 0; s <= steps; s++) Dot(Vector2.Lerp(a, b, s / (float)steps), 1, col);
+                }
+            }
+            // 5m 격자
+            for (float gx = Mathf.Floor(min.x / 5f) * 5f; gx <= max.x; gx += 5f)
+            for (int y = 0; y < size; y++) { int ix = Mathf.RoundToInt(margin + (gx - min.x) * scale); if (ix >= 0 && ix < size) px[y * size + ix] = new Color32(228, 228, 228, 255); }
+            for (float gy = Mathf.Floor(min.y / 5f) * 5f; gy <= max.y; gy += 5f)
+            for (int x = 0; x < size; x++) { int iy = Mathf.RoundToInt(margin + (gy - min.y) * scale); if (iy >= 0 && iy < size) px[iy * size + x] = new Color32(228, 228, 228, 255); }
+            Line(fine, fineTail, new Color32(40, 90, 230, 255));
+            Line(shown, shownTail, new Color32(30, 170, 60, 255));
+            Line(track, track.Count - 1, new Color32(220, 40, 40, 255));
+            foreach (var p in points) Dot(Px(p), 7, new Color32(20, 20, 20, 255));
+            Dot(Px(o), 5, new Color32(120, 120, 120, 255));
+            if (worstAt >= 0) Dot(Px(track[worstAt]), 6, new Color32(220, 0, 220, 255));
+            tex.SetPixels32(px);
+            tex.Apply();
+            File.WriteAllBytes(Path.Combine(OutputDirectory, "route_debug.png"), tex.EncodeToPNG());
+            Destroy(tex);
+            _report.AppendLine("  - 진단 파일: route_track.csv(점마다 차이) · route_debug.png(초록 표시 예상 · 파랑 물리 간격 예상 · 빨강 실제 · 검정 경유지 · 자홍 최대 차이)");
         }
 
         /// <summary>

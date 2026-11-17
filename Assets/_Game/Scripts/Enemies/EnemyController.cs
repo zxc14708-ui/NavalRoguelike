@@ -39,6 +39,8 @@ namespace Game.Enemies
         private Transform _flagship;
         private ITargetable _engaged;
         private float _retargetAt;
+        // 등장 때 기본으로 잡은 기함 — 아직 고른 표적이 아니라 첫 선택에서는 "20% 이상 나아야 바꾼다"를 쓰지 않는다
+        private bool _defaultTarget;
 
         /// <summary>플레이어 기함(스폰 때 받은 것). 표적이 호위함이어도 바뀌지 않는다.</summary>
         protected Transform Flagship => _flagship;
@@ -85,10 +87,22 @@ namespace Game.Enemies
         {
             ReleaseEngagement();
             definition = def;
+            if (def != null) Game.Core.PlayerProfile.Discover(def.Id);   // 사전 발견 기록(점검 C05)
+            // 수상함은 모델 바닥을 수면 아래로(점검 G06 수면선) — 판정 상자·위치는 그대로
+            if (def != null && def.Kind == Game.Combat.TargetKind.Surface && transform.Find("ModelPivot") is { } pivot)
+            {
+                // 파도 흔들림(2026-11-01)은 모델에만 — 수면선을 맞추기 전에 자세를 되돌리고, 맞춘 자리를 기준으로 삼는다
+                if (pivot.TryGetComponent<Game.View.ShipVisualSway>(out var sway)) sway.ResetPose();
+                Game.View.Waterline.Settle(transform, pivot);
+                Game.View.ShipVisualSway.Ensure(pivot).Rebase();
+            }
             Player = player;
             _flagship = player;
             _engaged = player != null ? player.GetComponent<ITargetable>() : null;
-            _retargetAt = Time.time + Random.Range(0.4f, 1.4f);
+            // 첫 표적은 등장하자마자 고른다(2026-11-01) — 예전 0.4~1.4초 뒤에 고르면 빠른 배는 그사이 기함 쪽으로 15m 달려 와
+            // 옆 호위함을 지나친 뒤라 기함을 골랐다(호위함 표적 검사가 오락가락한 원인)
+            _retargetAt = Time.time + Random.Range(0.05f, 0.25f);
+            _defaultTarget = true;
             _playerHull = player != null ? player.GetComponent<BoxCollider>() : null;
             if (_ownHull == null) _ownHull = GetComponent<BoxCollider>();
             _hp = def != null ? def.MaxHp : 1f;
@@ -97,6 +111,8 @@ namespace Game.Enemies
 
             // 화면 밖에서 이미 항해하던 배처럼 등장시킨다: 플레이어 쪽을 향하고 순항 속력을 갖는다
             _orbitSide = Random.value < 0.5f ? -1f : 1f;
+            _orbitFlipAt = _unstickUntil = 0f;
+            DevOrbitFlips = DevBoundaryHits = 0;
             if (def != null) _speed = def.MoveSpeed * 0.6f;
 
             // 물살: 수상함은 항상, 잠수함은 드러났을 때만(잠항 중 물살이 위치를 알려 주면 안 된다). 항공기는 없음.
@@ -108,6 +124,8 @@ namespace Game.Enemies
 
             // 엘리트 표식(황금 고리·마름모): 엘리트 등급 적에게만
             Game.View.EliteMarker.Apply(this);
+            // 적 도색: 위에서 보이는 갑판만 적갈색(시인성 — 바다·아군과 구별)
+            Game.View.EnemyPaint.Apply(this);
 
             if (player != null)
             {
@@ -134,6 +152,7 @@ namespace Game.Enemies
         /// <summary>
         /// 표적 선택: 기함과 등록된 아군(적의 적, 수상함) 중 "수평 거리 ÷ 우선도"가 가장 작은 것을 노린다.
         /// 1.5~2.5초마다 다시 보고, 바꾸려면 20% 이상 나아야 한다(표적을 자꾸 바꾸며 헤매지 않게).
+        /// 등장 뒤 첫 선택은 이 조건 없이 가장 나은 표적을 고른다(기본 기함은 고른 표적이 아니다).
         /// 노리던 호위함이 격침되면 곧바로 다시 고른다.
         /// </summary>
         private void UpdateTarget()
@@ -142,6 +161,8 @@ namespace Game.Enemies
             bool lost = Player == null || _engaged == null || !_engaged.IsAlive;
             if (!lost && Time.time < _retargetAt) return;
             _retargetAt = Time.time + Random.Range(1.5f, 2.5f);
+            bool sticky = !lost && !_defaultTarget;
+            _defaultTarget = false;
 
             Transform best = _flagship;
             ITargetable bestRef = _flagship.GetComponent<ITargetable>();
@@ -161,7 +182,7 @@ namespace Game.Enemies
                     if (score < bestScore) { bestScore = score; best = t.Transform; bestRef = t; }
                 }
                 // 지금 표적이 여전히 살아 있으면 새 후보가 확실히 나을 때만 바꾼다
-                if (!lost && best != Player && bestScore > currentScore * 0.8f) return;
+                if (sticky && best != Player && bestScore > currentScore * 0.8f) return;
             }
             if (best == Player && !lost) return;
             ReleaseEngagement();
@@ -204,7 +225,7 @@ namespace Game.Enemies
         {
             if (Kind == TargetKind.Aircraft || Game.World.Islands.All.Count == 0 || heading.sqrMagnitude < 1e-6f) return heading;
             float half = _ownHull != null ? _ownHull.size.x * 0.5f * transform.lossyScale.x : 1.5f;
-            float look = OwnHalfLength() + 6f + _speed * 1.6f;
+            float look = OwnHalfLength() + 8f + _speed * 2.2f;
             Vector3 fwd = transform.forward; fwd.y = 0f;
             Vector3 probe = (fwd.normalized + heading.normalized).normalized;
             if (!Game.World.Islands.ProbeAhead(transform.position, probe, Mathf.Max(1f, half), look, out var hit)) return heading;
@@ -240,20 +261,61 @@ namespace Game.Enemies
             float radius = EngageRadius(desiredDistance);
 
             Vector3 heading;
-            if (dist > radius * approachDistanceRatio)
+            bool orbiting = dist <= radius * approachDistanceRatio;
+            if (!orbiting)
             {
                 heading = radial;
                 throttle = 1f;   // 멀리 있을 땐 전속으로 따라붙는다
             }
-            else
-            {
-                // 반경보다 멀면 안쪽 성분(+), 가까우면 바깥쪽 성분(-)이 섞인다
-                Vector3 tangent = Vector3.Cross(Vector3.up, radial) * _orbitSide;
-                float correction = Mathf.Clamp((dist - radius) / radius * 2f, -1f, 1f);
-                heading = (tangent + radial * correction).normalized;
-            }
+            else heading = OrbitHeading(radial, dist, radius, _orbitSide);
 
+            if (Kind != TargetKind.Aircraft && Game.World.SeaRegion.IsStrait) heading = KeepInWater(heading, radial, dist, radius, orbiting);
             Steer(heading, throttle, dt);
+        }
+
+        /// <summary>선회 방향: 반경보다 멀면 안쪽 성분(+), 가까우면 바깥쪽 성분(-)이 섞인 접선.</summary>
+        private static Vector3 OrbitHeading(Vector3 radial, float dist, float radius, float side)
+        {
+            Vector3 tangent = Vector3.Cross(Vector3.up, radial) * side;
+            float correction = Mathf.Clamp((dist - radius) / radius * 2f, -1f, 1f);
+            return (tangent + radial * correction).normalized;
+        }
+
+        private float _orbitFlipAt, _unstickUntil;
+        private Vector3 _unstickNormal;
+        /// <summary>검증용: 경계 앞에서 선회 방향을 바꾼 횟수 · 보이지 않는 경계에 막힌 프레임 수.</summary>
+        public int DevOrbitFlips { get; private set; }
+        public int DevBoundaryHits { get; private set; }
+
+        /// <summary>
+        /// 좁은 수로 · 군항 만(2026-11-15): 선회 원이 기슭 밖으로 나가면 기슭에 박혀 미끄러지며 멈춰 버렸다(2스테이지 보스).
+        /// 앞쪽 내다본 자리가 경계에 가까우면 ① 반대 방향 선회가 더 넓으면 선회 방향을 바꾸고(3.5초에 한 번까지)
+        /// ② 아니면 물 안쪽으로 키를 섞는다. 그래서 기슭 앞에서는 호를 따라 오가며 거리를 지킨다.
+        /// </summary>
+        private Vector3 KeepInWater(Vector3 heading, Vector3 radial, float dist, float radius, bool orbiting)
+        {
+            const float margin = 9f;
+            float look = OwnHalfLength() + 8f + Mathf.Max(_speed, definition.MoveSpeed * 0.5f) * 2.2f;
+            Vector3 pos = transform.position;
+            float room = Game.World.SeaRegion.WaterRoom(pos + heading * look);
+            if (room >= margin) return heading;
+            if (orbiting && Time.time >= _orbitFlipAt)
+            {
+                var other = OrbitHeading(radial, dist, radius, -_orbitSide);
+                float otherRoom = Game.World.SeaRegion.WaterRoom(pos + other * look);
+                if (otherRoom > room + 3f)
+                {
+                    _orbitSide = -_orbitSide;
+                    _orbitFlipAt = Time.time + 3.5f;
+                    DevOrbitFlips++;
+                    heading = other;
+                    room = otherRoom;
+                    if (room >= margin) return heading;
+                }
+            }
+            Vector3 inward = Game.World.SeaRegion.InwardNormal(pos + heading * look);
+            float push = Mathf.Clamp01((margin - room) / (margin + 6f));
+            return (heading * (1f - push) + inward * (push * 1.5f)).normalized;
         }
 
         /// <summary>
@@ -297,6 +359,9 @@ namespace Game.Enemies
             _speed = Mathf.MoveTowards(_speed, targetSpeed, maxSpeed * accelerationRatio * dt);
 
             desiredHeading.y = 0f;
+            // 방금 섬에 박혔으면 잠깐 섬 바깥쪽으로 키를 강하게 잡는다(긴 배가 바위에 낀 채 제자리에서 멈추지 않게)
+            if (Time.time < _unstickUntil && desiredHeading.sqrMagnitude > 1e-6f)
+                desiredHeading = desiredHeading.normalized * 0.35f + _unstickNormal;
             desiredHeading = AvoidIslands(desiredHeading);
             if (desiredHeading.sqrMagnitude > 0.0001f)
             {
@@ -312,16 +377,47 @@ namespace Game.Enemies
             forward.y = 0f;
             Vector3 next = transform.position + forward.normalized * (_speed * dt);
             if (Kind != TargetKind.Aircraft && _ownHull != null &&
-                Game.World.Islands.ResolveOverlap(_ownHull, ref next, transform.rotation, out _))
-                _speed *= 0.5f;
+                Game.World.Islands.ResolveOverlap(_ownHull, ref next, transform.rotation, out Vector3 shore))
+            {
+                // 섬 쪽으로 파고들면 속력을 잃지만, 이미 벗어나는 쪽을 보고 있으면 최고 속력의 35%는 남긴다(속력 0이면 키가 안 먹어 못 빠져나온다)
+                bool leaving = throttle > 0.05f && Vector3.Dot(forward.normalized, shore) > -0.2f;
+                _speed = leaving ? Mathf.Max(_speed * 0.5f, maxSpeed * 0.35f * Mathf.Clamp01(throttle + 0.3f)) : _speed * 0.5f;
+                if (shore.sqrMagnitude > 1e-6f) { _unstickNormal = shore; _unstickUntil = Time.time + 1f; }
+                // 섬에 박혔다: 선회 방향을 바꿔 섬에서 돌아 나온다(같은 섬을 계속 파고들며 멈추지 않게, 3.5초에 한 번까지)
+                if (Time.time >= _orbitFlipAt) { _orbitSide = -_orbitSide; _orbitFlipAt = Time.time + 3.5f; DevOrbitFlips++; }
+            }
+            if (Kind != TargetKind.Aircraft && Game.World.SeaRegion.ClampToChannel(ref next, -2f)) { _speed *= 0.5f; DevBoundaryHits++; }   // 좁은 수로 경계(점검 K04)
             transform.position = next;
         }
 
         public virtual void TakeDamage(in DamageInfo info)
         {
             if (!IsAlive) return;
-            _hp -= info.Amount;
-            if (_hp <= 0f) Die();
+            float before = _hp;
+            _hp -= info.Amount * (Time.time < _markedUntil ? _markMultiplier : 1f);
+            // 결과 분석: 실제로 깎은 체력과 격침(마지막 한 방)을 무장별로(점검 O02)
+            if (Factions.GrantsReward(this)) RunReport.RecordDamage(info.Tag, info.Source, before - Mathf.Max(0f, _hp), _hp <= 0f);
+            if (_hp <= 0f)
+            {
+                // 마지막 한 방(무엇에 · 어디를 맞았는지)에 따라 침몰 방식이 달라진다(ShipWreck.SinkMode)
+                _killSource = info.Source;
+                _killPoint = info.HitPoint;
+                Die();
+                _killSource = null;
+            }
+        }
+
+        private DamageSource? _killSource;
+        private Vector3 _killPoint;
+
+        // --- 표적 지시(초계함 광역 탐색, 2026-10-11): 잠깐 받는 피해가 늘어난다
+        private float _markedUntil = -1f, _markMultiplier = 1f;
+        public bool IsMarked => Time.time < _markedUntil;
+        public float MarkedSecondsLeft => Mathf.Max(0f, _markedUntil - Time.time);
+        public void Mark(float seconds, float damageMultiplier)
+        {
+            _markedUntil = Mathf.Max(_markedUntil, Time.time + seconds);
+            _markMultiplier = Mathf.Max(1f, damageMultiplier);
         }
 
         /// <summary>선체를 고친다(수리 지원정). 최대 체력을 넘지 않고, 실제로 고친 양을 돌려준다.</summary>
@@ -336,7 +432,7 @@ namespace Game.Enemies
         protected virtual void Die()
         {
             // 격침 연출: 겉모습만 복사한 잔해가 기울며 가라앉는다(장식). 항공기는 공중에서 터진다.
-            if (Kind != TargetKind.Aircraft && LeavesWreck) Game.View.ShipWreck.Spawn(transform, _speed);
+            if (Kind != TargetKind.Aircraft && LeavesWreck) Game.View.ShipWreck.Spawn(transform, _speed, _killSource, _killPoint);
             AudioManager.Play(SfxId.Explosion, transform.position);
             // 경험치·격침 수는 적대 진영이 격침될 때만(아군으로 싸우는 유닛이 잃어도 보상이 생기지 않게)
             if (Factions.GrantsReward(this)) Game.Core.GameManager.Instance?.RegisterKill(definition);
@@ -355,7 +451,12 @@ namespace Game.Enemies
             else gameObject.SetActive(false);
         }
 
-        public virtual void OnSpawned() => TargetRegistry.Register(this);
+        public virtual void OnSpawned()
+        {
+            TargetRegistry.Register(this);
+            if (this is IBossParts) AudioManager.NoteBoss(transform);                       // 보스 음악(2026-11-16)
+            if (this is Game.WW2.Ww2StrikeAircraft) AudioManager.Play(SfxId.PropPass, transform.position);   // 프로펠러기 등장
+        }
         public virtual void OnDespawned()
         {
             ReleaseEngagement();

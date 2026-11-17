@@ -19,9 +19,10 @@ namespace Game.TaskForce
     ///   - 미사일(STK): 주기적 대함 타격 — 반경 <see cref="StrikeRange"/>m 안 드러난 수상 표적 중 가치가 가장 높은 것.
     /// 개량 단계(T0~T3)마다 강해진다. 성장 카드의 "공격력"·"연사력"(모든 무장)은 호위함 함포·타격에도 적용된다.
     /// 판정은 즉시 적용하고 예광선·전술 리그(TaskForceWorldFeedback)는 연출이다. 격침 보상은 적 격침과 같다.
+    /// 2026-10-11: EscortArmory가 있으면 실제 무장을 쓴다(EscortDefense.Armament.cs) — 위 즉시 판정은 그 대체 경로.
     /// </summary>
     [DisallowMultipleComponent]
-    public sealed class EscortDefense : MonoBehaviour
+    public sealed partial class EscortDefense : MonoBehaviour
     {
         public const float GunRange = 24f, GunInterval = 0.5f, GunDamage = 2.5f;
         public const float SamRange = 42f, JamRange = 36f, AswRange = 40f, StrikeRange = 60f;
@@ -83,7 +84,12 @@ namespace Game.TaskForce
         }
 
         /// <summary>재장전을 비운다(검증용).</summary>
-        public void ResetCooldowns() => _gunAt = _samAt = _jamAt = _aswAt = _strikeAt = 0f;
+        public void ResetCooldowns()
+        {
+            _gunAt = _samAt = _jamAt = _aswAt = _strikeAt = _rocketAt = 0f;
+            System.Array.Clear(_mountAt, 0, _mountAt.Length);
+            System.Array.Clear(_ciwsAt, 0, _ciwsAt.Length);
+        }
 
         private void Update()
         {
@@ -94,6 +100,9 @@ namespace Game.TaskForce
             int tier = _tier != null ? _tier() : 0;
             var role = _role != null ? _role() : EscortRole.None;
             Vector3 flagship = gm.Player != null ? gm.Player.transform.position : transform.position;
+
+            var armory = EscortArmory.Instance;
+            if (armory != null) { UpdateArmament(armory, tier, role, flagship); return; }
 
             if (Time.time >= _gunAt) FireGun(tier);
             switch (role)
@@ -214,7 +223,7 @@ namespace Game.TaskForce
             Jams++;
             Vector3 from = LaunchPoint(EscortTurrets.MountKind.Decoy, pick.transform.position, "EWOrigin");
             Tracer.Spawn(from, pick.transform.position, TaskForceEscortFormation.RoleColor(EscortRole.ElectronicWarfare), 0.45f, 0.12f);
-            AudioManager.Play(SfxId.EscortJam, from, 1f, 1.6f);
+            AudioManager.Play(SfxId.EscortJam, from);
             TaskForceWorldFeedback.Instance?.PlayRig("EW", transform.position, transform.eulerAngles.y, 10f, 1.0f, 0f);
         }
 
@@ -243,8 +252,8 @@ namespace Game.TaskForce
             if (Turrets != null && Turrets.TorpedoPoint(at, out var tube)) from = tube;   // 표적 쪽 현측 어뢰관
             Tracer.Spawn(from, new Vector3(at.x, 0f, at.z), TaskForceEscortFormation.RoleColor(EscortRole.AntiSubmarine), 0.6f, 0.14f);
             Explosions.Spawn(new Vector3(at.x, 0f, at.z), 0.7f, Explosions.Kind.Water);
-            AudioManager.Play(SfxId.EscortTorpedoLaunch, from, 1f, 0.7f);
-            AudioManager.Play(SfxId.Explosion, new Vector3(at.x, 0f, at.z), 0.45f, 0.75f);   // 수중 폭발
+            AudioManager.Play(SfxId.EscortTorpedoLaunch, from);
+            AudioManager.Play(SfxId.UnderwaterBlast, new Vector3(at.x, 0f, at.z), 0.55f);   // 수중 폭발
             TaskForceWorldFeedback.Instance?.PlayRig("ASW", transform.position, transform.eulerAngles.y, 12f, 1.4f, 240f);
             CombatLog.Add("편대", $"대잠 호위함 자동 대잠 타격 → {CombatLog.Describe(pick)} · 피해 {damage:0}");
         }
