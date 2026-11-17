@@ -407,9 +407,7 @@ namespace Game.UI
             _growthResult = def != null
                 ? $"성장 완료: {def.Name} +{add * 100f:0.#}% ({RunUpgrades.TierName(card.Tier)}) — 누적 {RunUpgrades.Describe(card.Stat, RunUpgrades.Get(card.Stat))}"
                 : "성장 카드를 적용하지 못했습니다.";
-            if (_held != null) { Refresh(); return; }   // 들고 있는 블록이 있으면(그럴 일은 없지만) 배치 화면에서 마저
-            Game.Core.GameEvents.RaiseBanner(_growthResult);
-            TryLaunch();
+            ResumeWithBanner(_growthResult);
         }
 
         private void HandleCardInput()

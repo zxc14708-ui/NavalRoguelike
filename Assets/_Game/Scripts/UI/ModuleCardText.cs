@@ -207,7 +207,7 @@ namespace Game.UI
             sb.AppendLine($"<color={Good}><b>무장 강화</b></color>{ValueColumn}<b>{step}</b>");
             foreach (var line in UpgradeDiff(def, fromLevel, fromLevel + 1, 3, aligned: true).Split('\n'))
                 if (!string.IsNullOrEmpty(line)) sb.AppendLine(line);
-            Row(sb, "적용", "즉시 · 대상 선택");
+            Row(sb, "적용", $"대상 선택 → <color={Good}>바로 전투 재개</color>");
             Row(sb, "공간", $"<color={Good}>추가 사용 없음</color>");
             return sb.ToString().TrimEnd();
         }
@@ -243,7 +243,7 @@ namespace Game.UI
                 string step = lo <= 0 ? "기본 → 강화 I" : $"강화 {ModuleUpgrades.Roman(lo)} → {ModuleUpgrades.Roman(lo + 1)}";
                 Row(sb, counts[d] > 1 ? $"{d.DisplayName} ×{counts[d]}" : d.DisplayName, $"<color={Good}>{step}</color>");
             }
-            Row(sb, "적용", "즉시 · 대상 선택");
+            Row(sb, "적용", $"대상 선택 → <color={Good}>바로 전투 재개</color>");
             Row(sb, "공간", $"<color={Good}>추가 사용 없음</color>");
             return sb.ToString().TrimEnd();
         }
@@ -642,7 +642,7 @@ namespace Game.UI
             Row(sb, "선체", $"{Game.TaskForce.TaskForceEscortFormation.MaxHullFor(0):0} · 손실 {Game.TaskForce.TaskForceEscortFormation.RecoverSeconds:0}초 뒤 복귀");
             Row(sb, "슬롯", "빈 슬롯 중 선택 · 슬롯마다 진형 자리 고정");
             Row(sb, "역할", "편대 강화 카드로");
-            Row(sb, "공간", $"<color={Good}>배치 공간 불필요</color>");
+            Row(sb, "적용", $"공간 불필요 · <color={Good}>바로 전투 재개</color>");
             return sb.ToString().TrimEnd();
         }
 
@@ -665,7 +665,7 @@ namespace Game.UI
                     : $"개량 {info.Tier} → <color={Good}>{info.Tier + 1}</color>";
                 Row(sb, $"{s + 1}번 <color=#{hex}>{Game.TaskForce.TaskForceEscortFormation.RoleCode(info.Role)}</color>", what);
             }
-            Row(sb, "공간", $"<color={Good}>배치 공간 불필요</color>");
+            Row(sb, "적용", $"공간 불필요 · <color={Good}>바로 전투 재개</color>");
             return sb.ToString().TrimEnd();
         }
 
@@ -679,7 +679,7 @@ namespace Game.UI
                 string hex = ColorUtility.ToHtmlStringRGB(Game.TaskForce.TaskForceEscortFormation.RoleColor(role));
                 Row(sb, $"<color=#{hex}>{Game.TaskForce.TaskForceEscortFormation.RoleCode(role)}</color>", Game.TaskForce.TaskForceEscortFormation.RoleSummary(role));
             }
-            Row(sb, "공간", $"<color={Good}>배치 공간 불필요</color>");
+            Row(sb, "적용", $"공간 불필요 · <color={Good}>바로 전투 재개</color>");
             return sb.ToString().TrimEnd();
         }
 
@@ -691,7 +691,7 @@ namespace Game.UI
             sb.AppendLine($"<color={Muted}>{Game.TaskForce.TaskForceEscortFormation.TierDescription(role, to)}</color>");
             Row(sb, "개량 단계", $"{fromTier} → <color={Good}>{to}</color> (최대 {Game.TaskForce.TaskForceEscortFormation.MaxUpgradeLevel})");
             Row(sb, "선체", $"{Game.TaskForce.TaskForceEscortFormation.MaxHullFor(fromTier):0} → <color={Good}>{Game.TaskForce.TaskForceEscortFormation.MaxHullFor(to):0}</color>");
-            Row(sb, "적용", "즉시 · 함체 확대");
+            Row(sb, "적용", $"함체 확대 · <color={Good}>바로 전투 재개</color>");
             Row(sb, "공간", $"<color={Good}>배치 공간 불필요</color>");
             return sb.ToString().TrimEnd();
         }

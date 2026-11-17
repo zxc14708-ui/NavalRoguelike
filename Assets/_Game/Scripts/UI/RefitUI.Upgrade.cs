@@ -52,7 +52,10 @@ namespace Game.UI
             ShowCards();
         }
 
-        /// <summary>커서 아래 블록을 한 단계 강화한다. 같은 블록이 아니거나 최대 단계면 아무것도 하지 않는다.</summary>
+        /// <summary>
+        /// 커서 아래 블록을 한 단계 강화한다. 같은 블록이 아니거나 최대 단계면 아무것도 하지 않는다.
+        /// 강화하면 배치 화면에 남지 않고 바로 전투로 돌아간다(2026-11-17) — 결과는 안내 띠로.
+        /// </summary>
         private bool TryUpgradeAt(GridCoord coord)
         {
             if (!_upgradePicking) return false;
@@ -60,10 +63,11 @@ namespace Game.UI
             if (!ModuleUpgrades.CanUpgradeWith(target, _reward) || !target.ApplyUpgrade()) return false;
 
             var stage = ModuleUpgrades.ProfileFor(target.Definition)?.GetStage(target.UpgradeLevel);
-            _upgradeResult = $"{target.Definition.DisplayName} ({target.Origin.X},{target.Origin.Z}) 강화 {ModuleUpgrades.Roman(target.UpgradeLevel)} 완료" +
+            _upgradeResult = $"장비 강화: {target.Definition.DisplayName} 강화 {ModuleUpgrades.Roman(target.UpgradeLevel)} 완료" +
                              (stage != null && !string.IsNullOrEmpty(stage.Description) ? $" — {stage.Description}" : "");
             _upgradePicking = false;
             _rewardUsed = true;
+            ResumeWithBanner(_upgradeResult);
             return true;
         }
 
