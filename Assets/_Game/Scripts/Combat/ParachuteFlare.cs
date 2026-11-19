@@ -17,7 +17,7 @@ namespace Game.Combat
     ///   - 빛: 점광원(배·수면을 비춘다 — 수면 셰이더가 추가 광원을 받는다) + 밝은 불꽃 구(블룸).
     ///   - 효과(어둠 0.35 이상일 때만): 반경 Radius 안의 IIlluminable(반잠수정)은 드러나고, 잠수함은 확정 접촉(대잠 무기가 정확히 노린다).
     ///     잠수함을 물 위로 띄우지는 않는다. 낮에는 빛만 난다.
-    /// 프리팹 없이 코드로 만든다(구 · 빛 · 낙하산 줄).
+    /// 프리팹 없이 코드로 만든다(구 · 빛 · 꼬리선). 터진 뒤에는 낙하산 모델(Codex FX_ParachuteFlare — 원점 = 불꽃 자리 FlarePoint)이 펼쳐진다.
     /// </summary>
     public sealed class ParachuteFlare : MonoBehaviour
     {
@@ -35,6 +35,10 @@ namespace Game.Combat
         private float _age, _effectTimer;
         private Light _light;
         private Transform _ball;
+        private GameObject _chute;
+        private Vector3 _chuteScale = Vector3.one;
+        private Quaternion _chuteBase = Quaternion.identity;
+        private float _chuteYaw;
         private LineRenderer _trail;
         private bool _burst;
         private float _seed;
@@ -88,6 +92,17 @@ namespace Game.Combat
             r.receiveShadows = false;
             _ball = ball.transform;
 
+            _chuteYaw = Random.Range(0f, 360f);
+            _chute = Game.View.DayNightProps.Place(transform, Game.View.DayNightProps.Flare, Vector3.zero, _chuteYaw);
+            if (_chute != null)
+            {
+                _chute.name = "Flare parachute";
+                foreach (var cr in _chute.GetComponentsInChildren<MeshRenderer>(true)) cr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                _chute.SetActive(false);
+                _chuteScale = _chute.transform.localScale;
+                _chuteBase = Quaternion.Inverse(Quaternion.Euler(0f, _chuteYaw, 0f)) * _chute.transform.localRotation;   // 모델 자체 회전(FBX 축 변환)
+            }
+
             _light = new GameObject("Flare light").AddComponent<Light>();
             _light.transform.SetParent(transform, false);
             _light.type = LightType.Point;
@@ -129,6 +144,7 @@ namespace Game.Combat
             {
                 _burst = true;
                 _trail.enabled = false;
+                if (_chute != null) _chute.SetActive(true);
                 Game.Core.AudioManager.Play(Game.Data.SfxId.ChaffLaunch, burstPoint, 0.6f, 0.7f);
             }
 
@@ -144,7 +160,16 @@ namespace Game.Combat
             float night = Mathf.Lerp(0.6f, 1f, DayNight.Darkness01);
             // 거리 제곱으로 줄어드는 점광원 — 15m 아래 수면에 1 남짓 닿게
             _light.intensity = LightIntensity * rise * fade * flicker * night;
-            _ball.localScale = Vector3.one * (1.1f + 0.2f * flicker) * fade;
+            // 낙하산 모델이 있으면 불꽃은 통 아래 작은 구로(낙하산보다 크면 흰 원판처럼 보인다)
+            float ballSize = _chute != null ? 0.5f : 1.1f;
+            _ball.localScale = Vector3.one * (ballSize + 0.12f * flicker) * fade;
+            if (_chute != null)
+            {
+                // 펼쳐지며(0.4초) 커지고, 바람에 조금 기운다
+                float open = Mathf.SmoothStep(0.2f, 1f, Mathf.Clamp01(t / 0.4f));
+                _chute.transform.localScale = _chuteScale * open;
+                _chute.transform.localRotation = Quaternion.Euler(sway.z * 6f, _chuteYaw, -sway.x * 6f) * _chuteBase;
+            }
 
             _effectTimer -= dt;
             if (_effectTimer > 0f) return;

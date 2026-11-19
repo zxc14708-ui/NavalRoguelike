@@ -176,12 +176,14 @@ namespace Game.View
             transform.position -= _shakeApplied;
             _shakeApplied = Vector3.zero;
 
-            if (!_buildFraming) HandleZoom();
+            Transform finale = GameManager.Instance?.State == GameState.Victory ? ShipWreck.FinaleTarget : null;
+            if (!_buildFraming && finale == null) HandleZoom();
             _zoomCurrent = Mathf.SmoothDamp(_zoomCurrent, _zoomTarget, ref _zoomVelocity, zoomSmoothTime, Mathf.Infinity, dt);
 
             float blend = 1f - Mathf.Exp(-buildBlendSpeed * dt);
             float targetPitch = _buildFraming ? buildPitch : combatPitch;
             float targetDistance = _buildFraming ? buildDistance : CurrentDistance;
+            if (finale != null) targetDistance = Mathf.Clamp(targetDistance, 37f, 52f);
             float targetYaw = _buildFraming ? target.eulerAngles.y : combatYaw;
 
             if (_camera != null)
@@ -189,8 +191,9 @@ namespace Game.View
 
             var rot = Quaternion.Euler(targetPitch, targetYaw, 0f);
 
-            Vector3 focus = target.position;
-            if (!_buildFraming)
+            Vector3 focus = finale != null ? finale.position : target.position;
+            if (finale != null) focus.y = Mathf.Max(focus.y, Game.World.IslandBuilder.SeaY);
+            if (!_buildFraming && finale == null)
             {
                 // 화면 아래쪽(카메라가 있는 쪽) 수평 방향으로 초점을 당긴다
                 Vector3 towardCamera = rot * Vector3.back;
@@ -201,7 +204,7 @@ namespace Game.View
             Vector3 desired = focus - rot * Vector3.forward * targetDistance;
 
             transform.position = Vector3.SmoothDamp(transform.position, desired, ref _velocity,
-                                                    followSmoothTime, Mathf.Infinity, dt);
+                                                    finale != null ? .23f : followSmoothTime, Mathf.Infinity, dt);
             transform.rotation = Quaternion.Slerp(transform.rotation, rot, blend);
             if (_shake > 0.001f && !_buildFraming)
             {
@@ -209,13 +212,13 @@ namespace Game.View
                 _shakeApplied = (transform.right * (Mathf.PerlinNoise(t, 0.3f) - 0.5f) + transform.up * (Mathf.PerlinNoise(0.7f, t) - 0.5f)) * (2f * ShakeMeters * _shake);
                 transform.position += _shakeApplied;
             }
-            UpdateMiniatureFocus();
+            UpdateMiniatureFocus(finale != null ? focus : target.position);
         }
 
-        private void UpdateMiniatureFocus()
+        private void UpdateMiniatureFocus(Vector3 focus)
         {
-            if (_miniatureDepthOfField == null || target == null) return;
-            float distance = Vector3.Distance(transform.position, target.position);
+            if (_miniatureDepthOfField == null) return;
+            float distance = Vector3.Distance(transform.position, focus);
             if (_mobileDepthOfField)
             {
                 // 모바일은 비용이 낮은 원거리 가우시안 흐림만 쓴다.

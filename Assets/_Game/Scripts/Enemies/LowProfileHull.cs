@@ -5,7 +5,8 @@ namespace Game.Enemies
 {
     /// <summary>
     /// 반잠수정 공통(2026-11-19 낮과 밤): 물에 거의 잠긴 낮은 선체와 숨음 상태.
-    ///   - 외형: 원래 보트 모델을 위아래로 눌러(높이 45%) 수면에 붙이고, 어두운 회청색으로 칠한다(MaterialPropertyBlock — 재질 원본은 그대로).
+    ///   - 외형: 전용 모델(Codex DayNight_v1 — 조종실 혹 "Hump"가 있다, 재질 Enemy Dark)이면 그대로 쓴다.
+    ///     전용 모델이 없으면 예전 임시 외형: 원래 보트 모델을 위아래로 눌러(높이 45%) 어두운 회청색으로 칠한다(MaterialPropertyBlock — 재질 원본은 그대로).
     ///     항해등이 없다(밤에 불빛으로 보이지 않는다).
     ///   - 숨음: 드러남 타이머가 0이면 Stealthy. 소나 범위 · 조명탄 · 탐조등 · 폭뢰 폭발 · 기함 근접(14m)이 타이머를 채운다.
     ///   - 드러나지 않으면 적아 식별 표식도 달리지 않는다(IsRevealed = false).
@@ -21,6 +22,15 @@ namespace Game.Enemies
         private MaterialPropertyBlock _mpb;
 
         public bool Stealthy => _detected <= 0f;
+        /// <summary>전용 반잠수정 모델인가(누르기 · 덧칠을 하지 않는다).</summary>
+        public bool Dedicated { get; private set; }
+
+        public static bool HasDedicatedModel(EnemyController owner)
+        {
+            foreach (var t in owner.GetComponentsInChildren<Transform>(true))
+                if (t.name == "Hump" || t.name.StartsWith("Hump.")) return true;
+            return false;
+        }
         public void MarkDetected(float seconds) => _detected = Mathf.Max(_detected, seconds);
 
         /// <summary>처음 한 번 외형을 바꾼다(풀에서 다시 나와도 그대로).</summary>
@@ -28,6 +38,8 @@ namespace Game.Enemies
         {
             if (_shaped || owner == null) return;
             _shaped = true;
+            Dedicated = HasDedicatedModel(owner);
+            if (Dedicated) return;
             // 모델 뿌리(첫 렌더러가 붙은 자식)를 위아래로 누른다
             foreach (Transform child in owner.transform)
             {
@@ -42,6 +54,7 @@ namespace Game.Enemies
         /// <summary>적 도색(EnemyPaint) 뒤에 덮어 칠한다.</summary>
         public void Repaint(EnemyController owner)
         {
+            if (Dedicated) return;
             _mpb ??= new MaterialPropertyBlock();
             foreach (var r in owner.GetComponentsInChildren<Renderer>(true))
             {

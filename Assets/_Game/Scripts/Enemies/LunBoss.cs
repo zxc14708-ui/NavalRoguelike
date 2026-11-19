@@ -603,7 +603,6 @@ namespace Game.Enemies
         protected override void Die()
         {
             StopAllCoroutines();
-            Game.View.Explosions.Spawn(transform.position + Vector3.up * 2f, 4f, Game.View.Explosions.Kind.Impact);
             base.Die();
             GameEvents.RaiseBossDefeated();
         }

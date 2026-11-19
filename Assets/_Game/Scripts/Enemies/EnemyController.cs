@@ -439,7 +439,9 @@ namespace Game.Enemies
         protected virtual void Die()
         {
             // 격침 연출: 겉모습만 복사한 잔해가 기울며 가라앉는다(장식). 항공기는 공중에서 터진다.
-            if (Kind != TargetKind.Aircraft && LeavesWreck) Game.View.ShipWreck.Spawn(transform, _speed, _killSource, _killPoint);
+            if (!Game.View.ShipWreck.TrySpawnStage4(this, _speed, _killSource, _killPoint) &&
+                Kind != TargetKind.Aircraft && LeavesWreck)
+                Game.View.ShipWreck.Spawn(transform, _speed, _killSource, _killPoint);
             AudioManager.Play(SfxId.Explosion, transform.position);
             // 경험치·격침 수는 적대 진영이 격침될 때만(아군으로 싸우는 유닛이 잃어도 보상이 생기지 않게)
             if (Factions.GrantsReward(this)) Game.Core.GameManager.Instance?.RegisterKill(definition);

@@ -173,6 +173,10 @@ namespace Game.Dev
                     yield return ScreenShot("flare_night");
                     _report.AppendLine($"- 조명탄: 최대 {max0}발(함교 1 + 함포·곡사포) · 쏨 {Yes(fired)} → 남은 {left} · 1초 안 다시 쏨 {Yes(again)} · 빛 안 {Yes(lit)} · 가까운 잠수함 접촉 {Yes(before)}→{Yes(near)} · 45m 밖 잠수함 접촉 {Yes(far)} · 접촉 수 {f0?.Contacts ?? 0}");
                     if (!fired || again || !lit || !near || far) Fail("밤 조명탄이 반경 안 잠수함만 확정 접촉으로 만들지 않음");
+                    var chute = f0 != null ? f0.transform.Find("Flare parachute") : null;
+                    _report.AppendLine($"- 조명탄 낙하산 모델(FX_ParachuteFlare): {Yes(chute != null && chute.gameObject.activeInHierarchy)}");
+                    if (chute == null || !chute.gameObject.activeInHierarchy) Fail("터진 조명탄에 낙하산 모델이 없음");
+                    if (f0 != null) yield return CloseShot("flare_parachute", f0.transform, 9f);
                     if (max0 < 1) Fail("함교가 있는데 조명탄이 없음");
 
                     // 낮: 빛만
@@ -212,6 +216,21 @@ namespace Game.Dev
                         bool hidden = semi is ILowObservable lo && lo.Stealthy && !semi.IsRevealed;
                         _report.AppendLine($"- 반잠수정: 레이더 {radar:0}m의 60% 거리 — 고속정 탐지 {Yes(boatSeen)} · 반잠수정 탐지 {Yes(semiSeen)}(아니오여야) · 숨음 {Yes(hidden)}");
                         if (!boatSeen || semiSeen || !hidden) Fail("반잠수정이 레이더 거리 60%에서 잡히거나 고속정이 안 잡힘");
+                        // 전용 모델(Codex DayNight_v1): 조종실 혹 · 누르지 않음 · 어뢰정 발사점
+                        foreach (var e in new[] { semi, semiT })
+                        {
+                            if (e == null) continue;
+                            var pivot = e.transform.Find("ModelPivot");
+                            bool hump = Game.Enemies.LowProfileHull.HasDedicatedModel(e);
+                            bool flat = pivot != null && pivot.localScale.y < pivot.localScale.x - 0.01f;
+                            var box = e.GetComponent<BoxCollider>();
+                            int tubes = 0;
+                            foreach (var t in e.GetComponentsInChildren<Transform>(true)) if (t.name.StartsWith("TorpedoLaunchPoint_")) tubes++;
+                            _report.AppendLine($"- 반잠수정 모델 {e.Definition.Id}: 전용 모델 {Yes(hump)} · 눌림 {Yes(flat)}(아니오여야) · 판정 {(box != null ? $"{box.size.x:0.0}×{box.size.z:0.0}m" : "없음")} · 발사점 {tubes}");
+                            if (!hump || flat || (e == semiT && tubes != 2)) Fail($"반잠수정 {e.Definition.Id} 전용 모델이 맞게 붙지 않음");
+                        }
+                        if (semi != null) yield return CloseShot("semisub_model_suicide", semi.transform, 9f);
+                        if (semiT != null) yield return CloseShot("semisub_model_torpedo", semiT.transform, 11f);
                         flare.DevRefill();
                         flare.FireAt(at);
                         yield return new WaitForSeconds(Game.Combat.ParachuteFlare.FlightSeconds + 1.2f);
@@ -293,6 +312,21 @@ namespace Game.Dev
                     bool contact = s4 != null && s4.IsContactConfirmed;
                     _report.AppendLine($"- 소노부이: 4개 떨굼 → 남은 {count}개(최대 {Game.Combat.Sonobuoy.MaxPerDeck}) · 8m 옆 잠수함 확정 접촉 {Yes(contact)} · 떠오름 {Yes(s4 != null && s4.IsRevealed)}(아니오여야)");
                     if (count != Game.Combat.Sonobuoy.MaxPerDeck || !contact || (s4 != null && s4.IsRevealed)) Fail("소노부이가 맞게 동작하지 않음");
+                    {
+                        var sb = Game.Combat.Sonobuoy.All.Count > 0 ? Game.Combat.Sonobuoy.All[Game.Combat.Sonobuoy.All.Count - 1] : null;
+                        var body = sb != null ? sb.transform.Find("Sonobuoy body") : null;
+                        bool modelOk = body != null && body.GetComponent<MeshRenderer>() == null;   // 원통(임시)은 몸통에 바로 렌더러가 있다
+                        var lampT = sb != null ? sb.GetComponentInChildren<Game.View.NightLampSet>() : null;
+                        float lampY = -99f;
+                        if (lampT != null) foreach (Transform c in lampT.transform) if (c.name == "Night lamp") lampY = c.position.y - Game.View.Waterline.WaterY;
+                        string missing = "";
+                        foreach (var n in new[] { Game.View.DayNightProps.ChannelRed, Game.View.DayNightProps.ChannelGreen, Game.View.DayNightProps.LightYellow,
+                                     Game.View.DayNightProps.Distress, Game.View.DayNightProps.Sonobuoy, Game.View.DayNightProps.Flare })
+                            if (Resources.Load<GameObject>(Game.View.DayNightProps.Dir + n) == null) missing += n + " ";
+                        _report.AppendLine($"- 소품 모델: 소노부이 전용 모델 {Yes(modelOk)} · 등불 수면 위 {lampY:0.00}m · 없는 모델 {(missing == "" ? "없음" : missing)}");
+                        if (!modelOk || lampY < 0.4f || lampY > 1.2f || missing != "") Fail("낮과 밤 소품 모델이 맞게 붙지 않음");
+                        if (sb != null) yield return CloseShot("sonobuoy_model", sb.transform, 5f);
+                    }
                     foreach (var b in Object.FindObjectsByType<Game.Combat.Sonobuoy>(FindObjectsSortMode.None)) Object.Destroy(b.gameObject);
 
                     DayNight.Forced = DayPhase.Day; DayNight.Tick(0, 1, -1, 0f, 1f);

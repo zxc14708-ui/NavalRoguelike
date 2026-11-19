@@ -273,13 +273,19 @@ namespace Game.World
                 {
                     float a = Angle((r[11] * 7.3 + i * 0.13) % 1.0);
                     var local = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * (Rim(a) + 7f + i * 2.5f);
-                    var buoy = PlaceProp("ENV_NavigationBuoy", root, root.TransformPoint(local), Vector3.forward, null, 0.8f);
+                    // 2026-11-19 낮과 밤: 짝을 빨강 · 초록 항로 부표(Codex DayNight_v1)로, 밤에 4초에 한 번 점멸. 모델이 없으면 예전 부표 + 등불
+                    var color = i == 0 ? Game.View.NavLights.Port : Game.View.NavLights.Starboard;
+                    var world = root.TransformPoint(local);
+                    GameObject buoy = null;
+                    if (Islands.IsClear(new Vector3(world.x, SeaY, world.z), 0.8f))
+                        buoy = Game.View.DayNightProps.Place(root, i == 0 ? Game.View.DayNightProps.ChannelRed : Game.View.DayNightProps.ChannelGreen,
+                            new Vector3(local.x, SeaY - root.position.y, local.z), (float)r[2] * 360f + i * 40f);
+                    if (buoy != null) { buoy.name = "Coast channel buoy"; Physics.SyncTransforms(); }
+                    else buoy = PlaceProp("ENV_NavigationBuoy", root, world, Vector3.forward, null, 0.8f);
                     if (buoy != null)
                     {
                         Count(local, 1f);
-                        // 밤 점멸(2026-11-19): 짝을 빨강 · 초록으로, 4초에 한 번
-                        Game.View.NightLampSet.On(buoy).Add(Vector3.up * 2.2f / Mathf.Max(0.01f, buoy.transform.lossyScale.y),
-                            i == 0 ? Game.View.NavLights.Port : Game.View.NavLights.Starboard, 0.45f, 4f, 0.25f, (float)r[11] + i * 0.5f);
+                        Game.View.DayNightProps.Lamp(buoy, color, 0.45f, 4f, 0.25f, (float)r[11] + i * 0.5f);
                     }
                 }
             }

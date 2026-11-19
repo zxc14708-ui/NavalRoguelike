@@ -1,0 +1,2837 @@
+{
+  "ENE_Boss4_Lun": {
+    "triangles": 5860,
+    "bounds_blender_m": [
+      [
+        -9.0,
+        -15.0,
+        -0.47999998927116394
+      ],
+      [
+        9.0,
+        15.0,
+        7.800000190734863
+      ]
+    ],
+    "materials": [
+      "Blue black glazing",
+      "Enemy Dark",
+      "Enemy hull grey",
+      "Enemy superstructure grey",
+      "Enemy weapon dark",
+      "Gunmetal",
+      "Medical White",
+      "Naval cool grey",
+      "Warning red"
+    ],
+    "parts": [
+      {
+        "name": "ENE_Boss4_Lun",
+        "type": "EMPTY",
+        "parent": null,
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Hull",
+        "type": "MESH",
+        "parent": "ENE_Boss4_Lun",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "NoseRadome",
+        "type": "MESH",
+        "parent": "ENE_Boss4_Lun",
+        "position_blender_m": [
+          0.0,
+          13.5,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "CockpitGlass",
+        "type": "MESH",
+        "parent": "ENE_Boss4_Lun",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Tail",
+        "type": "MESH",
+        "parent": "ENE_Boss4_Lun",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Wing_Port",
+        "type": "MESH",
+        "parent": "ENE_Boss4_Lun",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "WakePoint_Port",
+        "type": "EMPTY",
+        "parent": "ENE_Boss4_Lun",
+        "position_blender_m": [
+          -8.64,
+          -5.42,
+          -0.31
+        ],
+        "axis_blender": [
+          0.0,
+          -1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "EnginePylon_Port",
+        "type": "MESH",
+        "parent": "ENE_Boss4_Lun",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Engine_P1",
+        "type": "MESH",
+        "parent": "EnginePylon_Port",
+        "position_blender_m": [
+          -2.2,
+          8.0,
+          2.9
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "EngineIntake_P1",
+        "type": "EMPTY",
+        "parent": "Engine_P1",
+        "position_blender_m": [
+          -2.2,
+          9.5,
+          2.9
+        ],
+        "axis_blender": [
+          -0.0,
+          1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "EngineExhaust_P1",
+        "type": "EMPTY",
+        "parent": "Engine_P1",
+        "position_blender_m": [
+          -2.2,
+          6.5,
+          2.9
+        ],
+        "axis_blender": [
+          0.0,
+          -1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "EngineFire_P1",
+        "type": "EMPTY",
+        "parent": "Engine_P1",
+        "position_blender_m": [
+          -2.2,
+          7.26,
+          3.19
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Engine_P2",
+        "type": "MESH",
+        "parent": "EnginePylon_Port",
+        "position_blender_m": [
+          -3.1,
+          8.0,
+          2.9
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "EngineIntake_P2",
+        "type": "EMPTY",
+        "parent": "Engine_P2",
+        "position_blender_m": [
+          -3.1,
+          9.5,
+          2.9
+        ],
+        "axis_blender": [
+          -0.0,
+          1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "EngineExhaust_P2",
+        "type": "EMPTY",
+        "parent": "Engine_P2",
+        "position_blender_m": [
+          -3.1,
+          6.5,
+          2.9
+        ],
+        "axis_blender": [
+          0.0,
+          -1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "EngineFire_P2",
+        "type": "EMPTY",
+        "parent": "Engine_P2",
+        "position_blender_m": [
+          -3.1,
+          7.26,
+          3.19
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Engine_P3",
+        "type": "MESH",
+        "parent": "EnginePylon_Port",
+        "position_blender_m": [
+          -4.0,
+          8.0,
+          2.9
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "EngineIntake_P3",
+        "type": "EMPTY",
+        "parent": "Engine_P3",
+        "position_blender_m": [
+          -4.0,
+          9.5,
+          2.9
+        ],
+        "axis_blender": [
+          -0.0,
+          1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "EngineExhaust_P3",
+        "type": "EMPTY",
+        "parent": "Engine_P3",
+        "position_blender_m": [
+          -4.0,
+          6.5,
+          2.9
+        ],
+        "axis_blender": [
+          0.0,
+          -1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "EngineFire_P3",
+        "type": "EMPTY",
+        "parent": "Engine_P3",
+        "position_blender_m": [
+          -4.0,
+          7.26,
+          3.19
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Engine_P4",
+        "type": "MESH",
+        "parent": "EnginePylon_Port",
+        "position_blender_m": [
+          -4.9,
+          8.0,
+          2.9
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "EngineIntake_P4",
+        "type": "EMPTY",
+        "parent": "Engine_P4",
+        "position_blender_m": [
+          -4.9,
+          9.5,
+          2.9
+        ],
+        "axis_blender": [
+          -0.0,
+          1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "EngineExhaust_P4",
+        "type": "EMPTY",
+        "parent": "Engine_P4",
+        "position_blender_m": [
+          -4.9,
+          6.5,
+          2.9
+        ],
+        "axis_blender": [
+          0.0,
+          -1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "EngineFire_P4",
+        "type": "EMPTY",
+        "parent": "Engine_P4",
+        "position_blender_m": [
+          -4.9,
+          7.26,
+          3.19
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Wing_Starboard",
+        "type": "MESH",
+        "parent": "ENE_Boss4_Lun",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "WakePoint_Starboard",
+        "type": "EMPTY",
+        "parent": "ENE_Boss4_Lun",
+        "position_blender_m": [
+          8.64,
+          -5.42,
+          -0.31
+        ],
+        "axis_blender": [
+          0.0,
+          -1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "EnginePylon_Starboard",
+        "type": "MESH",
+        "parent": "ENE_Boss4_Lun",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Engine_S1",
+        "type": "MESH",
+        "parent": "EnginePylon_Starboard",
+        "position_blender_m": [
+          2.2,
+          8.0,
+          2.9
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "EngineIntake_S1",
+        "type": "EMPTY",
+        "parent": "Engine_S1",
+        "position_blender_m": [
+          2.2,
+          9.5,
+          2.9
+        ],
+        "axis_blender": [
+          -0.0,
+          1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "EngineExhaust_S1",
+        "type": "EMPTY",
+        "parent": "Engine_S1",
+        "position_blender_m": [
+          2.2,
+          6.5,
+          2.9
+        ],
+        "axis_blender": [
+          0.0,
+          -1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "EngineFire_S1",
+        "type": "EMPTY",
+        "parent": "Engine_S1",
+        "position_blender_m": [
+          2.2,
+          7.26,
+          3.19
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Engine_S2",
+        "type": "MESH",
+        "parent": "EnginePylon_Starboard",
+        "position_blender_m": [
+          3.1,
+          8.0,
+          2.9
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "EngineIntake_S2",
+        "type": "EMPTY",
+        "parent": "Engine_S2",
+        "position_blender_m": [
+          3.1,
+          9.5,
+          2.9
+        ],
+        "axis_blender": [
+          -0.0,
+          1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "EngineExhaust_S2",
+        "type": "EMPTY",
+        "parent": "Engine_S2",
+        "position_blender_m": [
+          3.1,
+          6.5,
+          2.9
+        ],
+        "axis_blender": [
+          0.0,
+          -1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "EngineFire_S2",
+        "type": "EMPTY",
+        "parent": "Engine_S2",
+        "position_blender_m": [
+          3.1,
+          7.26,
+          3.19
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Engine_S3",
+        "type": "MESH",
+        "parent": "EnginePylon_Starboard",
+        "position_blender_m": [
+          4.0,
+          8.0,
+          2.9
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "EngineIntake_S3",
+        "type": "EMPTY",
+        "parent": "Engine_S3",
+        "position_blender_m": [
+          4.0,
+          9.5,
+          2.9
+        ],
+        "axis_blender": [
+          -0.0,
+          1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "EngineExhaust_S3",
+        "type": "EMPTY",
+        "parent": "Engine_S3",
+        "position_blender_m": [
+          4.0,
+          6.5,
+          2.9
+        ],
+        "axis_blender": [
+          0.0,
+          -1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "EngineFire_S3",
+        "type": "EMPTY",
+        "parent": "Engine_S3",
+        "position_blender_m": [
+          4.0,
+          7.26,
+          3.19
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Engine_S4",
+        "type": "MESH",
+        "parent": "EnginePylon_Starboard",
+        "position_blender_m": [
+          4.9,
+          8.0,
+          2.9
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "EngineIntake_S4",
+        "type": "EMPTY",
+        "parent": "Engine_S4",
+        "position_blender_m": [
+          4.9,
+          9.5,
+          2.9
+        ],
+        "axis_blender": [
+          -0.0,
+          1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "EngineExhaust_S4",
+        "type": "EMPTY",
+        "parent": "Engine_S4",
+        "position_blender_m": [
+          4.9,
+          6.5,
+          2.9
+        ],
+        "axis_blender": [
+          0.0,
+          -1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "EngineFire_S4",
+        "type": "EMPTY",
+        "parent": "Engine_S4",
+        "position_blender_m": [
+          4.9,
+          7.26,
+          3.19
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "LauncherPair_01",
+        "type": "MESH",
+        "parent": "ENE_Boss4_Lun",
+        "position_blender_m": [
+          0.0,
+          3.0,
+          3.58
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "LauncherHatch_01_L",
+        "type": "MESH",
+        "parent": "LauncherPair_01",
+        "position_blender_m": [
+          -0.75,
+          4.99051,
+          4.41203
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "LaunchPoint_01_L",
+        "type": "EMPTY",
+        "parent": "LauncherPair_01",
+        "position_blender_m": [
+          -0.75,
+          5.13725,
+          4.03429
+        ],
+        "axis_blender": [
+          0.0,
+          0.97815,
+          0.20791
+        ]
+      },
+      {
+        "name": "LauncherHatch_01_R",
+        "type": "MESH",
+        "parent": "LauncherPair_01",
+        "position_blender_m": [
+          0.75,
+          4.99051,
+          4.41203
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "LaunchPoint_01_R",
+        "type": "EMPTY",
+        "parent": "LauncherPair_01",
+        "position_blender_m": [
+          0.75,
+          5.13725,
+          4.03429
+        ],
+        "axis_blender": [
+          0.0,
+          0.97815,
+          0.20791
+        ]
+      },
+      {
+        "name": "LauncherPair_02",
+        "type": "MESH",
+        "parent": "ENE_Boss4_Lun",
+        "position_blender_m": [
+          0.0,
+          -1.0,
+          4.1
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "LauncherHatch_02_L",
+        "type": "MESH",
+        "parent": "LauncherPair_02",
+        "position_blender_m": [
+          -0.75,
+          0.99051,
+          4.93203
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "LaunchPoint_02_L",
+        "type": "EMPTY",
+        "parent": "LauncherPair_02",
+        "position_blender_m": [
+          -0.75,
+          1.13725,
+          4.55429
+        ],
+        "axis_blender": [
+          0.0,
+          0.97815,
+          0.20791
+        ]
+      },
+      {
+        "name": "LauncherHatch_02_R",
+        "type": "MESH",
+        "parent": "LauncherPair_02",
+        "position_blender_m": [
+          0.75,
+          0.99051,
+          4.93203
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "LaunchPoint_02_R",
+        "type": "EMPTY",
+        "parent": "LauncherPair_02",
+        "position_blender_m": [
+          0.75,
+          1.13725,
+          4.55429
+        ],
+        "axis_blender": [
+          0.0,
+          0.97815,
+          0.20791
+        ]
+      },
+      {
+        "name": "LauncherPair_03",
+        "type": "MESH",
+        "parent": "ENE_Boss4_Lun",
+        "position_blender_m": [
+          0.0,
+          -5.0,
+          4.62
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "LauncherHatch_03_L",
+        "type": "MESH",
+        "parent": "LauncherPair_03",
+        "position_blender_m": [
+          -0.75,
+          -3.00949,
+          5.45203
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "LaunchPoint_03_L",
+        "type": "EMPTY",
+        "parent": "LauncherPair_03",
+        "position_blender_m": [
+          -0.75,
+          -2.86275,
+          5.07429
+        ],
+        "axis_blender": [
+          0.0,
+          0.97815,
+          0.20791
+        ]
+      },
+      {
+        "name": "LauncherHatch_03_R",
+        "type": "MESH",
+        "parent": "LauncherPair_03",
+        "position_blender_m": [
+          0.75,
+          -3.00949,
+          5.45203
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "LaunchPoint_03_R",
+        "type": "EMPTY",
+        "parent": "LauncherPair_03",
+        "position_blender_m": [
+          0.75,
+          -2.86275,
+          5.07429
+        ],
+        "axis_blender": [
+          0.0,
+          0.97815,
+          0.20791
+        ]
+      },
+      {
+        "name": "TailTurretPivot",
+        "type": "EMPTY",
+        "parent": "ENE_Boss4_Lun",
+        "position_blender_m": [
+          0.0,
+          -14.2,
+          3.4
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "TailTurretHousing",
+        "type": "MESH",
+        "parent": "TailTurretPivot",
+        "position_blender_m": [
+          0.0,
+          -14.2,
+          3.4
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "TailTurretElevation",
+        "type": "EMPTY",
+        "parent": "TailTurretPivot",
+        "position_blender_m": [
+          0.0,
+          -14.57,
+          3.5
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "TailTwinBarrels",
+        "type": "MESH",
+        "parent": "TailTurretElevation",
+        "position_blender_m": [
+          0.0,
+          -14.08,
+          3.5
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "TailTurretMuzzle",
+        "type": "EMPTY",
+        "parent": "TailTurretElevation",
+        "position_blender_m": [
+          0.0,
+          -14.98,
+          3.5
+        ],
+        "axis_blender": [
+          0.0,
+          -1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "WaterContact",
+        "type": "EMPTY",
+        "parent": "ENE_Boss4_Lun",
+        "position_blender_m": [
+          0.0,
+          0.5,
+          -0.48
+        ],
+        "axis_blender": [
+          -0.0,
+          -0.0,
+          -1.0
+        ]
+      },
+      {
+        "name": "SmokePoint_Hull",
+        "type": "EMPTY",
+        "parent": "ENE_Boss4_Lun",
+        "position_blender_m": [
+          0.0,
+          6.0,
+          2.92
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "FirePoint_Tail",
+        "type": "EMPTY",
+        "parent": "ENE_Boss4_Lun",
+        "position_blender_m": [
+          0.0,
+          -12.4,
+          3.18
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "BargeMooring",
+        "type": "EMPTY",
+        "parent": "ENE_Boss4_Lun",
+        "position_blender_m": [
+          -1.65,
+          0.0,
+          0.48
+        ],
+        "axis_blender": [
+          -1.0,
+          0.0,
+          -0.0
+        ]
+      }
+    ]
+  },
+  "ENE_LightWig": {
+    "triangles": 576,
+    "bounds_blender_m": [
+      [
+        -3.0,
+        -3.75,
+        -0.3799999952316284
+      ],
+      [
+        3.0,
+        3.75,
+        2.170144557952881
+      ]
+    ],
+    "materials": [
+      "Blue black glazing",
+      "Enemy Dark",
+      "Enemy hull grey",
+      "Enemy superstructure grey",
+      "Enemy weapon dark",
+      "MAT_IslandWhite",
+      "Medical White",
+      "Naval cool grey",
+      "Warning red"
+    ],
+    "parts": [
+      {
+        "name": "ENE_LightWig",
+        "type": "EMPTY",
+        "parent": null,
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Hull",
+        "type": "MESH",
+        "parent": "ENE_LightWig",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Wing",
+        "type": "MESH",
+        "parent": "ENE_LightWig",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Tail",
+        "type": "MESH",
+        "parent": "ENE_LightWig",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Propeller",
+        "type": "MESH",
+        "parent": "ENE_LightWig",
+        "position_blender_m": [
+          0.0,
+          -2.7,
+          1.59
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "GunMuzzle",
+        "type": "EMPTY",
+        "parent": "ENE_LightWig",
+        "position_blender_m": [
+          0.0,
+          3.68,
+          0.24
+        ],
+        "axis_blender": [
+          -0.0,
+          1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "Exhaust",
+        "type": "EMPTY",
+        "parent": "ENE_LightWig",
+        "position_blender_m": [
+          0.0,
+          -3.04,
+          1.59
+        ],
+        "axis_blender": [
+          0.0,
+          -1.0,
+          -0.0
+        ]
+      }
+    ]
+  },
+  "ENE_AssaultWig": {
+    "triangles": 1598,
+    "bounds_blender_m": [
+      [
+        -5.25,
+        -9.5,
+        -0.46000000834465027
+      ],
+      [
+        5.25,
+        9.5,
+        5.162810802459717
+      ]
+    ],
+    "materials": [
+      "Blue black glazing",
+      "Enemy Dark",
+      "Enemy hull grey",
+      "Enemy superstructure grey",
+      "Enemy weapon dark",
+      "MAT_IslandWhite",
+      "Medical White",
+      "Naval cool grey",
+      "Warning red"
+    ],
+    "parts": [
+      {
+        "name": "ENE_AssaultWig",
+        "type": "EMPTY",
+        "parent": null,
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Hull",
+        "type": "MESH",
+        "parent": "ENE_AssaultWig",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "NoseDoorPivot",
+        "type": "EMPTY",
+        "parent": "ENE_AssaultWig",
+        "position_blender_m": [
+          1.07,
+          5.8,
+          0.52
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "NoseDoor",
+        "type": "MESH",
+        "parent": "NoseDoorPivot",
+        "position_blender_m": [
+          0.0,
+          5.8,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "BoatExit",
+        "type": "EMPTY",
+        "parent": "ENE_AssaultWig",
+        "position_blender_m": [
+          0.0,
+          5.85,
+          0.35
+        ],
+        "axis_blender": [
+          -0.0,
+          1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "BoatStaging_01",
+        "type": "EMPTY",
+        "parent": "ENE_AssaultWig",
+        "position_blender_m": [
+          0.0,
+          4.51,
+          0.34
+        ],
+        "axis_blender": [
+          -0.0,
+          1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "BoatStaging_02",
+        "type": "EMPTY",
+        "parent": "ENE_AssaultWig",
+        "position_blender_m": [
+          0.0,
+          2.38,
+          0.34
+        ],
+        "axis_blender": [
+          -0.0,
+          1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "Wing_Port",
+        "type": "MESH",
+        "parent": "ENE_AssaultWig",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "WakePoint_Port",
+        "type": "EMPTY",
+        "parent": "ENE_AssaultWig",
+        "position_blender_m": [
+          -4.98,
+          -2.33,
+          -0.24
+        ],
+        "axis_blender": [
+          0.0,
+          -1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "Wing_Starboard",
+        "type": "MESH",
+        "parent": "ENE_AssaultWig",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "WakePoint_Starboard",
+        "type": "EMPTY",
+        "parent": "ENE_AssaultWig",
+        "position_blender_m": [
+          4.98,
+          -2.33,
+          -0.24
+        ],
+        "axis_blender": [
+          0.0,
+          -1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "Tail",
+        "type": "MESH",
+        "parent": "ENE_AssaultWig",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "TailPropeller",
+        "type": "MESH",
+        "parent": "ENE_AssaultWig",
+        "position_blender_m": [
+          0.0,
+          -7.1,
+          4.25
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "SmokePoint",
+        "type": "EMPTY",
+        "parent": "ENE_AssaultWig",
+        "position_blender_m": [
+          0.0,
+          1.0,
+          2.32
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "FirePoint",
+        "type": "EMPTY",
+        "parent": "ENE_AssaultWig",
+        "position_blender_m": [
+          0.0,
+          -7.98,
+          4.4
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    ]
+  },
+  "ENE_Hovercraft": {
+    "triangles": 1600,
+    "bounds_blender_m": [
+      [
+        -4.263315200805664,
+        -8.989999771118164,
+        -0.3400000035762787
+      ],
+      [
+        4.263315200805664,
+        9.0,
+        5.5
+      ]
+    ],
+    "materials": [
+      "Blue black glazing",
+      "Enemy Dark",
+      "Enemy hull grey",
+      "Enemy superstructure grey",
+      "Enemy weapon dark",
+      "Medical White",
+      "Naval cool grey",
+      "Stealth deck",
+      "Warning Yellow"
+    ],
+    "parts": [
+      {
+        "name": "ENE_Hovercraft",
+        "type": "EMPTY",
+        "parent": null,
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Skirt",
+        "type": "MESH",
+        "parent": "ENE_Hovercraft",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Hull",
+        "type": "MESH",
+        "parent": "ENE_Hovercraft",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Superstructure",
+        "type": "MESH",
+        "parent": "ENE_Hovercraft",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Fan_01",
+        "type": "MESH",
+        "parent": "ENE_Hovercraft",
+        "position_blender_m": [
+          -2.57,
+          -6.91,
+          3.1
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "FanBlade_01",
+        "type": "MESH",
+        "parent": "Fan_01",
+        "position_blender_m": [
+          -2.57,
+          -6.79,
+          3.1
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Fan_02",
+        "type": "MESH",
+        "parent": "ENE_Hovercraft",
+        "position_blender_m": [
+          0.0,
+          -6.91,
+          3.1
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "FanBlade_02",
+        "type": "MESH",
+        "parent": "Fan_02",
+        "position_blender_m": [
+          0.0,
+          -6.79,
+          3.1
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Fan_03",
+        "type": "MESH",
+        "parent": "ENE_Hovercraft",
+        "position_blender_m": [
+          2.57,
+          -6.91,
+          3.1
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "FanBlade_03",
+        "type": "MESH",
+        "parent": "Fan_03",
+        "position_blender_m": [
+          2.57,
+          -6.79,
+          3.1
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "RocketLauncher_Port_Pivot",
+        "type": "EMPTY",
+        "parent": "ENE_Hovercraft",
+        "position_blender_m": [
+          -3.11,
+          2.38,
+          1.36
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "RocketLauncher_Port",
+        "type": "MESH",
+        "parent": "RocketLauncher_Port_Pivot",
+        "position_blender_m": [
+          -3.11,
+          2.38,
+          1.36
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "RocketLauncher_Port_Elevation",
+        "type": "EMPTY",
+        "parent": "RocketLauncher_Port_Pivot",
+        "position_blender_m": [
+          -3.11,
+          2.38,
+          2.02
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "RocketLauncher_Port_Tubes",
+        "type": "MESH",
+        "parent": "RocketLauncher_Port_Elevation",
+        "position_blender_m": [
+          -3.11,
+          2.38,
+          2.02
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "RocketLauncher_Port_Muzzle",
+        "type": "EMPTY",
+        "parent": "RocketLauncher_Port_Elevation",
+        "position_blender_m": [
+          -3.11,
+          3.08,
+          2.17
+        ],
+        "axis_blender": [
+          -0.0,
+          1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "RocketLauncher_Starboard_Pivot",
+        "type": "EMPTY",
+        "parent": "ENE_Hovercraft",
+        "position_blender_m": [
+          3.11,
+          2.38,
+          1.36
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "RocketLauncher_Starboard",
+        "type": "MESH",
+        "parent": "RocketLauncher_Starboard_Pivot",
+        "position_blender_m": [
+          3.11,
+          2.38,
+          1.36
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "RocketLauncher_Starboard_Elevation",
+        "type": "EMPTY",
+        "parent": "RocketLauncher_Starboard_Pivot",
+        "position_blender_m": [
+          3.11,
+          2.38,
+          2.02
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "RocketLauncher_Starboard_Tubes",
+        "type": "MESH",
+        "parent": "RocketLauncher_Starboard_Elevation",
+        "position_blender_m": [
+          3.11,
+          2.38,
+          2.02
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "RocketLauncher_Starboard_Muzzle",
+        "type": "EMPTY",
+        "parent": "RocketLauncher_Starboard_Elevation",
+        "position_blender_m": [
+          3.11,
+          3.08,
+          2.17
+        ],
+        "axis_blender": [
+          -0.0,
+          1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "GunTurretPivot",
+        "type": "EMPTY",
+        "parent": "ENE_Hovercraft",
+        "position_blender_m": [
+          0.0,
+          6.31,
+          1.38
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "GunTurretPivot_Housing",
+        "type": "MESH",
+        "parent": "GunTurretPivot",
+        "position_blender_m": [
+          0.0,
+          6.31,
+          1.38
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "GunElevation",
+        "type": "EMPTY",
+        "parent": "GunTurretPivot",
+        "position_blender_m": [
+          0.0,
+          6.6348,
+          1.996
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "GunElevation_Barrels",
+        "type": "MESH",
+        "parent": "GunElevation",
+        "position_blender_m": [
+          0.0,
+          6.6348,
+          1.996
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "GunMuzzle",
+        "type": "EMPTY",
+        "parent": "GunElevation",
+        "position_blender_m": [
+          0.0,
+          7.934,
+          1.996
+        ],
+        "axis_blender": [
+          -0.0,
+          1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "SmokePoint",
+        "type": "EMPTY",
+        "parent": "ENE_Hovercraft",
+        "position_blender_m": [
+          0.0,
+          -1.65,
+          3.97
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "FirePoint",
+        "type": "EMPTY",
+        "parent": "ENE_Hovercraft",
+        "position_blender_m": [
+          0.0,
+          -5.05,
+          1.95
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    ]
+  },
+  "ENE_Hydrofoil": {
+    "triangles": 1260,
+    "bounds_blender_m": [
+      [
+        -3.0,
+        -6.75,
+        -2.1847000122070312
+      ],
+      [
+        3.0,
+        6.75,
+        4.121150016784668
+      ]
+    ],
+    "materials": [
+      "Blue black glazing",
+      "Enemy Dark",
+      "Enemy hull grey",
+      "Enemy superstructure grey",
+      "Enemy weapon dark",
+      "Gunmetal",
+      "Medical White",
+      "Naval cool grey",
+      "Stealth deck"
+    ],
+    "parts": [
+      {
+        "name": "ENE_Hydrofoil",
+        "type": "EMPTY",
+        "parent": null,
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "HullPivot",
+        "type": "EMPTY",
+        "parent": "ENE_Hydrofoil",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Hull",
+        "type": "MESH",
+        "parent": "HullPivot",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Foil_Bow",
+        "type": "MESH",
+        "parent": "ENE_Hydrofoil",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "SlidingStruts_Bow",
+        "type": "MESH",
+        "parent": "HullPivot",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Foil_Stern",
+        "type": "MESH",
+        "parent": "ENE_Hydrofoil",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "SlidingStruts_Stern",
+        "type": "MESH",
+        "parent": "HullPivot",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Superstructure",
+        "type": "MESH",
+        "parent": "HullPivot",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "RadarPivot",
+        "type": "EMPTY",
+        "parent": "HullPivot",
+        "position_blender_m": [
+          0.0,
+          -0.05,
+          3.89
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "RadarArray",
+        "type": "MESH",
+        "parent": "RadarPivot",
+        "position_blender_m": [
+          0.0,
+          -0.05,
+          3.89
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "GunTurretPivot",
+        "type": "EMPTY",
+        "parent": "HullPivot",
+        "position_blender_m": [
+          0.0,
+          3.9,
+          1.12
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "GunTurretPivot_Housing",
+        "type": "MESH",
+        "parent": "GunTurretPivot",
+        "position_blender_m": [
+          0.0,
+          3.9,
+          1.12
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "GunElevation",
+        "type": "EMPTY",
+        "parent": "GunTurretPivot",
+        "position_blender_m": [
+          0.0,
+          4.1668,
+          1.626
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "GunElevation_Barrels",
+        "type": "MESH",
+        "parent": "GunElevation",
+        "position_blender_m": [
+          0.0,
+          4.1668,
+          1.626
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "GunMuzzle",
+        "type": "EMPTY",
+        "parent": "GunElevation",
+        "position_blender_m": [
+          0.0,
+          5.234,
+          1.626
+        ],
+        "axis_blender": [
+          -0.0,
+          1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "MissileLauncher_Port",
+        "type": "MESH",
+        "parent": "HullPivot",
+        "position_blender_m": [
+          -1.46,
+          -2.34,
+          1.41
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "MissileLaunchPoint_Port",
+        "type": "EMPTY",
+        "parent": "MissileLauncher_Port",
+        "position_blender_m": [
+          -1.46,
+          -0.93941,
+          1.78529
+        ],
+        "axis_blender": [
+          0.0,
+          0.96593,
+          0.25882
+        ]
+      },
+      {
+        "name": "MissileLauncher_Starboard",
+        "type": "MESH",
+        "parent": "HullPivot",
+        "position_blender_m": [
+          1.46,
+          -2.34,
+          1.41
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "MissileLaunchPoint_Starboard",
+        "type": "EMPTY",
+        "parent": "MissileLauncher_Starboard",
+        "position_blender_m": [
+          1.46,
+          -0.93941,
+          1.78529
+        ],
+        "axis_blender": [
+          0.0,
+          0.96593,
+          0.25882
+        ]
+      },
+      {
+        "name": "SmokePoint",
+        "type": "EMPTY",
+        "parent": "HullPivot",
+        "position_blender_m": [
+          0.0,
+          -2.6,
+          1.88
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "FirePoint",
+        "type": "EMPTY",
+        "parent": "HullPivot",
+        "position_blender_m": [
+          0.0,
+          0.6,
+          2.72
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    ]
+  },
+  "ENE_MissileCorvette": {
+    "triangles": 1774,
+    "bounds_blender_m": [
+      [
+        -1.899999976158142,
+        -7.5,
+        -0.4000000059604645
+      ],
+      [
+        1.899999976158142,
+        7.5,
+        5.5
+      ]
+    ],
+    "materials": [
+      "Blue black glazing",
+      "Enemy Dark",
+      "Enemy hull grey",
+      "Enemy superstructure grey",
+      "Enemy weapon dark",
+      "Gunmetal",
+      "Medical White",
+      "Naval cool grey",
+      "Stealth deck"
+    ],
+    "parts": [
+      {
+        "name": "ENE_MissileCorvette",
+        "type": "EMPTY",
+        "parent": null,
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Hull",
+        "type": "MESH",
+        "parent": "ENE_MissileCorvette",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Superstructure",
+        "type": "MESH",
+        "parent": "ENE_MissileCorvette",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Mast",
+        "type": "MESH",
+        "parent": "ENE_MissileCorvette",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "RadarPivot",
+        "type": "EMPTY",
+        "parent": "ENE_MissileCorvette",
+        "position_blender_m": [
+          0.0,
+          -0.65,
+          4.59
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "RadarArray",
+        "type": "MESH",
+        "parent": "RadarPivot",
+        "position_blender_m": [
+          0.0,
+          -0.65,
+          4.59
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "BowGun_TurretPivot",
+        "type": "EMPTY",
+        "parent": "ENE_MissileCorvette",
+        "position_blender_m": [
+          0.0,
+          5.52,
+          1.34
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "BowGun_TurretPivot_Housing",
+        "type": "MESH",
+        "parent": "BowGun_TurretPivot",
+        "position_blender_m": [
+          0.0,
+          5.52,
+          1.34
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "BowGun_ElevationPivot",
+        "type": "EMPTY",
+        "parent": "BowGun_TurretPivot",
+        "position_blender_m": [
+          0.0,
+          5.8187,
+          1.9065
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "BowGun_ElevationPivot_Barrels",
+        "type": "MESH",
+        "parent": "BowGun_ElevationPivot",
+        "position_blender_m": [
+          0.0,
+          5.8187,
+          1.9065
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "BowGun_Muzzle",
+        "type": "EMPTY",
+        "parent": "BowGun_ElevationPivot",
+        "position_blender_m": [
+          0.0,
+          7.0135,
+          1.9065
+        ],
+        "axis_blender": [
+          -0.0,
+          1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "MissileLauncher_Port",
+        "type": "MESH",
+        "parent": "ENE_MissileCorvette",
+        "position_blender_m": [
+          -1.49,
+          0.53,
+          1.59
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "MissileLaunchPoint_Port_01",
+        "type": "EMPTY",
+        "parent": "MissileLauncher_Port",
+        "position_blender_m": [
+          -1.49,
+          1.755,
+          1.59
+        ],
+        "axis_blender": [
+          -0.0,
+          1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "MissileLaunchPoint_Port_02",
+        "type": "EMPTY",
+        "parent": "MissileLauncher_Port",
+        "position_blender_m": [
+          -1.49,
+          1.755,
+          2.23
+        ],
+        "axis_blender": [
+          -0.0,
+          1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "Ciws_Port_Pivot",
+        "type": "EMPTY",
+        "parent": "ENE_MissileCorvette",
+        "position_blender_m": [
+          -1.12,
+          -4.7,
+          1.41
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Ciws_Port_Housing",
+        "type": "MESH",
+        "parent": "Ciws_Port_Pivot",
+        "position_blender_m": [
+          -1.12,
+          -4.7,
+          1.41
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Ciws_Port_Muzzle",
+        "type": "EMPTY",
+        "parent": "Ciws_Port_Pivot",
+        "position_blender_m": [
+          -1.834,
+          -4.7,
+          1.7
+        ],
+        "axis_blender": [
+          -1.0,
+          -0.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "MissileLauncher_Starboard",
+        "type": "MESH",
+        "parent": "ENE_MissileCorvette",
+        "position_blender_m": [
+          1.49,
+          0.53,
+          1.59
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "MissileLaunchPoint_Starboard_01",
+        "type": "EMPTY",
+        "parent": "MissileLauncher_Starboard",
+        "position_blender_m": [
+          1.49,
+          1.755,
+          1.59
+        ],
+        "axis_blender": [
+          -0.0,
+          1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "MissileLaunchPoint_Starboard_02",
+        "type": "EMPTY",
+        "parent": "MissileLauncher_Starboard",
+        "position_blender_m": [
+          1.49,
+          1.755,
+          2.23
+        ],
+        "axis_blender": [
+          -0.0,
+          1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "Ciws_Starboard_Pivot",
+        "type": "EMPTY",
+        "parent": "ENE_MissileCorvette",
+        "position_blender_m": [
+          1.12,
+          -4.7,
+          1.41
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Ciws_Starboard_Housing",
+        "type": "MESH",
+        "parent": "Ciws_Starboard_Pivot",
+        "position_blender_m": [
+          1.12,
+          -4.7,
+          1.41
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Ciws_Starboard_Muzzle",
+        "type": "EMPTY",
+        "parent": "Ciws_Starboard_Pivot",
+        "position_blender_m": [
+          1.834,
+          -4.7,
+          1.7
+        ],
+        "axis_blender": [
+          1.0,
+          -0.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "SmokePoint_Bridge",
+        "type": "EMPTY",
+        "parent": "ENE_MissileCorvette",
+        "position_blender_m": [
+          0.0,
+          1.62,
+          3.1
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "FirePoint_Aft",
+        "type": "EMPTY",
+        "parent": "ENE_MissileCorvette",
+        "position_blender_m": [
+          0.0,
+          -4.85,
+          1.36
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    ]
+  },
+  "ENE_PlatformBattery": {
+    "triangles": 524,
+    "bounds_blender_m": [
+      [
+        -1.5,
+        -1.5,
+        0.0
+      ],
+      [
+        1.5,
+        1.7690000534057617,
+        3.166749954223633
+      ]
+    ],
+    "materials": [
+      "Blue black glazing",
+      "ENV_Concrete",
+      "Emergency Red",
+      "Enemy Dark",
+      "Enemy superstructure grey",
+      "Enemy weapon dark",
+      "Gunmetal",
+      "Naval cool grey"
+    ],
+    "parts": [
+      {
+        "name": "ENE_PlatformBattery",
+        "type": "EMPTY",
+        "parent": null,
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Base",
+        "type": "MESH",
+        "parent": "ENE_PlatformBattery",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "TurretPivot",
+        "type": "EMPTY",
+        "parent": "ENE_PlatformBattery",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.7
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "TurretPivot_Housing",
+        "type": "MESH",
+        "parent": "TurretPivot",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.7
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "ElevationPivot",
+        "type": "EMPTY",
+        "parent": "TurretPivot",
+        "position_blender_m": [
+          0.0,
+          0.3538,
+          1.371
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "ElevationPivot_Barrels",
+        "type": "MESH",
+        "parent": "ElevationPivot",
+        "position_blender_m": [
+          0.0,
+          0.3538,
+          1.371
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Muzzle",
+        "type": "EMPTY",
+        "parent": "ElevationPivot",
+        "position_blender_m": [
+          0.0,
+          1.769,
+          1.371
+        ],
+        "axis_blender": [
+          -0.0,
+          1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "MissileBox_Port",
+        "type": "MESH",
+        "parent": "TurretPivot",
+        "position_blender_m": [
+          -0.85,
+          -0.1,
+          1.13
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "LaunchPoint_Port",
+        "type": "EMPTY",
+        "parent": "MissileBox_Port",
+        "position_blender_m": [
+          -0.85,
+          0.572,
+          1.51
+        ],
+        "axis_blender": [
+          -0.0,
+          1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "MissileBox_Starboard",
+        "type": "MESH",
+        "parent": "TurretPivot",
+        "position_blender_m": [
+          0.85,
+          -0.1,
+          1.13
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "LaunchPoint_Starboard",
+        "type": "EMPTY",
+        "parent": "MissileBox_Starboard",
+        "position_blender_m": [
+          0.85,
+          0.572,
+          1.51
+        ],
+        "axis_blender": [
+          -0.0,
+          1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "TrackerSupport",
+        "type": "MESH",
+        "parent": "TurretPivot",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.7
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "RadarPivot",
+        "type": "EMPTY",
+        "parent": "TurretPivot",
+        "position_blender_m": [
+          0.0,
+          -0.68,
+          2.77
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "RadarArray",
+        "type": "MESH",
+        "parent": "RadarPivot",
+        "position_blender_m": [
+          0.0,
+          -0.68,
+          2.77
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    ]
+  }
+}

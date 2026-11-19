@@ -89,13 +89,15 @@ namespace Game.World
             {
                 float a = a0 + i * Mathf.PI * 2f / n;
                 var p = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * (radius + 1.5f);
-                var buoy = PlaceKitModel(root.transform, Stage4Env + "ENV_Sandbar_Marker", p, (float)rng.NextDouble() * 360f);
-                if (buoy != null)
+                // 등부표(2026-11-19 낮과 밤): 노란 등부표(Codex DayNight_v1 — 원점 = 수면선) — 밤에 노랗게 깜박인다. 모델이 없으면 예전 표지
+                float yaw = (float)rng.NextDouble() * 360f, blink = (float)rng.NextDouble();
+                var buoy = Game.View.DayNightProps.Place(root.transform, Game.View.DayNightProps.LightYellow, new Vector3(p.x, SeaY, p.z), yaw);
+                if (buoy == null)
                 {
-                    buoy.transform.localPosition = new Vector3(p.x, 0f, p.z);
-                    // 등부표(2026-11-19): 모래톱 표지 — 밤에 노랗게 깜박인다
-                    Game.View.NightLampSet.On(buoy).Add(Vector3.up * 2f / Mathf.Max(0.01f, buoy.transform.lossyScale.y), new Color(1f, 0.8f, 0.15f), 0.45f, 3f, 0.3f, (float)rng.NextDouble());
+                    buoy = PlaceKitModel(root.transform, Stage4Env + "ENV_Sandbar_Marker", p, yaw);
+                    if (buoy != null) buoy.transform.localPosition = new Vector3(p.x, 0f, p.z);
                 }
+                if (buoy != null) Game.View.DayNightProps.Lamp(buoy, new Color(1f, 0.8f, 0.15f), 0.45f, 3f, 0.3f, blink);
             }
             // 불규칙한 윤곽(해안 물빛이 얕은 물로 칠한다)
             const int k = 20;

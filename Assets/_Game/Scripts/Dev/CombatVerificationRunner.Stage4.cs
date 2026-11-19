@@ -6,6 +6,7 @@ using Game.Combat;
 using Game.Core;
 using Game.Data;
 using Game.Enemies;
+using Game.View;
 using Game.World;
 
 namespace Game.Dev
@@ -108,7 +109,11 @@ namespace Game.Dev
             float wigY = wig != null ? wig.transform.position.y : 0f;
             _report.AppendLine($"- 경위그선: 항공 표적 {Yes(air)} · 대함 유도탄 표적(수면 비행) {Yes(asSkimmer)} · 수상 전용 무기 표적 아님 {Yes(notSurface)} · 고도 {wigY:0.0}m");
             if (!air || !asSkimmer || !notSurface) Fail("수면 비행 규칙이 맞지 않음(경위그선)");
-            if (wig != null) yield return CloseShot("s4_light_wig", wig.transform, 9f);
+            if (wig != null)
+            {
+                yield return CloseShot("s4_light_wig", wig.transform, 9f);
+                yield return CheckStage4Wreck(wig, ShipWreck.SinkMode.WigCrash, "s4_light_wig_down", 11f);
+            }
             CombatDevTools.ClearBattlefield();
             yield return null;
 
@@ -128,6 +133,7 @@ namespace Game.Dev
             bool flewAgain = assault != null && !assault.Landed;
             _report.AppendLine($"- 강습 위그선: 착수 {assault?.DevLandings ?? 0}번 · 착수 중 수상 표적 {Yes(landedSurface)} · 보트 {assault?.DevBoatsLaunched ?? 0}척(기대 2) · 다시 뜸 {Yes(flewAgain)} · {Time.time - t0:0.0}초");
             if (assault == null || assault.DevLandings < 1 || !landedSurface || assault.DevBoatsLaunched < 2 || !flewAgain) Fail("강습 위그선이 내려앉아 보트를 내리고 다시 뜨지 않음");
+            if (assault != null) yield return CheckStage4Wreck(assault, ShipWreck.SinkMode.WigCrash, "s4_assault_wig_down", 23f);
             CombatDevTools.ClearBattlefield();
             yield return null;
 
@@ -151,7 +157,14 @@ namespace Game.Dev
             if (maxLift < 0.6f) Fail("수중익정 선체가 떠오르지 않음");
             if (corvette == null || corvette.DevMissiles < 2) Fail("미사일 초계함이 미사일을 쏘지 않음");
             if (hc.Count > 0) yield return CloseShot("s4_hovercraft", hc[0].transform, 20f);
-            if (corvette != null) yield return CloseShot("s4_missile_corvette", corvette.transform, 16f);
+            if (corvette != null)
+            {
+                yield return CloseShot("s4_missile_corvette", corvette.transform, 16f);
+                CheckSternLamp(corvette.transform);
+            }
+            if (hc.Count > 0) yield return CheckStage4Wreck(hc[0], ShipWreck.SinkMode.CushionCollapse, "s4_hovercraft_down", 22f);
+            if (hydro != null) yield return CheckStage4Wreck(hydro, ShipWreck.SinkMode.FoilCollapse, "s4_hydrofoil_down", 19f);
+            if (corvette != null) yield return CheckStage4Wreck(corvette, ShipWreck.SinkMode.Superstructure, "s4_corvette_down", 18f);
             CombatDevTools.ClearBattlefield();
             yield return null;
 
@@ -172,6 +185,9 @@ namespace Game.Dev
                     yield return CloseShot("s4_platform_battery", pb.transform, 10f);
                     int slicks = OilSlick.Active;
                     pb.TakeDamage(new DamageInfo(9999f, pb.transform.position, Vector3.down, DamageSource.Gun, "검증"));
+                    var batteryWreck = ShipWreck.Active.FindLast(w => w != null && w.Mode == ShipWreck.SinkMode.DeckCollapse);
+                    if (batteryWreck == null || batteryWreck.FlyingCount == 0) Fail("플랫폼 포대의 부품이 갑판 위에서 떨어지지 않음");
+                    else yield return CloseShot("s4_platform_battery_down", batteryWreck.transform, 13f);
                     yield return new WaitForSeconds(1.5f);
                     _report.AppendLine($"  - 부서진 뒤 불타는 기름띠 {OilSlick.Active - slicks}개(기대 1)");
                     if (OilSlick.Active <= slicks) Fail("플랫폼 포대가 부서져도 기름띠가 번지지 않음");
@@ -248,7 +264,7 @@ namespace Game.Dev
             yield return new WaitForSeconds(chargeWait);
             _report.AppendLine($"  - 엔진 {lun.EnginesDown}기 파괴 → {lun.PhaseName}: 수면 활주(수상 표적) {Yes(grounded)} · 돌진 {lun.DevCharges}번 · 들이받음 {lun.DevRams} · 보스 막대 \"{lun.PhaseName}\"");
             if (!grounded || lun.DevCharges < 1) Fail("엔진 5기를 부숴도 룬급이 추락 활주 · 돌진으로 넘어가지 않음");
-            lun.RemoveWithoutReward();
+            yield return CheckLunFinale(lun);
             CombatDevTools.ClearBattlefield();
             CoastalBatteryField.Disabled = false;
             ship.DevRudderOverride = null;
@@ -256,6 +272,69 @@ namespace Game.Dev
         }
 
         private const float chargeWait = 3f;
+
+        private void CheckSternLamp(Transform ship)
+        {
+            var lamps = NavLights.Ensure(ship.gameObject);
+            var bulbs = new List<Transform>();
+            foreach (Transform t in ship)
+                if (t.name == "Night lamp") bulbs.Add(t);
+            float ratio = bulbs.Count == NavLights.PerShip
+                ? bulbs[3].lossyScale.x / bulbs[0].lossyScale.x : 0f;
+            _report.AppendLine($"- 선미등: 현측등 지름 대비 {ratio:P1}(기대 7.5%, 기존 선미등의 10%)");
+            if (lamps == null || Mathf.Abs(ratio - .075f) > .001f) Fail("선미등 지름이 이전 값의 10%가 아님");
+        }
+
+        private IEnumerator CheckStage4Wreck(EnemyController enemy, ShipWreck.SinkMode mode, string shot, float distance)
+        {
+            if (!enemy.IsAlive)
+            {
+                Fail($"{shot}: 확인할 적이 생존하지 않음");
+                yield break;
+            }
+            ShipWreck.TrySpawnStage4(enemy, enemy.CurrentSpeed, DamageSource.Gun, enemy.transform.position);
+            var wreck = ShipWreck.Active.FindLast(w => w != null && w.Mode == mode && w.Age == 0f);
+            enemy.RemoveWithoutReward();
+            if (wreck == null || wreck.PartCount < 2 || wreck.GetComponentInChildren<Collider>() != null)
+            {
+                Fail($"{shot}: 장식 잔해가 생성되지 않음");
+                yield break;
+            }
+            yield return new WaitForSeconds(1.25f);
+            _report.AppendLine($"- {shot}: {wreck.PartCount} 부품 · 경사 {wreck.RollDegrees:0.0}° · 파편 {wreck.FlyingCount}");
+            if (wreck.FlyingCount == 0 || (mode != ShipWreck.SinkMode.Superstructure && !wreck.HitSurface))
+                Fail($"{shot}: 파손·수면 접촉 연출 누락");
+            yield return CloseShot(shot, wreck.transform, distance);
+        }
+
+        private IEnumerator CheckLunFinale(LunBoss lun)
+        {
+            lun.DevFrozen = true;
+            lun.transform.position = new Vector3(lun.transform.position.x, 1.7f, lun.transform.position.z);
+            ShipWreck.TrySpawnStage4(lun, 0f, DamageSource.Missile, lun.transform.position);
+            lun.RemoveWithoutReward();
+            var wreck = ShipWreck.Active.FindLast(w => w != null && w.Mode == ShipWreck.SinkMode.LunCrash);
+            if (wreck == null)
+            {
+                Fail("룬급 최종 잔해가 없음");
+                yield break;
+            }
+            ShipWreck.BeginFinale();
+            var result = FindFirstObjectByType<Game.UI.ResultScreenUI>();
+            GameManager.Instance.TriggerVictory();
+            if (!ShipWreck.PlayingFinale || Time.timeScale != 0f || result == null || result.IsShown)
+                Fail("룬급 연출 도중 승리 화면이 먼저 뜨거나 전투 시간이 멈추지 않음");
+            yield return new WaitForSecondsRealtime(1.15f);
+            if (!wreck.HitSurface || wreck.FlyingCount == 0) Fail("정지 상태의 룬급이 수면에 부딪히지 않음");
+            var camera = Camera.main;
+            Vector3 viewport = camera != null ? camera.WorldToViewportPoint(wreck.transform.position) : Vector3.zero;
+            if (viewport.z <= 0f || viewport.x < .12f || viewport.x > .88f || viewport.y < .12f || viewport.y > .88f)
+                Fail("승리 연출 카메라에 룬급 잔해가 들어오지 않음");
+            yield return CloseShot("s4_lun_down", wreck.transform, 28f);
+            yield return new WaitForSecondsRealtime(3.3f);
+            _report.AppendLine($"- 룬급 최종 파괴 종료 {Yes(!ShipWreck.PlayingFinale)} · 승리 화면 {Yes(result != null && result.IsShown)}");
+            if (ShipWreck.PlayingFinale || result == null || !result.IsShown) Fail("룬급 연출이 끝난 뒤 승리 화면이 열리지 않음");
+        }
     }
 }
 #endif

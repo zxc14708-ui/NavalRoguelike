@@ -30,6 +30,39 @@ namespace Game.EditorTools
         private static readonly string[] EnemyModels =
             { "ENE_Boss4_Lun", "ENE_LightWig", "ENE_AssaultWig", "ENE_Hovercraft", "ENE_Hydrofoil", "ENE_MissileCorvette", "ENE_PlatformBattery", "MIS_Moskit" };
         private static readonly string[] EnvModels = { "ENV_OilPlatform_L", "ENV_OilPlatform_S", "ENV_RearmBarge", "ENV_Sandbar_Marker" };
+        private static readonly string[] EnemyPalette =
+        {
+            "Blue black glazing", "Emergency Red", "Enemy Dark", "Enemy hull grey", "Enemy superstructure grey",
+            "Enemy weapon dark", "Gunmetal", "Medical White", "Naval cool grey", "Radar Glass", "Stealth deck",
+            "Warning red", "Warning Yellow",
+        };
+
+        [MenuItem("Naval/Art/Refresh Stage 4 Enemy Materials")]
+        public static void RefreshEnemyArt()
+        {
+            const string mats = Root + "/Art/Models/Materials";
+            var palette = new List<(string name, Material mat)>();
+            foreach (string name in EnemyPalette)
+                palette.Add((name, AssetDatabase.LoadAssetAtPath<Material>($"{mats}/{name}.mat")));
+            palette.Add(("ENV_Concrete", AssetDatabase.LoadAssetAtPath<Material>($"{mats}/Environment/ENV_Concrete.mat")));
+            palette.Add(("MAT_IslandWhite", AssetDatabase.LoadAssetAtPath<Material>($"{Root}/Resources/Islands/MAT_IslandWhite.mat")));
+            foreach (string model in EnemyModels)
+            {
+                if (model == "MIS_Moskit") continue;
+                string path = $"{ModelDir}/{model}.fbx";
+                // Only store remaps for materials the current FBX actually uses.
+                var art = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                if (art == null) throw new System.InvalidOperationException($"Missing Stage 4 model: {path}");
+                var names = new HashSet<string>();
+                foreach (var renderer in art.GetComponentsInChildren<MeshRenderer>(true))
+                    foreach (var mat in renderer.sharedMaterials)
+                        if (mat != null) names.Add(mat.name);
+                var used = palette.FindAll(entry => names.Contains(entry.name));
+                if (used.Count == 0 || used.Count != names.Count || used.Exists(entry => entry.mat == null))
+                    throw new System.InvalidOperationException($"Incomplete Stage 4 art palette: {model}");
+                ImportModel(path, used.ToArray());
+            }
+        }
 
         [MenuItem("Naval/Add Stage 4 (Inland Sea · Lun)", priority = 5)]
         public static void Run()
@@ -37,7 +70,8 @@ namespace Game.EditorTools
             EnsureFolder(EneDir);
             EnsureFolder(WavDir);
             // 재질: 모델의 재질 이름이 프로젝트 재질(Art/Models/Materials · Environment · Resources/Islands)과 같다 — 이름으로 찾아 붙인다
-            foreach (var m in EnemyModels) ImportModel($"{ModelDir}/{m}.fbx", System.Array.Empty<(string, Material)>());
+            RefreshEnemyArt();
+            ImportModel($"{ModelDir}/MIS_Moskit.fbx", System.Array.Empty<(string, Material)>());
             foreach (var m in EnvModels) ImportModel($"{EnvDir}/{m}.fbx", System.Array.Empty<(string, Material)>());
 
             EnemyDefinition Def(string path) => AssetDatabase.LoadAssetAtPath<EnemyDefinition>(path);

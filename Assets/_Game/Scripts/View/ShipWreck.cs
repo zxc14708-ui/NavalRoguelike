@@ -19,14 +19,14 @@ namespace Game.View
     ///   Superstructure — 함교 파괴(포탄에 흔함): 맞은 곳 가까운 상부 구조물이 폭발로 날아가 바다에 떨어지고, 그 자리에서 불기둥이 오른다.
     ///   Magazine       — 유폭(미사일에 흔함): 큰 폭발과 연쇄 폭발, 파편이 사방으로 날고, 선체가 두 동강 나거나(부품이 나뉘어 있을 때) 곤두서서 빠르게 가라앉는다.
     /// </summary>
-    public class ShipWreck : MonoBehaviour
+    public partial class ShipWreck : MonoBehaviour
     {
         public static readonly List<ShipWreck> Active = new();
         private const int MaxActive = 8;
         private const float WaterY = -0.9f;
         private const float SlickLife = 16f;
 
-        public enum SinkMode { List, Capsize, Superstructure, Magazine }
+        public enum SinkMode { List, Capsize, Superstructure, Magazine, WigCrash, LunCrash, CushionCollapse, FoilCollapse, DeckCollapse }
 
         /// <summary>검증·개발용: 값을 넣으면 모든 잔해가 이 방식으로 가라앉는다.</summary>
         public static SinkMode? ForcedMode;
@@ -85,13 +85,17 @@ namespace Game.View
         /// cause · hitPoint: 마지막 한 방의 종류와 맞은 곳 — 침몰 방식을 고른다(없으면 기본: 기울며 침몰).
         /// </summary>
         public static ShipWreck Spawn(Transform source, float speed, Game.Combat.DamageSource? cause = null, Vector3 hitPoint = default)
+            => Spawn(source, speed, cause, hitPoint, null);
+
+        private static ShipWreck Spawn(Transform source, float speed, Game.Combat.DamageSource? cause, Vector3 hitPoint,
+                                       SinkMode? stage4Mode, float lift = 0f)
         {
             if (source == null) return null;
 
             var parts = new List<MeshRenderer>();
             foreach (var r in source.GetComponentsInChildren<MeshRenderer>(false))
             {
-                if (!r.enabled || !r.TryGetComponent<MeshFilter>(out var f) || f.sharedMesh == null) continue;
+                if (!r.enabled || r.name == "Night lamp" || !r.TryGetComponent<MeshFilter>(out var f) || f.sharedMesh == null) continue;
                 var m = r.sharedMaterial;
                 if (m == null || m.renderQueue >= 2500) continue;   // 표시용 반투명(사각 표시 등)은 빼고 선체만
                 parts.Add(r);
@@ -119,7 +123,7 @@ namespace Game.View
             Vector3 fwd = source.forward; fwd.y = 0f;
             if (fwd.sqrMagnitude < 1e-4f) fwd = Vector3.forward;
             var rot = Quaternion.LookRotation(fwd.normalized, Vector3.up);
-            var pivot = new Vector3(center.x, WaterY + 0.3f, center.z);
+            var pivot = stage4Mode.HasValue ? source.position : new Vector3(center.x, WaterY + 0.3f, center.z);
 
             var go = new GameObject($"Wreck ({source.name})");
             go.transform.SetPositionAndRotation(pivot, rot);
@@ -128,6 +132,8 @@ namespace Game.View
 
             var wreck = go.AddComponent<ShipWreck>();
             wreck._body = body;
+            wreck._stage4Lift = lift;
+            MaterialPropertyBlock props = null;
             var copies = new List<(Transform t, Bounds b)>(parts.Count);
             foreach (var r in parts)
             {
@@ -139,13 +145,20 @@ namespace Game.View
                 copy.GetComponent<MeshFilter>().sharedMesh = src.GetComponent<MeshFilter>().sharedMesh;
                 var cr = copy.GetComponent<MeshRenderer>();
                 cr.sharedMaterials = r.sharedMaterials;
+                if (stage4Mode.HasValue && r.HasPropertyBlock())
+                {
+                    props ??= new MaterialPropertyBlock();
+                    r.GetPropertyBlock(props);
+                    cr.SetPropertyBlock(props);
+                }
                 cr.shadowCastingMode = r.shadowCastingMode;
                 cr.receiveShadows = r.receiveShadows;
+                if (stage4Mode.HasValue) wreck.BindStage4Copy(stage4Mode.Value, src, copy.transform);
                 if (wreck._debrisMaterial == null) wreck._debrisMaterial = r.sharedMaterial;
                 copies.Add((copy.transform, r.bounds));
             }
             wreck.PartCount = parts.Count;
-            wreck.Begin(size, Mathf.Max(0.3f, center.y + size.y * 0.5f - pivot.y), speed, Pick(cause), hitPoint, copies);
+            wreck.Begin(size, Mathf.Max(0.3f, center.y + size.y * 0.5f - pivot.y), speed, stage4Mode ?? Pick(cause), hitPoint, copies);
             Active.Add(wreck);
             return wreck;
         }
@@ -201,6 +214,11 @@ namespace Game.View
             _blastAlong = Random.Range(-0.25f, 0.25f);
             if (hitPoint != Vector3.zero)
                 _blastAlong = Mathf.Clamp(Vector3.Dot(hitPoint - transform.position, transform.forward) / _length, -0.35f, 0.35f);
+            if (IsStage4Motion)
+            {
+                BeginStage4();
+                return;
+            }
             float power = Mathf.Clamp(Mathf.Sqrt(_scale), 0.8f, 1.5f);
 
             switch (mode)
@@ -396,7 +414,15 @@ namespace Game.View
                         Random.Range(0.6f, 1.1f), Random.Range(0.4f, 0.8f) * _scale, new Color(g, g, g, 0.5f));
                 }
 
-                if (f.Velocity.y < 0f && f.T.position.y < WaterY - 0.2f)
+                if (Mode == SinkMode.DeckCollapse && f.Velocity.y < 0f && f.T.position.y <= _startPos.y + 0.17f)
+                {
+                    Vector3 at = f.T.position;
+                    at.y = _startPos.y + 0.17f;
+                    f.T.position = at;
+                    _flying.RemoveAt(i);
+                    f.T.SetParent(_body, true);
+                }
+                else if (f.Velocity.y < 0f && f.T.position.y < WaterY - 0.2f)
                 {
                     Vector3 at = new(f.T.position.x, WaterY + 0.1f, f.T.position.z);
                     for (int k = 0; k < 7; k++)
@@ -427,8 +453,15 @@ namespace Game.View
 
         private void Update()
         {
-            float dt = Time.deltaTime;
+            float dt = s_finale == this && Game.Core.GameManager.Instance?.State == Game.Core.GameState.Victory
+                ? Time.unscaledDeltaTime : Time.deltaTime;
+            if (dt <= 0f) return;
             Age += dt;
+            if (IsStage4Motion)
+            {
+                TickStage4(dt);
+                return;
+            }
             float u = Mathf.Clamp01(Age / _duration);
 
             if (!_bodyGone)
@@ -671,6 +704,7 @@ namespace Game.View
 
         private void OnDestroy()
         {
+            EndFinale();
             Active.Remove(this);
             if (_slick != null) Destroy(_slick);
             foreach (var d in _debris) if (d.T != null) Destroy(d.T.gameObject);

@@ -122,6 +122,7 @@ ENE_SemiSubTorpedo
 - Codex 결과물: `ArtSource/DayNight_v1/` — FBX 8종(A 2 · B 5 · C 1), `DayNight.blend`, `build.py` · `models.py` · `validate.py`, `manifest.json`, 비교 PNG 17장.
 - 검사: Blender FBX 왕복 8/8 통과, 별도 Unity 6000.3.23f1 가져오기 통과(크기 · 계층 · 소켓 축 · 재질). 삼각형 수 모두 예산 안(자폭정 588 · 어뢰정 792 · 부표 116~196 · 조명탄 160).
 - 재질 이름 9종 모두 프로젝트에 있음(`MAT_IslandWhite`는 `Resources/Islands`, `MAT_art_repair_green`은 `Art/` 아래 — `Art/Models/Materials` 밖).
-- **아직 게임에 연결하지 않음**(E장 작업 남음). 연결할 때 볼 것:
-  - 크기: 요청서대로 자폭정 7.5m · 어뢰정 11m — 지금 임시 외형(자폭 보트 3.5m · 경어뢰정 5.8m)보다 2배쯤 크다. 충돌 범위 · 피격 판정 · 체력 표시 높이를 모델에 맞추거나 프리팹 배율로 줄일지 플레이해 보고 정한다.
-  - 어뢰정 `TorpedoLaunchPoint_*`는 `TorpedoTube_*` 아래에 있다.
+- **게임 연결 완료(2026-11-19 Claude)**:
+  - 반잠수정: `Art/Models/DayNight` → 프리팹 `ENE_SemiSubSuicide` · `ENE_SemiSubTorpedo`의 ModelPivot(Y 180°) 아래로 교체(`Editor/NavalDayNightModels`). **배율 0.6** — 요청서 크기(7.5m · 11m)가 기존 보트(3.5m · 5.8m)의 2배라 자폭정 4.5m · 어뢰정 6.6m로 줄였다. 판정 상자도 모델에 맞춤. 어뢰정 발사점 = `TorpedoLaunchPoint_Port/_Starboard`(포탑 없음). `LowProfileHull`은 전용 모델(`Hump`)이면 누르기 · 덧칠을 하지 않는다.
+  - 소품: `Resources/Environment/DayNight` → 섬 항로 부표 짝(빨강/초록) · 모래톱 노란 등부표 · 구명정 조난 신호 · 소노부이 · 조명탄 낙하산(`View/DayNightProps`). 등불은 `LampPoint`에.
+  - 다음에 모델을 고칠 때: 게임 크기는 0.6배로 쓰이므로, 바꾸려면 배율(`NavalDayNightModels.SuicideScale/TorpedoScale`)을 고치거나 모델 자체를 줄여 보내면 된다(둘 다 바꾸지 말 것).

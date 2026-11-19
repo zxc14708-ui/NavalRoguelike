@@ -115,8 +115,11 @@ namespace Game.Enemies
 
         protected override void Die()
         {
-            Game.View.Explosions.Spawn(transform.position + Vector3.up * 1.6f, 2.2f, Game.View.Explosions.Kind.Impact);
-            Game.View.Explosions.Spawn(transform.position + Vector3.up * 0.8f + Random.insideUnitSphere, 1.4f, Game.View.Explosions.Kind.Impact);
+            if (this is not PlatformBattery)
+            {
+                Game.View.Explosions.Spawn(transform.position + Vector3.up * 1.6f, 2.2f, Game.View.Explosions.Kind.Impact);
+                Game.View.Explosions.Spawn(transform.position + Vector3.up * 0.8f + Random.insideUnitSphere, 1.4f, Game.View.Explosions.Kind.Impact);
+            }
             base.Die();
         }
     }

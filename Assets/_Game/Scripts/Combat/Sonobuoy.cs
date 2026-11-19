@@ -8,7 +8,7 @@ namespace Game.Combat
     /// 소노부이(2026-11-19 낮과 밤). 헬기 갑판을 "대잠 초계"로 두면 헬기가 순찰 지점마다 떨군다(AswHelicopter).
     ///   - 반경 Radius 안의 잠수함은 확정 접촉(대잠 무기가 위치를 안다 — 물 위로 띄우지는 않는다), 반잠수정은 드러난다.
     ///   - 갑판 하나당 MaxPerDeck개 — 넘으면 가장 오래된 것부터 가라앉는다. Life초 뒤 가라앉는다.
-    ///   - 노란 부이 + 밤에 깜박이는 등(NightLampSet).
+    ///   - 노란 부이(Codex PRJ_Sonobuoy — 원점 = 수면선, 없으면 원통) + 밤에 깜박이는 등(NightLampSet, 모델의 LampPoint).
     /// </summary>
     public sealed class Sonobuoy : MonoBehaviour
     {
@@ -36,7 +36,7 @@ namespace Game.Combat
 
         public static Sonobuoy Drop(object deck, Vector3 at)
         {
-            at.y = 0f;
+            at.y = Game.View.Waterline.WaterY;
             if (!Game.World.Islands.IsClear(at, 2f)) return null;
             if (!s_byDeck.TryGetValue(deck, out var list)) s_byDeck[deck] = list = new List<Sonobuoy>();
             while (list.Count >= MaxPerDeck) { var old = list[0]; list.RemoveAt(0); if (old != null) Destroy(old.gameObject); }
@@ -46,21 +46,32 @@ namespace Game.Combat
             var b = go.AddComponent<Sonobuoy>();
             b._owner = deck;
             b._seed = Random.value * 6f;
-            var body = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            Destroy(body.GetComponent<Collider>());
-            body.name = "Sonobuoy body";
-            body.transform.SetParent(go.transform, false);
-            body.transform.localPosition = new Vector3(0f, 0.25f, 0f);
-            body.transform.localScale = new Vector3(0.45f, 0.35f, 0.45f);
-            if (s_body == null)
+            var lampColor = new Color(1f, 0.85f, 0.2f);
+            var model = Game.View.DayNightProps.Place(go.transform, Game.View.DayNightProps.Sonobuoy, Vector3.zero, Random.Range(0f, 360f));
+            if (model != null)
             {
-                s_body = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = "Sonobuoy (Runtime)" };
-                var y = new Color(0.95f, 0.75f, 0.1f);
-                if (s_body.HasProperty("_BaseColor")) s_body.SetColor("_BaseColor", y);
-                s_body.color = y;
+                model.name = "Sonobuoy body";
+                Game.View.NightLampSet.On(go).Add(go.transform.InverseTransformPoint(model.transform.TransformPoint(Game.View.DayNightProps.Socket(model, "LampPoint", Vector3.zero))) + Vector3.up * 0.05f,
+                    lampColor, 0.4f, 1.5f, 0.3f, b._seed);
             }
-            body.GetComponent<MeshRenderer>().sharedMaterial = s_body;
-            Game.View.NightLampSet.On(go).Add(new Vector3(0f, 0.75f, 0f), new Color(1f, 0.85f, 0.2f), 0.4f, 1.5f, 0.3f, b._seed);
+            else
+            {
+                var body = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                Destroy(body.GetComponent<Collider>());
+                body.name = "Sonobuoy body";
+                body.transform.SetParent(go.transform, false);
+                body.transform.localPosition = new Vector3(0f, 0.25f, 0f);
+                body.transform.localScale = new Vector3(0.45f, 0.35f, 0.45f);
+                if (s_body == null)
+                {
+                    s_body = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = "Sonobuoy (Runtime)" };
+                    var y = new Color(0.95f, 0.75f, 0.1f);
+                    if (s_body.HasProperty("_BaseColor")) s_body.SetColor("_BaseColor", y);
+                    s_body.color = y;
+                }
+                body.GetComponent<MeshRenderer>().sharedMaterial = s_body;
+                Game.View.NightLampSet.On(go).Add(new Vector3(0f, 0.75f, 0f), lampColor, 0.4f, 1.5f, 0.3f, b._seed);
+            }
             list.Add(b);
             s_all.Add(b);
             Dropped++;
@@ -80,7 +91,7 @@ namespace Game.Combat
             _age += dt;
             if (_age >= Life) { Destroy(gameObject); return; }
             var p = transform.position;
-            transform.position = new Vector3(p.x, Mathf.Sin(Time.time * 1.3f + _seed) * 0.06f, p.z);   // 물결에 출렁
+            transform.position = new Vector3(p.x, Game.View.Waterline.WaterY + Mathf.Sin(Time.time * 1.3f + _seed) * 0.06f, p.z);   // 물결에 출렁
             _tick -= dt;
             if (_tick > 0f) return;
             _tick = Interval;

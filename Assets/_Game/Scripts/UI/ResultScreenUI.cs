@@ -28,6 +28,7 @@ namespace Game.UI
         private TMP_Text _contribution, _overview, _footer;
         private Game.Data.StartingShipConcept _concept;
         private float _inputReadyAt;
+        private bool _waitingForFinale;
 
         /// <summary>격침 순간 누르던 R(응급수리)·H(헬기) 입력이 결과 화면 단축키로 새지 않게 잠시 막는 시간.</summary>
         private const float InputGraceSeconds = 0.6f;
@@ -47,6 +48,8 @@ namespace Game.UI
 
         private void OnStateChanged(GameState state)
         {
+            _waitingForFinale = state == GameState.Victory && Game.View.ShipWreck.PlayingFinale;
+            if (_waitingForFinale) return;
             bool show = state == GameState.Victory || state == GameState.GameOver;
             if (root != null) root.SetActive(show);
             if (!show) return;
@@ -168,6 +171,8 @@ namespace Game.UI
 
         private void Update()
         {
+            if (_waitingForFinale && !Game.View.ShipWreck.PlayingFinale)
+                OnStateChanged(GameState.Victory);
             if (!IsShown || RunRestart.InProgress || Keyboard.current == null) return;
             if (Time.unscaledTime < _inputReadyAt) return;
             var kb = Keyboard.current;

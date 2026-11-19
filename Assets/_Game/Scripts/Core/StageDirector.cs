@@ -298,6 +298,7 @@ namespace Game.Core
 
             if (!hasNext)
             {
+                Game.View.ShipWreck.BeginFinale();
                 GameManager.Instance?.TriggerVictory();
                 return;
             }

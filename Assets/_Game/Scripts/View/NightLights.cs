@@ -111,7 +111,7 @@ namespace Game.View
             set.Add(new Vector3(min.x, deckY, midZ + (max.z - min.z) * 0.1f), Port, size);
             set.Add(new Vector3(max.x, deckY, midZ + (max.z - min.z) * 0.1f), Starboard, size);
             set.Add(new Vector3((min.x + max.x) * 0.5f, max.y + 0.2f, Mathf.Lerp(midZ, max.z, 0.35f)), Mast, size * 0.9f);
-            set.Add(new Vector3((min.x + max.x) * 0.5f, Mathf.Lerp(min.y, max.y, 0.35f), min.z), Mast, size * 0.75f);   // 선미등 — 뒤에서도 보이게
+            set.Add(new Vector3((min.x + max.x) * 0.5f, Mathf.Lerp(min.y, max.y, 0.35f), min.z), Mast, size * 0.075f);
             return set;
         }
 
