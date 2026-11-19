@@ -273,7 +273,14 @@ namespace Game.World
                 {
                     float a = Angle((r[11] * 7.3 + i * 0.13) % 1.0);
                     var local = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * (Rim(a) + 7f + i * 2.5f);
-                    if (PlaceProp("ENV_NavigationBuoy", root, root.TransformPoint(local), Vector3.forward, null, 0.8f) != null) Count(local, 1f);
+                    var buoy = PlaceProp("ENV_NavigationBuoy", root, root.TransformPoint(local), Vector3.forward, null, 0.8f);
+                    if (buoy != null)
+                    {
+                        Count(local, 1f);
+                        // 밤 점멸(2026-11-19): 짝을 빨강 · 초록으로, 4초에 한 번
+                        Game.View.NightLampSet.On(buoy).Add(Vector3.up * 2.2f / Mathf.Max(0.01f, buoy.transform.lossyScale.y),
+                            i == 0 ? Game.View.NavLights.Port : Game.View.NavLights.Starboard, 0.45f, 4f, 0.25f, (float)r[11] + i * 0.5f);
+                    }
                 }
             }
 

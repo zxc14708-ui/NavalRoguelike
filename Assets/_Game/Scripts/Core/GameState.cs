@@ -53,7 +53,8 @@ namespace Game.Core
         ThrottleUp, ThrottleDown, RudderLeft, RudderRight, CenterRudder,
         Decoy, Jam, Repair, Smoke, Flank, VlsSelector, HelicopterSelector, ShipStatus,
         Formation,  // 편대 진형 전환(2026-10-03, 뒤에만 덧붙임)
-        Signature   // 함정 고유 스킬(2026-10-11, 뒤에만 덧붙임)
+        Signature,  // 함정 고유 스킬(2026-10-11, 뒤에만 덧붙임)
+        Flare       // 조명탄(2026-11-19 낮과 밤, 뒤에만 덧붙임)
     }
 
     public enum SoundChannel { Master, Effects, Engine, Warning, Ui, Music, Ambience }   // Music · Ambience: 2026-11-16(맨 뒤에 덧붙임)
@@ -68,7 +69,8 @@ namespace Game.Core
         {
             Key.W, Key.S, Key.A, Key.D, Key.X, Key.Q, Key.E, Key.R, Key.F,
             Key.C, Key.V, Key.H, Key.Tab, Key.G,  // 전속: Shift → C(2026-10-07, Shift+우클릭 = 항로 경유지 추가)
-            Key.T                                  // 함정 고유 스킬(2026-10-11)
+            Key.T,                                 // 함정 고유 스킬(2026-10-11)
+            Key.B                                  // 조명탄(2026-11-19)
         };
         private const string FlankKeyMigration = "Naval.Control.Migrated.FlankC";
         private static readonly Key[] Bindings = new Key[Defaults.Length];

@@ -16,6 +16,19 @@ namespace Game.Combat
         bool Skimming { get; }
     }
 
+    /// <summary>
+    /// 저피탐 수상 표적(반잠수정, 2026-11-19 낮과 밤). 물에 거의 잠겨 레이더에 늦게 잡힌다(탐지 거리 × RadarMultiplier).
+    /// 소나 범위 안 · 조명탄·탐조등에 비치면 드러난다(MarkDetected). 반쯤 잠겨 있어 폭뢰도 맞는다.
+    /// </summary>
+    public interface ILowObservable
+    {
+        public const float RadarMultiplier = 0.4f;
+        /// <summary>지금 숨어 있는가(드러나지 않음).</summary>
+        bool Stealthy { get; }
+        /// <summary>seconds초 동안 드러난다(소나 · 조명탄 · 탐조등 · 근접).</summary>
+        void MarkDetected(float seconds);
+    }
+
     /// <summary>탐지/조준의 대상이 되는 모든 것. 진영(Faction)으로 적·아군을 가른다.</summary>
     public interface ITargetable : IFactionMember
     {

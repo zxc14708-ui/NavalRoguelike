@@ -117,7 +117,7 @@ namespace Game.UI
         }
 
         // 스킬 줄 칸 순서
-        private const int DecoySlot = 0, JamSlot = 1, RepairSlot = 2, SmokeSlot = 3, FlankSlot = 4, SignatureSlot = 5;
+        private const int DecoySlot = 0, JamSlot = 1, RepairSlot = 2, SmokeSlot = 3, FlankSlot = 4, SignatureSlot = 5, FlareSlot = 6;
 
         private void OnSkillStatus(ActiveSkillId id, int ready, int total, float next01)
         {
@@ -126,6 +126,7 @@ namespace Game.UI
                 case ActiveSkillId.Repair: ShowSkill(RepairSlot, ready, total, next01); break;
                 case ActiveSkillId.Smoke: ShowSkill(SmokeSlot, ready, total, next01); break;
                 case ActiveSkillId.Flank: ShowSkill(FlankSlot, ready, total, next01); break;
+                case ActiveSkillId.Flare: ShowSkill(FlareSlot, ready, total, next01); break;
                 case ActiveSkillId.Signature:
                     // 고유 스킬: 고른 함정에 따라 그림이 바뀐다
                     if (_skillBar != null && Game.Ship.SignatureSkill.Active != null)
@@ -259,6 +260,7 @@ namespace Game.UI
                 (HudTextures.SkillIcon.Smoke, GameSettings.BindingLabel(NavalControl.Smoke)),
                 (HudTextures.SkillIcon.Flank, GameSettings.BindingLabel(NavalControl.Flank)),
                 (HudTextures.SkillIcon.Charge, GameSettings.BindingLabel(NavalControl.Signature)),   // 고유 스킬(함정마다 그림이 바뀜)
+                (HudTextures.SkillIcon.Flare, GameSettings.BindingLabel(NavalControl.Flare)),        // 조명탄(2026-11-19)
             });
             decoyButton = _skillBar.ButtonAt(DecoySlot);
             jamButton = _skillBar.ButtonAt(JamSlot);
@@ -266,6 +268,7 @@ namespace Game.UI
             smokeButton = _skillBar.ButtonAt(SmokeSlot);
             flankButton = _skillBar.ButtonAt(FlankSlot);
             _skillBar.ButtonAt(SignatureSlot)?.onClick.AddListener(() => GameEvents.RaiseSkillRequested(ActiveSkillId.Signature));
+            _skillBar.ButtonAt(FlareSlot)?.onClick.AddListener(() => GameEvents.RaiseSkillRequested(ActiveSkillId.Flare));
 
             var level = Panel(cluster, "Level bar", Vector2.zero, new Vector2(left, skillY + skillHeight + 6f), new Vector2(clusterWidth, levelHeight), Navy);
             levelText = Label(level, "Level", "Lv 1", new Vector2(12, 3), new Vector2(70, 20), 15, Gold);
@@ -738,6 +741,7 @@ namespace Game.UI
             _skillBar.SetTileVisible(DecoySlot, false);
             _skillBar.SetTileVisible(JamSlot, false);
             _skillBar.SetTileVisible(SignatureSlot, false);
+            _skillBar.SetTileVisible(FlareSlot, false);
         }
 
         private Button MenuButton(Transform parent, string title, Vector2 position, Vector2 size, Color color, float fontSize)
@@ -863,7 +867,7 @@ namespace Game.UI
             (NavalControl.VlsSelector, "VLS 발사기 전환"),
             (NavalControl.HelicopterSelector, "헬기 정책 전환"),
             (NavalControl.ShipStatus, "함 현황"), (NavalControl.Formation, "편대 진형 전환"),
-            (NavalControl.Signature, "함정 고유 스킬")
+            (NavalControl.Signature, "함정 고유 스킬"), (NavalControl.Flare, "조명탄")
         };
 
         /// <summary>지금 규칙 집합에서 쓰는 현대 조작(WWII 판: 조타·전령기·수리·연막·전속·함 현황 — 기만체·재밍·VLS·헬기·편대는 뺀다).</summary>
@@ -872,7 +876,7 @@ namespace Game.UI
             var list = new System.Collections.Generic.List<(NavalControl, string)>();
             foreach (var c in ControlTitles)
                 if (!Ruleset.IsWw2 || System.Array.IndexOf(Ww2Controls.SharedControls, c.action) >= 0)
-                    if (!(Ruleset.IsWw2 && c.action == NavalControl.Signature)) list.Add(c);   // WWII 구축함은 고유 스킬이 아직 없다
+                    if (!(Ruleset.IsWw2 && (c.action == NavalControl.Signature || c.action == NavalControl.Flare))) list.Add(c);   // WWII 구축함은 고유 스킬이 아직 없다
             return list;
         }
 
@@ -985,6 +989,7 @@ namespace Game.UI
             _skillBar.SetKeyLabel(SmokeSlot, GameSettings.BindingLabel(NavalControl.Smoke));
             _skillBar.SetKeyLabel(FlankSlot, GameSettings.BindingLabel(NavalControl.Flank));
             _skillBar.SetKeyLabel(SignatureSlot, GameSettings.BindingLabel(NavalControl.Signature));
+            _skillBar.SetKeyLabel(FlareSlot, GameSettings.BindingLabel(NavalControl.Flare));
         }
 
         /// <summary>보스 격침 후 다음 해역에 진입하기 전에 한 번만 여는 항로 선택.</summary>

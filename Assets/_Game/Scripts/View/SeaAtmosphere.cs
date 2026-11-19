@@ -25,6 +25,11 @@ namespace Game.View
         private float _baseDensity;
         private FogMode _baseMode;
         private Color _baseFogColor;
+        // 낮과 밤(2026-11-19): DayNightLighting이 곱하는 물색·안개 색 배율. 해역 값은 그대로 두고 칠할 때만 곱한다.
+        private Color _oceanTint = Color.white, _fogTint = Color.white;
+        private Color _curScatter, _curTransmission;
+        private bool _tintDirty;
+        private static readonly Color RegionFogColor = new(0.62f, 0.69f, 0.74f);
 
         public static SeaAtmosphere Instance { get; private set; }
         /// <summary>검증용: 지금 수면 깊은 물색과 안개 농도.</summary>
@@ -71,6 +76,7 @@ namespace Game.View
             _baseTransmission = m.HasProperty(TransmissionId) ? m.GetColor(TransmissionId) : Color.black;
             _block = new MaterialPropertyBlock();
             CurrentDeep = _toDeep = _baseDeep; _toScatter = _baseScatter; _toTransmission = _baseTransmission;
+            _curScatter = _baseScatter; _curTransmission = _baseTransmission;
             return true;
         }
 
@@ -88,33 +94,52 @@ namespace Game.View
             _t = 0f;
         }
 
+        /// <summary>낮과 밤(2026-11-19): 안개 색에 곱할 배율(흰색이면 그대로). 물빛 배율(ocean)은 기록만 하고 수면 셰이더 전역 _NavalDayTint가 칠한다.</summary>
+        public void SetDayTint(Color ocean, Color fog)
+        {
+            if (ocean == _oceanTint && fog == _fogTint) return;
+            _oceanTint = ocean; _fogTint = fog; _tintDirty = true;
+        }
+
+        /// <summary>검증용: 지금 수면에 칠한 깊은 물색(밤 배율을 곱한 값).</summary>
+        public Color AppliedDeep => CurrentDeep * _oceanTint;
+
         private void Update()
         {
-            if (_t >= 1f || _ocean == null) return;
-            _t = Mathf.Min(1f, _t + Time.unscaledDeltaTime / BlendSeconds);
-            float k = Mathf.SmoothStep(0f, 1f, _t);
-            CurrentDeep = Color.Lerp(_fromDeep, _toDeep, k);
+            if (_ocean == null && _tintDirty) FindOcean();
+            if ((_t >= 1f && !_tintDirty) || _ocean == null) return;
+            _tintDirty = false;
+            if (_t < 1f)
+            {
+                _t = Mathf.Min(1f, _t + Time.unscaledDeltaTime / BlendSeconds);
+                float k = Mathf.SmoothStep(0f, 1f, _t);
+                CurrentDeep = Color.Lerp(_fromDeep, _toDeep, k);
+                _curScatter = Color.Lerp(_fromScatter, _toScatter, k);
+                _curTransmission = Color.Lerp(_fromTransmission, _toTransmission, k);
+                CurrentFog = Mathf.Lerp(_fromFog, _toFog, k);
+            }
             _ocean.GetPropertyBlock(_block);
             _block.SetColor(DeepId, CurrentDeep);
-            _block.SetColor(ScatterId, Color.Lerp(_fromScatter, _toScatter, k));
-            _block.SetColor(TransmissionId, Color.Lerp(_fromTransmission, _toTransmission, k));
+            _block.SetColor(ScatterId, _curScatter);
+            _block.SetColor(TransmissionId, _curTransmission);
             _ocean.SetPropertyBlock(_block);
 
-            CurrentFog = Mathf.Lerp(_fromFog, _toFog, k);
             if (CurrentFog > 0.0001f)
             {
                 RenderSettings.fog = true;
                 RenderSettings.fogMode = FogMode.Exponential;
                 RenderSettings.fogDensity = CurrentFog;
-                RenderSettings.fogColor = new Color(0.62f, 0.69f, 0.74f);
+                RenderSettings.fogColor = Tint(RegionFogColor, _fogTint);
             }
             else
             {
                 RenderSettings.fog = _baseFog;
                 RenderSettings.fogDensity = _baseDensity;
                 RenderSettings.fogMode = _baseMode;
-                RenderSettings.fogColor = _baseFogColor;
+                RenderSettings.fogColor = Tint(_baseFogColor, _fogTint);
             }
         }
+
+        private static Color Tint(Color c, Color m) => new(c.r * m.r, c.g * m.g, c.b * m.b, c.a);
     }
 }

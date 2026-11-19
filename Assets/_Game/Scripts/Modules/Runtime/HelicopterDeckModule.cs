@@ -47,7 +47,15 @@ namespace Game.Modules.Runtime
         public bool SortieActive => _sortieActive;
         public float CooldownRemaining => Mathf.Max(0f, _cooldown);
 
-        public void SetPolicy(HelicopterPolicy policy) => Policy = policy;
+        public void SetPolicy(HelicopterPolicy policy)
+        {
+            Policy = policy;
+            if (Instance != null) s_policies[Instance] = policy;   // 강화로 다시 초기화돼도 고른 방식을 유지(2026-11-19)
+        }
+
+        private static readonly System.Collections.Generic.Dictionary<ModuleInstance, HelicopterPolicy> s_policies = new();
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetPolicies() => s_policies.Clear();
 
         public bool IsTargetInRange(ITargetable target)
         {
@@ -100,7 +108,7 @@ namespace Game.Modules.Runtime
 
         protected override void OnInitialized()
         {
-            Policy = HelicopterPolicy.Automatic;
+            Policy = Instance != null && s_policies.TryGetValue(Instance, out var kept) ? kept : HelicopterPolicy.Automatic;
             _targeting = GetComponentInParent<TargetingSystem>();
             if (_targeting == null) Debug.LogError("[HeliDeck] TargetingSystem을 찾지 못했습니다.", this);
             if (helicopterPrefab == null) Debug.LogError("[HeliDeck] helicopterPrefab 미할당.", this);

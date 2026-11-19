@@ -31,6 +31,7 @@ namespace Game.Core
         private int _index = -1;
         private float _elapsed;
         private float _phaseEndsAt;
+        private float _phaseStartedAt;
         private float _totalDuration;
         private bool _dangerRoute;
         private bool _stageTransitioning;
@@ -91,12 +92,14 @@ namespace Game.Core
         {
             if (experience != null) experience.LevelUpRequested += OnLevelUpRequested;
             GameEvents.BossDefeated += OnBossDefeated;
+            Game.World.DayNight.Changed += OnDayPhaseChanged;
         }
 
         private void OnDisable()
         {
             if (experience != null) experience.LevelUpRequested -= OnLevelUpRequested;
             GameEvents.BossDefeated -= OnBossDefeated;
+            Game.World.DayNight.Changed -= OnDayPhaseChanged;
         }
 
         /// <summary>
@@ -144,6 +147,7 @@ namespace Game.Core
                 {
                     // 첫 출격 훈련(점검 U03): 스테이지를 시작하지 않고 훈련 안내가 단계마다 적을 낸다
                     _training = true;
+                    Game.World.DayNight.Reset();
                     Game.World.SeaRegion.Leave();
                     RunSeed.Begin();
                     RouteMap.Clear();
@@ -194,6 +198,7 @@ namespace Game.Core
         {
             _stageTransitioning = false;
             _stageIndex = stageIndex;
+            Game.World.DayNight.Reset();   // 스테이지는 낮부터
             // 해역(점검 K04): 스테이지마다 군도 → 좁은 수로 → 개방해역. 수로는 지금 함선 위치·침로가 물길이 된다
             // WWII 시험 전투는 열린 바다에서 한다(군도·수로는 패치 E)
             if (player != null && !_ww2) Game.World.SeaRegion.Enter(Game.World.SeaRegion.ForStage(StageNumber), player.position, player.forward);
@@ -221,13 +226,53 @@ namespace Game.Core
 
             bool isLast = _index >= phases.Count - 1;
             if (!isLast && _elapsed >= _phaseEndsAt) EnterPhase(_index + 1);
+            // 낮과 밤(2026-11-19): 구간 번호와 구간 안 시간으로 정한다
+            Game.World.DayNight.Tick(_index, phases.Count, _ww2 ? -1 : phases.NightFromRound, _elapsed - _phaseStartedAt, _phaseEndsAt - _phaseStartedAt);
+        }
+
+        /// <summary>지금 구간 번호(0부터) — 검증용.</summary>
+        public int PhaseIndex => _index;
+
+        /// <summary>검증용: 이 구간으로 바로 넘어간다(구간 안 시간 elapsedInPhase초가 지난 것으로).</summary>
+        public void DevJumpToPhase(int index, float elapsedInPhase = 0f)
+        {
+            var phases = Phases;
+            if (phases == null) return;
+            EnterPhase(Mathf.Clamp(index, 0, phases.Count - 1));
+            _phaseStartedAt -= elapsedInPhase;
+            _phaseEndsAt -= elapsedInPhase;
+            _elapsed = Mathf.Max(_elapsed, 0f);
+            Game.World.DayNight.Tick(_index, phases.Count, _ww2 ? -1 : phases.NightFromRound, _elapsed - _phaseStartedAt, _phaseEndsAt - _phaseStartedAt);
+        }
+
+        /// <summary>해질녘·새벽 안내(2026-11-19).</summary>
+        private void OnDayPhaseChanged(Game.World.DayPhase phase)
+        {
+            if (_training || _ww2 || RunOver) return;
+            if (phase == Game.World.DayPhase.Dusk)
+            {
+                bool heli = false;
+                var grid = GameManager.Instance?.Player?.Grid;
+                if (grid != null)
+                    foreach (var m in grid.Modules)
+                        if (m != null && !m.IsDestroyed && m.Runtime is Game.Modules.Runtime.HelicopterDeckModule) { heli = true; break; }
+                string tip = heli ? $" · 헬기를 대잠 초계로 [{GameSettings.BindingLabel(NavalControl.HelicopterSelector)}]" : "";
+                GameEvents.RaiseBanner($"해가 집니다 — 밤에는 잠수함·반잠수정이 몰려옵니다(소나 · 폭뢰 · 조명탄){tip}");
+            }
+            else if (phase == Game.World.DayPhase.Dawn)
+                GameEvents.RaiseBanner("동이 틉니다 — 적 기함 출현");
         }
 
         private void EnterPhase(int index)
         {
             var phases = Phases;
             _index = index;
-            var phase = phases.Get(index);
+            // 낮과 밤(2026-11-19): 밤 구간은 잠수함·반잠수정 위주, 낮 구간은 잠수함을 줄인다(원본 에셋은 그대로 — 사본)
+            int nightFrom = _ww2 ? -1 : phases.NightFromRound;
+            bool night = Game.World.DayNight.IsNightRound(index, phases.Count, nightFrom);
+            var phase = _ww2 ? phases.Get(index) : phases.ForTimeOfDay(index, night);
+            if (spawner != null) spawner.ExtraSubmarineCap = night ? phases.NightExtraSubmarines : 0;
+            _phaseStartedAt = _elapsed;
             _phaseEndsAt = _elapsed + Mathf.Max(5f, phase.Duration);
 
             if (_dangerRoute)
@@ -238,6 +283,7 @@ namespace Game.Core
             spawner?.SetPhase(phase, player);
 
             string title = string.IsNullOrEmpty(phase.Title) ? $"구간 {index + 1}" : phase.Title;
+            if (nightFrom >= 0) title = night ? $"밤 · {title}" : index >= phases.Count - 1 ? $"새벽 · {title}" : title;
             if (Game.World.SeaRegion.Active) title = $"{Game.World.SeaRegion.CurrentProfile.Name} · {title}";   // 해역 이름(점검 K04)
             GameEvents.RaisePhaseStarted(StageNumber, index + 1, phases.Count, title);
         }

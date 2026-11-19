@@ -33,6 +33,7 @@ namespace Game.Core
         private static bool _harborStill, _thinSmoke;
         private static int _cloudShadow = 1;
         private static bool _combatNumbers = true;
+        private static int _nightBrightness = 1;
         // 자동 검증(-combatVerify)은 구름 그림자를 늘 보통으로 시작하고 바꿔도 저장하지 않는다(플레이어 설정과 섞이지 않게)
         private static readonly bool s_verify = System.Array.IndexOf(System.Environment.GetCommandLineArgs(), "-combatVerify") >= 0;
 
@@ -55,6 +56,10 @@ namespace Game.Core
         public static bool ThinSmoke { get { Load(); return _thinSmoke; } }
         /// <summary>전투 숫자(2026-11-17): 피해 숫자 · 마우스를 올린 적의 체력(CombatNumbersUI).</summary>
         public static bool CombatNumbers { get { Load(); return _combatNumbers; } }
+        public static readonly string[] NightBrightnessNames = { "어둡게", "보통", "밝게" };
+        /// <summary>밤 밝기(2026-11-19) 0 어둡게 · 1 보통 · 2 밝게 — DayNightLighting이 밤 조명 세기에 곱한다.</summary>
+        public static int NightBrightness { get { Load(); return _nightBrightness; } }
+        public static float NightBrightnessScale => NightBrightness switch { 0 => 0.7f, 1 => 1f, _ => 1.6f };
         /// <summary>장식 입자를 내는 비율(높음 1 · 보통 0.65 · 낮음 0.35).</summary>
         public static float DecorDensity => EffectsQuality switch { 0 => 1f, 1 => 0.65f, _ => 0.35f };
 
@@ -89,6 +94,7 @@ namespace Game.Core
             _harborStill = PlayerPrefs.GetInt(Prefix + "HarborStill", 0) == 1;
             _thinSmoke = PlayerPrefs.GetInt(Prefix + "ThinSmoke", 0) == 1;
             _combatNumbers = PlayerPrefs.GetInt(Prefix + "CombatNumbers", 1) == 1;
+            _nightBrightness = s_verify ? 1 : Mathf.Clamp(PlayerPrefs.GetInt(Prefix + "NightBrightness", 1), 0, NightBrightnessNames.Length - 1);
             _cloudShadow = s_verify ? 1 : Mathf.Clamp(PlayerPrefs.GetInt(Prefix + "CloudShadow", 1), 0, CloudShadowNames.Length - 1);
             int quality = PlayerPrefs.GetInt(Prefix + "Quality", -1);
             if (quality >= 0 && quality < QualitySettings.names.Length && quality != QualitySettings.GetQualityLevel())
@@ -117,6 +123,13 @@ namespace Game.Core
         public static void SetEffectsQuality(int q) { Load(); _effectsQuality = Mathf.Clamp(q, 0, 2); Save("EffectsQuality", _effectsQuality); }
         public static void SetThinSmoke(bool on) { Load(); _thinSmoke = on; Save("ThinSmoke", on ? 1 : 0); }
         public static void SetCombatNumbers(bool on) { Load(); _combatNumbers = on; Save("CombatNumbers", on ? 1 : 0); }
+        public static void SetNightBrightness(int level)
+        {
+            Load();
+            _nightBrightness = Mathf.Clamp(level, 0, NightBrightnessNames.Length - 1);
+            if (s_verify) Changed?.Invoke();
+            else Save("NightBrightness", _nightBrightness);
+        }
         public static void SetCloudShadow(int level)
         {
             Load();

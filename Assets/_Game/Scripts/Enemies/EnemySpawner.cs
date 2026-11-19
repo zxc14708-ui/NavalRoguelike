@@ -105,10 +105,14 @@ namespace Game.Enemies
         private bool UnderAliveCap(EnemyDefinition def)
         {
             if (def == null || def.MaxAlive <= 0) return true;
+            int cap = def.MaxAlive + (def.Kind == Game.Combat.TargetKind.Submarine ? ExtraSubmarineCap : 0);
             int n = 0;
             foreach (var e in _alive) if (e != null && e.Definition == def && e.IsAlive) n++;
-            return n < def.MaxAlive;
+            return n < cap;
         }
+
+        /// <summary>밤 구간(2026-11-19): 잠수함 종류별 동시 최대 수에 더하는 값(StageDirector가 구간마다 정한다).</summary>
+        public int ExtraSubmarineCap { get; set; }
 
         /// <summary>지금 규칙 집합에 없는 적은 내지 않는다(WWII 판에 현대 적, 현대 판에 WWII 적이 섞이지 않게).</summary>
         private static bool Allowed(EnemyDefinition def)

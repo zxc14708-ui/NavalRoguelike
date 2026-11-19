@@ -103,7 +103,7 @@ namespace Game.UI
 
         // ------------------------------------------------------------ 스킬 아이콘
 
-        public enum SkillIcon { Decoy, Jam, Repair, Smoke, Flank, AirWing, Salvo, Charge, Sweep }   // 뒤 넷: 함정 고유 스킬(2026-10-11)
+        public enum SkillIcon { Decoy, Jam, Repair, Smoke, Flank, AirWing, Salvo, Charge, Sweep, Flare }   // AirWing~Sweep: 함정 고유 스킬(2026-10-11) · Flare: 조명탄(2026-11-19)
 
         private static readonly Sprite[] s_skillIcons = new Sprite[System.Enum.GetValues(typeof(SkillIcon)).Length];
 
@@ -128,8 +128,33 @@ namespace Game.UI
             SkillIcon.Salvo => SalvoShape,
             SkillIcon.Charge => ChargeShape,
             SkillIcon.Sweep => SweepShape,
+            SkillIcon.Flare => FlareShape,
             _ => FlankShape,
         };
+
+        /// <summary>조명탄: 낙하산 아래 빛나는 별(여덟 갈래 빛살)과 낙하산 반원.</summary>
+        private static bool FlareShape(Vector2 p)
+        {
+            // 낙하산: 위쪽 반원 띠 + 줄 둘
+            Vector2 c = p - new Vector2(0f, 0.35f);
+            float rr = c.magnitude;
+            if (c.y > 0f && rr < 0.62f && rr > 0.44f) return true;
+            if (c.y > -0.02f && c.y < 0.06f && Mathf.Abs(c.x) < 0.62f) return true;
+            Vector2 s = p - new Vector2(0f, -0.3f);
+            for (int side = -1; side <= 1; side += 2)
+            {
+                // 낙하산 끝(±0.58, 0.35)에서 별(0, -0.3)까지 줄
+                Vector2 a = new(side * 0.58f, 0.35f), b = new(0f, -0.18f);
+                Vector2 ab = b - a; float t = Mathf.Clamp01(Vector2.Dot(p - a, ab) / ab.sqrMagnitude);
+                if ((p - (a + ab * t)).magnitude < 0.04f) return true;
+            }
+            // 별: 가운데 원 + 여덟 갈래 빛살
+            float sr = s.magnitude;
+            if (sr < 0.16f) return true;
+            float ang = Mathf.Atan2(s.y, s.x);
+            float spoke = Mathf.Abs(Mathf.Sin(ang * 4f));
+            return sr < 0.42f && spoke < 0.18f * (1f - sr / 0.42f) + 0.04f;
+        }
 
         /// <summary>항공대 호출: 위에서 본 전투기(삼각 날개·꼬리) 둘이 비스듬히 편대.</summary>
         private static bool AirWingShape(Vector2 p)

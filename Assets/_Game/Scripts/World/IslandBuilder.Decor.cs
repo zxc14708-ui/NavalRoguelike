@@ -245,6 +245,7 @@ namespace Game.World
     public class IslandLights : MonoBehaviour
     {
         private readonly List<(Transform glow, float phase)> _lamps = new();
+        private readonly List<Light> _lights = new();
         private Camera _camera;
 
         public int LampCount => _lamps.Count;
@@ -256,12 +257,31 @@ namespace Game.World
             if (_camera == null) _camera = Camera.main;
             if (_camera == null) return;
             float t = Time.time;
-            foreach (var (glow, phase) in _lamps)
+            // 밤(2026-11-19): 불빛이 더 크게 번쩍이고, 번쩍일 때 둘레 바다·섬을 비춘다(점광원)
+            bool night = Game.World.DayNight.LightsOn;
+            for (int i = 0; i < _lamps.Count; i++)
             {
+                var (glow, phase) = _lamps[i];
                 if (glow == null) continue;
                 glow.rotation = _camera.transform.rotation;
                 float beam = Mathf.Pow(Mathf.Max(0f, Mathf.Cos((t + phase) * Mathf.PI * 2f / 4f)), 12f);
-                glow.localScale = Vector3.one * (0.35f + 1.4f * beam);
+                glow.localScale = Vector3.one * (night ? 0.6f + 3f * beam : 0.35f + 1.4f * beam);
+                while (_lights.Count <= i) _lights.Add(null);
+                var l = _lights[i];
+                if (night && l == null)
+                {
+                    l = new GameObject("Lighthouse light").AddComponent<Light>();
+                    l.transform.SetParent(glow.parent, false);
+                    l.transform.position = glow.position;
+                    l.type = LightType.Point; l.range = 34f; l.shadows = LightShadows.None;
+                    l.color = new Color(1f, 0.9f, 0.62f);
+                    _lights[i] = l;
+                }
+                if (l != null)
+                {
+                    l.enabled = night;
+                    l.intensity = night ? 40f + 520f * beam : 0f;
+                }
             }
         }
     }

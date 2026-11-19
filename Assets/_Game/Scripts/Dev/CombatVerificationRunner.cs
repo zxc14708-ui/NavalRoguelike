@@ -132,6 +132,8 @@ namespace Game.Dev
         public bool FieldEventsOnly;
         [Tooltip("간단한 무장 카드 · 부상 잠수함 대함 판정 · 전투 숫자 검사만 돌린다(-cardsNumbersOnly, 2026-11-17)")]
         public bool CardsNumbersOnly;
+        [Tooltip("낮과 밤 검사만 돌린다(-dayNightOnly, 2026-11-19)")]
+        public bool DayNightOnly;
         [Tooltip("Codex 시안 적용 검사만 돌린다(-aviationOnly): 헬기데크·헬기 T1~T3·노봉 v22")]
         public bool AviationOnly;
         [Tooltip("해역 차별화 검사만 돌린다(-seaOnly): 해역별 섬·레이더·적 구성·카드·물색, 좁은 수로 경계, 해안포대")]
@@ -251,6 +253,13 @@ namespace Game.Dev
             {
                 yield return AviationCheck();
                 SaveLog("aviation");
+                Finish();
+                yield break;
+            }
+            if (DayNightOnly)
+            {
+                yield return DayNightCheck();
+                SaveLog("daynight");
                 Finish();
                 yield break;
             }

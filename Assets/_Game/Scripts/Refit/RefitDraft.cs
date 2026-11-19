@@ -151,7 +151,7 @@ namespace Game.Refit
         private RefitCard DrawInstall(HashSet<ModuleDefinition> used)
         {
             BuildInstallPool(used);
-            var def = PickWeighted(_installPool, d => Mathf.Max(0.01f, d.Weight * Game.World.SeaRegion.CardWeight(d.Id)));   // 해역별 가중치(점검 K04)
+            var def = PickWeighted(_installPool, d => Mathf.Max(0.01f, d.Weight * Game.World.SeaRegion.CardWeight(d.Id) * NightCardWeight(d)));   // 해역별 가중치(점검 K04) · 밤 대잠(2026-11-19)
             return def != null ? RefitCard.Install(def) : null;
         }
 
@@ -387,6 +387,11 @@ namespace Game.Refit
         }
 
         // ------------------------------------------------------------ 공통
+
+        /// <summary>밤이 가까우면(해질녘 앞 구간 ~ 밤) 대잠 블록 카드를 더 자주(2026-11-19).</summary>
+        public static float NightCardWeight(ModuleDefinition d)
+            => Game.World.DayNight.NightAhead && d != null && d.Type is ModuleType.Sonar or ModuleType.AswLauncher or ModuleType.TorpedoTube or ModuleType.HelicopterDeck
+                ? Game.World.DayNight.AswCardWeight : 1f;
 
         private static T PickWeighted<T>(List<T> pool, System.Func<T, float> weight) where T : class
         {

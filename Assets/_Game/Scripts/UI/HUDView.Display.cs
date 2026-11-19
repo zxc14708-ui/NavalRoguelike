@@ -180,6 +180,19 @@ namespace Game.UI
                 DisplaySettings.SetCombatNumbers(!DisplaySettings.CombatNumbers);
                 ShowSettingsTab(3);
             });
+            Next();
+            int night = DisplaySettings.NightBrightness;
+            Cycler(page, y, "밤 밝기", night switch
+            {
+                0 => "어둡게 — 달빛만, 항해등·조명이 돋보임",
+                1 => "보통",
+                _ => "밝게 — 밤에도 바다와 배가 잘 보임",
+            }, d =>
+            {
+                int n = DisplaySettings.NightBrightnessNames.Length;
+                DisplaySettings.SetNightBrightness((night + d + n) % n);
+                ShowSettingsTab(3);
+            });
         }
 
         /// <summary>설정 한 줄: 이름 | ◀ 값 ▶. 값을 누르면 다음 값(▶와 같다).</summary>

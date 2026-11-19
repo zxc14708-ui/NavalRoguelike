@@ -253,6 +253,9 @@ namespace Game.Ship
             Game.View.ShipWake.Ensure(gameObject);   // 지나간 자리의 물살·뱃머리 물보라
             ShipAutopilot.Ensure(this);              // 우클릭 항로(자동 조함)
             SignatureSkill.Ensure(this);             // 함정 고유 스킬[T](2026-10-11)
+            if (!Game.Core.Ruleset.IsWw2) FlareSkill.Ensure(this);   // 조명탄[B](2026-11-19 낮과 밤) — 현대 판만
+            Game.View.NavLights.Ensure(gameObject);       // 밤 항해등(2026-11-19)
+            Game.View.Searchlight.Ensure(gameObject);     // 밤 탐조등 — 반잠수정을 드러낸다
             Game.View.FunnelSmoke.Ensure(gameObject, () => Mathf.Abs(ThrottleInput));   // 연돌 연기(기관 명령만큼)
             GameEvents.RaiseHullHpChanged(HullHp, HullMaxHp);
             RebuildCollider();

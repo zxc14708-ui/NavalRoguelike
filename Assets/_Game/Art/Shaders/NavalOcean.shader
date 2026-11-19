@@ -78,6 +78,9 @@ Shader "Naval/Ocean"
         TEXTURE2D(_NavalOceanWaves);
         SAMPLER(sampler_NavalOceanWaves);
         float _NavalOceanWavesOn;
+        // 낮과 밤(2026-11-19, DayNightLighting이 전역으로 넘김): rgb 물빛 배율 · a > 0.5일 때만 쓴다(항구 씬은 0 — 그대로)
+        float4 _NavalDayTint;
+        float4 _NavalDayAdd;   // 하늘 반사에 더하는 노을빛(해질녘·새벽)
         // 움직이는 파도(OceanWaveTexture가 작업 스레드 계산을 마치면 넘김): 48장 · 12초 한 바퀴
         TEXTURE2D_ARRAY(_NavalOceanWavesAnim);
         SAMPLER(sampler_NavalOceanWavesAnim);
@@ -143,6 +146,9 @@ Shader "Naval/Ocean"
             #pragma multi_compile_fragment _ _SHADOWS_SOFT _SHADOWS_SOFT_LOW _SHADOWS_SOFT_MEDIUM _SHADOWS_SOFT_HIGH
             #pragma multi_compile_fog
             #pragma multi_compile_fragment _ _LIGHT_COOKIES
+            // 추가 광원(2026-11-19 낮과 밤): 조명탄 · 탐조등 · 등대 · 폭발 섬광이 수면을 비춘다
+            #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
+            #pragma multi_compile _ _CLUSTER_LIGHT_LOOP
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
@@ -322,7 +328,8 @@ Shader "Naval/Ocean"
                 // --- 해 반짝임
                 float3 hv = normalize(light.direction + v);
                 float spec = pow(saturate(dot(n, hv)), _Glossiness) * _Specular;
-                col += spec * light.color * light.shadowAttenuation;
+                float3 glint = spec * light.color * light.shadowAttenuation;
+                col += glint;
 
                 // --- 마루의 흰 파도(드문드문, 천천히 흘러감)
                 float foamNoise = SoftNoise(xz * 0.45 + float2(t * 0.05, -t * 0.03)) * SoftNoise(xz * 1.9 - float2(t * 0.11, t * 0.07));
@@ -362,6 +369,29 @@ Shader "Naval/Ocean"
                     float gridLine = 1.0 - saturate(min(g.x, g.y) / 0.15);
                     col = lerp(col, col * 1.6 + 0.02, gridLine * _GridStrength);
                 }
+
+                // 낮과 밤: 물빛 전체(하늘 반사·거품 포함)에 배율을 곱하고, 달빛 반짝임은 곱하지 않은 만큼 되돌린다
+                if (_NavalDayTint.a > 0.5)
+                    col = col * _NavalDayTint.rgb + glint * saturate(1.0 - _NavalDayTint.rgb) + _NavalDayAdd.rgb * (0.35 + skyScatter);
+
+                // 추가 광원: 물빛을 비추고(밤 배율과 상관없이) 물결에 반짝임을 남긴다
+                #if defined(_ADDITIONAL_LIGHTS) || defined(_CLUSTER_LIGHT_LOOP)
+                {
+                    InputData inputData = (InputData)0;
+                    inputData.positionWS = i.positionWS;
+                    inputData.normalizedScreenSpaceUV = GetNormalizedScreenSpaceUV(i.positionCS);
+                    float3 addCol = 0;
+                    uint pixelLightCount = GetAdditionalLightsCount();
+                    LIGHT_LOOP_BEGIN(pixelLightCount)
+                        Light al = GetAdditionalLight(lightIndex, i.positionWS);
+                        float3 lc = al.color * al.distanceAttenuation;
+                        float ndl = saturate(dot(n, al.direction));
+                        float sp = pow(saturate(dot(n, normalize(al.direction + v))), _Glossiness * 0.5) * _Specular * 1.6;
+                        addCol += lc * (water * (0.35 + 0.65 * ndl) + _ScatterColor.rgb * 0.08 + 0.07 + sp);
+                    LIGHT_LOOP_END
+                    col += addCol;
+                }
+                #endif
 
                 // 그림자: 밝은 물빛을 유지하면서 함선의 접지감과 구름 흐름만 약하게 남긴다.
                 col *= lerp(1.0 - _ShadowStrength, 1.0, light.shadowAttenuation);

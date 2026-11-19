@@ -89,6 +89,22 @@ namespace Game.Combat
                 }
             }
 
+            // 반잠수정(2026-11-19): 반쯤 잠겨 있어 폭뢰에도 맞는다
+            var surface = TargetRegistry.HostileTo(CombatFaction.Player, TargetKind.Surface);
+            for (int i = surface.Count - 1; i >= 0; i--)
+            {
+                var s = surface[i];
+                if (s is not ILowObservable low || !s.IsAlive || s.Transform == null) continue;
+                Vector3 d = s.Transform.position - center; d.y = 0f;
+                if (d.sqrMagnitude > sqr) continue;
+                low.MarkDetected(4f);
+                if (s is IDamageable dmg && dmg.IsAlive)
+                {
+                    dmg.TakeDamage(new DamageInfo(_damage, center, Vector3.up, DamageSource.Torpedo, _statsKey));
+                    CombatStats.RecordHit(_statsKey, new Vector3(center.x, 0f, center.z));
+                }
+            }
+
             PooledEffect.Spawn(blastEffect, new Vector3(center.x, 0f, center.z));
             AudioManager.Play(Game.Data.SfxId.UnderwaterBlast, center, 0.9f);
 

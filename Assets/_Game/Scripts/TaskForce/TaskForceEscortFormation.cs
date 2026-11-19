@@ -874,6 +874,7 @@ namespace Game.TaskForce
                     _supportSocket = FindChild(_model.transform, "SupportOrigin");
                     EscortTurrets.Attach(_model, transform);
                     Game.View.Waterline.Settle(_visual, _model.transform);   // 수면선(점검 G06) — 출렁이는 시각 묶음 기준
+                    Game.View.NavLights.Ensure(_model);   // 밤 항해등(2026-11-19) — 모델에 붙여 단계 · 역할이 바뀌면 모델과 함께 새로 단다
                     return;
                 }
                 if (_greybox != null) Destroy(_greybox.gameObject);
@@ -882,6 +883,7 @@ namespace Game.TaskForce
                 _greybox.SetParent(_visual, false);
                 BuildModel(_greybox, _role, RoleColor(_role));
                 _supportSocket = null;
+                Game.View.NavLights.Ensure(_greybox.gameObject);
             }
 
             /// <summary>역할색 재질(이름이 "Role "로 시작)을 무채색으로 바꾼다 — 역할을 정하기 전의 고속정.</summary>

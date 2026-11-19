@@ -100,6 +100,8 @@ namespace Game.Missions
                 float a = s * 120f * Mathf.Deg2Rad;
                 MissionMarks.Prop(root, PrimitiveType.Capsule, "Survivor", new Vector3(Mathf.Sin(a) * 1.05f, 0.55f, Mathf.Cos(a) * 1.05f), new Vector3(0.38f, 0.38f, 0.38f), new Color(0.2f, 0.24f, 0.3f));
             }
+            // 조난 신호 부표(2026-11-19): 구명정 옆 빨간 점멸등 — 밤에 찾기 쉽게
+            Game.View.NightLampSet.On(root.gameObject).Add(new Vector3(1.6f, 1.2f, 0f), new Color(1f, 0.15f, 0.08f), 0.55f, 1.2f, 0.4f);
             var raft = new Raft
             {
                 Root = root,

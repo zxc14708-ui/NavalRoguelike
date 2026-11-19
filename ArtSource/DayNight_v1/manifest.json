@@ -1,0 +1,856 @@
+{
+  "ENE_SemiSubSuicide": {
+    "bounds": [
+      [
+        -1.0,
+        -3.75,
+        -0.5
+      ],
+      [
+        1.0,
+        3.75,
+        0.699999988079071
+      ]
+    ],
+    "triangles": 588,
+    "parts": [
+      {
+        "name": "ENE_SemiSubSuicide",
+        "type": "EMPTY",
+        "parent": null,
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "direction": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Hull",
+        "type": "MESH",
+        "parent": "ENE_SemiSubSuicide",
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "direction": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Hump",
+        "type": "MESH",
+        "parent": "ENE_SemiSubSuicide",
+        "position": [
+          0.0,
+          0.0,
+          -0.005
+        ],
+        "direction": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "WarheadNose",
+        "type": "MESH",
+        "parent": "ENE_SemiSubSuicide",
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "direction": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Exhaust",
+        "type": "EMPTY",
+        "parent": "ENE_SemiSubSuicide",
+        "position": [
+          0.0,
+          -3.75,
+          0.0
+        ],
+        "direction": [
+          0.0,
+          -1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "BlastPoint",
+        "type": "EMPTY",
+        "parent": "ENE_SemiSubSuicide",
+        "position": [
+          0.0,
+          3.65,
+          0.135
+        ],
+        "direction": [
+          -0.0,
+          1.0,
+          -0.0
+        ]
+      }
+    ],
+    "materials": [
+      "Blue black glazing",
+      "Enemy Dark",
+      "Enemy hull grey",
+      "Gunmetal"
+    ],
+    "target_bounds": [
+      2,
+      7.5,
+      -0.5,
+      0.7
+    ],
+    "triangle_budget": [
+      350,
+      600
+    ]
+  },
+  "ENE_SemiSubTorpedo": {
+    "bounds": [
+      [
+        -1.399999976158142,
+        -5.490000247955322,
+        -0.699999988079071
+      ],
+      [
+        1.399999976158142,
+        5.5,
+        1.0
+      ]
+    ],
+    "triangles": 792,
+    "parts": [
+      {
+        "name": "ENE_SemiSubTorpedo",
+        "type": "EMPTY",
+        "parent": null,
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "direction": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Hull",
+        "type": "MESH",
+        "parent": "ENE_SemiSubTorpedo",
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "direction": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Hump",
+        "type": "MESH",
+        "parent": "ENE_SemiSubTorpedo",
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "direction": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "TorpedoTube_Port",
+        "type": "MESH",
+        "parent": "ENE_SemiSubTorpedo",
+        "position": [
+          -1.175,
+          -0.96,
+          0.01
+        ],
+        "direction": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "TorpedoLaunchPoint_Port",
+        "type": "EMPTY",
+        "parent": "TorpedoTube_Port",
+        "position": [
+          -1.175,
+          0.805,
+          0.01
+        ],
+        "direction": [
+          -0.0,
+          1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "TorpedoTube_Starboard",
+        "type": "MESH",
+        "parent": "ENE_SemiSubTorpedo",
+        "position": [
+          1.175,
+          -0.96,
+          0.01
+        ],
+        "direction": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "TorpedoLaunchPoint_Starboard",
+        "type": "EMPTY",
+        "parent": "TorpedoTube_Starboard",
+        "position": [
+          1.175,
+          0.805,
+          0.01
+        ],
+        "direction": [
+          -0.0,
+          1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "Exhaust",
+        "type": "EMPTY",
+        "parent": "ENE_SemiSubTorpedo",
+        "position": [
+          0.0,
+          -5.5,
+          0.0
+        ],
+        "direction": [
+          0.0,
+          -1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "SmokePoint",
+        "type": "EMPTY",
+        "parent": "ENE_SemiSubTorpedo",
+        "position": [
+          0.0,
+          -2.2,
+          1.005
+        ],
+        "direction": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "FirePoint",
+        "type": "EMPTY",
+        "parent": "ENE_SemiSubTorpedo",
+        "position": [
+          0.0,
+          -3.62,
+          0.425
+        ],
+        "direction": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    ],
+    "materials": [
+      "Blue black glazing",
+      "Enemy Dark",
+      "Enemy hull grey",
+      "Gunmetal"
+    ],
+    "target_bounds": [
+      2.8,
+      11,
+      -0.7,
+      1
+    ],
+    "triangle_budget": [
+      500,
+      800
+    ]
+  },
+  "ENV_ChannelBuoy_Red": {
+    "bounds": [
+      [
+        -0.6000000238418579,
+        -0.6000000238418579,
+        -0.25
+      ],
+      [
+        0.6000000238418579,
+        0.6000000238418579,
+        2.3499999046325684
+      ]
+    ],
+    "triangles": 196,
+    "parts": [
+      {
+        "name": "ENV_ChannelBuoy_Red",
+        "type": "EMPTY",
+        "parent": null,
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "direction": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Float",
+        "type": "MESH",
+        "parent": "ENV_ChannelBuoy_Red",
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "direction": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Tower",
+        "type": "MESH",
+        "parent": "ENV_ChannelBuoy_Red",
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "direction": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "LampPoint",
+        "type": "EMPTY",
+        "parent": "ENV_ChannelBuoy_Red",
+        "position": [
+          0.0,
+          0.0,
+          2.46
+        ],
+        "direction": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    ],
+    "materials": [
+      "Emergency Red",
+      "Gunmetal"
+    ],
+    "target_bounds": [
+      1.2,
+      1.2,
+      -0.25,
+      2.35
+    ],
+    "triangle_budget": [
+      120,
+      200
+    ]
+  },
+  "ENV_ChannelBuoy_Green": {
+    "bounds": [
+      [
+        -0.6000000238418579,
+        -0.6000000238418579,
+        -0.25
+      ],
+      [
+        0.6000000238418579,
+        0.6000000238418579,
+        2.3499999046325684
+      ]
+    ],
+    "triangles": 196,
+    "parts": [
+      {
+        "name": "ENV_ChannelBuoy_Green",
+        "type": "EMPTY",
+        "parent": null,
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "direction": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Float",
+        "type": "MESH",
+        "parent": "ENV_ChannelBuoy_Green",
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "direction": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Tower",
+        "type": "MESH",
+        "parent": "ENV_ChannelBuoy_Green",
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "direction": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "LampPoint",
+        "type": "EMPTY",
+        "parent": "ENV_ChannelBuoy_Green",
+        "position": [
+          0.0,
+          0.0,
+          2.46
+        ],
+        "direction": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    ],
+    "materials": [
+      "Gunmetal",
+      "MAT_art_repair_green"
+    ],
+    "target_bounds": [
+      1.2,
+      1.2,
+      -0.25,
+      2.35
+    ],
+    "triangle_budget": [
+      120,
+      200
+    ]
+  },
+  "ENV_LightBuoy_Yellow": {
+    "bounds": [
+      [
+        -0.5099999904632568,
+        -0.5099999904632568,
+        -0.25
+      ],
+      [
+        0.5099999904632568,
+        0.5099999904632568,
+        2.1199440956115723
+      ]
+    ],
+    "triangles": 188,
+    "parts": [
+      {
+        "name": "ENV_LightBuoy_Yellow",
+        "type": "EMPTY",
+        "parent": null,
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "direction": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "FloatAndMast",
+        "type": "MESH",
+        "parent": "ENV_LightBuoy_Yellow",
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "direction": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Daymark",
+        "type": "MESH",
+        "parent": "ENV_LightBuoy_Yellow",
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "direction": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "LampPoint",
+        "type": "EMPTY",
+        "parent": "ENV_LightBuoy_Yellow",
+        "position": [
+          0.0,
+          0.0,
+          2.197
+        ],
+        "direction": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    ],
+    "materials": [
+      "Gunmetal",
+      "Warning Yellow"
+    ],
+    "target_bounds": [
+      1.02,
+      1.02,
+      -0.25,
+      2.15
+    ],
+    "triangle_budget": [
+      120,
+      200
+    ]
+  },
+  "ENV_DistressBeacon": {
+    "bounds": [
+      [
+        -0.33000001311302185,
+        -0.33000001311302185,
+        -0.25999999046325684
+      ],
+      [
+        0.33000001311302185,
+        0.33000001311302185,
+        0.9280001521110535
+      ]
+    ],
+    "triangles": 116,
+    "parts": [
+      {
+        "name": "ENV_DistressBeacon",
+        "type": "EMPTY",
+        "parent": null,
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "direction": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Float",
+        "type": "MESH",
+        "parent": "ENV_DistressBeacon",
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "direction": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Antenna",
+        "type": "MESH",
+        "parent": "ENV_DistressBeacon",
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "direction": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "LampPoint",
+        "type": "EMPTY",
+        "parent": "ENV_DistressBeacon",
+        "position": [
+          -0.17,
+          0.0,
+          0.939
+        ],
+        "direction": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    ],
+    "materials": [
+      "Gunmetal",
+      "MAT_IslandWhite",
+      "Rescue orange red"
+    ],
+    "target_bounds": [
+      0.66,
+      0.66,
+      -0.26,
+      0.94
+    ],
+    "triangle_budget": [
+      60,
+      120
+    ]
+  },
+  "PRJ_Sonobuoy": {
+    "bounds": [
+      [
+        -0.22499999403953552,
+        -0.22499999403953552,
+        -0.30000001192092896
+      ],
+      [
+        0.22499999403953552,
+        0.22499999403953552,
+        0.6000000238418579
+      ]
+    ],
+    "triangles": 116,
+    "parts": [
+      {
+        "name": "PRJ_Sonobuoy",
+        "type": "EMPTY",
+        "parent": null,
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "direction": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Body",
+        "type": "MESH",
+        "parent": "PRJ_Sonobuoy",
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "direction": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "LampPoint",
+        "type": "EMPTY",
+        "parent": "PRJ_Sonobuoy",
+        "position": [
+          0.0,
+          0.0,
+          0.61
+        ],
+        "direction": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    ],
+    "materials": [
+      "Gunmetal",
+      "MAT_IslandWhite",
+      "Warning Yellow"
+    ],
+    "target_bounds": [
+      0.45,
+      0.45,
+      -0.3,
+      0.6
+    ],
+    "triangle_budget": [
+      60,
+      120
+    ]
+  },
+  "FX_ParachuteFlare": {
+    "bounds": [
+      [
+        -0.7036810517311096,
+        -0.7036810517311096,
+        0.0
+      ],
+      [
+        0.7036810517311096,
+        0.7036810517311096,
+        1.6553226709365845
+      ]
+    ],
+    "triangles": 160,
+    "parts": [
+      {
+        "name": "FX_ParachuteFlare",
+        "type": "EMPTY",
+        "parent": null,
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "direction": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Canopy",
+        "type": "MESH",
+        "parent": "FX_ParachuteFlare",
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "direction": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "SuspensionLines",
+        "type": "MESH",
+        "parent": "FX_ParachuteFlare",
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "direction": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Canister",
+        "type": "MESH",
+        "parent": "FX_ParachuteFlare",
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "direction": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "FlarePoint",
+        "type": "EMPTY",
+        "parent": "FX_ParachuteFlare",
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "direction": [
+          -0.0,
+          -0.0,
+          -1.0
+        ]
+      }
+    ],
+    "materials": [
+      "Gunmetal",
+      "MAT_IslandWhite"
+    ],
+    "target_bounds": [
+      1.4,
+      1.4,
+      0,
+      1.6553226718329523
+    ],
+    "triangle_budget": [
+      80,
+      160
+    ]
+  }
+}

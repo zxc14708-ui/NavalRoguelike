@@ -129,6 +129,8 @@ namespace Game.Modules.Runtime
                 aim = target.IsContactConfirmed
                     ? target.LastKnownPosition + target.LastKnownVelocity * predictedFlightTime
                     : target.transform.position;
+            else if (FindNearestLowProfile() is { } low)
+                aim = low.transform.position + low.MoveVelocity * predictedFlightTime;   // 드러난 반잠수정(2026-11-19)
             else if (_targeting == null || !_targeting.TryGetLaunchCue(transform.position, Stats.Range, out aim))
                 return;
 
@@ -199,6 +201,22 @@ namespace Game.Modules.Runtime
 
                 bestSqr = d;
                 best = sub;
+            }
+            return best;
+        }
+
+        /// <summary>드러난 반잠수정(소나 · 조명탄 · 근접) 중 가장 가까운 것 — 잠수함이 없을 때만 노린다.</summary>
+        private Game.Enemies.EnemyController FindNearestLowProfile()
+        {
+            float bestSqr = Stats.Range * Stats.Range;
+            Game.Enemies.EnemyController best = null;
+            foreach (var t in TargetRegistry.HostileTo(CombatFaction.Player, TargetKind.Surface))
+            {
+                if (t is not ILowObservable low || low.Stealthy || t is not Game.Enemies.EnemyController e || !e.IsAlive) continue;
+                Vector3 d = e.transform.position - transform.position; d.y = 0f;
+                if (d.sqrMagnitude >= bestSqr) continue;
+                bestSqr = d.sqrMagnitude;
+                best = e;
             }
             return best;
         }

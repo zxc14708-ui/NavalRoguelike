@@ -357,6 +357,8 @@ namespace Game.UI
                 {
                     var set = director.Stages[s];
                     if (set == null) continue;
+                    // 밤 구간 적(2026-11-19 낮과 밤)
+                    foreach (var entry in set.NightEntries) Add(entry.Enemy, s + 1, "밤");
                     foreach (var round in set.Rounds)
                     {
                         if (round.Entries != null) foreach (var entry in round.Entries) Add(entry.Enemy, s + 1);

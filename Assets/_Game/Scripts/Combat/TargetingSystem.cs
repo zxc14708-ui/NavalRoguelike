@@ -222,6 +222,13 @@ namespace Game.Combat
                 // 수면 비행체는 레이더 수평선 아래라 더 가까워야 잡힌다(육안 거리 안은 그대로)
                 if (inRange && kind == TargetKind.Aircraft && t is ISkimmer skim && skim.Skimming)
                     inRange = actualDistance <= Mathf.Max(sqr * SkimmerRadarMultiplier * SkimmerRadarMultiplier, visualRange * visualRange);
+                // 반잠수정(2026-11-19): 소나 범위 안이면 드러나고, 숨어 있으면 레이더 거리 40%에서야 잡힌다
+                if (kind == TargetKind.Surface && t is ILowObservable low)
+                {
+                    if (systems != null && systems.SonarRange > 0f && systems.SonarCovers(t.Transform.position)) low.MarkDetected(0.6f);
+                    if (inRange && low.Stealthy)
+                        inRange = actualDistance <= Mathf.Max(sqr * ILowObservable.RadarMultiplier * ILowObservable.RadarMultiplier, visualRange * visualRange);
+                }
 
                 // 소나 범위 밖이라도 이미 드러난 잠수함은 계속 추적한다
                 if (requireRevealed && !t.IsRevealed && (t is not SubmarineBase sub || !sub.IsContactConfirmed)) continue;

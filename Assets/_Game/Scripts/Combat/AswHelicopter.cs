@@ -69,6 +69,8 @@ namespace Game.Combat
         private ITargetable _target;
         private float _phaseTimer;
         private Vector3 _searchPoint;
+        // 소노부이(2026-11-19): 대잠 초계 중 마지막으로 떨군 자리
+        private Vector3 _lastBuoy = new(float.MaxValue, 0f, 0f);
         private HelicopterPolicy _lastPolicy;
 
         /// <summary>돌아갈 격납고. 착함하면 다시 갑판에 세워준다.</summary>
@@ -182,6 +184,12 @@ namespace Game.Combat
                     {
                         MoveTowards(search, dt);
                         break;
+                    }
+                    // 대잠 초계(함선 헬기 갑판): 순찰 지점에 닿으면 소노부이를 떨군다(전에 떨군 곳에서 12m 넘게 떨어졌을 때만)
+                    if (_deck is Game.Modules.Runtime.HelicopterDeckModule && _deck.Policy == HelicopterPolicy.AntiSubPatrol)
+                    {
+                        Vector3 flat = new(transform.position.x, 0f, transform.position.z);
+                        if ((flat - _lastBuoy).sqrMagnitude > 144f && Sonobuoy.Drop(_deck, flat) != null) _lastBuoy = flat;
                     }
                     _idleTimer += dt;
                     _orbitAngle += dt * 45f;
