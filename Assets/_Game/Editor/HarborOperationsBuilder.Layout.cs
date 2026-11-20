@@ -100,16 +100,20 @@ namespace Game.EditorTools
             Rail(work,P(643,520),P(668,520),4.25f,"steel");
             Rail(work,P(676,699),P(676,726),4.25f,"steel_dark");
             Box(work,"Truck turning bay",new(699,4.26f,705),new(43,.33f,24),"concrete_light");
+            NavalBaseBuilder.Marker(work,"SHIP REPAIR",new Vector3(522,4.2f,491),180f,"roof_blue",18f);
+            for (int i=0;i<4;i++)
+                Box(work,"Repair staging bay edge",new(558+i*12,4.32f,476),new(.38f,.043f,12f),"mark_yellow");
+            Box(work,"Repair staging bay end",new(576,4.32f,470),new(36f,.043f,.38f),"mark_yellow");
             foreach(float x in new[]{686f,692f,698f,704f,710f})
                 Box(work,"Turning bay stripe",new(x,4.45f,716),new(.50f,.04f,7f),"mark_yellow",-27f);
             for(int i=0;i<6;i++) Box(work,"Wheel stop",new(679+i*7,4.62f,719),new(3.9f,.49f,.8f),"steel_dark");
 
             var freight=Group(parent,"Freight links and gate");
             Road(freight,18f,15f,P(-850,495),P(-850,455),P(-716,455));
-            Road(freight,15.3f,14f,P(-400,316),P(-400,284),P(-353,284));
-            StopBar(freight,-410,297,0,7.2f);
-            StopBar(freight,-385,284,90,10f);
+            YardJunction(freight);
+            StopBar(freight,-380,284,90,12.2f);
             Gate(freight,-382,284,true);
+            NavalBaseBuilder.Marker(freight,"FREIGHT YARD",new Vector3(-362,4.15f,307),-90f,"roof_slate",18f);
             for(int i=0;i<5;i++)
                 Box(freight,"Apron lane shoulder",new(-842,4.66f,643+i*9.5f),new(.50f,.05f,6f),"mark_yellow");
             Box(freight,"Trailer bay limit",new(-844,4.66f,687),new(7.4f,.05f,.53f),"mark_yellow");
@@ -121,6 +125,57 @@ namespace Game.EditorTools
             StopBar(air,405,-64,0,11f);
             StopBar(air,405,-143,0,11f);
             Gate(air,405,-139,false);
+        }
+
+        private static void YardJunction(Transform group)
+        {
+            var vertices = new List<Vector3>();
+            var triangles = new List<int>();
+            float[] x = { -401f,-393f,-389f,-385f,-381f,-371f,-353f };
+            float[] half = { 19f,18f,14f,10f,8f,7.8f,7.8f };
+            for (int i = 0; i < x.Length; i++)
+            {
+                vertices.Add(new Vector3(x[i],4.53f,284f-half[i]));
+                vertices.Add(new Vector3(x[i],4.53f,284f+half[i]));
+                if (i > 0)
+                {
+                    int j = i*2;
+                    triangles.AddRange(new[] { j-2,j-1,j,j-1,j+1,j });
+                }
+            }
+            Part(group,"Continuous freight junction",Surface("Yard junction",vertices,triangles),"road",Vector3.zero,Vector3.one,Quaternion.identity);
+            for (int side = -1; side <= 1; side += 2)
+            {
+                var edge = new List<Vector2>();
+                for (int i = 1; i < x.Length; i++) edge.Add(P(x[i],284f+side*(half[i]-.46f)));
+                Strip(group,edge,.34f,4.56f,"mark_white");
+            }
+            foreach (float z in new[] { 268f,300f })
+                Box(group,"Freight crossing marker",new(-389,4.575f,z),new(.33f,.04f,3.1f),"mark_white");
+        }
+
+        private static void TugBerths(Transform group)
+        {
+            var dock = Group(group,"Tug service pier",new(-850,0,550));
+            Box(dock,"Quay to service pier",new(-44f,.05f,-11f),new(45f,7.90f,23f),"concrete");
+            Box(dock,"Pier wall",new(-60.1f,.05f,65f),new(12.5f,7.9f,151f),"concrete");
+            Box(dock,"Pier cap",new(-60.1f,4.07f,64.5f),new(12.9f,.28f,152f),"concrete_light");
+            Box(dock,"Safety edge",new(-54.4f,4.25f,65),new(.42f,.09f,144f),"mark_yellow");
+            foreach (float z in new[] { 41f,65f,99f,123f })
+            {
+                Box(dock,"Rubber fender",new(-53.60f,1.8f,z),new(.75f,3.5f,2.8f),"rubber");
+                Tube(dock,"Mooring bollard",new(-55.3f,4.77f,z),.66f,1.15f,"steel_dark");
+            }
+            for (int berth=0; berth<2; berth++)
+            {
+                float z = berth == 0 ? 53f : 111f;
+                for (int stripe=0; stripe<=berth; stripe++)
+                    Box(dock,"Berth marking",new(-60.3f+stripe*1.3f,4.255f,z),new(.85f,.04f,5.5f),"mark_white");
+                Box(dock,"Service locker",new(-63.2f,5.73f,z-8f),new(2.15f,3.1f,3.3f),"roof_blue");
+            }
+            Tube(dock,"End beacon post",new(-60f,6.25f,138f),.55f,4.2f,"steel_dark");
+            Tube(dock,"End beacon",new(-60f,8.40f,138f),.55f,.42f,"crane_red");
+            Rail(dock,P(-65.7f,9),P(-65.7f,135),4.21f,"steel");
         }
 
         private static void Gate(Transform p,float x,float z,bool rotated)

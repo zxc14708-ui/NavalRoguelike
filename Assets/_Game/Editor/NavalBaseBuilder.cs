@@ -37,15 +37,42 @@ namespace Game.EditorTools
         private static readonly Dictionary<string, Material> Mats = new();
         private static System.Random _rng;
         private static Transform _root;
+        private static string _meshFolder = MatFolder;
 
         [MenuItem("Naval/Art/Build Naval Base Scene")]
         public static void BuildMenu() => BuildAndCapture();
+
+        [MenuItem("Naval/Art/Build Harbor Menu Backdrop")]
+        public static void BuildMenuBackdrop()
+        {
+            Mats.Clear();
+            _rng = new System.Random(20261007);
+            _meshFolder = MatFolder + "/MenuLayout";
+            NavalEditorUtil.EnsureFolder(_meshFolder);
+            var scene = EditorSceneManager.NewPreviewScene();
+            try
+            {
+                _root = new GameObject("NavalBaseMenu").transform;
+                UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(_root.gameObject,scene);
+                _root.localPosition = new Vector3(0f, WaterY, 0f);
+                _root.localScale = Vector3.one * K;
+                BuildWater();
+                BuildIsland();
+                BuildLayout();
+                CombineStatic();
+                NavalBaseMenuBuilder.SaveBackdrop(_root.gameObject);
+            }
+            finally
+            {
+                _meshFolder = MatFolder;
+                EditorSceneManager.ClosePreviewScene(scene);
+            }
+        }
 
         public static void BuildAndCapture()
         {
             Mats.Clear();
             _rng = new System.Random(20261007);
-            AssetDatabase.DeleteAsset(MatFolder);   // 이 빌더만 쓰는 폴더 — 매번 새로 만든다
             NavalEditorUtil.EnsureFolder(MatFolder);
 
             var scene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
@@ -101,7 +128,7 @@ namespace Game.EditorTools
             IslandMesh("Grass", 0.97f, Ground, Ground, M("grass"));
             IslandSand();
             // 동쪽 끝 레이더 언덕(레이더 기지 자리)
-            Sph("RadarHill", _root, new Vector3(830f, Ground - 14f, 20f), new Vector3(190f, 46f, 150f), M("grass_dark"));
+            BuildRadarKnoll();
         }
 
         private static Vector3[] Outline(float scale, float y)
@@ -173,15 +200,28 @@ namespace Game.EditorTools
                 mesh.RecalculateNormals();
             }
             mesh.RecalculateBounds();
-            string path = $"{MatFolder}/MESH_base_{name}.asset";
-            AssetDatabase.DeleteAsset(path);
-            AssetDatabase.CreateAsset(mesh, path);
+            string path = $"{_meshFolder}/MESH_base_{name}.asset";
+            mesh = StoreMesh(mesh, path);
             var go = new GameObject(name, typeof(MeshFilter), typeof(MeshRenderer));
             go.transform.SetParent(_root, false);
             go.GetComponent<MeshFilter>().sharedMesh = mesh;
             go.GetComponent<MeshRenderer>().sharedMaterial = mat;
             go.isStatic = true;
             return go;
+        }
+
+        private static Mesh StoreMesh(Mesh updated, string path)
+        {
+            var existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
+            if (existing == null)
+            {
+                AssetDatabase.CreateAsset(updated, path);
+                return updated;
+            }
+            EditorUtility.CopySerialized(updated, existing);
+            EditorUtility.SetDirty(existing);
+            Object.DestroyImmediate(updated);
+            return existing;
         }
 
         // ================================================================ 조명·카메라·캡처
@@ -387,6 +427,11 @@ namespace Game.EditorTools
             };
             string path = $"{MatFolder}/MAT_base_{name}.mat";
             var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (mat != null && _meshFolder != MatFolder)
+            {
+                Mats[name] = mat;
+                return mat;
+            }
             if (mat == null)
             {
                 mat = new Material(Shader.Find("Universal Render Pipeline/Lit"));

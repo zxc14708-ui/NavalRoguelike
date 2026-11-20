@@ -6,7 +6,7 @@ using Game.UI;
 
 namespace Game.Dev
 {
-    /// <summary>자동 전투 검증 — 시작 화면 군항 운영 연출(Codex HarborOperations_v1, 2026-11-20).</summary>
+    /// <summary>자동 전투 검증 — 시작 화면 군항 운영 연출(Codex HarborOperations_v1 2026-11-20 · HarborDistricts_v2 예인정 2척 2026-11-21).</summary>
     public partial class CombatVerificationRunner
     {
         /// <summary>
@@ -36,25 +36,35 @@ namespace Game.Dev
             if (wrongLayer > 0) Fail("운영 덧붙임 일부가 시작 화면 카메라 레이어가 아님");
 
             float s = ops.transform.lossyScale.x;
-            var ship = ops.CargoShip; var tug = ops.Tug;
-            Vector3 rest = ship.localPosition, tugRest = tug.localPosition;
+            var ship = ops.CargoShip; var tug = ops.Tug; var sternTug = ops.SternTug;
+            if (sternTug == null) { Fail("함미 예인정이 없음(HarborDistricts_v2)"); Destroy(canvasGo); yield break; }
+            Vector3 rest = ship.localPosition, tugRest = tug.localPosition, sternRest = sternTug.localPosition;
 
             // ---- 1) 주기: 0.5초마다 놓아 보고 가장 멀리 간 거리 · 예인줄 · 끝에서 제자리
-            float far = 0f, tugGap = float.MaxValue; bool towSeen = false;
+            float far = 0f, tugGap = float.MaxValue, sternGap = float.MaxValue, pairGap = float.MaxValue; bool towSeen = false; int maxLines = 0;
             for (float t = 0f; t < HarborOperations.CycleSeconds; t += 0.5f)
             {
                 ops.SetTime(t);
                 far = Mathf.Max(far, Vector3.Distance(ship.localPosition, rest));
-                if (t > 30f && t < 130f) tugGap = Mathf.Min(tugGap, Vector3.Distance(Flat(ship.localPosition), Flat(tug.localPosition)));
+                if (t > 30f && t < 130f)
+                {
+                    tugGap = Mathf.Min(tugGap, Vector3.Distance(Flat(ship.localPosition), Flat(tug.localPosition)));
+                    sternGap = Mathf.Min(sternGap, Vector3.Distance(Flat(ship.localPosition), Flat(sternTug.localPosition)));
+                }
+                pairGap = Mathf.Min(pairGap, Vector3.Distance(Flat(tug.localPosition), Flat(sternTug.localPosition)));
                 if (ops.TowlineVisible) towSeen = true;
+                maxLines = Mathf.Max(maxLines, ops.ActiveTowlines);
             }
             ops.SetTime(HarborOperations.CycleSeconds - 0.01f);
             float back = Vector3.Distance(ship.localPosition, rest), tugBack = Vector3.Distance(tug.localPosition, tugRest);
-            _report.AppendLine($"- 170초 주기: 화물선 최대 이동 {far:0} m · 예인줄 보임 {Yes(towSeen)} · 예인 중 예인정-화물선 최소 수평 거리 {tugGap:0.0} m · 끝에서 화물선 {back:0.00} m · 예인정 {tugBack:0.00} m 차이");
+            float sternBack = Vector3.Distance(sternTug.localPosition, sternRest);
+            _report.AppendLine($"- 170초 주기: 화물선 최대 이동 {far:0} m · 예인줄 보임 {Yes(towSeen)}(동시 최대 {maxLines}줄) · 예인 중 화물선과 최소 수평 거리 함수 예인정 {tugGap:0.0} m · 함미 예인정 {sternGap:0.0} m · 예인정끼리 {pairGap:0.0} m · 끝에서 화물선 {back:0.00} m · 함수 {tugBack:0.00} m · 함미 {sternBack:0.00} m 차이");
             if (far < 150f) Fail("화물선이 출항하지 않음");
             if (!towSeen) Fail("예인줄이 한 번도 보이지 않음");
-            if (tugGap < 8f) Fail("예인정이 화물선과 겹침");
-            if (back > 1f || tugBack > 1f) Fail("한 주기 뒤 화물선 · 예인정이 제자리로 돌아오지 않음");
+            if (tugGap < 8f || sternGap < 8f) Fail("예인정이 화물선과 겹침");
+            if (pairGap < 6f) Fail("예인정 두 척이 서로 겹침");
+            if (maxLines < 2) Fail("함수 · 함미 예인줄이 동시에 걸리지 않음");
+            if (back > 1f || tugBack > 1f || sternBack > 1f) Fail("한 주기 뒤 화물선 · 예인정이 제자리로 돌아오지 않음");
 
             // ---- 2) 일시정지 · 배경 정지: dt 0이면 그대로
             ops.SetTime(40f);
@@ -75,6 +85,7 @@ namespace Game.Dev
             var truck = PrivateField<Transform>(ops, "truck");
             Vector3 eye = new Vector3(-0.55f, 0.6f, -0.58f).normalized;
             ops.SetTime(8f);  yield return HarborShot(menu, "harbor_ops_crane", ship.position + Vector3.up * 10f * s, eye * 170f * s);
+            ops.SetTime(4f);  yield return HarborShot(menu, "harbor_ops_tug_berths", tug.position, eye * 150f * s);
             ops.SetTime(42f); yield return HarborShot(menu, "harbor_ops_tow_out", ship.position, eye * 260f * s);
             ops.SetTime(120f); yield return HarborShot(menu, "harbor_ops_inbound", ship.position, eye * 260f * s);
             if (truck != null) { ops.SetTime(60f); yield return HarborShot(menu, "harbor_ops_yard", truck.position, eye * 120f * s); }

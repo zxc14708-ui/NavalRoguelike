@@ -19,16 +19,6 @@ namespace Game.UI
             new(88,-303,-3,299,-151), new(102,-210,-3,261,91),
             new(115,44,-3,285,0), new(125,52,-3,192,0), new(136,35,-3,85,0),
         };
-        private static readonly Key[] TugApproach =
-        {
-            new(0,-22,-1,50,0), new(7,-22,-1,50,0), new(18,-28,-1,204,5),
-            new(22,6,-1,214,85), new(26,49,-1,180,0),
-        };
-        private static readonly Key[] TugReturn =
-        {
-            new(137,64,-1,118,0),new(146,58,-1,216,-20),new(153,-35,-1,216,-120),
-            new(161,-43,-1,69,-179),new(165,-43,-1,58,0),new(169,-22,-1,50,0),
-        };
         private static readonly Key[] Truck =
         {
             new(0,4,4.63f,124,180),new(15,4,4.63f,124,180),new(28,4,4.47f,-68,180),
@@ -79,28 +69,8 @@ namespace Game.UI
             Pose ship=On(Cargo,t);
             _ship.localPosition=ship.position;
             _ship.localRotation=ship.rotation;
-            Pose tug;
-            if (t < 26f)
-                tug=On(TugApproach,t);
-            else if (t < 137f)
-            {
-                // Lead the bow through the departure and travel clear to starboard on return.
-                float side=Ease(t,69f,94f);
-                Vector3 offset=Vector3.Lerp(new Vector3(14f,0f,95f),new Vector3(29f,0f,33f),side);
-                offset.x=Mathf.Lerp(14f,29f,Ease(t,69f,75f));
-                offset.x-=8.5f*Ease(t,121f,129f)*(1f-Ease(t,133f,137f));
-                Vector3 at=ship.position+ship.rotation*offset;
-                at.y=-1f;
-                tug=new Pose(at,ship.rotation);
-            }
-            else tug=On(TugReturn,t);
-            _tug.localPosition=tug.position;
-            _tug.localRotation=tug.rotation;
-            float connected=(t>=26f && t<68f) || (t>=108f && t<134f) ? 1f : 0f;
-            UpdateLines(t,connected);
+            SampleTugs(t);
             UpdateWake(shipWake,ship,Speed(Cargo,t),72f,14f);
-            float tugSpeed=t<26f ? Speed(TugApproach,t) : t>=137 ? Speed(TugReturn,t) : Speed(Cargo,t);
-            UpdateWake(tugWake,tug,tugSpeed,11f,4.5f);
 
             Pose trailer=On(Truck,t);
             truck.localPosition=_port.localPosition+trailer.position;
@@ -137,7 +107,7 @@ namespace Game.UI
             return travel*Mathf.Rad2Deg/.85f;
         }
 
-        private void UpdateLines(float t, float connected)
+        private void UpdateCargoMooring(float t)
         {
             bool berthed=t<26f || t>=136f;
             dockTugLines.GetChild(0).gameObject.SetActive(berthed);
@@ -148,24 +118,6 @@ namespace Game.UI
                 for (int i=0;i<z.Length;i++)
                     Stretch(cargoLines.GetChild(i),AtPort(12f,4.9f,z[i]),AtPort(21f,8.2f,z[i]+(i<2?5f:-5f)),.26f);
             }
-            Transform homeLines=dockTugLines.GetChild(1);
-            bool tugBerthed=t<7f || t>=169f;
-            homeLines.gameObject.SetActive(tugBerthed);
-            if (tugBerthed)
-            {
-                Stretch(homeLines.GetChild(0),AtPort(-13.4f,4.9f,43f),AtPort(-18.4f,4.2f,45f),.23f);
-                Stretch(homeLines.GetChild(1),AtPort(-13.4f,4.9f,57f),AtPort(-18.4f,4.2f,54f),.23f);
-            }
-
-            towLines.gameObject.SetActive(connected>0f);
-            if (connected <= 0f) return;
-            bool inward=t>=108f;
-            Vector3 a=Local(_ship.TransformPoint(inward ? new Vector3(14f,9.8f,36f) : new Vector3(8f,9.8f,66f)));
-            Vector3 b=Local(_tug.TransformPoint(inward ? new Vector3(-3.6f,5.4f,4f) : new Vector3(-1.2f,5.4f,-8.6f)));
-            float sag=.85f*(1f-Ease(t,inward?108f:26f,inward?114f:32f))+.10f;
-            Vector3 mid=Vector3.Lerp(a,b,.5f)-Vector3.up*sag;
-            Stretch(towLines.GetChild(0),a,mid,.32f);
-            Stretch(towLines.GetChild(1),mid,b,.32f);
         }
 
         private void UpdateWake(Transform wake, Pose vessel, float speed, float stern, float width)

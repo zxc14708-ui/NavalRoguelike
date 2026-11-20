@@ -42,6 +42,7 @@ namespace Game.EditorTools
             BuildWestCompound();
             BuildAirStation();
             BuildRadarAndOrdnance();
+            BuildDistrictConnections();
             BuildPerimeter();
             BuildGreenery();
         }
@@ -560,7 +561,7 @@ namespace Game.EditorTools
             HarborCraft(w, new Vector3(-780f, 0f, 440f), 340f, CraftKind.Launch);
             Fence(w, new Vector3(-760f, 0f, 140f), new Vector3(-760f, 0f, 380f));
             GuardTower(w, new Vector3(-765f, Ground, 145f), 0f);
-            ParkingLot(w, new Vector3(-850f, Ground, 125f), 90f, 1, 10);
+            ParkingLot(w, new Vector3(-850f, Ground, 143f), 0f, 1, 10);
             Reserve(-900f, 120f, -750f, 400f);
         }
 
@@ -606,14 +607,14 @@ namespace Game.EditorTools
             Reserve(-860f, RunwayZ - 45f, 760f, RunwayZ + 45f);
 
             // 평행 유도로 + 연결 유도로
-            B(air, new Vector3(-50f, Ground + 0.2f, TaxiZ), new Vector3(1420f, 0.4f, 23f), "runway");
-            B(air, new Vector3(-50f, Ground + 0.45f, TaxiZ), new Vector3(1420f, 0.05f, 0.7f), "mark_yellow");
+            B(air, new Vector3(-50f, Ground + 0.2f, TaxiZ), new Vector3(1387f, 0.4f, 23f), "runway");
+            B(air, new Vector3(-50f, Ground + 0.45f, TaxiZ), new Vector3(1384f, 0.05f, 0.7f), "mark_yellow");
             foreach (float x in new[] { -760f, -380f, 0f, 330f, 660f })
             {
-                B(air, new Vector3(x, Ground + 0.21f, (RunwayZ + TaxiZ) * 0.5f), new Vector3(23f, 0.42f, 50f), "runway");
-                B(air, new Vector3(x, Ground + 0.46f, (RunwayZ + TaxiZ) * 0.5f), new Vector3(0.7f, 0.05f, 50f), "mark_yellow");
-                for (int k = 0; k < 4; k++) B(air, new Vector3(x - 9f + k * 6f, Ground + 0.46f, TaxiZ - 15f), new Vector3(0.5f, 0.05f, 2f), "mark_yellow");   // 정지선
+                TaxiConnector(air, x);
+                for (int k = -1; k <= 1; k++) B(air, new Vector3(x + k * 6f, Ground + 0.47f, TaxiZ - 18f), new Vector3(4f, 0.04f, .55f), "mark_yellow");
                 B(air, new Vector3(x + 16f, Ground + 1.4f, TaxiZ - 16f), new Vector3(4f, 1.6f, 0.4f), "safety_yellow");   // 유도로 표지판
+                Reserve(x - 34f, -324f, x + 34f, -240f);
             }
             Reserve(-790f, TaxiZ - 15f, 690f, TaxiZ + 15f);
 
@@ -703,7 +704,7 @@ namespace Game.EditorTools
             Fence(r, new Vector3(95f, 0f, -420f), new Vector3(150f, 0f, -420f));
             Reserve(85f, -460f, 160f, -410f);
             RadomeSite(r, new Vector3(830f, 12f, 20f), 0f);
-            Reserve(760f, -40f, 900f, 80f);
+            Reserve(769f, -56f, 912f, 96f);
             // 항공유 저장소(비행장 동쪽 가장자리)
             TankFarm(r, new Vector3(650f, Ground, -140f), 0f, 3, 2, 18f);
             Reserve(590f, -200f, 720f, -70f);
@@ -825,9 +826,8 @@ namespace Game.EditorTools
                     var mesh = new Mesh { name = name, indexFormat = IndexFormat.UInt32 };
                     mesh.CombineMeshes(chunk.ToArray(), true, true);
                     mesh.RecalculateBounds();
-                    string path = $"{MatFolder}/MESH_combined_{name}.asset";
-                    AssetDatabase.DeleteAsset(path);
-                    AssetDatabase.CreateAsset(mesh, path);
+                    string path = $"{_meshFolder}/MESH_combined_{name}.asset";
+                    mesh = StoreMesh(mesh, path);
                     var go = new GameObject(name, typeof(MeshFilter), typeof(MeshRenderer));
                     go.transform.SetParent(holder, false);
                     go.GetComponent<MeshFilter>().sharedMesh = mesh;

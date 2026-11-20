@@ -6,8 +6,8 @@ namespace Game.UI
 {
     /// <summary>
     /// 시작 화면 군항 운영 연출(Codex HarborOperations_v1, 2026-11-20 연결). 보기 전용 — 판정 · 저장 없음. 좌표는 섬(NavalBaseMenu 프리팹) 로컬.
-    ///   - 170초 주기: 크레인이 화물선 컨테이너 하나를 트레일러에 내림 → 26초 예인정이 선수에 줄을 걸고 화물선을 부두 밖으로 끌어냄 →
-    ///     바깥 수역을 돌아 입항(예인정은 옆에서 도움) → 136초 재계류 → 트레일러가 가져온 컨테이너를 다시 실음. 비행장 지원 차량 · 헬기 이착륙.
+    ///   - 170초 주기: 하역 → 함수·함미 예인정이 우현에서 이안 보조 → 돌제를 벗어나면 예인정 복귀 · 화물선 자력 항해 →
+    ///     두 예인정이 입항 보조 → 136초 화물선 재계류 → 재적재. 비행장 지원 차량 · 헬기 이착륙.
     ///   - 정적 덧붙임(진입로 · 야적장 게이트 · 비행장 서비스 도로 · 착륙장 등)도 같은 프리팹(Resources/Environment/HarborOperations)에 들어 있다.
     ///   - HarborFacilityDetails의 화물 부두 합친 메시에서 옛 계류줄 · 2번 크레인 아래 부품 · 움직일 컨테이너 하나를 런타임 사본에서만 잘라 낸다.
     ///     원본 모양이 달라 자르지 못하면 붙이지 않는다(예전 화면 그대로). 원본 메시 · 프리팹은 건드리지 않는다.
@@ -19,9 +19,10 @@ namespace Game.UI
         public const string Resource = "Environment/HarborOperations";
         [SerializeField] private Transform trolley, spreader, transferBox, truck, truckSocket;
         [SerializeField] private Transform truckWheels, serviceTruck, helicopter, rotor, tailRotor;
-        [SerializeField] private Transform dockTugLines, towLines, shipWake, tugWake;
+        [SerializeField] private Transform dockTugLines, towLines, sternTowLines, shipWake, tugWake, sternTugWake;
+        [SerializeField] private Material sternDeckMaterial;
         [SerializeField] private Transform craneCableA, craneCableB;
-        private Transform _port, _ship, _tug;
+        private Transform _port, _ship, _tug, _sternTug;
         private Pose _shipRest, _tugRest;
         private float _clock;
         private bool _ready;
@@ -30,7 +31,10 @@ namespace Game.UI
         public bool Ready => _ready;
         public Transform CargoShip => _ship;
         public Transform Tug => _tug;
-        public bool TowlineVisible => towLines.gameObject.activeSelf;
+        public Transform SternTug => _sternTug;
+        public bool TowlineVisible => ActiveTowlines > 0;
+        public int ActiveTowlines => (towLines != null && towLines.gameObject.activeSelf ? 1 : 0) +
+                                     (sternTowLines != null && sternTowLines.gameObject.activeSelf ? 1 : 0);
 
         /// <summary>Call immediately after the base menu installs its original facility overlay.</summary>
         public static HarborOperations Attach(Transform island)
@@ -58,7 +62,8 @@ namespace Game.UI
             if (_port == null) return false;
             _ship = _port.Find("CargoShip");
             _tug = _port.Find("CargoSupportTug");
-            if (_ship == null || _tug == null) return false;
+            if (_ship == null || _tug == null || sternTowLines == null || sternTugWake == null ||
+                dockTugLines == null || dockTugLines.childCount != 3) return false;
             if (!CheckAndReplaceCargoMeshes())
             {
                 Debug.LogWarning("[Harbor Operations] Cargo geometry does not match the source; original cargo display retained.");
@@ -66,6 +71,11 @@ namespace Game.UI
             }
             _shipRest = new Pose(_ship.localPosition, _ship.localRotation);
             _tugRest = new Pose(_tug.localPosition, _tug.localRotation);
+            _sternTug = Instantiate(_tug, _port, false);
+            _sternTug.name = "Stern service tug";
+            var deck = _sternTug.Find("safety_yellow");
+            if (deck != null && sternDeckMaterial != null && deck.TryGetComponent<MeshRenderer>(out var renderer))
+                renderer.sharedMaterial = sternDeckMaterial;
             _ready = true;
             SetTime(0f);
             return true;
@@ -143,6 +153,7 @@ namespace Game.UI
                 if (_ship != null) { _ship.localPosition = _shipRest.position; _ship.localRotation = _shipRest.rotation; }
                 if (_tug != null) { _tug.localPosition = _tugRest.position; _tug.localRotation = _tugRest.rotation; }
             }
+            if (_sternTug != null) Release(_sternTug.gameObject);
             RestoreMeshes();
         }
 

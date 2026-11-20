@@ -98,6 +98,11 @@ namespace Game.UI
         // 개관 시점: 섬 중심을 수평 반경 2375m·높이 1650m(섬 좌표, m)로 한 바퀴 3분
         static readonly Vector3 OrbitCenter=new(20,0,60);
         const float OrbitRadius=2375, OrbitHeight=1650, OrbitStart=-35.2f, OrbitDegreesPerSecond=2;
+        public static readonly Vector2[] PatrolRoute =
+        {
+            new(-60,760), new(200,850), new(250,1200), new(-900,1200),
+            new(-900,1000), new(-660,990), new(-60,760),
+        };
         // 도로 순환 경로(섬 좌표, 도로 중심선). 닫힌 사각 순환 넷 + 왕복 둘. 차는 진행 방향 오른쪽 차로로 달린다
         static readonly Vector2[][] Routes={
             new Vector2[]{new(-80,455),new(470,455),new(470,110),new(-80,110)},
@@ -303,9 +308,9 @@ namespace Game.UI
                 if(t.name.StartsWith("ESC_PB"))
                 {
                     float y=t.localPosition.y;
-                    _traffic.Add(new Traffic {Item=t,Offset=0,
-                        Points=new[]{new Vector3(-60,y,760),new Vector3(200,y,850),new Vector3(250,y,1200),new Vector3(-900,y,1200),new Vector3(-900,y,850),new Vector3(-60,y,760)},
-                        Times=new[]{16f,15f,30f,15f,24f,8f}});
+                    var points = System.Array.ConvertAll(PatrolRoute,p=>new Vector3(p.x,y,p.y));
+                    _traffic.Add(new Traffic {Item=t,Offset=0,Points=points,
+                        Times=new[]{16f,15f,30f,10f,11f,18f,8f}});
                     break;
                 }
             BuildRoadTraffic();

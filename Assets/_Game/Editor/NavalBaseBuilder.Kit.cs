@@ -666,10 +666,18 @@ namespace Game.EditorTools
             {
                 float z = -d * 0.5f + 1f + rowGap * (r + 0.5f);
                 for (int c = 0; c <= cols; c++)
-                    B(t, new Vector3(-w * 0.5f + 2f + c * sw, 0.26f, z - 2.4f), new Vector3(0.15f, 0.05f, 5f), "mark_white");
+                {
+                    float x = (c - cols * .5f) * sw;
+                    if (Mathf.Abs(x) >= 5.5f)
+                        B(t, new Vector3(x, 0.26f, z - 2.4f), new Vector3(0.15f, 0.05f, 5f), "mark_white");
+                }
                 for (int c = 0; c < cols; c++)
-                    if (R(0f, 1f) < 0.75f)
-                        Vehicle(t, new Vector3(-w * 0.5f + 2f + (c + 0.5f) * sw, 0.24f, z - 2.4f), r % 2 == 0 ? 0f : 180f, VehicleKind.Car);
+                {
+                    float x = (c + .5f - cols * .5f) * sw;
+                    bool parked = R(0f, 1f) < .75f;
+                    if (Mathf.Abs(x) >= 6.5f && parked)
+                        Vehicle(t, new Vector3(x, 0.24f, z - 2.4f), r % 2 == 0 ? 0f : 180f, VehicleKind.Car);
+                }
             }
         }
 

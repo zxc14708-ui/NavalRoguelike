@@ -41,6 +41,7 @@ namespace Game.EditorTools
                 Roads(details);
                 FacilityDetails(details);
                 AviationApron(details);
+                TugBerths(details);
                 Batch(details);
 
                 var component=_root.gameObject.AddComponent<Game.UI.HarborOperations>();
@@ -78,16 +79,26 @@ namespace Game.EditorTools
 
                 Transform lines=Group(_root,"Berth lines");
                 Transform shipLines=Group(lines,"Cargo lines");
-                Transform tugLines=Group(lines,"Tug lines");
                 for (int i=0;i<4;i++) UnitLine(shipLines,"Mooring "+i,"rope");
-                for (int i=0;i<2;i++) UnitLine(tugLines,"Tug berth "+i,"rope");
+                foreach(string name in new[]{"Bow tug berth","Stern tug berth"})
+                {
+                    Transform home=Group(lines,name);
+                    UnitLine(home,"Forward spring","rope");
+                    UnitLine(home,"Aft spring","rope");
+                }
                 Bind("dockTugLines",lines);
                 Transform tow=Group(_root,"Tow cable");
                 UnitLine(tow,"Bow segment","rope");
                 UnitLine(tow,"Tug segment","rope");
                 Bind("towLines",tow);
+                Transform sternTow=Group(_root,"Stern tow cable");
+                UnitLine(sternTow,"Ship segment","rope");
+                UnitLine(sternTow,"Tug segment","rope");
+                Bind("sternTowLines",sternTow);
                 Bind("shipWake",Wake(_root,"Cargo wake"));
                 Bind("tugWake",Wake(_root,"Tug wake"));
+                Bind("sternTugWake",Wake(_root,"Stern tug wake"));
+                serialized.FindProperty("sternDeckMaterial").objectReferenceValue=M("box_orange");
                 serialized.ApplyModifiedPropertiesWithoutUndo();
 
                 PrefabUtility.SaveAsPrefabAsset(_root.gameObject,PrefabPath);
