@@ -16,6 +16,7 @@
 | `Docs/` | `NEXT_TASKS_2026-11-14.md` | 다음 작업 · 결정 필요 항목(최신) |
 | `Docs/` | `CODEX_MODEL_REQUESTS_STAGE4_2026-11-16.md` · `CODEX_MODEL_REQUESTS_DAYNIGHT_2026-11-19.md` | 기능별 Codex 모델 요청 · 연결 기록 |
 | `Docs/` | `STAGE4_EKRANOPLAN_PLAN_2026-11-16.md` · `BLOCK_EVOLUTION_PLAN_2026-10-27.md` | 기획안(4스테이지 구현됨 · 블록 전직 결정 대기) |
+| `Docs/` | `SESSION_LOG_DAMAGE_PLAN_2026-11-21.md` | 11-20 ~ 11-21 작업 기록 · 손상 모델 기획(손상 통제 · 함교 집중 피격 · 블록 파괴 확인) |
 | `Docs/` | `LIVE_STARTING_SHIPS.md` · `STARTING_SHIP_DESIGN.md` | 시작 함선 설계 · 남은 결정(S01 · S02) |
 | `Docs/` | `GITHUB_REFERENCES.md` | 외부 코드 참고 목록 |
 | `Docs/WWII/` | `WWII_TRANSITION_PLAN.md` · `WWII_PATCH_A_DESIGN.md` · `patch-a-content-map.json` | WWII 모드 계획 · 설계 |
