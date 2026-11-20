@@ -278,7 +278,7 @@ namespace Game.UI
 
             sb.Clear();
             Row(sb, "<b>잠항</b>", "보이지 않고 일반 무장으로 조준할 수 없다. 어뢰를 준비할 때 물거품·경고음이 난다.");
-            Row(sb, "<b>드러남</b>", $"소나 핑·폭뢰·조기경보기·광역 탐색 등에 잡히면 잠시 수면 표식이 생기고 모든 무장이 조준할 수 있다.");
+            Row(sb, "<b>드러남</b>", $"소나 핑·폭뢰·조기경보기·레이더망·조명탄 등에 잡히면 잠시 수면 표식이 생기고 모든 무장이 조준할 수 있다.");
             Row(sb, "<b>접촉 확정</b>", $"{LinkTo(ModuleType.Sonar) ?? "소나"}·{LinkTo(ModuleType.HelicopterDeck) ?? "헬기"} 디핑 소나가 위치를 잡은 상태 — 폭뢰·경어뢰·헬기가 잠항 중에도 그 위치를 공격한다.");
             Row(sb, "대응", $"{LinkTo(ModuleType.AswLauncher) ?? "폭뢰"} · {LinkTo(ModuleType.TorpedoTube) ?? "경어뢰"} · {Link("escort_asw", "대잠 호위함")} · 교리 '대잠'");
             yield return Term("term_sub", "잠수함: 드러남 · 접촉 확정", "대잠", CodexRole.Sub, sb.ToString().TrimEnd());

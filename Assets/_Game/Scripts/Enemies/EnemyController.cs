@@ -441,7 +441,7 @@ namespace Game.Enemies
             }
         }
 
-        // --- 표적 지시(초계함 광역 탐색, 2026-10-11): 잠깐 받는 피해가 늘어난다
+        // --- 표적 지시(초계함 레이더망 — 예전 광역 탐색, 2026-10-11): 잠깐 받는 피해가 늘어난다
         private float _markedUntil = -1f, _markMultiplier = 1f;
         public bool IsMarked => Time.time < _markedUntil;
         public float MarkedSecondsLeft => Mathf.Max(0f, _markedUntil - Time.time);

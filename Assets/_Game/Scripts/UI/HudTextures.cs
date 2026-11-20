@@ -197,7 +197,7 @@ namespace Game.UI
             return p.y < -0.5f && p.y > -0.62f && Mathf.Abs(p.x) < 0.5f;   // 뱃머리 물결
         }
 
-        /// <summary>광역 탐색: 레이더 화면 — 바깥 고리 둘, 스윕 부채꼴, 표적 점 둘.</summary>
+        /// <summary>레이더망(예전 광역 탐색): 레이더 화면 — 바깥 고리 둘, 스윕 부채꼴, 표적 점 둘.</summary>
         private static bool SweepShape(Vector2 p)
         {
             float r = p.magnitude;
