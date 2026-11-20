@@ -32,6 +32,8 @@ namespace Game.Dev
             public string Name, Group;
             public float Length, Beam, Above, Draft;
             public bool Valid;
+            /// <summary>일부러 수면에 붙은 낮은 선체(반잠수정 — ILowObservable). 수면 위가 낮아도 "가라앉음" 실패로 치지 않고 기록만.</summary>
+            public bool LowProfile;
         }
 
         private static HullSize Measure(GameObject go, string name, string group)
@@ -172,6 +174,7 @@ namespace Game.Dev
             {
                 if (e == null) continue;
                 var m = Measure(e.gameObject, def.DisplayName, def.Rank == EnemyRank.Boss ? "보스" : def.Rank == EnemyRank.Elite ? "정예" : "적");
+                m.LowProfile = e is Game.Combat.ILowObservable;   // 반잠수정(2026-11-20): 낮게 뜨는 것이 설계
                 measured.Add(m);
             }
             float total = 0f;
@@ -222,7 +225,8 @@ namespace Game.Dev
                 var notes = new List<string>();
                 if (s.Draft < -1f) { notes.Add("**떠 있음**"); floating++; }
                 else if (Mathf.Abs(s.Draft - flagship.Draft) > 0.4f) { notes.Add(s.Draft < flagship.Draft ? "수면선 다름(높게 뜸)" : "수면선 다름(깊게 잠김)"); waterline++; }
-                if (s.Above < 0.3f) { notes.Add("**가라앉음**"); sunk++; }
+                if (s.Above < 0.3f && s.LowProfile) notes.Add("낮은 선체(반잠수 — 설계, 기록만)");
+                else if (s.Above < 0.3f) { notes.Add("**가라앉음**"); sunk++; }
                 if (s.Group.StartsWith("호위") && ratio > 1.1f) { notes.Add("기함보다 큼"); order++; }
                 if (s.Group == "보스" && ratio < 1f) { notes.Add("기함보다 작음"); order++; }
                 string verdict = notes.Count == 0 ? "맞음" : string.Join(" · ", notes);

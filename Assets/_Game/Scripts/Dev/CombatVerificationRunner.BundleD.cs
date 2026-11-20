@@ -317,7 +317,7 @@ namespace Game.Dev
                 bool failed = Game.TaskForce.SupplyEscortMission.LastOutcome == Game.TaskForce.SupplyEscortMission.Outcome.Failed && Game.TaskForce.SupplyEscortMission.LastFailReason == "격침";
                 bool noReward2 = Mathf.Approximately(ship.HullHp, hullBefore) && Game.Refit.RefitDraft.RerollsLeft == rerollBefore;
                 bool panelGone = GameObject.Find("Supply escort panel") == null && GameObject.Find("Supply route") == null;
-                _report.AppendLine($"- 임무 실패(보급선 격침): {Yes(failed)} · 보상 없음 {Yes(noReward2)} · 임무 막대·항로 표시 정리 {Yes(panelGone)}");
+                _report.AppendLine($"- 임무 실패(보급선 격침): {Yes(failed)} · 보상 없음 {Yes(noReward2)}(선체 {hullBefore:0.#} → {ship.HullHp:0.#} · 다시 뽑기 {rerollBefore} → {Game.Refit.RefitDraft.RerollsLeft}) · 임무 막대·항로 표시 정리 {Yes(panelGone)}");
                 if (!failed || !noReward2) Fail("보급선 격침 때 실패 처리·보상이 맞지 않음(K03)");
                 if (!panelGone) Fail("임무가 끝났는데 화면 막대·항로 표시가 남음(K03)");
                 ship.DevRudderOverride = null;

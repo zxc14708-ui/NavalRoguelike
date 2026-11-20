@@ -22,9 +22,17 @@ namespace Game.WW2
 
         /// <summary>쉬는 자세(restLocal)에서 선체 위 축 둘레로 yaw만큼 돈 로컬 회전.</summary>
         public static Quaternion Rotate(Transform node, Quaternion restLocal, float yaw, Transform hull)
-        {
-            Vector3 axis = node.parent != null ? node.parent.InverseTransformDirection(hull.up) : hull.up;
-            return Quaternion.AngleAxis(yaw, axis) * restLocal;
-        }
+            => Rotate(restLocal, yaw, RestAxis(node, hull));
+
+        /// <summary>
+        /// 쉬는 자세에서 선체 위 축을 부모 로컬로 잰 값. 쉬는 자세(흔들림 없음)를 잡을 때 한 번 재 두고 계속 쓴다 —
+        /// 매 프레임 선체 루트의 위 축으로 다시 재면, 모델이 파도 · 피격으로 기울 때(ShipVisualSway) 축이 갑판에서 벗어나 포탑이 옆으로 눕는다(2026-11-20).
+        /// </summary>
+        public static Vector3 RestAxis(Transform node, Transform hull)
+            => node.parent != null ? node.parent.InverseTransformDirection(hull.up) : hull.up;
+
+        /// <summary>쉬는 자세(restLocal)에서 부모 로컬 축 axisLocal 둘레로 yaw만큼 돈 로컬 회전.</summary>
+        public static Quaternion Rotate(Quaternion restLocal, float yaw, Vector3 axisLocal)
+            => Quaternion.AngleAxis(yaw, axisLocal) * restLocal;
     }
 }

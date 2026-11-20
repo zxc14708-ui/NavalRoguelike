@@ -359,13 +359,13 @@ namespace Game.Dev
 
             // 키 변경(WWII 이름공간) · 현대 키와 겹치면 거부
             var prevKey = Ww2Controls.Binding(Ww2Control.TorpedoPort);
-            bool rebind = Ww2Controls.TryBind(Ww2Control.TorpedoPort, Key.Z, out _);
-            bool now = Ww2Controls.Binding(Ww2Control.TorpedoPort) == Key.Z;
+            bool rebind = Ww2Controls.TryBind(Ww2Control.TorpedoPort, Key.Y, out _);   // Z는 2026-11-20부터 적 추적(함께 쓰는 조작)
+            bool now = Ww2Controls.Binding(Ww2Control.TorpedoPort) == Key.Y;
             bool sharedRefused = !Ww2Controls.TryBind(Ww2Control.TorpedoPort, GameSettings.Binding(NavalControl.RudderLeft), out string whyShared);
             Ww2Controls.TryBind(Ww2Control.TorpedoPort, prevKey, out _);
             bool keysKept = true;
             for (int i = 0; i < modernKeys.Length; i++) if (PlayerPrefs.GetInt("Naval.Control." + i, -1) != modernKeys[i]) keysKept = false;
-            _report.AppendLine($"- WWII 키 변경: Z로 {Yes(rebind && now)} · 조타 키와 같은 키 거부 {Yes(sharedRefused)}(\"{whyShared}\") · 현대 키 설정 그대로 {Yes(keysKept)} · 되돌림 {Ww2Controls.BindingLabel(Ww2Control.TorpedoPort)}");
+            _report.AppendLine($"- WWII 키 변경: Y로 {Yes(rebind && now)} · 조타 키와 같은 키 거부 {Yes(sharedRefused)}(\"{whyShared}\") · 현대 키 설정 그대로 {Yes(keysKept)} · 되돌림 {Ww2Controls.BindingLabel(Ww2Control.TorpedoPort)}");
             if (!rebind || !now || !sharedRefused || !keysKept) Fail("WWII 키 변경이 따로 저장되지 않거나 현대 키와 겹침을 막지 못함");
 
             // 설정·일시정지 안내가 WWII 키를 보여 준다
@@ -669,9 +669,24 @@ namespace Game.Dev
                 // 2026-10-18 버그: 순양함 포탑이 옆으로 눕던 것
                 var rests = Get<Quaternion[]>(boss1, "_turretRest");
                 float maxTilt = 0f;
+                // 갑판 위쪽 = 함선 루트 위쪽에 모델 흔들림(파도 · 피격 기울기 — ShipVisualSway: 지금 자세 = 흔들림 × 기준 자세)을 더한 방향.
+                // 포탑은 갑판에 얹혀 함께 흔들리므로, 흔들림을 뺀 갑판 기준으로 재야 "포탑이 돌면서 눕는" 진짜 기울어짐만 남는다(2026-11-20)
+                Vector3 deckUp = boss1.transform.up;
+                var swayC = boss1.GetComponentInChildren<Game.View.ShipVisualSway>();
+                if (swayC != null)
+                {
+                    var baseRot = Get<Quaternion>(swayC, "_baseLocalRot");
+                    var parentRot = swayC.transform.parent != null ? swayC.transform.parent.rotation : Quaternion.identity;
+                    deckUp = parentRot * (swayC.transform.localRotation * Quaternion.Inverse(baseRot)) * Vector3.up;
+                }
+                float maxRoot = 0f;
                 for (int i = 0; ts != null && rests != null && i < ts.Length && i < rests.Length; i++)
-                    if (ts[i] != null) maxTilt = Mathf.Max(maxTilt, Ww2Tilt(ts[i], rests[i], boss1.transform));
-                _report.AppendLine($"- 순양함 포탑 기울어짐 최대 {maxTilt:0.0}°");
+                    if (ts[i] != null)
+                    {
+                        maxTilt = Mathf.Max(maxTilt, Ww2Tilt(ts[i], rests[i], deckUp));
+                        maxRoot = Mathf.Max(maxRoot, Ww2Tilt(ts[i], rests[i], boss1.transform.up));
+                    }
+                _report.AppendLine($"- 순양함 포탑 기울어짐 최대 {maxTilt:0.0}°(갑판 기준) · 함선 루트 기준 {maxRoot:0.0}° · 지금 갑판 흔들림 {Vector3.Angle(deckUp, boss1.transform.up):0.0}°");
                 if (rests == null || maxTilt > 2f) Fail("순양함 포탑이 돌면서 옆으로 기울어짐");
             }
             _report.AppendLine($"- 순양함: 일제 사격 {boss1?.SalvosFired ?? 0}회 · 경고 원 {markers} · 보스 막대 {Yes(bar != null && bar.Boss == cruiser)} · 단계 \"{boss1?.PhaseName}\"");
@@ -707,11 +722,14 @@ namespace Game.Dev
         }
 
         /// <summary>쉬는 자세(restLocal)에서 위를 향하던 축이 지금 선체 위와 몇 도 어긋났나(수평 선회만 했으면 0).</summary>
-        private static float Ww2Tilt(Transform node, Quaternion restLocal, Transform hull)
+        private static float Ww2Tilt(Transform node, Quaternion restLocal, Transform hull) => Ww2Tilt(node, restLocal, hull.up);
+
+        /// <summary>기준 자세에서 hullUp이던 축이 지금 hullUp에서 얼마나 벗어났나(도) — 그 축 둘레로만 돌면 0.</summary>
+        private static float Ww2Tilt(Transform node, Quaternion restLocal, Vector3 hullUp)
         {
             Quaternion restWorld = (node.parent != null ? node.parent.rotation : Quaternion.identity) * restLocal;
-            Vector3 upInNode = Quaternion.Inverse(restWorld) * hull.up;
-            return Vector3.Angle(node.rotation * upInNode, hull.up);
+            Vector3 upInNode = Quaternion.Inverse(restWorld) * hullUp;
+            return Vector3.Angle(node.rotation * upInNode, hullUp);
         }
 
         /// <summary>

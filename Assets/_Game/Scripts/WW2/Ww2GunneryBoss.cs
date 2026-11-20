@@ -52,7 +52,8 @@ namespace Game.WW2
         private Coroutine _salvo;
         private int _secondaryIndex;
         private Quaternion[] _turretRest;
-        private Vector3[] _turretRestDir;   // 쉬는 자세의 포신 방향(선체 공간, 수평) — 모델 포탑의 로컬 축을 믿지 않는다(Ww2Yaw)
+        private Vector3[] _turretRestDir;
+        private Vector3[] _turretAxis;   // 쉬는 자세에서 잰 선회 축(부모 로컬) — 파도 · 피격 흔들림에 포탑이 눕지 않게(2026-11-20)   // 쉬는 자세의 포신 방향(선체 공간, 수평) — 모델 포탑의 로컬 축을 믿지 않는다(Ww2Yaw)
 
         public bool Phase2 => HpFraction <= 0.5f;
         public int SalvosFired { get; private set; }
@@ -95,11 +96,13 @@ namespace Game.WW2
             {
                 _turretRest = new Quaternion[turrets.Length];
                 _turretRestDir = new Vector3[turrets.Length];
+                _turretAxis = new Vector3[turrets.Length];
                 for (int i = 0; i < turrets.Length; i++)
                 {
                     var t = turrets[i];
                     _turretRest[i] = t != null ? t.localRotation : Quaternion.identity;
                     _turretRestDir[i] = RestDirection(t);
+                    _turretAxis[i] = t != null ? Ww2Yaw.RestAxis(t, transform) : Vector3.up;   // base.Setup이 흔들림을 되돌린 뒤라 갑판이 평평하다
                 }
             }
             else for (int i = 0; i < turrets.Length; i++) if (turrets[i] != null) turrets[i].localRotation = _turretRest[i];
@@ -163,7 +166,7 @@ namespace Game.WW2
                 Vector3 to = point - t.position;
                 if (Vector3.ProjectOnPlane(to, transform.up).sqrMagnitude < 0.01f) continue;
                 Vector3 rest = _turretRestDir != null && i < _turretRestDir.Length ? _turretRestDir[i] : Vector3.forward;
-                var want = Ww2Yaw.Rotate(t, _turretRest[i], Ww2Yaw.Angle(rest, Ww2Yaw.Flat(transform, to)), transform);
+                var want = Ww2Yaw.Rotate(_turretRest[i], Ww2Yaw.Angle(rest, Ww2Yaw.Flat(transform, to)), _turretAxis != null && i < _turretAxis.Length ? _turretAxis[i] : Ww2Yaw.RestAxis(t, transform));
                 t.localRotation = Quaternion.RotateTowards(t.localRotation, want, turretTurnRate * dt);
                 if (Quaternion.Angle(t.localRotation, want) < 20f) any = true;
             }
