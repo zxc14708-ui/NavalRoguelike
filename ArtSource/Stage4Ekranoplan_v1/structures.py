@@ -27,7 +27,8 @@ def platform(a, large):
             m.beam((*q,.65),(*p,bottom-.4),.30,METAL)
     m.object('Substructure',c,r)
     m=Mesh()
-    m.box((0,0,height-.40),(width,width,.80),METAL,bevel=.80)
+    # 2026-11-20 Claude: 금속 상자 윗면을 콘크리트 윗면보다 3cm 낮춤 — 같은 높이라 게임에서 갑판이 깜박였다(z-fighting)
+    m.box((0,0,height-.43),(width,width,.80),METAL,bevel=.80)
     m.box((0,0,height-.045),(width-.21,width-.21,.09),CONCRETE,bevel=.73)
     # Thick guide stripes and wheel stops still read in the game's distant view.
     for s in (-1,1):

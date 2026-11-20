@@ -117,6 +117,73 @@ namespace Game.View
             FlashLight(position + Vector3.up * 0.5f, size);
         }
 
+        /// <summary>검증용: 포탄 명중 연출 수.</summary>
+        public static int ShellHits { get; private set; }
+        /// <summary>검증용: 그중 큰 포탄(피해 6 이상) 명중 연출 수.</summary>
+        public static int BigShellHits { get; private set; }
+
+        /// <summary>한 발 피해 → 명중 연출 크기(76mm 24 = 1, 기관포 2 · 근접방어무기 0.75 = 0.3, 최대 1.5).</summary>
+        public static float CaliberScale(float damage) => Mathf.Clamp(Mathf.Sqrt(Mathf.Max(0f, damage) / 24f), 0.3f, 1.5f);
+
+        /// <summary>
+        /// 포탄이 선체에 맞은 자리(2026-11-20 타격감). 구경(한 발 피해)에 비례한다 — 작은 탄은 짧은 섬광과 불똥 몇 개,
+        /// 큰 포탄(피해 6 이상)은 불덩이 · 연기 · 튀는 파편 · 짧은 조명까지. 불똥은 맞은 면에서 탄이 온 쪽으로 튄다.
+        /// 미사일 · 자폭 같은 폭발 수(SpawnCount)에는 세지 않는다.
+        /// </summary>
+        public static void ShellHit(Vector3 point, Vector3 travel, float damage)
+        {
+            ShellHits++;
+            float s = CaliberScale(damage);
+            float root = Mathf.Sqrt(s);
+            Vector3 back = travel.sqrMagnitude > 1e-4f ? -travel.normalized : Vector3.up;
+
+            DecorFx.Emit(DecorFx.Flash, point, Vector3.zero, 0.06f + 0.04f * s, 2.2f * s, new Color(1f, 0.96f, 0.84f, 0.95f));
+            int sparks = Mathf.RoundToInt(3 + 10 * s);
+            for (int i = 0; i < sparks; i++)
+            {
+                Vector3 dir = back * 0.6f + Random.onUnitSphere;
+                dir.y = Mathf.Abs(dir.y) + 0.25f;
+                DecorFx.Emit(DecorFx.Sparks, point, dir.normalized * Random.Range(5f, 11f) * root,
+                    Random.Range(0.25f, 0.55f), Random.Range(0.1f, 0.2f) * root,
+                    new Color(1f, Random.Range(0.62f, 0.9f), 0.3f, 1f));
+            }
+            if (damage < 6f) return;
+            BigShellHits++;
+
+            // 큰 포탄: 불덩이 · 연기 · 어두운 파편 · 조명
+            int blobs = DecorFx.BlastFire != null ? Mathf.RoundToInt(2 + 3 * s) : 0;
+            for (int i = 0; i < blobs; i++)
+            {
+                Vector3 dir = back * 0.5f + Random.onUnitSphere;
+                dir.y = Mathf.Abs(dir.y) * 0.8f + 0.2f;
+                DecorFx.Emit(DecorFx.BlastFire, point + dir * 0.15f * s, dir.normalized * Random.Range(1.2f, 2.8f) * s,
+                    Random.Range(0.3f, 0.5f), Random.Range(0.8f, 1.3f) * s,
+                    Color.Lerp(new Color(1f, 0.93f, 0.62f, 1f), new Color(1f, 0.5f, 0.16f, 1f), Random.value));
+            }
+            if (blobs == 0)
+                for (int i = 0; i < 3; i++)
+                    DecorFx.Emit(DecorFx.Fire, point, Random.onUnitSphere * 2f * s, Random.Range(0.2f, 0.4f), Random.Range(0.7f, 1.2f) * s,
+                        new Color(1f, 0.7f, 0.3f, 1f));
+            int debris = Mathf.RoundToInt(2 + 3 * s);
+            for (int i = 0; i < debris; i++)
+            {
+                Vector3 dir = back * 0.4f + Random.onUnitSphere;
+                dir.y = Mathf.Abs(dir.y) + 0.6f;
+                float g = Random.Range(0.12f, 0.25f);
+                DecorFx.Emit(DecorFx.Sparks, point, dir.normalized * Random.Range(3f, 6.5f) * root,
+                    Random.Range(0.6f, 0.95f), Random.Range(0.16f, 0.26f) * root, new Color(g, g, g, 1f));
+            }
+            int smoke = Mathf.RoundToInt(2 + 3 * s);
+            for (int i = 0; i < smoke; i++)
+            {
+                float g = Random.Range(0.14f, 0.26f);
+                DecorFx.Emit(DecorFx.WreckSmoke, point + Random.insideUnitSphere * 0.3f * s,
+                    Vector3.up * Random.Range(0.8f, 1.6f) + back * 0.6f + DecorFx.Wind * 0.4f,
+                    Random.Range(1f, 1.8f), Random.Range(0.7f, 1.2f) * s, new Color(g, g, g, 0.5f));
+            }
+            FlashLight(point + back * 0.4f + Vector3.up * 0.3f, 0.2f * s);
+        }
+
         /// <summary>
         /// 디졸브 불덩이 수. 함체 명중 6~11 · 자폭 7~14 · 공중 요격·격추 4~7(포구 섬광처럼 아주 작은 것은 0) · 수면 명중 0.
         /// 재질이 없으면(Resources에서 못 찾음) 0 — 예전 부드러운 원으로 그린다.

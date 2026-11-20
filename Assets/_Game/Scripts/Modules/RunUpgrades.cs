@@ -154,6 +154,7 @@ namespace Game.Modules
         {
             Array.Clear(Bonus, 0, Bonus.Length);
             History.Clear();
+            TempFireRate = TempSkillRate = 1f;
             Changed?.Invoke();
         }
 
@@ -162,6 +163,7 @@ namespace Game.Modules
         {
             s_previewStat = -1;
             s_previewAdd = 0f;
+            TempFireRate = TempSkillRate = 1f;
             Array.Clear(Bonus, 0, Bonus.Length);
             History.Clear();
             Changed = null;
@@ -231,8 +233,27 @@ namespace Game.Modules
         public static float HullMultiplier => 1f + Get(RunStat.HullMax);
         /// <summary>받는 피해에 곱한다(방어력 +25% → 0.8).</summary>
         public static float IncomingDamageMultiplier => 1f / (1f + Get(RunStat.Defense));
-        /// <summary>능동 스킬 쿨다운 타이머가 흐르는 속도(+25% → 1.25배).</summary>
-        public static float SkillRate => 1f + Get(RunStat.SkillRate);
+        /// <summary>능동 스킬 쿨다운 타이머가 흐르는 속도(+25% → 1.25배). 오버드라이브 중이면 그 배율도 곱한다.</summary>
+        public static float SkillRate => (1f + Get(RunStat.SkillRate)) * TempSkillRate;
+        /// <summary>오버드라이브 배율을 뺀 스킬 회복 속도 — 고유 스킬 자기 쿨타임(오버드라이브가 제 쿨타임을 줄이지 않게).</summary>
+        public static float BaseSkillRate => 1f + Get(RunStat.SkillRate);
+
+        // ------------------------------------------------------------ 일시 배율(2026-11-20 오버드라이브)
+
+        /// <summary>
+        /// 고속 강습함 오버드라이브 같은 몇 초짜리 배율. 성장 카드와 따로 곱한다 — 연사는 기함 블록 최종 수치(ModuleUpgrades)에만(편대 호위함 제외),
+        /// 스킬 회복은 SkillRate에. 바뀌면 Changed로 블록 수치를 다시 계산한다.
+        /// </summary>
+        public static float TempFireRate { get; private set; } = 1f;
+        public static float TempSkillRate { get; private set; } = 1f;
+
+        public static void SetTemporary(float fireRate, float skillRate)
+        {
+            fireRate = Mathf.Max(0.1f, fireRate); skillRate = Mathf.Max(0.1f, skillRate);
+            if (Mathf.Approximately(fireRate, TempFireRate) && Mathf.Approximately(skillRate, TempSkillRate)) return;
+            TempFireRate = fireRate; TempSkillRate = skillRate;
+            Changed?.Invoke();
+        }
 
         /// <summary>카드 표시용: 이 능력의 지금 누적 효과 문구("+25%" 또는 "받는 피해 −20%").</summary>
         public static string Describe(RunStat stat, float bonus, bool shortForm = false)

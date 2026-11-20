@@ -23,7 +23,7 @@ namespace Game.Ship
     /// <summary>
     /// 함정 고유 스킬 [T](2026-10-11). 출항 때 고른 시작 함정(ShipInitializer.SelectedConcept)에 따라 하나가 붙는다.
     ///   지휘함 = 항공대 호출(<see cref="AirWingAbility"/>) · 미사일 구축함 = 전탄 발사(<see cref="FullSalvoAbility"/>) ·
-    ///   고속 강습함 = 돌격 기동(<see cref="AssaultRunAbility"/>) · 범용 초계함 = 광역 탐색(<see cref="RadarSweepAbility"/>).
+    ///   고속 강습함 = 오버드라이브(<see cref="OverdriveAbility"/>, 2026-11-20 — 예전 돌격 기동) · 범용 초계함 = 광역 탐색(<see cref="RadarSweepAbility"/>).
     /// 쿨타임은 성장 카드 "스킬 회복"(RunUpgrades.SkillRate)을 따른다. HUD 스킬 줄 여섯째 칸(그림은 함정마다 다르다).
     /// </summary>
     public class SignatureSkill : MonoBehaviour
@@ -86,7 +86,7 @@ namespace Game.Ship
                 StartShipKind.MissileDestroyer =>
                     $"작동 중인 모든 VLS가 남은 셀을 {FullSalvoAbility.Spacing:0.##}초 간격으로 한꺼번에 쏜다 — 사거리 안 수상함과 항공기에 나눠 쏘고 전량 재장전.",
                 StartShipKind.Assault =>
-                    $"{AssaultRunAbility.Duration:0}초 동안 최고 속력 ×{AssaultRunAbility.SpeedMultiplier:0.#}, 받는 피해 −{(1f - AssaultRunAbility.DamageScale) * 100f:0}%, 뱃머리에 닿는 적 수상함을 들이받는다(피해 {AssaultRunAbility.RamDamage:0} × 속력).",
+                    $"{OverdriveAbility.Duration:0}초 동안 기관 한계 돌파 — 모든 무장 연사 +{(OverdriveAbility.FireRate - 1f) * 100f:0}%, 최고 속력 +{(OverdriveAbility.SpeedMultiplier - 1f) * 100f:0}%, 능동 스킬 쿨타임 −{(1f - 1f / OverdriveAbility.SkillRate) * 100f:0}%(회복 ×{OverdriveAbility.SkillRate:0.#}). 함선이 붉게 달아올라 잔상을 남긴다. 끝나면 {OverdriveAbility.OverheatSeconds:0}초 과열 — 연사 · 속력 −{(1f - OverdriveAbility.OverheatFireRate) * 100f:0}%.",
                 _ =>
                     $"둘레 {RadarSweepAbility.Radius:0} m의 적을 {RadarSweepAbility.MarkSeconds:0}초 동안 표적 지시 — 받는 피해 +{(RadarSweepAbility.DamageMultiplier - 1f) * 100f:0}%, 잠항 중인 잠수함도 드러난다.",
             };
@@ -98,7 +98,7 @@ namespace Game.Ship
             StartShipKind.Ww2Destroyer or StartShipKind.Ww2Cruiser or StartShipKind.Ww2Battleship => null,   // WWII 시험 전투: 현대 고유 스킬(미사일·항공대)을 쓰지 않는다(패치 A 4장)
             StartShipKind.Command => new AirWingAbility(),
             StartShipKind.MissileDestroyer => new FullSalvoAbility(),
-            StartShipKind.Assault => new AssaultRunAbility(),
+            StartShipKind.Assault => new OverdriveAbility(),
             _ => new RadarSweepAbility(),
         };
 
@@ -121,7 +121,7 @@ namespace Game.Ship
 
             float dt = Time.deltaTime;
             Ability.Tick(this, dt);
-            if (CooldownLeft > 0f) CooldownLeft = Mathf.Max(0f, CooldownLeft - dt * RunUpgrades.SkillRate);
+            if (CooldownLeft > 0f) CooldownLeft = Mathf.Max(0f, CooldownLeft - dt * RunUpgrades.BaseSkillRate);   // 오버드라이브 배율은 빼고(제 쿨타임을 줄이지 않게)
 
             if (GameSettings.Pressed(NavalControl.Signature)) TryActivate();
             else if (Gamepad.current != null && Gamepad.current.leftShoulder.wasPressedThisFrame) TryActivate();

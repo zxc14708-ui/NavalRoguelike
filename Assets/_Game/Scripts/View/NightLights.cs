@@ -82,6 +82,8 @@ namespace Game.View
     public static class NavLights
     {
         public static readonly Color Port = new(1f, 0.12f, 0.08f), Starboard = new(0.15f, 1f, 0.3f), Mast = new(1f, 0.95f, 0.85f);
+        /// <summary>현측등 지름(m) — 항로 부표 · 등부표 등불과 같다. 돛대등은 0.9배, 선미등은 7.5%.</summary>
+        public const float BulbSize = 0.45f;
 
         public static NightLampSet Ensure(GameObject ship, float scale = 1f)
         {
@@ -107,7 +109,8 @@ namespace Game.View
             if (!float.IsFinite(min.x)) return null;
             var set = NightLampSet.On(ship);
             float midZ = (min.z + max.z) * 0.5f, deckY = Mathf.Lerp(min.y, max.y, 0.45f);
-            float size = Mathf.Clamp((max.z - min.z) * 0.09f, 0.55f, 1.1f) * scale;
+            // 등 크기는 부표 등불(0.45m)과 같게(2026-11-20) — 예전엔 배 길이에 따라 0.55~1.1m라 너무 컸다
+            float size = BulbSize * scale;
             set.Add(new Vector3(min.x, deckY, midZ + (max.z - min.z) * 0.1f), Port, size);
             set.Add(new Vector3(max.x, deckY, midZ + (max.z - min.z) * 0.1f), Starboard, size);
             set.Add(new Vector3((min.x + max.x) * 0.5f, max.y + 0.2f, Mathf.Lerp(midZ, max.z, 0.35f)), Mast, size * 0.9f);

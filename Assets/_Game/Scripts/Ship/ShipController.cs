@@ -162,10 +162,27 @@ namespace Game.Ship
         /// <summary>전속 중인가.</summary>
         public bool IsFlanking => Time.time < _flankUntil;
 
-        /// <summary>받는 피해 배율(1 = 그대로). 강습함 돌격 기동처럼 잠깐 줄이는 스킬이 쓴다(DamageResolver가 곱한다).</summary>
+        /// <summary>받는 피해 배율(1 = 그대로). 잠깐 줄이는 스킬이 쓴다(예전 강습함 돌격 기동 — 지금은 쓰는 곳 없음)(DamageResolver가 곱한다).</summary>
         public float IncomingDamageScale { get; set; } = 1f;
 
         /// <summary>전속: 잠시 최고속력·가속·선회를 올린다. 스로틀은 여전히 플레이어가 잡는다.</summary>
+        // 속력 강화(오버드라이브 등, 2026-11-20): 전속과 따로 — 둘이 겹치면 큰 쪽(곱하지 않음). 전속이 먼저 끝나도 남은 강화는 그대로.
+        private float _boostUntil, _boostMultiplier = 1f;
+        public bool IsSpeedBoosted => Time.time < _boostUntil;
+        // 속력 저하(오버드라이브 뒤 과열 등): 강화 · 전속에 곱한다
+        private float _slowUntil, _slowMultiplier = 1f;
+        public bool IsSpeedPenalized => Time.time < _slowUntil;
+        public void BeginSpeedPenalty(float speedMultiplier, float duration)
+        {
+            _slowMultiplier = Mathf.Clamp(speedMultiplier, 0.1f, 1f);
+            _slowUntil = Time.time + Mathf.Max(0f, duration);
+        }
+        public void BeginSpeedBoost(float speedMultiplier, float duration)
+        {
+            _boostMultiplier = Mathf.Max(1f, speedMultiplier);
+            _boostUntil = Time.time + Mathf.Max(0f, duration);
+        }
+
         public void BeginFlank(float speedMultiplier, float duration)
         {
             _flankMultiplier = Mathf.Max(1f, speedMultiplier);
@@ -373,12 +390,14 @@ namespace Game.Ship
             float maxSpeed = BaseMaxSpeed;
             float turnRate = BaseTurnRate;
             float accelBoost = 1f;
-            if (IsFlanking)
+            float boost = Mathf.Max(IsFlanking ? _flankMultiplier : 1f, IsSpeedBoosted ? _boostMultiplier : 1f);
+            if (boost > 1f)
             {
-                maxSpeed *= _flankMultiplier;
+                maxSpeed *= boost;
                 turnRate *= 1.25f;
-                accelBoost = _flankMultiplier * 1.5f;
+                accelBoost = boost * 1.5f;
             }
+            if (IsSpeedPenalized) maxSpeed *= _slowMultiplier;
 
             // --- 기관: 전령기 출력까지 가감속. 후진은 전진보다 느리다. 선회 중에는 속력을 조금 잃는다.
             float maxReverse = maxSpeed * config.ReverseSpeedRatio;

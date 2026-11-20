@@ -36,3 +36,7 @@ Blender 5.2에서 `blender -b --python build.py`를 실행하면 FBX, BLEND, 미
 
 모델과 리뷰 이미지는 자체 제작했다. 외부 사진이나 메시를 팩에 포함하지 않았다. 기체 실루엣은 데르벤트의 룬급과 박물관의 A-90 사진을 참고했다. [룬급 사진](https://commons.wikimedia.org/wiki/File:%D0%AD%D0%BA%D1%80%D0%B0%D0%BD%D0%BE%D0%BF%D0%BB%D0%B0%D0%BD_%D0%9B%D1%83%D0%BD%D1%8C%2C_%D0%94%D0%B5%D1%80%D0%B1%D0%B5%D0%BD%D1%82.jpg) · [A-90 사진](https://commons.wikimedia.org/wiki/File:A-90_Orlyonok_in_museum_2016-05-08_Pic_1.JPG)
 
+
+## 2026-11-20 수정(Claude)
+
+- `ENV_OilPlatform_L` · `ENV_OilPlatform_S`: `Deck`의 금속(Gunmetal) 상자 윗면과 콘크리트 윗면이 같은 높이(9.0m · 6.0m)라 게임에서 갑판이 깜박였다(z-fighting). 금속 윗면만 3cm 낮춰 다시 내보냈다(같은 FBX 설정, 다른 부품 · 소켓 · 재질은 그대로 — Blender 재임포트 비교로 확인). `structures.py`도 같게 고쳤다. 그래서 `Models/`의 두 파일은 처음 납품본과 SHA가 다르다.

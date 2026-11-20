@@ -28,7 +28,7 @@ namespace Game.Ship
 
             var coord = HitCell(info.HitPoint);
             var target = grid.Get(coord);
-            float amount = info.Amount * RunUpgrades.IncomingDamageMultiplier * ship.IncomingDamageScale;   // 성장 카드: 방어력 · 고유 스킬(돌격 기동)
+            float amount = info.Amount * RunUpgrades.IncomingDamageMultiplier * ship.IncomingDamageScale;   // 성장 카드: 방어력 · 스킬 배율(지금은 1)
             bool wasDestroyed = target != null && target.IsDestroyed;
 
             // 1) 손상 통제반이 함선 전체 피해를 먼저 줄인다

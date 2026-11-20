@@ -84,7 +84,7 @@ namespace Game.Modules
             {
                 s.Damage *= RunUpgrades.DamageMultiplier(type);
                 s.Range *= RunUpgrades.RangeMultiplier(type);
-                s.ReloadTime /= RunUpgrades.FireRateMultiplier(type);
+                s.ReloadTime /= RunUpgrades.FireRateMultiplier(type) * RunUpgrades.TempFireRate;   // 오버드라이브(기함만, 2026-11-20)
                 s.MagazineCapacity = ScaleCapacity(s.MagazineCapacity, RunUpgrades.MagazineMultiplier(type), s.AmmoPerShot);
             }
             if (type == ModuleType.RepairBay)

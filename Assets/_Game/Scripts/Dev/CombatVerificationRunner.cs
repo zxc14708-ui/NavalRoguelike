@@ -108,6 +108,12 @@ namespace Game.Dev
         public bool WeaponPackOnly;
         [Tooltip("시작 화면 비행장(전투기 경로·계단 현상) 검사만 돌린다(-harborAAOnly)")]
         public bool HarborAAOnly;
+        [Tooltip("시작 화면 군항 운영 연출 검사만 돌린다(-harborOpsOnly, 2026-11-20)")]
+        public bool HarborOpsOnly;
+        [Tooltip("룬급 통과 공격 · 적 추적 검사만 돌린다(-lunPatternOnly, 2026-11-20)")]
+        public bool LunPatternOnly;
+        [Tooltip("표식 디자인 검사만 돌린다(-markersOnly, 2026-11-20): 약점 표시 갈라진 방패 · 화면 밖 종류 배지")]
+        public bool MarkersOnly;
         [Tooltip("군항 건물 1단계 검사만 돌린다(-harborBuildingsOnly): 이름표·건물 확대·기록실·작전 포인트")]
         public bool HarborBuildingsOnly;
         [Tooltip("시작 무장·손상통제·함정 고유 스킬 검사만 돌린다(-signatureOnly)")]
@@ -134,6 +140,8 @@ namespace Game.Dev
         public bool CardsNumbersOnly;
         [Tooltip("낮과 밤 검사만 돌린다(-dayNightOnly, 2026-11-19)")]
         public bool DayNightOnly;
+        [Tooltip("타격감 검사만 돌린다(-hitFeelOnly, 2026-11-20): 피격 번쩍임 · 흔들림 · 구경별 명중 연출 · 함포 포구 화염")]
+        public bool HitFeelOnly;
         [Tooltip("Codex 시안 적용 검사만 돌린다(-aviationOnly): 헬기데크·헬기 T1~T3·노봉 v22")]
         public bool AviationOnly;
         [Tooltip("해역 차별화 검사만 돌린다(-seaOnly): 해역별 섬·레이더·적 구성·카드·물색, 좁은 수로 경계, 해안포대")]
@@ -263,6 +271,13 @@ namespace Game.Dev
                 Finish();
                 yield break;
             }
+            if (HitFeelOnly)
+            {
+                yield return HitFeelCheck();
+                SaveLog("hitfeel");
+                Finish();
+                yield break;
+            }
             if (CardsNumbersOnly)
             {
                 yield return CardsNumbersCheck();
@@ -294,6 +309,27 @@ namespace Game.Dev
                 yield return TracerCheck();
                 yield return SignatureCheck();
                 SaveLog("signature");
+                Finish();
+                yield break;
+            }
+            if (MarkersOnly)
+            {
+                yield return MarkersCheck();
+                SaveLog("markers");
+                Finish();
+                yield break;
+            }
+            if (LunPatternOnly)
+            {
+                yield return LunPatternCheck();
+                SaveLog("lunpattern");
+                Finish();
+                yield break;
+            }
+            if (HarborOpsOnly)
+            {
+                yield return HarborOpsCheck();
+                SaveLog("harborops");
                 Finish();
                 yield break;
             }

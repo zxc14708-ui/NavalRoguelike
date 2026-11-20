@@ -32,7 +32,7 @@ namespace Game.Core
         {
             NavalControl.ThrottleUp, NavalControl.ThrottleDown, NavalControl.RudderLeft, NavalControl.RudderRight,
             NavalControl.CenterRudder, NavalControl.Repair, NavalControl.Smoke, NavalControl.Flank,
-            NavalControl.ShipStatus, NavalControl.Signature,
+            NavalControl.ShipStatus, NavalControl.Signature, NavalControl.Track,   // 적 추적(2026-11-20)
         };
 
         public static string Title(Ww2Control c) => c switch

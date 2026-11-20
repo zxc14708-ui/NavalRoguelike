@@ -10,7 +10,9 @@ namespace Game.Enemies
     /// 4스테이지(1챕터 최종) 보스: 룬급 미사일 위그선(2026-11-16, Codex Stage4Ekranoplan_v1 `ENE_Boss4_Lun`).
     /// 다른 보스처럼 기함 둘레를 돌지 않고 **지나가는 순간에만** 싸울 수 있다.
     ///
-    ///   1 고속 통과(100~65%)  수면에 붉은 통과선 예고 → 가로지르며 모스킷 2발 → 지나간 뒤 꼬리 기관포. 크게 돌아 다시 온다
+    ///   1 고속 통과(100~65%)  수면에 붉은 통과선 예고 → 가로지르며 공격 → 지나간 뒤 꼬리 기관포. 크게 돌아 다시 온다
+    ///     통과마다 공격이 바뀐다(2026-11-20): 미사일 통과(모스킷) → 폭격 통과(기함 위를 지나며 진로를 따라 폭탄 투하, 착탄 경고 원)
+    ///     → 로켓 통과(기함 둘레에 무유도 로켓 일제사격, 착탄 경고 원). 멀리 돌 때는 원거리 대함 미사일 일제사격(모스킷 탄수와 별도).
     ///   2 재장전 착수(65~35%) 6발을 다 쓰면 보급 바지선 옆에 내려앉아 재장전(rearmSeconds) — 그동안 수상 표적 · 피해 1.5배
     ///   3 최후의 돌격(35~12%) 더 자주 통과, 남은 발사관 전탄 일제사격, 스치면 제트 후류 피해
     ///   4 추락 활주(12~0% 또는 엔진 5기 이상 파괴) 더는 뜨지 못한다. 수면을 달리며 예고 뒤 들이받고, 남은 발사관을 연달아 쏜다
@@ -22,6 +24,10 @@ namespace Game.Enemies
     public class LunBoss : WigEnemy, IBossTelegraph, IBossParts
     {
         private enum State { Extend, Pass, ToBarge, Land, Rearm, TakeOff, Taxi, ChargeWarn, Charge }
+        /// <summary>통과 공격 종류(2026-11-20).</summary>
+        public enum PassKind { Missile, Bomb, Rocket }
+        private static readonly PassKind[] NormalCycle = { PassKind.Missile, PassKind.Bomb, PassKind.Rocket };
+        private static readonly PassKind[] AssaultCycle = { PassKind.Missile, PassKind.Bomb, PassKind.Missile, PassKind.Rocket };
 
         [Header("Phases (체력 비율)")]
         [SerializeField, Range(0f, 1f)] private float rearmPhaseAt = 0.65f;
@@ -68,6 +74,30 @@ namespace Game.Enemies
         [SerializeField] private float crashSalvoInterval = 5f;
         [SerializeField] private int enginesToGround = 5;
 
+        [Header("Strike runs (2026-11-20)")]
+        [Tooltip("폭탄 · 로켓(착탄 경고 원이 뜨는 포탄 — PRJ_BossShell)")]
+        [SerializeField] private GameObject bombPrefab;
+        [SerializeField] private float bombDamage = 9f;
+        [SerializeField] private float bombRadius = 5f;
+        [Tooltip("폭탄 사이 간격(초) — 통과 속도 34m/s면 약 7m 간격")]
+        [SerializeField] private float bombInterval = 0.2f;
+        [Tooltip("떨어지는 시간(초) — 그동안 앞으로 날아가므로 착탄은 기체보다 앞")]
+        [SerializeField] private float bombFall = 0.85f;
+        [SerializeField] private int[] bombsPerPass = { 8, 9, 12 };
+        [SerializeField] private float rocketDamage = 5f;
+        [SerializeField] private float rocketRadius = 3.2f;
+        [SerializeField] private float rocketSpeed = 48f;
+        [Tooltip("기함(예측 위치) 둘레 이 반경 안에 흩뿌린다")]
+        [SerializeField] private float rocketSpread = 10f;
+        [SerializeField] private float rocketSpacing = 0.09f;
+        [SerializeField] private int[] rocketsPerPass = { 10, 12, 16 };
+        [Tooltip("원거리 대함 미사일(MIS_EnemyAsm) — 비어 있으면 모스킷")]
+        [SerializeField] private GameObject standoffMissilePrefab;
+        [SerializeField] private float[] standoffInterval = { 18f, 15f, 11f };
+        [SerializeField] private int[] standoffMissiles = { 2, 3, 4 };
+        [SerializeField] private float standoffMinRange = 70f;
+        [SerializeField] private float standoffDamageScale = 0.6f;
+
         [Header("Effects")]
         [SerializeField] private GameObject muzzleFlash;
 
@@ -97,15 +127,25 @@ namespace Game.Enemies
         private Transform _barge;
         private LineRenderer _line;
         private Game.Ship.ShipController _playerShip;
+        private Collider _playerHull;
         private static Material s_lineMat;
+        private PassKind _passKind;
+        private PassKind? _forcedPass;
+        private int _passIndex, _bombsLeft;
+        private float _bombTimer, _standoffTimer;
 
         public BossParts Parts => _parts;
         public string PhaseName => _phase switch { 0 => "고속 통과", 1 => "재장전 착수", 2 => "최후의 돌격", _ => "추락 활주" };
         public float[] PhaseThresholds => new[] { rearmPhaseAt, assaultPhaseAt, crashPhaseAt };
         public (string name, float seconds) NextAttack => _state switch
         {
-            State.Extend => ("고속 통과", Mathf.Max(0f, _timer)),
-            State.Pass => (_firedThisPass ? "꼬리 기관포" : "모스킷 미사일", 0f),
+            State.Extend => (PeekPassKind() switch { PassKind.Bomb => "폭격 통과", PassKind.Rocket => "로켓 통과", _ => "미사일 통과" }, Mathf.Max(0f, _timer)),
+            State.Pass => (_passKind switch
+            {
+                PassKind.Bomb => _bombsLeft > 0 ? "폭격 통과" : "꼬리 기관포",
+                PassKind.Rocket => _firedThisPass ? "꼬리 기관포" : "로켓 일제사격",
+                _ => _firedThisPass ? "꼬리 기관포" : "모스킷 미사일",
+            }, 0f),
             State.ToBarge or State.Land => ("재장전 착수", 0f),
             State.Rearm => ("재장전(공격 기회)", Mathf.Max(0f, _timer)),
             State.TakeOff => ("이수", 0f),
@@ -121,6 +161,15 @@ namespace Game.Enemies
         public int DevRearms { get; private set; }
         public int DevCharges { get; private set; }
         public int DevRams { get; private set; }
+        public int DevBombs { get; private set; }
+        public int DevRockets { get; private set; }
+        public int DevStandoff { get; private set; }
+        /// <summary>검증용: 이번 통과 공격 종류.</summary>
+        public PassKind CurrentPass => _passKind;
+        /// <summary>검증용: 다음 통과 공격을 정한다.</summary>
+        public void DevForcePass(PassKind kind) => _forcedPass = kind;
+        /// <summary>검증용: 원거리 대함 미사일을 곧 쏘게 한다.</summary>
+        public void DevStandoffNow() => _standoffTimer = 0f;
         public int Phase => _phase;
         public int Ammo => _ammo;
         public int EnginesDown { get { int n = 0; foreach (var e in _engines) if (_parts.IsDestroyed(e.Part)) n++; return n; } }
@@ -147,6 +196,11 @@ namespace Game.Enemies
             StopAllCoroutines();
             Bind();
             _playerShip = player != null ? player.GetComponent<Game.Ship.ShipController>() : null;
+            _playerHull = player != null ? player.GetComponent<Collider>() : null;
+            _passIndex = 0;
+            _bombsLeft = 0;
+            _standoffTimer = 9f;
+            _forcedPass = null;
             _phase = 0;
             _state = State.Extend;
             _timer = 1.5f;
@@ -155,7 +209,7 @@ namespace Game.Enemies
             _tailTimer = 1f;
             _tailRounds = 0;
             _side = Random.value < 0.5f ? -1f : 1f;
-            DevPasses = DevMissiles = DevTailShots = DevRearms = DevCharges = DevRams = 0;
+            DevPasses = DevMissiles = DevTailShots = DevRearms = DevCharges = DevRams = DevBombs = DevRockets = DevStandoff = 0;
             foreach (var l in _launchers) l.Open = 0f;
 
             float maxHp = def != null ? def.MaxHp : 3600f;
@@ -239,6 +293,13 @@ namespace Game.Enemies
                     Vector3 heading = dist < runIn ? away : Vector3.Cross(Vector3.up, away) * _side;   // 멀면 크게 원을 그린다
                     _speedNow = Mathf.MoveTowards(_speedNow, speed, speed * dt);
                     Glide(heading, _speedNow, cruiseAltitude, 3f, turn, dt);
+                    // 멀리 도는 동안 원거리 대함 미사일(모스킷 탄수와 별도) — 화면 밖에서 날아오는 미사일
+                    _standoffTimer -= dt;
+                    if (_standoffTimer <= 0f && dist >= standoffMinRange && LaunchersAlive > 0 && !PlayerConcealed)
+                    {
+                        _standoffTimer = standoffInterval[Mathf.Min(_phase, standoffInterval.Length - 1)];
+                        StartCoroutine(StandoffVolley(standoffMissiles[Mathf.Min(_phase, standoffMissiles.Length - 1)]));
+                    }
                     if (_timer <= 0f && dist >= runIn * 0.8f)
                     {
                         if (_phase >= 1 && _ammo < Mathf.Min(2, LaunchersAlive * 2) && LaunchersAlive > 0) BeginRearm();
@@ -252,7 +313,8 @@ namespace Game.Enemies
                     _timer -= dt;
                     // 기함 옆(passOffset)을 겨눠 들어가고, 옆을 지나면 그대로 곧게 빠진다
                     Vector3 lateral = Vector3.Cross(Vector3.up, _passDir) * _side;
-                    float miss = passOffset * (_parts.IsDestroyed(_radomePart) ? 2.2f : 1f);
+                    // 폭격은 기함 바로 위를 지난다(진로를 따라 폭탄), 나머지는 옆을 비켜 지난다
+                    float miss = (_passKind == PassKind.Bomb ? 2f : passOffset) * (_parts.IsDestroyed(_radomePart) ? 2.2f : 1f);
                     Vector3 aim = Player.position + lateral * miss;
                     Vector3 toAim = aim - transform.position; toAim.y = 0f;
                     bool passed = Vector3.Dot(toAim, _passDir) <= 0f;
@@ -268,10 +330,12 @@ namespace Game.Enemies
                     if (!passed) { _passDir = toAim.normalized; DrawLine(transform.position, aim + _passDir * runOut, 2.4f); }
                     else HideLine();
 
-                    if (!_firedThisPass && !passed && dist <= fireRange && !PlayerConcealed)
+                    if (_passKind == PassKind.Bomb) BombRun(toPlayer, dt);
+                    else if (!_firedThisPass && !passed && dist <= fireRange * (_passKind == PassKind.Rocket ? 0.85f : 1f) && !PlayerConcealed)
                     {
                         _firedThisPass = true;
-                        StartCoroutine(Salvo(Mathf.Min(missilesPerPass[Mathf.Min(_phase, missilesPerPass.Length - 1)], _ammo)));
+                        if (_passKind == PassKind.Rocket) StartCoroutine(RocketRipple(rocketsPerPass[Mathf.Min(_phase, rocketsPerPass.Length - 1)]));
+                        else StartCoroutine(Salvo(Mathf.Min(missilesPerPass[Mathf.Min(_phase, missilesPerPass.Length - 1)], _ammo)));
                     }
                     if (_phase >= 2 && !_washedThisPass && dist <= jetWashRadius)
                     {
@@ -279,7 +343,7 @@ namespace Game.Enemies
                         JetWash();
                     }
                     if (passed) TailGun(dist, dt);
-                    if (passed && dist >= runOut)
+                    if (passed && dist >= runOut && _bombsLeft <= 0)
                     {
                         DevPasses++;
                         _state = State.Extend;
@@ -428,7 +492,36 @@ namespace Game.Enemies
             _timer = warnSeconds;
             _firedThisPass = _washedThisPass = false;
             _tailRounds = 0;
+            _passKind = NextPassKind();
+            _bombsLeft = _passKind == PassKind.Bomb ? bombsPerPass[Mathf.Min(_phase, bombsPerPass.Length - 1)] : 0;
+            _bombTimer = 0f;
+            if (_passKind == PassKind.Bomb) GameEvents.RaiseBossPhaseChanged("룬급 폭격 통과 — 기함 위를 지나며 폭탄을 떨굽니다. 붉은 선에서 옆으로 비키십시오");
+            else if (_passKind == PassKind.Rocket) GameEvents.RaiseBossPhaseChanged("룬급 로켓 통과 — 기함 둘레에 로켓을 퍼붓습니다. 붉은 원 밖으로");
             AudioManager.Play(Game.Data.SfxId.JetPass, transform.position, 1f, 0.7f);
+        }
+
+        /// <summary>
+        /// 다음 통과 공격(2026-11-20): 미사일 → 폭격 → 로켓 차례(최후의 돌격은 미사일 · 폭격 · 미사일 · 로켓).
+        /// 모스킷이 떨어졌거나 발사관이 모두 부서졌으면 미사일 대신 폭격, 폭탄 프리팹이 없으면 예전처럼 미사일만.
+        /// </summary>
+        /// <summary>다음 통과 공격을 미리 본다(보스 막대 "다음: …" — 순번은 넘기지 않는다).</summary>
+        private PassKind PeekPassKind()
+        {
+            var cycle = _phase >= 2 ? AssaultCycle : NormalCycle;
+            var kind = _forcedPass ?? cycle[_passIndex % cycle.Length];
+            if (bombPrefab == null) return PassKind.Missile;
+            if (kind == PassKind.Missile && (_ammo <= 0 || LaunchersAlive == 0 || Definition == null || Definition.MissilePrefab == null)) kind = PassKind.Bomb;
+            return kind;
+        }
+
+        private PassKind NextPassKind()
+        {
+            var cycle = _phase >= 2 ? AssaultCycle : NormalCycle;
+            var kind = _forcedPass ?? cycle[_passIndex++ % cycle.Length];
+            _forcedPass = null;
+            if (bombPrefab == null) return PassKind.Missile;
+            if (kind == PassKind.Missile && (_ammo <= 0 || LaunchersAlive == 0 || Definition.MissilePrefab == null)) kind = PassKind.Bomb;
+            return kind;
         }
 
         private void BeginRearm()
@@ -476,6 +569,95 @@ namespace Game.Enemies
                 _ammo = Mathf.Max(0, _ammo - 1);
                 DevMissiles++;
                 yield return new WaitForSeconds(missileSpacing);
+            }
+            yield return new WaitForSeconds(0.5f);
+            if (_state != State.Rearm) foreach (var (l, _) in points) l.Open = 0f;
+        }
+
+        /// <summary>
+        /// 폭격 통과: 폭탄 줄이 기함 자리를 가운데로 지나가게, 앞쪽 거리가 (낙하 중 전진 거리 + 줄 길이의 절반)이 되면 떨구기 시작한다.
+        /// 폭탄은 기체 아래에서 떨어져 bombFall초 뒤 앞쪽 수면에 터진다(착탄 경고 원). 스모크 속이어도 떨군다(선 공격).
+        /// </summary>
+        private void BombRun(Vector3 toPlayer, float dt)
+        {
+            if (_bombsLeft <= 0 || bombPrefab == null) return;
+            Vector3 fwd = transform.forward; fwd.y = 0f; fwd.Normalize();
+            bool started = _bombsLeft < bombsPerPass[Mathf.Min(_phase, bombsPerPass.Length - 1)];
+            if (!started)
+            {
+                // 통과선(_passDir) 기준 앞쪽 거리로 잰다 — 기수 방향으로 재면 선회 중(옆을 볼 때) 너무 일찍 떨군다
+                float along = Vector3.Dot(toPlayer, _passDir);
+                float carpet = _bombsLeft * bombInterval * _speedNow;
+                if (Vector3.Dot(fwd, _passDir) < 0.94f) return;                       // 아직 통과선에 올라서지 않음
+                if (along > _speedNow * bombFall + carpet * 0.5f) return;            // 아직 멀다
+            }
+            _bombTimer -= dt;
+            if (_bombTimer > 0f) return;
+            _bombTimer = bombInterval;
+            _bombsLeft--;
+            Vector3 from = transform.position - transform.up * 0.8f;
+            Vector3 impact = transform.position + fwd * (_speedNow * bombFall);
+            impact.y = 0f;
+            var go = PoolManager.Instance?.Spawn(bombPrefab, from, Quaternion.LookRotation(fwd));
+            if (go != null && go.TryGetComponent<ArtilleryShell>(out var bomb))
+            {
+                bomb.Launch(from, impact, bombFall, bombDamage, bombRadius, _playerHull, "룬급 폭격");
+                bomb.SetApex(0.35f);
+            }
+            DevBombs++;
+        }
+
+        /// <summary>로켓 통과: 양 날개에서 번갈아 무유도 로켓을 기함 예측 위치 둘레(rocketSpread)에 흩뿌린다(착탄 경고 원).</summary>
+        private IEnumerator RocketRipple(int count)
+        {
+            if (bombPrefab == null || count <= 0) yield break;
+            GameEvents.RaiseBossPhaseChanged($"룬급 로켓 {count}발 — 붉은 원 밖으로 비키십시오");
+            for (int i = 0; i < count; i++)
+            {
+                if (!IsAlive || Player == null) yield break;
+                Vector3 lead = _playerShip != null ? Player.forward * _playerShip.CurrentSpeed : Vector3.zero;
+                Vector3 from = transform.position + transform.right * (i % 2 == 0 ? -5.5f : 5.5f) - transform.up * 0.3f;
+                Vector2 r = Random.insideUnitCircle * rocketSpread;
+                float flight = Mathf.Clamp(Vector3.Distance(from, Player.position) / rocketSpeed, 0.5f, 1.4f);
+                Vector3 center = Player.position + lead * flight;
+                Vector3 impact = new(center.x + r.x, 0f, center.z + r.y);
+                var go = PoolManager.Instance?.Spawn(bombPrefab, from, Quaternion.LookRotation(impact - from));
+                if (go != null && go.TryGetComponent<ArtilleryShell>(out var rocket))
+                {
+                    rocket.Launch(from, impact, flight, rocketDamage, rocketRadius, _playerHull, "룬급 로켓");
+                    rocket.SetApex(1.2f);
+                }
+                PooledEffect.Spawn(muzzleFlash, from);
+                if (i % 3 == 0) AudioManager.Play(Game.Data.SfxId.MissileLaunch, from, 0.45f, 1.35f);
+                DevRockets++;
+                yield return new WaitForSeconds(rocketSpacing);
+            }
+        }
+
+        /// <summary>원거리 대함 미사일: 멀리 도는 중 발사관 덮개를 열고 MIS_EnemyAsm을 차례로(모스킷 탄수 · 재장전과 별개).</summary>
+        private IEnumerator StandoffVolley(int count)
+        {
+            var prefab = standoffMissilePrefab != null ? standoffMissilePrefab : Definition.MissilePrefab;
+            if (prefab == null || count <= 0) yield break;
+            var points = new List<(Launcher l, Transform p)>();
+            foreach (var l in _launchers)
+            {
+                if (_parts.IsDestroyed(l.Part)) continue;
+                foreach (var p in l.Points) if (points.Count < count) points.Add((l, p));
+            }
+            if (points.Count == 0) yield break;
+            float t = 0f;
+            while (t < 0.35f) { t += Time.deltaTime; foreach (var (l, _) in points) l.Open = Mathf.MoveTowards(l.Open, 1f, Time.deltaTime / 0.35f); yield return null; }
+            GameEvents.RaiseBossPhaseChanged($"룬급 원거리 대함 미사일 {points.Count}발 — 화면 밖에서 날아옵니다, 요격 준비");
+            foreach (var (l, p) in points)
+            {
+                if (!IsAlive || Player == null) yield break;
+                if (_parts.IsDestroyed(l.Part)) continue;
+                var go = PoolManager.Instance?.Spawn(prefab, p.position, p.rotation);
+                go?.GetComponent<Missile>()?.Launch(Player, Definition.AttackDamage * standoffDamageScale);
+                PooledEffect.Spawn(muzzleFlash, p.position);
+                DevStandoff++;
+                yield return new WaitForSeconds(missileSpacing * 1.5f);
             }
             yield return new WaitForSeconds(0.5f);
             if (_state != State.Rearm) foreach (var (l, _) in points) l.Open = 0f;

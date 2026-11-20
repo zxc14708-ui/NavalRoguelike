@@ -73,7 +73,26 @@ namespace Game.Combat
     /// </summary>
     public class MuzzleBurstVfx : MonoBehaviour
     {
-        public enum Style { Autocannon, NavalGun, Ciws }
+        /// <summary>Heavy(2026-11-20): 2차대전 주포처럼 큰 포 — 함포보다 크게.</summary>
+        public enum Style { Autocannon, NavalGun, Ciws, Heavy }
+
+        /// <summary>
+        /// 무장별 포구 화염 크기(2026-11-20 타격감에서 함포 · 중포만 키움). 자주 쏘는 기관포 · 근접방어무기는 그대로 둔다 —
+        /// 다 키우면 화면을 덮고 표적을 가린다. 함포 · 중포는 옆으로 터지는 화염 · 연기 고리 · 짧은 조명을 더한다.
+        /// </summary>
+        public static float SizeFor(Style style) => style switch
+        {
+            Style.Heavy => 1.7f,
+            Style.NavalGun => 1.3f,
+            Style.Autocannon => 0.42f,
+            _ => 0.30f,
+        };
+
+        /// <summary>검증용: 함포 · 중포 포구 화염 수.</summary>
+        public static int BigBursts { get; private set; }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() => BigBursts = 0;
 
         private ParticleSystem _core;
         private ParticleSystem _flare;
@@ -87,17 +106,37 @@ namespace Game.Combat
             Vector3 side = Vector3.Cross(forward, Mathf.Abs(Vector3.Dot(forward, Vector3.up)) > 0.9f
                 ? Vector3.right : Vector3.up).normalized;
             Vector3 up = Vector3.Cross(side, forward).normalized;
-            float size = style == Style.NavalGun ? 1f : style == Style.Autocannon ? 0.42f : 0.30f;
-            int flareCount = style == Style.NavalGun ? 8 : style == Style.Autocannon ? 4 : 3;
-            int smokeCount = style == Style.NavalGun ? 11 : style == Style.Autocannon ? 3 : 2;
+            bool big = style is Style.NavalGun or Style.Heavy;
+            float size = SizeFor(style);
+            int flareCount = style == Style.Heavy ? 16 : style == Style.NavalGun ? 12 : style == Style.Autocannon ? 4 : 3;
+            int smokeCount = style == Style.Heavy ? 16 : style == Style.NavalGun ? 12 : style == Style.Autocannon ? 3 : 2;
 
             EmitParticle(_core, position + forward * (0.06f * size), Vector3.zero,
                 0.09f, 0.5f * size, new Color(1f, 0.94f, 0.67f, 0.95f));
+            if (big)
+            {
+                BigBursts++;
+                // 하얗게 달아오른 속심 + 앞으로 길게 뻗는 큰 불꽃
+                EmitParticle(_core, position + forward * (0.35f * size), forward * (2.5f * size),
+                    0.07f, 0.75f * size, new Color(1f, 0.98f, 0.9f, 1f));
+                EmitParticle(_core, position + forward * (0.7f * size), forward * (4f * size),
+                    0.12f, 0.9f * size, new Color(1f, 0.6f, 0.22f, 0.85f));
+                // 포구 양옆 · 위아래로 터지는 화염(제퇴기처럼)
+                for (int i = 0; i < 6; i++)
+                {
+                    float a = (i / 6f + Random.Range(-0.05f, 0.05f)) * Mathf.PI * 2f;
+                    Vector3 radial = side * Mathf.Cos(a) + up * Mathf.Sin(a);
+                    EmitParticle(_flare, position + forward * (0.08f * size), (radial * 3.4f + forward * 1.2f) * size,
+                        Random.Range(0.06f, 0.11f), Random.Range(0.3f, 0.5f) * size, new Color(1f, 0.72f, 0.3f, 0.85f));
+                }
+                Game.View.Explosions.FlashLight(position + forward * (0.6f * size), style == Style.Heavy ? 0.45f : 0.25f,
+                    new Color(1f, 0.74f, 0.4f));
+            }
             for (int i = 0; i < flareCount; i++)
             {
-                Vector2 spread = Random.insideUnitCircle * (style == Style.NavalGun ? 0.28f : 0.18f);
+                Vector2 spread = Random.insideUnitCircle * (big ? 0.28f : 0.18f);
                 Vector3 velocity = forward * Random.Range(2.2f, 5.2f) * size +
-                                   (side * spread.x + up * spread.y) * (style == Style.NavalGun ? 5f : 2.8f);
+                                   (side * spread.x + up * spread.y) * (big ? 5f : 2.8f);
                 Color color = i % 3 == 0
                     ? new Color(1f, 0.91f, 0.53f, 0.9f)
                     : new Color(1f, 0.48f, 0.17f, 0.75f);
@@ -117,6 +156,16 @@ namespace Game.Combat
                     : new Color(0.39f, 0.49f, 0.49f, 0.27f);
                 EmitParticle(_smoke, position + forward * (0.13f * size), velocity,
                     Random.Range(0.55f, 1.2f), Random.Range(0.38f, 0.72f) * size, color);
+            }
+            if (!big) return;
+            // 포구 앞에 퍼지는 연기 고리
+            for (int i = 0; i < 8; i++)
+            {
+                float a = (i / 8f) * Mathf.PI * 2f;
+                Vector3 radial = side * Mathf.Cos(a) + up * Mathf.Sin(a);
+                Vector3 velocity = (radial * 1.5f + forward * 0.9f) * size + Vector3.up * 0.3f;
+                EmitParticle(_smoke, position + forward * (0.45f * size) + radial * (0.15f * size), velocity,
+                    Random.Range(0.7f, 1.3f), Random.Range(0.4f, 0.6f) * size, new Color(0.6f, 0.64f, 0.63f, 0.32f));
             }
         }
 

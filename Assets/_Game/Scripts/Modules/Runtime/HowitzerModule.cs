@@ -230,7 +230,9 @@ namespace Game.Modules.Runtime
             LastImpact = impact;
             _lastShotTime = Time.time;
             _recoil = recoilDistance;
-            if (muzzleFlash != null) PooledEffect.Spawn(muzzleFlash, from);
+            // 큰 포 — 포구 화염을 키우고 짧은 조명(2026-11-20 타격감)
+            if (muzzleFlash != null) PooledEffect.Spawn(muzzleFlash, from, 1.4f);
+            Game.View.Explosions.FlashLight(from, 0.3f, new Color(1f, 0.74f, 0.4f));
             AudioManager.Play(Game.Data.SfxId.NavalGunShot, from, 1f, 0.75f);   // 76mm 클립을 낮춰 더 무거운 포성
             CombatLog.Add("곡사포", $"{LogName} 발사 — 착탄 {flight:0.0}초 뒤");
         }

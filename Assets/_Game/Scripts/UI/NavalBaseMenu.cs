@@ -21,6 +21,8 @@ namespace Game.UI
         Transform _stage, _island;
         HarborCraneMotion _cranes;
         HarborFacilityMotion _facilityMotion;
+        HarborOperations _harborOperations;   // 화물선 · 예인정 · 크레인 · 트레일러 · 헬기 운영 연출(Codex HarborOperations_v1, 2026-11-20)
+        public HarborOperations Operations => _harborOperations;
         Camera _camera;
         RenderTexture _texture;
         RawImage _image;
@@ -123,6 +125,7 @@ namespace Game.UI
             _island=Instantiate(prefab,_stage).transform;
             _island.localPosition=new Vector3(0,-.9f,0);
             HarborFacilityArt.Attach(_island);
+            _harborOperations=HarborOperations.Attach(_island);
             _cranes=new HarborCraneMotion(_island.Find("HarborFacilityDetails"));
             _facilityMotion=new HarborFacilityMotion(_island.Find("HarborFacilityDetails"));
             _camera=new GameObject("Harbor menu camera",typeof(Camera)).GetComponent<Camera>();
@@ -460,6 +463,7 @@ namespace Game.UI
             float dt=Paused || still ? 0f : Time.unscaledDeltaTime; _clock+=dt;
             _cranes?.Tick(dt);
             _facilityMotion?.Tick(dt);
+            _harborOperations?.Tick(dt);
             foreach(var traffic in _traffic)
             {
                 if(traffic.Total<=0) foreach(float duration in traffic.Times)traffic.Total+=duration;

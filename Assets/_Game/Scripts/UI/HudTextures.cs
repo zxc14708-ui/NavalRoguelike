@@ -183,7 +183,7 @@ namespace Game.UI
             return p.y < -0.62f && p.y > -0.74f && Mathf.Abs(p.x) < 0.7f;   // 발사대
         }
 
-        /// <summary>돌격 기동: 앞으로 겹친 화살촉 셋(가운데가 가장 굵다).</summary>
+        /// <summary>오버드라이브(예전 돌격 기동): 앞으로 겹친 화살촉 셋(가운데가 가장 굵다).</summary>
         private static bool ChargeShape(Vector2 p)
         {
             if (Mathf.Abs(p.x) > 0.7f) return false;

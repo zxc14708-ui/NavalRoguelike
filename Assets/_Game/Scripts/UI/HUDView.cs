@@ -867,7 +867,8 @@ namespace Game.UI
             (NavalControl.VlsSelector, "VLS 발사기 전환"),
             (NavalControl.HelicopterSelector, "헬기 정책 전환"),
             (NavalControl.ShipStatus, "함 현황"), (NavalControl.Formation, "편대 진형 전환"),
-            (NavalControl.Signature, "함정 고유 스킬"), (NavalControl.Flare, "조명탄")
+            (NavalControl.Signature, "함정 고유 스킬"), (NavalControl.Flare, "조명탄"),
+            (NavalControl.Track, "적 추적")
         };
 
         /// <summary>지금 규칙 집합에서 쓰는 현대 조작(WWII 판: 조타·전령기·수리·연막·전속·함 현황 — 기만체·재밍·VLS·헬기·편대는 뺀다).</summary>

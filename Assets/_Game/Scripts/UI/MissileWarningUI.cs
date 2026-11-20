@@ -47,7 +47,7 @@ namespace Game.UI
         private class Indicator
         {
             public RectTransform Root;
-            public RawImage Shadow, Shape, Arrow;
+            public RawImage Shadow, Shape, Arrow, Icon;
             public TMP_Text Label;
         }
 
@@ -137,7 +137,8 @@ namespace Game.UI
                     if (kind == TargetKind.Submarine && !t.IsRevealed) continue;
                     if (kind == TargetKind.Missile && t is Missile projectile && !projectile.IsThreat) continue;
                     float d = Vector3.Distance(new Vector3(origin.x, 0f, origin.z), new Vector3(t.Transform.position.x, 0f, t.Transform.position.z));
-                    if (d > range) continue;
+                    // 보스와 추적 중인 적(2026-11-20)은 거리와 상관없이 가장자리에 알린다 — 멀리 돌아 나간 룬급을 놓치지 않게
+                    if (d > range && !(t is IBossTelegraph || ReferenceEquals(t, Game.View.EnemyTracker.Target))) continue;
                     _threats.Add((t, d, missile, missile ? SecondsToImpact(t) : -1f));
                 }
             }
@@ -200,6 +201,7 @@ namespace Game.UI
             {
                 ind.Root.gameObject.SetActive(true);
                 ind.Root.position = new Vector3(Screen.width * 0.5f, Screen.height * 0.78f, 0f);
+                SetBrackets(ind);
                 ind.Shape.color = MissileColor;
                 ind.Shape.rectTransform.sizeDelta = ind.Shadow.rectTransform.sizeDelta = new Vector2(missileMarkerSize, missileMarkerSize);
                 ind.Shape.rectTransform.localRotation = ind.Shadow.rectTransform.localRotation = Quaternion.identity;
@@ -243,11 +245,12 @@ namespace Game.UI
             ind.Root.gameObject.SetActive(true);
             ind.Shape.color = color;
 
-            // 미사일은 정사각 괄호, 나머지는 45° 마름모(돌리면 대각선이 길어져 조금 작게). 가장 급한 미사일은 크게.
-            float size = (onScreen ? missileMarkerSize : edgeMarkerSize) * (missile ? 1f : 0.82f) * (urgent ? 1.3f : 1f);
-            var shapeRot = Quaternion.Euler(0f, 0f, missile ? 0f : 45f);
+            // 화면 안 미사일: 미사일을 감싸는 정사각 괄호. 화면 밖: 종류 아이콘 배지(2026-11-20 — 어두운 원 · 색 고리 · 미사일/고속정/전투기/잠수함… 실루엣).
+            // 가장 급한 미사일은 크게.
+            float size = (onScreen ? missileMarkerSize : edgeMarkerSize * 1.5f) * (urgent ? 1.25f : 1f);
             ind.Shape.rectTransform.sizeDelta = ind.Shadow.rectTransform.sizeDelta = new Vector2(size, size);
-            ind.Shape.rectTransform.localRotation = ind.Shadow.rectTransform.localRotation = shapeRot;
+            ind.Shape.rectTransform.localRotation = ind.Shadow.rectTransform.localRotation = Quaternion.identity;
+            if (onScreen) SetBrackets(ind);
 
             if (onScreen)
             {
@@ -275,6 +278,7 @@ namespace Game.UI
             _placed.Add(edge);
             ind.Root.position = new Vector3(edge.x, edge.y, 0f);
 
+            SetBadge(ind, ThreatIcons.KindFor(t, missile), color, size, n, missile);
             ind.Arrow.enabled = true;
             ind.Arrow.color = color;
             ind.Arrow.rectTransform.anchoredPosition = n * (size * 0.5f + 11f);
@@ -364,6 +368,12 @@ namespace Game.UI
 
         private static string LabelFor(ITargetable t, bool missile)
         {
+            if (!missile && ReferenceEquals(t, Game.View.EnemyTracker.Target)) return "추적 · " + BaseLabel(t, false);
+            return BaseLabel(t, missile);
+        }
+
+        private static string BaseLabel(ITargetable t, bool missile)
+        {
             if (t is Torpedo) return "어뢰";
             if (t is Submarine { IsPreparingTorpedo: true }) return "어뢰 준비";
             if (t is TorpedoBoat { IsPreparingTorpedo: true }) return "어뢰 준비";
@@ -391,6 +401,7 @@ namespace Game.UI
                 FastAttackBoat { Definition: { Id: "ene_aa_frigate" } } => "방공함",
                 FastAttackBoat => "고속정",
                 BossShip or HybridBattleshipBoss or ModernCorvetteBoss => "보스",
+                LunBoss => "룬급 보스",
                 _ => t.Kind == TargetKind.Aircraft ? "항공기" : "함정",
             };
         }
@@ -401,6 +412,33 @@ namespace Game.UI
             TargetKind.Submarine => SubColor,
             _ => ShipColor,
         };
+
+        private static readonly Color BadgeBack = new(0.02f, 0.05f, 0.08f, 0.72f);
+
+        /// <summary>괄호 표식(화면 안 미사일 · 어뢰 준비 알림).</summary>
+        private static void SetBrackets(Indicator ind)
+        {
+            ind.Shape.texture = HudTextures.CornerBrackets;
+            ind.Shadow.texture = HudTextures.CornerBrackets;
+            ind.Shadow.color = ShadowColor;
+            ind.Shadow.rectTransform.anchoredPosition = new Vector2(1.5f, -1.5f);
+            ind.Icon.enabled = false;
+        }
+
+        /// <summary>화면 밖 배지: 어두운 원 바탕 · 종류 색 고리 · 가운데 종류 실루엣. 미사일 · 어뢰는 화면 안쪽(기함 쪽)으로 기수를 돌린다.</summary>
+        private static void SetBadge(Indicator ind, ThreatIcons.Kind kind, Color color, float size, Vector2 outward, bool incoming)
+        {
+            ind.Shadow.texture = ThreatIcons.Disc;
+            ind.Shadow.color = BadgeBack;
+            ind.Shadow.rectTransform.anchoredPosition = Vector2.zero;
+            ind.Shape.texture = ThreatIcons.BadgeRing;
+            ind.Icon.enabled = true;
+            ind.Icon.texture = ThreatIcons.Icon(kind);
+            ind.Icon.color = Color.Lerp(color, Color.white, 0.45f);
+            ind.Icon.rectTransform.sizeDelta = new Vector2(size * 0.7f, size * 0.7f);
+            float angle = incoming ? Mathf.Atan2(-outward.y, -outward.x) * Mathf.Rad2Deg - 90f : 0f;
+            ind.Icon.rectTransform.localRotation = Quaternion.Euler(0f, 0f, angle);
+        }
 
         private Indicator GetIndicator(int index)
         {
@@ -415,6 +453,7 @@ namespace Game.UI
                     Root = root,
                     Shadow = CreateImage(root, "Shadow", HudTextures.CornerBrackets, ShadowColor, new Vector2(1.5f, -1.5f)),
                     Shape = CreateImage(root, "Reticle", HudTextures.CornerBrackets, Color.white, Vector2.zero),
+                    Icon = CreateImage(root, "Icon", ThreatIcons.Icon(ThreatIcons.Kind.Boat), Color.white, Vector2.zero),
                     Arrow = CreateImage(root, "Arrow", HudTextures.Triangle, Color.white, Vector2.zero),
                     Label = CreateLabel(root),
                 };

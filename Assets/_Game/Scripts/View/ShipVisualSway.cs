@@ -27,8 +27,32 @@ namespace Game.View
         private BoxCollider _hull;
         private float _roll, _pitch, _bob;
 
+        // 피격 흔들림(2026-11-20 타격감): 맞은 방향으로 잠깐 기울었다가 용수철처럼 돌아온다
+        private Vector2 _kick, _kickVel;   // x = 앞뒤(도), y = 좌우(도)
+        private const float KickSpring = 170f, KickDamping = 13f, KickMaxDegrees = 7f;
+
         /// <summary>검증용: 지금 파도로 생긴 오르내림(m)·앞뒤·좌우 기울기(도).</summary>
         public Vector3 WaveMotion => new(_bob, _pitch, _roll);
+        /// <summary>검증용: 지금 피격으로 기운 정도(도, 앞뒤 · 좌우 합).</summary>
+        public float KickDegrees => _kick.magnitude;
+
+        /// <summary>
+        /// 맞았을 때 흔들림. worldDir = 탄이 날아온 방향(탄의 진행 방향), strength 0~1(HitFlash.StrengthFor).
+        /// 옆에서 맞으면 맞은 쪽이 들리며 반대로 기울고, 앞뒤에서 맞으면 앞뒤로 끄덕인다. 작은 배일수록 크게.
+        /// </summary>
+        public void Kick(Vector3 worldDir, float strength)
+        {
+            var root = transform.parent != null ? transform.parent : transform;
+            Vector3 local = root.InverseTransformDirection(worldDir);
+            local.y = 0f;
+            if (local.sqrMagnitude < 1e-4f) return;
+            local.Normalize();
+            float length = _hull != null ? _hull.size.z * _hull.transform.lossyScale.z : 6f;
+            float size = Mathf.Clamp(7f / Mathf.Max(2f, length), 0.55f, 1.5f);
+            float deg = 3.2f * Mathf.Clamp01(strength) * size;
+            // 각속도로 넣어 탁 치이는 느낌(바로 기운 자세로 튀지 않게)
+            _kickVel += new Vector2(local.z * deg * 0.55f, -local.x * deg) * 24f;
+        }
 
         /// <summary>없으면 붙인다(모델 전용 자식에).</summary>
         public static ShipVisualSway Ensure(Transform model)
@@ -54,6 +78,7 @@ namespace Game.View
             transform.localRotation = _baseLocalRot;
             transform.localPosition = _baseLocalPos;
             _roll = _pitch = _bob = 0f;
+            _kick = _kickVel = Vector2.zero;
         }
 
         private void LateUpdate()
@@ -76,6 +101,23 @@ namespace Game.View
                 roll = roll * 0.35f + _roll;
                 pitch = pitch * 0.35f + _pitch;
                 bob = bob * 0.35f + _bob;
+            }
+
+            if (_kick.sqrMagnitude > 1e-5f || _kickVel.sqrMagnitude > 1e-4f)
+            {
+                // 프레임이 느려도 같은 속도로 돌아오게 잘게 나눠 계산한다(한 번에 1/60초 이하)
+                float remaining = Mathf.Min(Time.deltaTime, 0.25f);
+                while (remaining > 1e-5f)
+                {
+                    float dt = Mathf.Min(remaining, 1f / 60f);
+                    remaining -= dt;
+                    _kickVel += (-KickSpring * _kick - KickDamping * _kickVel) * dt;
+                    _kick += _kickVel * dt;
+                }
+                _kick = Vector2.ClampMagnitude(_kick, KickMaxDegrees);
+                if (_kick.sqrMagnitude < 1e-5f && _kickVel.sqrMagnitude < 1e-4f) _kick = _kickVel = Vector2.zero;
+                pitch += _kick.x;
+                roll += _kick.y;
             }
 
             transform.localRotation = Quaternion.Euler(pitch, 0f, roll) * _baseLocalRot;

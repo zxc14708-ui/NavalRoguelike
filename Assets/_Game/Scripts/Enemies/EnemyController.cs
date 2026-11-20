@@ -404,6 +404,7 @@ namespace Game.Enemies
                 RunReport.RecordDamage(info.Tag, info.Source, before - Mathf.Max(0f, _hp), _hp <= 0f);
                 Game.UI.CombatNumbersUI.Note(this, before - Mathf.Max(0f, _hp), _hp <= 0f);   // 피해 숫자(2026-11-17)
             }
+            if (_hp > 0f && info.Amount > 0f) HitFeedback(info);
             if (_hp <= 0f)
             {
                 // 마지막 한 방(무엇에 · 어디를 맞았는지)에 따라 침몰 방식이 달라진다(ShipWreck.SinkMode)
@@ -416,6 +417,29 @@ namespace Game.Enemies
 
         private DamageSource? _killSource;
         private Vector3 _killPoint;
+        private Game.View.ShipVisualSway _sway;
+        private bool _swayLooked;
+
+        /// <summary>
+        /// 타격감(2026-11-20): 맞으면 하얗게 번쩍이고(HitFlash), 수상함 모델은 맞은 방향으로 잠깐 기운다(ShipVisualSway.Kick).
+        /// 세기는 한 발 피해로(기관포는 약하게, 76mm는 세게). 판정 · 이동에는 영향이 없다.
+        /// </summary>
+        private void HitFeedback(in DamageInfo info)
+        {
+            Game.View.HitFlash.Hit(this, info.Amount);
+            if (!_swayLooked)
+            {
+                _swayLooked = true;
+                var pivot = transform.Find("ModelPivot");
+                if (pivot != null) pivot.TryGetComponent(out _sway);
+            }
+            if (_sway != null && info.Source != DamageSource.CookOff)
+            {
+                Vector3 dir = info.Direction;
+                if (dir.sqrMagnitude < 1e-4f && info.HitPoint != Vector3.zero) dir = transform.position - info.HitPoint;
+                _sway.Kick(dir, Game.View.HitFlash.StrengthFor(info.Amount));
+            }
+        }
 
         // --- 표적 지시(초계함 광역 탐색, 2026-10-11): 잠깐 받는 피해가 늘어난다
         private float _markedUntil = -1f, _markMultiplier = 1f;

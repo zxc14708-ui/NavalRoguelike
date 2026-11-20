@@ -150,7 +150,7 @@ namespace Game.WW2
                     shell.SetMaxTravel(Vector3.Distance(m.position, aim) + missOvershoot);
                 }
                 if (_muzzleVfx == null) _muzzleVfx = gameObject.AddComponent<MuzzleBurstVfx>();
-                _muzzleVfx.Emit(m.position, dir, MuzzleBurstVfx.Style.NavalGun, muzzleFlash, true);
+                _muzzleVfx.Emit(m.position, dir, MuzzleBurstVfx.Style.Heavy, muzzleFlash, true);
                 n++;
             }
             ShellsFired += n;

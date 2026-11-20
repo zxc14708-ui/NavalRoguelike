@@ -8,7 +8,7 @@ namespace Game.Ship
     /// <summary>
     /// 범용 초계함 고유 스킬 — 광역 탐색(2026-10-11). 함선 둘레 80m의 적(수상함·항공기·잠수함)을 15초 동안 표적 지시한다:
     /// 받는 피해 +25%, 잠항 중인 잠수함도 드러난다(RevealFor — 일반 무장으로도 맞는다).
-    /// 연출: 수면에 초록 레이더 고리 셋이 번지고, 지시된 적 위에 붉은 마름모 괄호가 돈다(끝나기 1초 전 깜빡임). 소나 핑.
+    /// 연출: 수면에 초록 레이더 고리 셋이 번지고, 지시된 적 위에 갈라진 방패 문장(약점 표시 — 온전한 방패가 튀어나와 금을 따라 둘로 벌어짐, 2026-11-20)이 뜬다(끝나기 1초 전 깜빡임). 소나 핑.
     /// </summary>
     public sealed class RadarSweepAbility : ISignatureAbility
     {
@@ -46,7 +46,7 @@ namespace Game.Ship
                     if (d.sqrMagnitude > r2) continue;
                     e.Mark(MarkSeconds, DamageMultiplier);
                     if (e is SubmarineBase sub) { sub.RevealFor(MarkSeconds); LastRevealedSubs++; }
-                    SignatureFx.Marker(e.transform, MarkSeconds, MarkColor, e is AirEnemy ? 2.6f : 3.4f);
+                    SignatureFx.BrokenShield(e.transform, MarkSeconds, MarkColor, e is AirEnemy ? 2.2f : 2.7f);   // 약점 표시: 갈라진 방패(2026-11-20)
                     LastMarked++;
                 }
             }

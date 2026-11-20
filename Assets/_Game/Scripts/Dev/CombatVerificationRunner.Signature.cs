@@ -19,7 +19,7 @@ namespace Game.Dev
         /// 1) 시작 무장: 시작 함선 넷 모두 함수·함미 끝에 무기(기관포·VLS), 함교 원격 기관총이 가까운 고속정을 쏜다.
         /// 2) 손상통제: 블록 없음 = 응급 수리 1회·자동 회복 50%에서 멈춤, 손상통제반 1개 = 2회·상한 67%·속도 1.5배,
         ///    응급 수리 쓰면 1회 줄고 보스 격침이면 다시 가득.
-        /// 3) 고유 스킬 넷: 광역 탐색(표적 지시·잠수함 노출·피해 +25%), 돌격 기동(속력·피해 감소·충돌), 전탄 발사(남은 셀 전부),
+        /// 3) 고유 스킬 넷: 광역 탐색(표적 지시·잠수함 노출·피해 +25%), 오버드라이브(연사 · 속력 · 스킬 회복 · 붉은 잔상), 전탄 발사(남은 셀 전부),
         ///    항공대 호출(전투기 3 + 조기경보기 1, 기총 공격·레이더 고리·이탈). 장면마다 찍는다.
         /// </summary>
         /// <summary>
@@ -336,30 +336,52 @@ namespace Game.Dev
                 yield return new WaitForSeconds(0.5f);
             }
 
-            // ---- 3b) 돌격 기동(고속 강습함)
+            // ---- 3b) 오버드라이브(고속 강습함, 2026-11-20 — 예전 돌격 기동)
             {
                 skill.ForceKind(StartShipKind.Assault);
                 ship.SetEngineOrder(1f);
                 yield return new WaitForSeconds(2f);
-                var target = Frozen(boatDef, ship.transform.position + Fwd() * 30f);
+                ModuleRuntime gun = null;
+                foreach (var r in ship.GetComponentsInChildren<ModuleRuntime>()) if (r.Instance != null && RunUpgrades.IsWeapon(r.Instance.Definition.Type) && r.Stats.ReloadTime > 0f) { gun = r; break; }
+                if (gun == null) { var inst = CombatDevTools.InstallModuleNear("mod_autocannon", new GridCoord(0, 0), 8); gun = inst != null ? inst.Runtime : null; yield return null; }   // 무장이 없으면 하나 달아 잰다
+                float reload0 = gun != null ? gun.Stats.ReloadTime : 0f, rate0 = RunUpgrades.SkillRate;
                 float v0 = ship.CurrentSpeed;
                 bool used = skill.TryActivate();
-                var run = skill.Ability as AssaultRunAbility;
-                yield return new WaitForSeconds(0.5f);
-                yield return ScreenShot("signature_assault");
-                float t0 = Time.time;
-                while (Time.time - t0 < 6f && run != null && run.Rams == 0)
-                {
-                    if (target != null && target.IsAlive) { var p = ship.transform.position + Fwd() * 6f; p.y = target.transform.position.y; target.transform.position = Vector3.MoveTowards(target.transform.position, p, 10f * Time.deltaTime); }
-                    yield return null;
-                }
-                float scale = ship.IncomingDamageScale;
-                _report.AppendLine($"- 돌격 기동: 사용 {Yes(used)} · 전속 {Yes(ship.IsFlanking)} · 받는 피해 ×{scale:0.##} · 속력 {v0:0.0} → {ship.CurrentSpeed:0.0} · 충돌 {run?.Rams}회");
-                if (!used || !ship.IsFlanking || Mathf.Abs(scale - 0.6f) > 0.01f || run == null || run.Rams < 1) Fail("돌격 기동이 속력·피해 감소·충돌 공격을 하지 않음");
-                yield return CloseShot("signature_assault_close", ship.transform, 12f);
-                yield return new WaitForSeconds(AssaultRunAbility.Duration);
-                _report.AppendLine($"- 돌격 기동 끝: 받는 피해 ×{ship.IncomingDamageScale:0.##}");
-                if (!Mathf.Approximately(ship.IncomingDamageScale, 1f)) Fail("돌격 기동이 끝나도 피해 감소가 남음");
+                var od = skill.Ability as OverdriveAbility;
+                float cd0 = skill.CooldownLeft;
+                yield return new WaitForSeconds(1f);
+                float reload1 = gun != null ? gun.Stats.ReloadTime : 0f, rate1 = RunUpgrades.SkillRate, cdUsed = cd0 - skill.CooldownLeft;
+                yield return new WaitForSeconds(1.5f);
+                var fx = Game.View.OverdriveFx.Active;
+                int layers = fx != null ? fx.LayerCount : 0, ghosts = fx != null ? fx.GhostCount : 0;
+                _report.AppendLine($"- 오버드라이브: 사용 {Yes(used)} · {gun?.Instance.Definition.DisplayName} 발사 간격 {reload0:0.###} → {reload1:0.###}(기대 ÷1.5) · 스킬 회복 ×{rate0:0.##} → ×{rate1:0.##}(기대 ×2) · " +
+                                   $"자기 쿨타임 1초에 {cdUsed:0.00}초 흐름(기대 약 1) · 속력 {v0:0.0} → {ship.CurrentSpeed:0.0}(강화 {Yes(ship.IsSpeedBoosted)}) · 붉은 덧그림 {layers}조각 · 잔상 {ghosts}");
+                if (!used || od == null) Fail("오버드라이브를 쓰지 못함");
+                if (gun != null && Mathf.Abs(reload1 * OverdriveAbility.FireRate - reload0) > 0.002f) Fail("오버드라이브가 연사를 50% 올리지 않음");
+                if (Mathf.Abs(rate1 - rate0 * OverdriveAbility.SkillRate) > 0.01f) Fail("오버드라이브가 스킬 회복을 2배로 하지 않음");
+                if (Mathf.Abs(cdUsed - 1f) > 0.25f) Fail("오버드라이브가 제 쿨타임까지 빨리 돌림");
+                if (!ship.IsSpeedBoosted || ship.CurrentSpeed <= v0 * 1.15f) Fail("오버드라이브가 속력을 올리지 않음");
+                if (layers == 0) Fail("오버드라이브 붉은 달아오름이 없음");
+                if (ghosts == 0) Fail("오버드라이브 잔상이 없음");
+                yield return ScreenShot("signature_overdrive");
+                yield return CloseShot("signature_overdrive_close", ship.transform, 14f);
+                yield return new WaitForSeconds(OverdriveAbility.Duration - 2.5f + 0.5f);
+                // 과열: 연사 · 속력 −20%, 흰 증기
+                float reloadHot = gun != null ? gun.Stats.ReloadTime : 0f;
+                bool hot = od != null && od.IsOverheated, slowed = ship.IsSpeedPenalized;
+                bool steam = Game.View.OverdriveFx.Active != null && Game.View.OverdriveFx.Active.Overheating;
+                _report.AppendLine($"- 과열: 상태 {Yes(hot)} · 발사 간격 {reloadHot:0.###}(기대 {reload0 / OverdriveAbility.OverheatFireRate:0.###}) · 속력 저하 {Yes(slowed)} · 증기 연출 {Yes(steam)}");
+                if (!hot || !slowed || !steam) Fail("오버드라이브가 끝난 뒤 과열이 오지 않음");
+                if (gun != null && Mathf.Abs(reloadHot * OverdriveAbility.OverheatFireRate - reload0) > 0.002f) Fail("과열 중 연사가 20% 줄지 않음");
+                yield return new WaitForSeconds(0.6f);
+                yield return CloseShot("signature_overheat", ship.transform, 14f);
+                yield return new WaitForSeconds(OverdriveAbility.OverheatSeconds);
+                float reload2 = gun != null ? gun.Stats.ReloadTime : 0f;
+                bool fxGone = Game.View.OverdriveFx.Active == null;
+                _report.AppendLine($"- 과열 끝: 발사 간격 {reload2:0.###}(원래 {reload0:0.###}) · 스킬 회복 ×{RunUpgrades.SkillRate:0.##} · 속력 강화 {Yes(ship.IsSpeedBoosted)} · 속력 저하 {Yes(ship.IsSpeedPenalized)} · 연출 정리 {Yes(fxGone)}");
+                if (gun != null && Mathf.Abs(reload2 - reload0) > 0.002f) Fail("오버드라이브가 끝나도 연사가 돌아오지 않음");
+                if (Mathf.Abs(RunUpgrades.SkillRate - rate0) > 0.01f || ship.IsSpeedBoosted || ship.IsSpeedPenalized) Fail("과열이 끝나도 배율이 남음");
+                if (!fxGone) Fail("오버드라이브 연출이 남음");
                 ship.SetEngineOrder(0f);
                 CombatDevTools.ClearBattlefield();
                 yield return new WaitForSeconds(2f);

@@ -109,6 +109,9 @@ namespace Game.Dev
                 runner.BlockHitOnly = System.Array.IndexOf(args, "-blockHitOnly") >= 0;
                 runner.WeaponPackOnly = System.Array.IndexOf(args, "-weaponPackOnly") >= 0;
                 runner.HarborAAOnly = System.Array.IndexOf(args, "-harborAAOnly") >= 0;
+                runner.HarborOpsOnly = System.Array.IndexOf(args, "-harborOpsOnly") >= 0;   // 군항 운영 연출(2026-11-20)
+                runner.LunPatternOnly = System.Array.IndexOf(args, "-lunPatternOnly") >= 0;   // 룬급 통과 공격 · 적 추적(2026-11-20)
+                runner.MarkersOnly = System.Array.IndexOf(args, "-markersOnly") >= 0;   // 표식 디자인(2026-11-20)
                 runner.HarborBuildingsOnly = System.Array.IndexOf(args, "-harborBuildingsOnly") >= 0;
                 runner.SignatureOnly = System.Array.IndexOf(args, "-signatureOnly") >= 0;
                 runner.EscortArmsOnly = System.Array.IndexOf(args, "-escortArmsOnly") >= 0;
@@ -122,6 +125,7 @@ namespace Game.Dev
                 runner.FieldEventsOnly = System.Array.IndexOf(args, "-fieldEventsOnly") >= 0;   // 전장 이벤트(2026-11-17)
                 runner.CardsNumbersOnly = System.Array.IndexOf(args, "-cardsNumbersOnly") >= 0;   // 간단한 무장 카드 · 전투 숫자(2026-11-17)
                 runner.DayNightOnly = System.Array.IndexOf(args, "-dayNightOnly") >= 0;   // 낮과 밤(2026-11-19)
+                runner.HitFeelOnly = System.Array.IndexOf(args, "-hitFeelOnly") >= 0;   // 타격감(2026-11-20)
                 runner.AviationOnly = System.Array.IndexOf(args, "-aviationOnly") >= 0;
                 runner.SeaOnly = System.Array.IndexOf(args, "-seaOnly") >= 0;
                 runner.PerfOnly = System.Array.IndexOf(args, "-perfOnly") >= 0;   // 성능 측정(O04)

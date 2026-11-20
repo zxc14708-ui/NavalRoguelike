@@ -221,7 +221,11 @@ namespace Game.Combat
                     if (target is not Missile) CombatStats.RecordHit(_statsKey, hit.point);
                     // 적 선체 명중음(2026-11-16): 작은 탄은 작고 높게, 큰 포탄은 크고 낮게. 기함이 맞는 소리는 ShipController가 낸다
                     if (target is Game.Enemies.EnemyController enemy && enemy.Kind != TargetKind.Aircraft)
+                    {
                         AudioManager.Play(Game.Data.SfxId.ShellImpact, hit.point, Mathf.Clamp(0.35f + _damage / 30f, 0.35f, 1f), _damage >= 6f ? 1f : 1.3f);
+                        // 구경에 비례한 명중 연출(2026-11-20 타격감): 작은 탄은 섬광 · 불똥, 큰 포탄은 불덩이 · 파편 · 연기까지
+                        Game.View.Explosions.ShellHit(hit.point, transform.forward, _damage);
+                    }
                 }
 
                 if (splashRadius > 0f) ApplySplash(hit.point, hit.collider);

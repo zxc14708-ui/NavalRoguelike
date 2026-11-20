@@ -94,6 +94,14 @@ namespace Game.View
         private VolumeProfile _miniatureProfile;
         private DepthOfField _miniatureDepthOfField;
         private bool _mobileDepthOfField;
+        // 적 추적(2026-11-20, EnemyTracker): 초점을 표적 쪽으로 옮기고(기함은 화면 안에 남김) 조금 물러난다 — 부드럽게 들어가고 빠진다
+        private Vector3 _trackShift, _trackLastPos, _trackVelocity;
+        private Transform _trackLast;
+        private float _trackExtra;
+        private const float TrackMaxShift = 80f, TrackMaxDistance = 160f;
+        /// <summary>검증용: 추적으로 옮긴 초점 거리(m) · 늘린 카메라 거리(m).</summary>
+        public float TrackShift => _trackShift.magnitude;
+        public float TrackExtraDistance => _trackExtra;
 
         /// <summary>지금 적용 중인 전투 카메라 거리(성장 보정 포함). 개발용 표시가 읽는다.</summary>
         public float CurrentDistance => _zoomCurrent + GrowthDistance();
@@ -104,6 +112,7 @@ namespace Game.View
             _zoomTarget = _zoomCurrent = Mathf.Clamp(combatDistance, minCombatDistance, maxCombatDistance);
             if (_camera != null) _camera.fieldOfView = combatFieldOfView;
             if (miniatureLook && _camera != null) SetupMiniatureLook();
+            if (!TryGetComponent<EnemyTracker>(out _)) gameObject.AddComponent<EnemyTracker>();
         }
 
         private void SetupMiniatureLook()
@@ -184,6 +193,25 @@ namespace Game.View
             float targetPitch = _buildFraming ? buildPitch : combatPitch;
             float targetDistance = _buildFraming ? buildDistance : CurrentDistance;
             if (finale != null) targetDistance = Mathf.Clamp(targetDistance, 37f, 52f);
+            // 적 추적: 기함과 표적을 함께 담는다(초점은 둘 사이로, 거리는 떨어진 만큼 — 한도 안)
+            Transform tracked = !_buildFraming && finale == null ? EnemyTracker.TrackedTransform : null;
+            Vector3 wantShift = Vector3.zero; float wantExtra = 0f;
+            if (tracked != null)
+            {
+                // 빠른 표적(룬급 34m/s)은 카메라가 뒤따르는 동안(약 0.5초) 화면 가장자리로 빠진다 — 움직이는 쪽으로 0.6초 앞을 본다
+                if (_trackLast != tracked) { _trackLast = tracked; _trackLastPos = tracked.position; _trackVelocity = Vector3.zero; }
+                if (dt > 0f) _trackVelocity = Vector3.Lerp(_trackVelocity, (tracked.position - _trackLastPos) / dt, 1f - Mathf.Exp(-6f * dt));
+                _trackLastPos = tracked.position;
+                Vector3 d = tracked.position + _trackVelocity * 0.6f - target.position; d.y = 0f;
+                float sep = d.magnitude;
+                if (sep > 0.01f) wantShift = d / sep * Mathf.Min(sep * 0.5f, TrackMaxShift);
+                // 초점을 가운데에 두면(앞쪽 끌어당김 덕분에) 위아래로 거리의 약 ±0.5배, 좌우로 ±0.6배가 보인다 — 둘 사이 거리만큼 물러난다
+                wantExtra = Mathf.Clamp(sep * 1.1f + 22f - targetDistance, 0f, Mathf.Max(0f, TrackMaxDistance - targetDistance));
+            }
+            float trackBlend = 1f - Mathf.Exp(-3.5f * dt);
+            _trackShift = Vector3.Lerp(_trackShift, wantShift, trackBlend);
+            _trackExtra = Mathf.Lerp(_trackExtra, wantExtra, trackBlend);
+            if (!_buildFraming && finale == null) targetDistance += _trackExtra;
             float targetYaw = _buildFraming ? target.eulerAngles.y : combatYaw;
 
             if (_camera != null)
@@ -191,7 +219,7 @@ namespace Game.View
 
             var rot = Quaternion.Euler(targetPitch, targetYaw, 0f);
 
-            Vector3 focus = finale != null ? finale.position : target.position;
+            Vector3 focus = finale != null ? finale.position : target.position + (_buildFraming ? Vector3.zero : _trackShift);
             if (finale != null) focus.y = Mathf.Max(focus.y, Game.World.IslandBuilder.SeaY);
             if (!_buildFraming && finale == null)
             {
@@ -212,7 +240,7 @@ namespace Game.View
                 _shakeApplied = (transform.right * (Mathf.PerlinNoise(t, 0.3f) - 0.5f) + transform.up * (Mathf.PerlinNoise(0.7f, t) - 0.5f)) * (2f * ShakeMeters * _shake);
                 transform.position += _shakeApplied;
             }
-            UpdateMiniatureFocus(finale != null ? focus : target.position);
+            UpdateMiniatureFocus(finale != null ? focus : target.position + _trackShift);
         }
 
         private void UpdateMiniatureFocus(Vector3 focus)
