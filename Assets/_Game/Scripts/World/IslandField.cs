@@ -100,11 +100,11 @@ namespace Game.World
         }
 
         /// <summary>검증용: 지정한 자리에 Codex 키트 섬(적 기지 · 자연 섬) 하나를 놓는다.</summary>
-        public IslandInfo PlaceKit(Vector3 center, IslandBuilder.Kit kind, int seed = 1, float scale = 1f)
+        public IslandInfo PlaceKit(Vector3 center, IslandBuilder.Kit kind, int seed = 1, float scale = 1f, int variant = -1)
         {
             var key = new Vector2Int(int.MinValue, int.MinValue);
             if (!_chunks.TryGetValue(key, out var list)) _chunks[key] = list = new List<IslandInfo>();
-            var info = IslandBuilder.BuildKit(center, kind, new System.Random(seed), transform, scale);
+            var info = IslandBuilder.BuildKit(center, kind, new System.Random(seed), transform, scale, variant);
             if (info != null) list.Add(info);
             Physics.SyncTransforms();
             return info;

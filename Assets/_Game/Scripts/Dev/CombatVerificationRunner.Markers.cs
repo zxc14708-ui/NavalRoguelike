@@ -82,6 +82,10 @@ namespace Game.Dev
             _report.AppendLine($"- 화면 밖 배지: {badges}개 · 서로 다른 실루엣 {icons.Count}종 · {string.Join(", ", kinds)}");
             if (badges < 3) Fail("화면 밖 적 배지가 거의 없음");
             if (icons.Count < 3) Fail("화면 밖 배지가 적 종류마다 다르지 않음");
+            // 미사일정은 고속정과 다른 아이콘(2026-11-21)
+            EnemyController fast = spawned.Find(e => e.Definition.Id == "ene_fastboat"), msl = spawned.Find(e => e.Definition.Id == "ene_missileboat");
+            if (fast != null && msl != null && Game.UI.ThreatIcons.KindFor(fast, false) == Game.UI.ThreatIcons.KindFor(msl, false))
+                Fail("미사일정 아이콘이 고속정과 같음");
             yield return ScreenShot("offscreen_badges");
 
             for (int i = 0; i < modules.Length; i++) if (modules[i] != null) modules[i].enabled = wasOn[i];

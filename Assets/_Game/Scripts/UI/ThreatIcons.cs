@@ -14,7 +14,7 @@ namespace Game.UI
     /// </summary>
     public static class ThreatIcons
     {
-        public enum Kind { Missile, Torpedo, Boat, Warship, Fighter, Drone, Aircraft, Submarine, Mine, Boss, Wig }
+        public enum Kind { Missile, Torpedo, Boat, Warship, Fighter, Drone, Aircraft, Submarine, Mine, Boss, Wig, MissileBoat }   // MissileBoat 2026-11-21(고속정과 분리)
 
         private static readonly Dictionary<Kind, Texture2D> s_icons = new();
         private static Texture2D s_disc, s_ring;
@@ -49,6 +49,7 @@ namespace Game.UI
                 SeaMine => Kind.Mine,
                 SubmarineBase => Kind.Submarine,
                 SuicideBoat or FastAttackBoat { Definition: { Id: "ene_usv" } } => Kind.Boat,
+                MissileBoat => Kind.MissileBoat,   // 미사일정 · 수중익 미사일정(2026-11-21 사용자: 고속정 아이콘과 분리)
                 PccCorvette or MissileCorvette or FastAttackBoat { Definition: { Id: "ene_ew_corvette" } } or FastAttackBoat { Definition: { Id: "ene_aa_frigate" } } => Kind.Warship,
                 _ when t.Kind == TargetKind.Aircraft => Kind.Aircraft,
                 _ when t.Kind == TargetKind.Submarine => Kind.Submarine,
@@ -70,6 +71,13 @@ namespace Game.UI
             Kind.Boat => p => Hull(p, 0.32f, 0.85f, 0.25f),
             Kind.Warship => p => Hull(p, 0.36f, 0.92f, 0.28f) * (Box(p, new Vector2(0f, -0.05f), new Vector2(0.17f, 0.28f)) > 0f ? 0f : 1f)
                                  + Box(p, new Vector2(0f, -0.05f), new Vector2(0.1f, 0.2f)),
+            // 미사일정: 작은 선체 위에 비스듬한 발사관 두 개(속이 빈 상자로 보이게 선체에서 파낸 뒤 안쪽만 다시 채움) · 선수 쪽 미사일 머리
+            Kind.MissileBoat => p => Hull(p, 0.34f, 0.85f, 0.25f) * (Any(Box(p, new Vector2(-0.14f, -0.2f), new Vector2(0.1f, 0.36f)),
+                                                                       Box(p, new Vector2(0.14f, -0.2f), new Vector2(0.1f, 0.36f))) > 0f ? 0f : 1f)
+                                     + Any(Box(p, new Vector2(-0.14f, -0.2f), new Vector2(0.05f, 0.31f)),
+                                           Box(p, new Vector2(0.14f, -0.2f), new Vector2(0.05f, 0.31f)),
+                                           Tri(p, new Vector2(-0.14f, 0.24f), new Vector2(-0.21f, 0.12f), new Vector2(-0.07f, 0.12f)),
+                                           Tri(p, new Vector2(0.14f, 0.24f), new Vector2(0.07f, 0.12f), new Vector2(0.21f, 0.12f))),
             Kind.Fighter => p => Any(Capsule(p, new Vector2(0f, -0.7f), new Vector2(0f, 0.75f), 0.13f),
                                      Tri(p, new Vector2(0f, 0.35f), new Vector2(-0.85f, -0.3f), new Vector2(0.85f, -0.3f)),
                                      Tri(p, new Vector2(0f, -0.45f), new Vector2(-0.4f, -0.85f), new Vector2(0.4f, -0.85f))),

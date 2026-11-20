@@ -26,9 +26,30 @@ namespace Game.World
             public float ShoreRadius, Height, PlateauY;
         }
 
-        private static readonly Dictionary<Kit, KitShape> s_kit = new();
+        private static readonly Dictionary<string, KitShape> s_kit = new();
+
+        /// <summary>
+        /// 기지 섬 지형 변형 수(2026-11-21 Codex IslandBaseFollowup_v1: 규모마다 B · C형 추가 → A · B · C 세 가지).
+        /// 섬 자리로 정해 같은 판 · 같은 자리에는 늘 같은 변형(무작위 회전과 함께 반복을 가린다). 변형 모델이 없으면 A형.
+        /// </summary>
+        public const int BaseVariants = 3;
+        private static readonly string[] VariantSuffix = { "", "_B", "_C" };
+
+        /// <summary>섬 자리(정수로 반올림한 x, z)로 정하는 지형 변형 번호(0 = A).</summary>
+        public static int VariantFor(Kit k, Vector3 center)
+        {
+            if (!IsBase(k)) return 0;
+            unchecked
+            {
+                uint h = (uint)Mathf.RoundToInt(center.x) * 73856093u ^ (uint)Mathf.RoundToInt(center.z) * 19349663u ^ (uint)k * 83492791u;
+                h ^= h >> 13; h *= 0x5bd1e995u; h ^= h >> 15;
+                return (int)(h % BaseVariants);
+            }
+        }
         private static readonly Dictionary<string, GameObject> s_kitModels = new();
         private static readonly Dictionary<string, Material> s_kitIslandMats = new();
+
+        private static string KitPath(Kit k, int variant) => KitPath(k) + (IsBase(k) && variant > 0 && variant < BaseVariants ? VariantSuffix[variant] : "");
 
         private static string KitPath(Kit k) => k switch
         {
@@ -44,14 +65,21 @@ namespace Game.World
         /// <summary>그 섬 종류가 쓸 수 있는가(모델이 있는가).</summary>
         public static bool KitAvailable(Kit k) => !ArtDisabled && Shape(k) != null;
 
-        /// <summary>해안선 최대 반경(축척 1).</summary>
-        public static float KitRadius(Kit k) => Shape(k)?.ShoreRadius ?? 0f;
-
-        private static KitShape Shape(Kit k)
+        /// <summary>해안선 최대 반경(축척 1) — 기지 섬은 변형 중 가장 큰 것(배치 간격용).</summary>
+        public static float KitRadius(Kit k)
         {
-            if (s_kit.TryGetValue(k, out var s)) return s;
-            var prefab = Resources.Load<GameObject>(KitPath(k));
-            if (prefab == null) { s_kit[k] = null; return null; }
+            float r = Shape(k)?.ShoreRadius ?? 0f;
+            if (IsBase(k)) for (int v = 1; v < BaseVariants; v++) r = Mathf.Max(r, Shape(k, v)?.ShoreRadius ?? 0f);
+            return r;
+        }
+
+        /// <summary>그 변형의 모양. 변형 모델이 없으면 A형.</summary>
+        private static KitShape Shape(Kit k, int variant = 0)
+        {
+            string path = KitPath(k, variant);
+            if (s_kit.TryGetValue(path, out var s)) return s ?? (variant > 0 ? Shape(k) : null);
+            var prefab = Resources.Load<GameObject>(path);
+            if (prefab == null) { s_kit[path] = null; return variant > 0 ? Shape(k) : null; }
             s = new KitShape { Prefab = prefab, Rim = new float[KitRimSamples], Plateau = new float[KitRimSamples] };
             var pts = new List<Vector3>();
             float top = float.MinValue;
@@ -85,7 +113,7 @@ namespace Game.World
             FillGaps(s.Rim);
             FillGaps(s.Plateau);
             foreach (var r in s.Rim) s.ShoreRadius = Mathf.Max(s.ShoreRadius, r);
-            s_kit[k] = s;
+            s_kit[path] = s;
             return s;
         }
 
@@ -164,9 +192,10 @@ namespace Game.World
         }
 
         /// <summary>키트 섬 하나를 세운다. 군사기지 섬이면 시설을 조립하고 미사일 포대 자리를 IslandInfo.BatterySpots로 넘긴다.</summary>
-        public static IslandInfo BuildKit(Vector3 center, Kit kind, System.Random rng, Transform parent, float scale = 1f)
+        public static IslandInfo BuildKit(Vector3 center, Kit kind, System.Random rng, Transform parent, float scale = 1f, int variant = -1)
         {
-            var s = Shape(kind);
+            if (variant < 0) variant = VariantFor(kind, center);
+            var s = Shape(kind, variant);
             if (s == null) return null;
             LoadMaterials();
             var root = new GameObject($"Island ({s.Prefab.name})");

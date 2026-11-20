@@ -150,6 +150,40 @@ namespace Game.Dev
             for (int i = 0; i < 2; i++)
                 if (dressed[i] != null) yield return AerialShot($"kit_dressed_{i}", dressed[i].Center, f, 26f, 20f);
 
+            // ---- 3-1) 기지 섬 지형 변형(2026-11-21 Codex IslandBaseFollowup_v1 B · C형): 규모마다 세 변형이 모두 서고, 시설 · 포대 자리가 놓인다
+            {
+                var variantInfos = new List<IslandInfo>();
+                var kinds = new[] { IslandBuilder.Kit.BaseS, IslandBuilder.Kit.BaseM, IslandBuilder.Kit.BaseL };
+                var seen = new HashSet<string>();
+                Vector3 far = o + f * 900f;
+                for (int k = 0; k < 3; k++)
+                    for (int v = 0; v < IslandBuilder.BaseVariants; v++)
+                    {
+                        Vector3 at = far + rt * ((v - 1) * 260f) + f * (k * 260f);
+                        var vi = field.PlaceKit(at, kinds[k], 31 + v, 1f, v);
+                        if (vi == null) { Fail($"{kinds[k]} 변형 {v} 섬을 만들지 못함"); continue; }
+                        variantInfos.Add(vi);
+                        seen.Add(vi.Art);
+                        int mil = 0;
+                        foreach (var t in vi.Root.GetComponentsInChildren<KeepSharedMeshes>(true)) if (t.name.StartsWith("MIL_")) mil++;
+                        int want = kinds[k] == IslandBuilder.Kit.BaseL ? 2 : 1;
+                        int minFac = kinds[k] == IslandBuilder.Kit.BaseS ? 8 : kinds[k] == IslandBuilder.Kit.BaseM ? 18 : 28;
+                        _report.AppendLine($"- 변형 {vi.Art}: 해안선 반경 {vi.Radius:0.0}m · 시설 {mil} · 포대 자리 {(vi.BatterySpots != null ? vi.BatterySpots.Length : 0)}");
+                        if (vi.BatterySpots == null || vi.BatterySpots.Length < want) Fail($"{vi.Art} 포대 자리가 {want}개보다 적음");
+                        if (mil < minFac) Fail($"{vi.Art} 시설이 너무 적음({mil} < {minFac})");
+                    }
+                // 같은 판의 섬 자리별 변형이 고르게 나오나(자리 400곳)
+                var counts = new int[IslandBuilder.BaseVariants];
+                for (int i = 0; i < 400; i++) counts[IslandBuilder.VariantFor(IslandBuilder.Kit.BaseM, new Vector3(i * 37f - 7000f, 0f, (i * 53) % 900 - 450f))]++;
+                _report.AppendLine($"- 지형 변형 모델 {seen.Count}종({string.Join(", ", seen)}) · 섬 자리 400곳의 변형 분포 A {counts[0]} · B {counts[1]} · C {counts[2]}");
+                if (seen.Count < 9) Fail($"기지 섬 지형 변형이 9종이 아님({seen.Count}종)");
+                for (int v = 0; v < counts.Length; v++) if (counts[v] < 80) Fail("섬 자리별 지형 변형이 한쪽으로 몰림");
+                yield return new WaitForSeconds(0.3f);
+                if (variantInfos.Count > 0)
+                    yield return AerialShot("kit_variants", far + f * 260f, f, 520f, 600f);
+                // 섬 목록(Islands.All)에 남아 있으므로 지우지 않는다 — 기함에서 900m 넘게 떨어져 뒤 검사와 겹치지 않는다
+            }
+
             // ---- 4) 해안 미사일 포대: 중형 기지 섬 앞으로
             var baseM = infos.Find(x => x.kind == IslandBuilder.Kit.BaseM).info;
             if (baseM != null && baseM.BatterySpots != null && baseM.BatterySpots.Length > 0)
