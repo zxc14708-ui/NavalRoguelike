@@ -18,8 +18,9 @@ namespace Game.EditorTools
     ///   남쪽 = 해군 항공대(활주로·평행 유도로·계류장, 격납고 줄, 관제탑·소방대, 엄체호, 헬기 계류장,
     ///          항공유 저장소·탄약고는 비행장 가장자리에 떨어뜨림, 레이더 기지).
     /// 모델 키트는 NavalBaseBuilder.Kit.cs. 같은 재질끼리 메시를 합쳐(CombineStatic) 시작 화면에서 실시간으로 그려도 가볍게 한다.
-    /// 결과: Scenes/NavalBase.unity(낮), Scenes/NavalBase_Title.unity(석양), Logs/NavalBase/*.png
-    /// 시작 화면 프리팹은 이 씬에서 NavalBaseMenuBuilder(Naval/Art/Prepare Harbor Menu)가 만든다.
+    /// 시작 화면 프리팹은 Naval/Art/Build Harbor Menu Backdrop이 미리보기 장면에서 바로 만든다(2026-11-21 Codex HarborDistricts_v2, 합친 메시 = Art/NavalBase/MenuLayout).
+    /// Naval/Art/Build Naval Base Scene은 확인용 장면과 사진만 만든다: Scenes/NavalBase.unity(낮), Scenes/NavalBase_Title.unity(석양), Logs/NavalBase/*.png.
+    /// 장면은 저장소에 두지 않는다(2026-11-21 정리) — 필요할 때 다시 만든다. 메시는 시작 화면과 같은 MenuLayout 폴더를 쓴다.
     /// </summary>
     internal static partial class NavalBaseBuilder
     {
@@ -74,7 +75,15 @@ namespace Game.EditorTools
             Mats.Clear();
             _rng = new System.Random(20261007);
             NavalEditorUtil.EnsureFolder(MatFolder);
+            // 시작 화면 배경과 같은 메시 폴더(예전에는 Art/NavalBase 바로 아래에 113MB를 따로 만들었다)
+            _meshFolder = MatFolder + "/MenuLayout";
+            NavalEditorUtil.EnsureFolder(_meshFolder);
+            try { BuildSceneAndCapture(); }
+            finally { _meshFolder = MatFolder; }
+        }
 
+        private static void BuildSceneAndCapture()
+        {
             var scene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
             _root = new GameObject("NavalBaseIsland").transform;
             _root.position = new Vector3(0f, WaterY, 0f);

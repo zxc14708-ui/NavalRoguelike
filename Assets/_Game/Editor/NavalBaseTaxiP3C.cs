@@ -48,6 +48,7 @@ namespace Game.EditorTools
             finally { PrefabUtility.UnloadPrefabContents(root); }
 
             // 원본 씬에도 같은 물체를 넣는다(합친 메시는 같은 에셋이라 씬에서도 이미 빠졌다 — 메뉴를 다시 내보내도 사라지지 않게)
+            if (!System.IO.File.Exists(BaseScene)) { AssetDatabase.SaveAssets(); return; }   // 2026-11-21: 원본 장면은 저장소에서 뺐다
             var scene = EditorSceneManager.OpenScene(BaseScene, OpenSceneMode.Additive);
             try
             {

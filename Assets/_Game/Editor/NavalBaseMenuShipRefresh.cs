@@ -25,6 +25,12 @@ namespace Game.EditorTools
         [MenuItem("Naval/Art/Refresh Harbor Menu Ships")]
         public static void Run()
         {
+            if (!System.IO.File.Exists(BaseScene))
+            {
+                // 2026-11-21: 원본 장면을 저장소에서 뺐다 — 시작 화면 함정은 Build Harbor Menu Backdrop을 다시 돌리면 새 모델로 들어간다
+                Debug.LogError("[HarborShips] Scenes/NavalBase.unity가 없습니다 — Naval/Art/Build Harbor Menu Backdrop으로 시작 화면을 다시 만드세요.");
+                return;
+            }
             var scene = EditorSceneManager.OpenScene(BaseScene, OpenSceneMode.Additive);
             var menu = PrefabUtility.LoadPrefabContents(MenuPrefab);
             var replaced = new List<string>();

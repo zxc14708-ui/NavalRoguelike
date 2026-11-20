@@ -11,7 +11,15 @@ namespace Game.EditorTools
         [MenuItem("Naval/Art/Prepare Harbor Menu")]
         public static void RunBatch()
         {
-            var scene=EditorSceneManager.OpenScene("Assets/_Game/Scenes/NavalBase.unity",OpenSceneMode.Additive);
+            const string path="Assets/_Game/Scenes/NavalBase.unity";
+            if(!System.IO.File.Exists(path))
+            {
+                // 2026-11-21: 원본 장면은 저장소에서 뺐다. 시작 화면은 Build Harbor Menu Backdrop으로 바로 만든다
+                Debug.LogError("[HarborMenu] Scenes/NavalBase.unity가 없습니다 — Naval/Art/Build Harbor Menu Backdrop을 쓰세요(장면이 필요하면 Build Naval Base Scene).");
+                if(Application.isBatchMode)EditorApplication.Exit(1);
+                return;
+            }
+            var scene=EditorSceneManager.OpenScene(path,OpenSceneMode.Additive);
             try
             {
                 var island=scene.GetRootGameObjects().First(g=>g.name=="NavalBaseIsland");
