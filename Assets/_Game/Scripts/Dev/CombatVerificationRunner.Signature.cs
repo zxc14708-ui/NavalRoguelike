@@ -19,7 +19,7 @@ namespace Game.Dev
         /// 1) 시작 무장: 시작 함선 넷 모두 함수·함미 끝에 무기(기관포·VLS), 함교 원격 기관총이 가까운 고속정을 쏜다.
         /// 2) 손상통제: 블록 없음 = 응급 수리 1회·자동 회복 50%에서 멈춤, 손상통제반 1개 = 2회·상한 67%·속도 1.5배,
         ///    응급 수리 쓰면 1회 줄고 보스 격침이면 다시 가득.
-        /// 3) 고유 스킬 넷: 광역 탐색(표적 지시·잠수함 노출·피해 +25%), 오버드라이브(연사 · 속력 · 스킬 회복 · 붉은 잔상), 전탄 발사(남은 셀 전부),
+        /// 3) 고유 스킬 넷: 레이더망(장판 — 표적 지시·잠수함 노출·피해 +30%), 오버드라이브(연사 · 속력 · 스킬 회복 · 붉은 잔상), 전탄 발사(남은 셀 전부),
         ///    항공대 호출(전투기 3 + 조기경보기 1, 기총 공격·레이더 고리·이탈). 장면마다 찍는다.
         /// </summary>
         /// <summary>
@@ -312,26 +312,38 @@ namespace Game.Dev
             var skill = ship.GetComponent<SignatureSkill>();
             if (skill == null) { Fail("고유 스킬 컴포넌트 없음"); yield break; }
 
-            // ---- 3a) 광역 탐색(범용 초계함)
+            // ---- 3a) 레이더망(범용 초계함, 2026-11-20 — 장판)
             {
                 skill.ForceKind(StartShipKind.Patrol);
                 var boats = new List<EnemyController>();
-                foreach (float a in new[] { -40f, 0f, 40f }) boats.Add(Frozen(boatDef, ship.transform.position + Quaternion.Euler(0f, a, 0f) * Fwd() * 45f));
-                CombatDevTools.SpawnSubmarines(1, 50f);
+                foreach (float a in new[] { -40f, 0f, 40f }) boats.Add(Frozen(boatDef, ship.transform.position + Quaternion.Euler(0f, a, 0f) * Fwd() * 30f));
+                var far = Frozen(boatDef, ship.transform.position - Fwd() * 70f);   // 장판 밖
+                CombatDevTools.SpawnSubmarines(1, 35f);
                 yield return new WaitForSeconds(0.5f);
                 foreach (var e in Object.FindObjectsByType<SubmarineBase>(FindObjectsSortMode.None)) if (e.IsAlive) { e.DevFrozen = true; }
                 bool used = skill.TryActivate();
-                yield return new WaitForSeconds(0.6f);
-                var sweep = skill.Ability as RadarSweepAbility;
+                yield return new WaitForSeconds(0.8f);
+                var radarField = skill.Ability as RadarFieldAbility;
                 var b0 = boats[0];
                 float hp = b0 != null ? b0.CurrentHp : 0f;
                 b0?.TakeDamage(new DamageInfo(4f, b0.transform.position, Vector3.down, DamageSource.Gun));
                 float took = b0 != null ? hp - b0.CurrentHp : 0f;
-                _report.AppendLine($"- 광역 탐색: 사용 {Yes(used)} · 표적 지시 {sweep?.LastMarked} · 잠수함 노출 {sweep?.LastRevealedSubs} · 지시된 고속정에 피해 4 → {took:0.##}");
-                if (!used || sweep == null || sweep.LastMarked < 3 || sweep.LastRevealedSubs < 1 || Mathf.Abs(took - 5f) > 0.01f) Fail("광역 탐색이 표적 지시·잠수함 노출·피해 +25%를 하지 않음");
-                yield return ScreenShot("signature_sweep");
-                yield return new WaitForSeconds(0.8f);
-                yield return ScreenShot("signature_sweep_markers");
+                float hpFar = far != null ? far.CurrentHp : 0f;
+                far?.TakeDamage(new DamageInfo(4f, far.transform.position, Vector3.down, DamageSource.Gun));
+                float tookFar = far != null ? hpFar - far.CurrentHp : 0f;
+                var fx = Game.View.RadarFieldFx.Active;
+                _report.AppendLine($"- 레이더망: 사용 {Yes(used)} · 장판 안 적 {radarField?.Inside} · 잠수함 노출 {radarField?.RevealedSubs} · 안 고속정 피해 4 → {took:0.##}(기대 5.2) · 밖 고속정 4 → {tookFar:0.##} · 문양 펼침 {fx?.Open:0.00}");
+                if (!used || radarField == null || radarField.Inside < 4 || radarField.RevealedSubs < 1 || Mathf.Abs(took - 5.2f) > 0.01f) Fail("레이더망이 장판 안 적 표적 지시 · 잠수함 노출 · 피해 +30%를 하지 않음");
+                if (Mathf.Abs(tookFar - 4f) > 0.01f) Fail("레이더망이 장판 밖 적에게도 걸림");
+                if (fx == null || fx.Open < 0.95f) Fail("레이더망 문양이 펼쳐지지 않음");
+                yield return new WaitForSeconds(1.2f);
+                yield return ScreenShot("signature_radar_field");
+                yield return new WaitForSeconds(RadarFieldAbility.Duration);
+                bool fxGone = Game.View.RadarFieldFx.Active == null;
+                yield return new WaitForSeconds(RadarFieldAbility.Linger + 0.3f);
+                bool markGone = b0 == null || !b0.IsMarked;
+                _report.AppendLine($"- 레이더망 끝: 문양 정리 {Yes(fxGone)} · 표적 지시 풀림 {Yes(markGone)}");
+                if (!fxGone || !markGone) Fail("레이더망이 끝나도 문양 · 표적 지시가 남음");
                 CombatDevTools.ClearBattlefield();
                 yield return new WaitForSeconds(0.5f);
             }

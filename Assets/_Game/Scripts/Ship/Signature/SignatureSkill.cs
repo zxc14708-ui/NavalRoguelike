@@ -23,7 +23,7 @@ namespace Game.Ship
     /// <summary>
     /// 함정 고유 스킬 [T](2026-10-11). 출항 때 고른 시작 함정(ShipInitializer.SelectedConcept)에 따라 하나가 붙는다.
     ///   지휘함 = 항공대 호출(<see cref="AirWingAbility"/>) · 미사일 구축함 = 전탄 발사(<see cref="FullSalvoAbility"/>) ·
-    ///   고속 강습함 = 오버드라이브(<see cref="OverdriveAbility"/>, 2026-11-20 — 예전 돌격 기동) · 범용 초계함 = 광역 탐색(<see cref="RadarSweepAbility"/>).
+    ///   고속 강습함 = 오버드라이브(<see cref="OverdriveAbility"/>, 2026-11-20 — 예전 돌격 기동) · 범용 초계함 = 레이더망(<see cref="RadarFieldAbility"/>, 2026-11-20 — 예전 광역 탐색 즉발을 장판으로).
     /// 쿨타임은 성장 카드 "스킬 회복"(RunUpgrades.SkillRate)을 따른다. HUD 스킬 줄 여섯째 칸(그림은 함정마다 다르다).
     /// </summary>
     public class SignatureSkill : MonoBehaviour
@@ -88,7 +88,7 @@ namespace Game.Ship
                 StartShipKind.Assault =>
                     $"{OverdriveAbility.Duration:0}초 동안 기관 한계 돌파 — 모든 무장 연사 +{(OverdriveAbility.FireRate - 1f) * 100f:0}%, 최고 속력 +{(OverdriveAbility.SpeedMultiplier - 1f) * 100f:0}%, 능동 스킬 쿨타임 −{(1f - 1f / OverdriveAbility.SkillRate) * 100f:0}%(회복 ×{OverdriveAbility.SkillRate:0.#}). 함선이 붉게 달아올라 잔상을 남긴다. 끝나면 {OverdriveAbility.OverheatSeconds:0}초 과열 — 연사 · 속력 −{(1f - OverdriveAbility.OverheatFireRate) * 100f:0}%.",
                 _ =>
-                    $"둘레 {RadarSweepAbility.Radius:0} m의 적을 {RadarSweepAbility.MarkSeconds:0}초 동안 표적 지시 — 받는 피해 +{(RadarSweepAbility.DamageMultiplier - 1f) * 100f:0}%, 잠항 중인 잠수함도 드러난다.",
+                    $"{RadarFieldAbility.Duration:0}초 동안 함선 둘레 {RadarFieldAbility.Radius:0} m에 레이더망을 펼친다(배를 따라 움직임) — 안에 든 적은 받는 피해 +{(RadarFieldAbility.DamageMultiplier - 1f) * 100f:0}%(벗어나도 {RadarFieldAbility.Linger:0}초), 잠항 중인 잠수함 · 숨은 반잠수정도 드러난다.",
             };
             return (ability.Title, summary, ability.Cooldown);
         }
@@ -99,7 +99,7 @@ namespace Game.Ship
             StartShipKind.Command => new AirWingAbility(),
             StartShipKind.MissileDestroyer => new FullSalvoAbility(),
             StartShipKind.Assault => new OverdriveAbility(),
-            _ => new RadarSweepAbility(),
+            _ => new RadarFieldAbility(),
         };
 
         private bool _forced;
