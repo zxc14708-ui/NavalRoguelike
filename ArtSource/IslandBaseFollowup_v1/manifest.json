@@ -1,0 +1,1656 @@
+{
+  "ENV_BaseBreakwater": {
+    "triangles": 1304,
+    "bounds_blender_m": [
+      [
+        -3.0399999618530273,
+        -13.399999618530273,
+        -2.375
+      ],
+      [
+        3.0399999618530273,
+        11.0,
+        1.4800000190734863
+      ]
+    ],
+    "materials": [
+      "Deck Grey",
+      "ENV_Concrete",
+      "Enemy Dark",
+      "Gunmetal",
+      "MAT_IslandRock",
+      "Warning Yellow"
+    ],
+    "parts": [
+      {
+        "name": "ENV_BaseBreakwater",
+        "type": "EMPTY",
+        "parent": null,
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "DeckAndSubstructure",
+        "type": "MESH",
+        "parent": "ENV_BaseBreakwater",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "BollardsAndFenders",
+        "type": "MESH",
+        "parent": "ENV_BaseBreakwater",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "ShoreConnection",
+        "type": "EMPTY",
+        "parent": "ENV_BaseBreakwater",
+        "position_blender_m": [
+          0.0,
+          -11.0,
+          0.0
+        ],
+        "axis_blender": [
+          -0.0,
+          1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "MooringPoint_Port",
+        "type": "EMPTY",
+        "parent": "ENV_BaseBreakwater",
+        "position_blender_m": [
+          -3.2,
+          0.9,
+          0.0
+        ],
+        "axis_blender": [
+          -0.0,
+          1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "MooringPoint_Starboard",
+        "type": "EMPTY",
+        "parent": "ENV_BaseBreakwater",
+        "position_blender_m": [
+          3.2,
+          0.9,
+          0.0
+        ],
+        "axis_blender": [
+          -0.0,
+          1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "PierEnd",
+        "type": "EMPTY",
+        "parent": "ENV_BaseBreakwater",
+        "position_blender_m": [
+          0.0,
+          11.0,
+          1.145
+        ],
+        "axis_blender": [
+          -0.0,
+          1.0,
+          -0.0
+        ]
+      }
+    ]
+  },
+  "ENV_BaseMooringPier": {
+    "triangles": 940,
+    "bounds_blender_m": [
+      [
+        -4.639999866485596,
+        -11.899999618530273,
+        -3.299999952316284
+      ],
+      [
+        4.639999866485596,
+        9.5,
+        1.4800000190734863
+      ]
+    ],
+    "materials": [
+      "Deck Grey",
+      "ENV_Concrete",
+      "Enemy Dark",
+      "Gunmetal",
+      "Warning Yellow"
+    ],
+    "parts": [
+      {
+        "name": "ENV_BaseMooringPier",
+        "type": "EMPTY",
+        "parent": null,
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "DeckAndSubstructure",
+        "type": "MESH",
+        "parent": "ENV_BaseMooringPier",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "BollardsAndFenders",
+        "type": "MESH",
+        "parent": "ENV_BaseMooringPier",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "ShoreConnection",
+        "type": "EMPTY",
+        "parent": "ENV_BaseMooringPier",
+        "position_blender_m": [
+          0.0,
+          -9.5,
+          0.0
+        ],
+        "axis_blender": [
+          -0.0,
+          1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "MooringPoint_Port",
+        "type": "EMPTY",
+        "parent": "ENV_BaseMooringPier",
+        "position_blender_m": [
+          -4.8,
+          0.9,
+          0.0
+        ],
+        "axis_blender": [
+          -0.0,
+          1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "MooringPoint_Starboard",
+        "type": "EMPTY",
+        "parent": "ENV_BaseMooringPier",
+        "position_blender_m": [
+          4.8,
+          0.9,
+          0.0
+        ],
+        "axis_blender": [
+          -0.0,
+          1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "PierEnd",
+        "type": "EMPTY",
+        "parent": "ENV_BaseMooringPier",
+        "position_blender_m": [
+          0.0,
+          9.5,
+          1.145
+        ],
+        "axis_blender": [
+          -0.0,
+          1.0,
+          -0.0
+        ]
+      }
+    ]
+  },
+  "MIL_Ruins_Battery": {
+    "triangles": 508,
+    "bounds_blender_m": [
+      [
+        -2.4000000953674316,
+        -2.799999952316284,
+        0.0
+      ],
+      [
+        2.4000000953674316,
+        2.799999952316284,
+        1.249500036239624
+      ]
+    ],
+    "materials": [
+      "ENV_Concrete",
+      "Enemy Dark",
+      "Gunmetal",
+      "MAT_IslandCliff",
+      "MAT_IslandRed",
+      "MAT_IslandRock",
+      "MAT_IslandRust"
+    ],
+    "parts": [
+      {
+        "name": "MIL_Ruins_Battery",
+        "type": "EMPTY",
+        "parent": null,
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Debris",
+        "type": "MESH",
+        "parent": "MIL_Ruins_Battery",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "SmokePoint",
+        "type": "EMPTY",
+        "parent": "MIL_Ruins_Battery",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.68
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    ]
+  },
+  "MIL_Ruins_Radar": {
+    "triangles": 496,
+    "bounds_blender_m": [
+      [
+        -2.0,
+        -2.0,
+        0.0
+      ],
+      [
+        2.0,
+        2.0,
+        1.4833869934082031
+      ]
+    ],
+    "materials": [
+      "ENV_Concrete",
+      "Gunmetal",
+      "MAT_IslandCliff",
+      "MAT_IslandRock",
+      "MAT_IslandRust"
+    ],
+    "parts": [
+      {
+        "name": "MIL_Ruins_Radar",
+        "type": "EMPTY",
+        "parent": null,
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Debris",
+        "type": "MESH",
+        "parent": "MIL_Ruins_Radar",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "SmokePoint",
+        "type": "EMPTY",
+        "parent": "MIL_Ruins_Radar",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.68
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    ]
+  },
+  "MIL_Ruins_Outpost": {
+    "triangles": 432,
+    "bounds_blender_m": [
+      [
+        -2.4000000953674316,
+        -2.0,
+        -0.035939425230026245
+      ],
+      [
+        2.4000000953674316,
+        2.0,
+        1.8300000429153442
+      ]
+    ],
+    "materials": [
+      "ENV_Concrete",
+      "Gunmetal",
+      "MAT_IslandCliff",
+      "MAT_IslandRock",
+      "MAT_IslandRust"
+    ],
+    "parts": [
+      {
+        "name": "MIL_Ruins_Outpost",
+        "type": "EMPTY",
+        "parent": null,
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Debris",
+        "type": "MESH",
+        "parent": "MIL_Ruins_Outpost",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "SmokePoint",
+        "type": "EMPTY",
+        "parent": "MIL_Ruins_Outpost",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.68
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    ]
+  },
+  "MIL_Helipad": {
+    "triangles": 376,
+    "bounds_blender_m": [
+      [
+        -6.5,
+        -6.5,
+        0.0
+      ],
+      [
+        6.5,
+        6.5,
+        0.3395000100135803
+      ]
+    ],
+    "materials": [
+      "Deck Grey",
+      "ENV_Concrete",
+      "Gunmetal",
+      "MAT_IslandWhite",
+      "Warning Yellow"
+    ],
+    "parts": [
+      {
+        "name": "MIL_Helipad",
+        "type": "EMPTY",
+        "parent": null,
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "LandingPad",
+        "type": "MESH",
+        "parent": "MIL_Helipad",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "LandingSpot",
+        "type": "EMPTY",
+        "parent": "MIL_Helipad",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.248
+        ],
+        "axis_blender": [
+          -0.0,
+          1.0,
+          -0.0
+        ]
+      }
+    ]
+  },
+  "MIL_Searchlight": {
+    "triangles": 404,
+    "bounds_blender_m": [
+      [
+        -0.6349999904632568,
+        -0.6349999904632568,
+        0.0
+      ],
+      [
+        0.6349999904632568,
+        0.6349999904632568,
+        1.7649999856948853
+      ]
+    ],
+    "materials": [
+      "ENV_Concrete",
+      "Gunmetal",
+      "MAT_IslandCliff",
+      "Radar Glass"
+    ],
+    "parts": [
+      {
+        "name": "MIL_Searchlight",
+        "type": "EMPTY",
+        "parent": null,
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Pedestal",
+        "type": "MESH",
+        "parent": "MIL_Searchlight",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "SearchlightYaw",
+        "type": "EMPTY",
+        "parent": "MIL_Searchlight",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          1.05
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Yoke",
+        "type": "MESH",
+        "parent": "SearchlightYaw",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          1.05
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "SearchlightPitch",
+        "type": "EMPTY",
+        "parent": "SearchlightYaw",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          1.48
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "LampHousing",
+        "type": "MESH",
+        "parent": "SearchlightPitch",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          1.48
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "BeamOrigin",
+        "type": "EMPTY",
+        "parent": "SearchlightPitch",
+        "position_blender_m": [
+          0.0,
+          0.468,
+          1.48
+        ],
+        "axis_blender": [
+          -0.0,
+          1.0,
+          -0.0
+        ]
+      }
+    ]
+  },
+  "ENV_DriftingSupplyCrate": {
+    "triangles": 236,
+    "bounds_blender_m": [
+      [
+        -0.8050000071525574,
+        -0.6200000047683716,
+        -0.1899999976158142
+      ],
+      [
+        0.8050000071525574,
+        0.6200000047683716,
+        0.840499997138977
+      ]
+    ],
+    "materials": [
+      "ENV_Concrete",
+      "Enemy Dark",
+      "Gunmetal",
+      "MAT_IslandCliff",
+      "MAT_IslandWhite",
+      "Warning Yellow"
+    ],
+    "parts": [
+      {
+        "name": "ENV_DriftingSupplyCrate",
+        "type": "EMPTY",
+        "parent": null,
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "FloatingCrate",
+        "type": "MESH",
+        "parent": "ENV_DriftingSupplyCrate",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "PickupPoint",
+        "type": "EMPTY",
+        "parent": "ENV_DriftingSupplyCrate",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.81
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    ]
+  },
+  "NAT_SOSMarker": {
+    "triangles": 356,
+    "bounds_blender_m": [
+      [
+        -3.4049999713897705,
+        -1.0935837030410767,
+        0.0005000000237487257
+      ],
+      [
+        3.4484357833862305,
+        1.1235836744308472,
+        0.15900000929832458
+      ]
+    ],
+    "materials": [
+      "MAT_IslandRock",
+      "MAT_IslandWhite"
+    ],
+    "parts": [
+      {
+        "name": "NAT_SOSMarker",
+        "type": "EMPTY",
+        "parent": null,
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "SosMarkers",
+        "type": "MESH",
+        "parent": "NAT_SOSMarker",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    ]
+  },
+  "MIL_MissileBattery_2": {
+    "triangles": 508,
+    "bounds_blender_m": [
+      [
+        -2.40000057220459,
+        -2.8000004291534424,
+        -2.113941235393213e-07
+      ],
+      [
+        2.40000057220459,
+        2.8000004291534424,
+        3.0999999046325684
+      ]
+    ],
+    "materials": [
+      "ENV_Concrete",
+      "Enemy Dark",
+      "Gunmetal",
+      "MAT_IslandCliff",
+      "MAT_IslandRed",
+      "Warning Yellow"
+    ],
+    "parts": [
+      {
+        "name": "MIL_MissileBattery_2",
+        "type": "EMPTY",
+        "parent": null,
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Bearing",
+        "type": "MESH",
+        "parent": "MIL_MissileBattery_2",
+        "position_blender_m": [
+          -0.0,
+          0.0,
+          0.7
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Footing",
+        "type": "MESH",
+        "parent": "MIL_MissileBattery_2",
+        "position_blender_m": [
+          -0.0,
+          0.0,
+          0.22
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "TurretPivot",
+        "type": "EMPTY",
+        "parent": "MIL_MissileBattery_2",
+        "position_blender_m": [
+          -0.0,
+          0.0,
+          1.05
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "ElevationPivot",
+        "type": "EMPTY",
+        "parent": "TurretPivot",
+        "position_blender_m": [
+          -0.0,
+          0.0,
+          2.25
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "ElevationPivot_MAT_IslandRed",
+        "type": "MESH",
+        "parent": "ElevationPivot",
+        "position_blender_m": [
+          0.72,
+          -0.8,
+          3.07
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "LaunchPoint_01",
+        "type": "EMPTY",
+        "parent": "ElevationPivot",
+        "position_blender_m": [
+          0.72,
+          -2.7,
+          2.47
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "LaunchPoint_02",
+        "type": "EMPTY",
+        "parent": "ElevationPivot",
+        "position_blender_m": [
+          -0.72,
+          -2.7,
+          2.47
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Muzzle",
+        "type": "EMPTY",
+        "parent": "ElevationPivot",
+        "position_blender_m": [
+          0.0,
+          -2.7,
+          2.47
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Pedestal",
+        "type": "MESH",
+        "parent": "TurretPivot",
+        "position_blender_m": [
+          -0.0,
+          0.0,
+          1.6
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "LauncherHatchPivot_01",
+        "type": "EMPTY",
+        "parent": "ElevationPivot",
+        "position_blender_m": [
+          0.72,
+          -2.676,
+          2.95
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "LauncherHatch_01",
+        "type": "MESH",
+        "parent": "LauncherHatchPivot_01",
+        "position_blender_m": [
+          0.72,
+          -2.676,
+          2.95
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "BackblastPoint_01",
+        "type": "EMPTY",
+        "parent": "ElevationPivot",
+        "position_blender_m": [
+          0.72,
+          2.31,
+          2.47
+        ],
+        "axis_blender": [
+          -0.0,
+          1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "LauncherHatchPivot_02",
+        "type": "EMPTY",
+        "parent": "ElevationPivot",
+        "position_blender_m": [
+          -0.72,
+          -2.676,
+          2.95
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "LauncherHatch_02",
+        "type": "MESH",
+        "parent": "LauncherHatchPivot_02",
+        "position_blender_m": [
+          -0.72,
+          -2.676,
+          2.95
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "BackblastPoint_02",
+        "type": "EMPTY",
+        "parent": "ElevationPivot",
+        "position_blender_m": [
+          -0.72,
+          2.31,
+          2.47
+        ],
+        "axis_blender": [
+          -0.0,
+          1.0,
+          -0.0
+        ]
+      },
+      {
+        "name": "CanisterHousings",
+        "type": "MESH",
+        "parent": "ElevationPivot",
+        "position_blender_m": [
+          -0.0,
+          0.0,
+          2.25
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      }
+    ]
+  },
+  "MIL_Island_S_B": {
+    "triangles": 1512,
+    "bounds_blender_m": [
+      [
+        -24.00881004333496,
+        -19.842435836791992,
+        -3.5000011920928955
+      ],
+      [
+        20.593433380126953,
+        17.672080993652344,
+        1.0498337745666504
+      ]
+    ],
+    "materials": [
+      "MAT_IslandCliff",
+      "MAT_IslandGrass",
+      "MAT_IslandRock",
+      "MAT_IslandSand"
+    ],
+    "parts": [
+      {
+        "name": "MIL_Island_S_B",
+        "type": "EMPTY",
+        "parent": null,
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Bank_3",
+        "type": "MESH",
+        "parent": "MIL_Island_S_B",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "MIL_Island_S_MAT_IslandCliff",
+        "type": "MESH",
+        "parent": "MIL_Island_S_B",
+        "position_blender_m": [
+          -20.08895,
+          1.25517,
+          -0.3
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "MIL_Island_S_MAT_IslandGrass",
+        "type": "MESH",
+        "parent": "MIL_Island_S_B",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "MIL_Island_S_MAT_IslandSand",
+        "type": "MESH",
+        "parent": "MIL_Island_S_B",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      }
+    ]
+  },
+  "MIL_Island_S_C": {
+    "triangles": 1512,
+    "bounds_blender_m": [
+      [
+        -21.654621124267578,
+        -19.20488739013672,
+        -3.5000014305114746
+      ],
+      [
+        19.8372802734375,
+        20.321016311645508,
+        1.0498337745666504
+      ]
+    ],
+    "materials": [
+      "MAT_IslandCliff",
+      "MAT_IslandGrass",
+      "MAT_IslandRock",
+      "MAT_IslandSand"
+    ],
+    "parts": [
+      {
+        "name": "MIL_Island_S_C",
+        "type": "EMPTY",
+        "parent": null,
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Bank_3",
+        "type": "MESH",
+        "parent": "MIL_Island_S_C",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "MIL_Island_S_MAT_IslandCliff",
+        "type": "MESH",
+        "parent": "MIL_Island_S_C",
+        "position_blender_m": [
+          -20.08895,
+          1.25517,
+          -0.3
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "MIL_Island_S_MAT_IslandGrass",
+        "type": "MESH",
+        "parent": "MIL_Island_S_C",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "MIL_Island_S_MAT_IslandSand",
+        "type": "MESH",
+        "parent": "MIL_Island_S_C",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      }
+    ]
+  },
+  "MIL_Island_M_B": {
+    "triangles": 1512,
+    "bounds_blender_m": [
+      [
+        -44.466224670410156,
+        -26.22400665283203,
+        -3.500001907348633
+      ],
+      [
+        38.74851608276367,
+        27.190147399902344,
+        1.0498701333999634
+      ]
+    ],
+    "materials": [
+      "MAT_IslandCliff",
+      "MAT_IslandGrass",
+      "MAT_IslandRock",
+      "MAT_IslandSand"
+    ],
+    "parts": [
+      {
+        "name": "MIL_Island_M_B",
+        "type": "EMPTY",
+        "parent": null,
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Bank_3",
+        "type": "MESH",
+        "parent": "MIL_Island_M_B",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "MIL_Island_M_MAT_IslandCliff",
+        "type": "MESH",
+        "parent": "MIL_Island_M_B",
+        "position_blender_m": [
+          -36.82047,
+          3.09581,
+          -0.3
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "MIL_Island_M_MAT_IslandGrass",
+        "type": "MESH",
+        "parent": "MIL_Island_M_B",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "MIL_Island_M_MAT_IslandSand",
+        "type": "MESH",
+        "parent": "MIL_Island_M_B",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      }
+    ]
+  },
+  "MIL_Island_M_C": {
+    "triangles": 1512,
+    "bounds_blender_m": [
+      [
+        -37.69333267211914,
+        -26.318111419677734,
+        -3.500002384185791
+      ],
+      [
+        38.731353759765625,
+        31.2498779296875,
+        1.0498701333999634
+      ]
+    ],
+    "materials": [
+      "MAT_IslandCliff",
+      "MAT_IslandGrass",
+      "MAT_IslandRock",
+      "MAT_IslandSand"
+    ],
+    "parts": [
+      {
+        "name": "MIL_Island_M_C",
+        "type": "EMPTY",
+        "parent": null,
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Bank_3",
+        "type": "MESH",
+        "parent": "MIL_Island_M_C",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "MIL_Island_M_MAT_IslandCliff",
+        "type": "MESH",
+        "parent": "MIL_Island_M_C",
+        "position_blender_m": [
+          -36.82047,
+          3.09581,
+          -0.3
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "MIL_Island_M_MAT_IslandGrass",
+        "type": "MESH",
+        "parent": "MIL_Island_M_C",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "MIL_Island_M_MAT_IslandSand",
+        "type": "MESH",
+        "parent": "MIL_Island_M_C",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      }
+    ]
+  },
+  "MIL_Island_L_B": {
+    "triangles": 1512,
+    "bounds_blender_m": [
+      [
+        -68.54155731201172,
+        -35.38716125488281,
+        -3.50000262260437
+      ],
+      [
+        63.35903549194336,
+        36.05677795410156,
+        1.0497605800628662
+      ]
+    ],
+    "materials": [
+      "MAT_IslandCliff",
+      "MAT_IslandGrass",
+      "MAT_IslandRock",
+      "MAT_IslandSand"
+    ],
+    "parts": [
+      {
+        "name": "MIL_Island_L_B",
+        "type": "EMPTY",
+        "parent": null,
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Bank_3",
+        "type": "MESH",
+        "parent": "MIL_Island_L_B",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "MIL_Island_L_MAT_IslandCliff",
+        "type": "MESH",
+        "parent": "MIL_Island_L_B",
+        "position_blender_m": [
+          -58.10711,
+          -0.86748,
+          -0.3
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "MIL_Island_L_MAT_IslandGrass",
+        "type": "MESH",
+        "parent": "MIL_Island_L_B",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "MIL_Island_L_MAT_IslandSand",
+        "type": "MESH",
+        "parent": "MIL_Island_L_B",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      }
+    ]
+  },
+  "MIL_Island_L_C": {
+    "triangles": 1512,
+    "bounds_blender_m": [
+      [
+        -58.78432083129883,
+        -32.582332611083984,
+        -3.5000030994415283
+      ],
+      [
+        61.235084533691406,
+        41.686614990234375,
+        1.0497605800628662
+      ]
+    ],
+    "materials": [
+      "MAT_IslandCliff",
+      "MAT_IslandGrass",
+      "MAT_IslandRock",
+      "MAT_IslandSand"
+    ],
+    "parts": [
+      {
+        "name": "MIL_Island_L_C",
+        "type": "EMPTY",
+        "parent": null,
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Bank_3",
+        "type": "MESH",
+        "parent": "MIL_Island_L_C",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "MIL_Island_L_MAT_IslandCliff",
+        "type": "MESH",
+        "parent": "MIL_Island_L_C",
+        "position_blender_m": [
+          -58.10711,
+          -0.86748,
+          -0.3
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "MIL_Island_L_MAT_IslandGrass",
+        "type": "MESH",
+        "parent": "MIL_Island_L_C",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "MIL_Island_L_MAT_IslandSand",
+        "type": "MESH",
+        "parent": "MIL_Island_L_C",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          -0.0,
+          0.0,
+          1.0
+        ]
+      }
+    ]
+  }
+}
