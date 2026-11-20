@@ -11,6 +11,7 @@ namespace Game.Enemies
     ///   - 모스킷 대함미사일 2발(좌 · 우 발사관에서 한 발씩, Definition.MissilePrefab · AttackDamage · AttackCooldown)
     ///   - 선수 함포 점사(gunRange 안, gunCooldown마다 gunBurst발)
     /// 미사일은 기함만 노린다. 연막 · 섬 뒤 표적에는 쏘지 않는다.
+    /// 2026-11-21: 일제사격의 첫 발은 함교 저격(레이더 전파 추적) — 작동 중인 함교 · 레이더 블록을 노리고, 노리는 블록에 붉은 표식이 뜬다.
     /// </summary>
     public class MissileCorvette : EnemyController
     {
@@ -39,6 +40,7 @@ namespace Game.Enemies
         /// <summary>검증용: 쏜 미사일 · 함포탄 수.</summary>
         public int DevMissiles { get; private set; }
         public int DevGunShots { get; private set; }
+        public int DevCommandSeekers { get; private set; }
 
         protected override bool TargetsEscorts => false;
 
@@ -58,7 +60,7 @@ namespace Game.Enemies
             OrbitPlayer(Definition.PreferredRange, 0.75f, dt);
             if (radar != null) radar.Rotate(Vector3.up, 90f * dt, Space.World);
 
-            Vector3 aim = Player.position + Vector3.up * 0.8f;
+            Vector3 aim = PlayerAimPoint(0.8f);   // 기함이면 이쪽을 향한 바깥 칸(2026-11-21)
             if (_playerShip != null && weapon.Muzzle != null)
                 aim = Ballistics.PredictIntercept(weapon.Muzzle.position, aim, Player.forward * _playerShip.CurrentSpeed, projectileSpeed);
             weapon.Tick(dt);
@@ -110,7 +112,12 @@ namespace Game.Enemies
                     _nextLauncher++;
                 }
                 var go = PoolManager.Instance?.Spawn(Definition.MissilePrefab, origin.position, origin.rotation);
-                go?.GetComponent<Missile>()?.Launch(Player, Definition.AttackDamage);
+                var missile = go != null ? go.GetComponent<Missile>() : null;
+                if (missile != null)
+                {
+                    missile.Launch(Player, Definition.AttackDamage);
+                    if (i == 0) { missile.TargetCommand(); DevCommandSeekers++; }
+                }
                 DevMissiles++;
                 if (i < count - 1) yield return new WaitForSeconds(Mathf.Max(0.3f, Definition.SalvoSpacing));
             }

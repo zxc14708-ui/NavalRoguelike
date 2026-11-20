@@ -214,6 +214,33 @@ namespace Game.Enemies
         /// <summary>표적이 바뀌었다(Player가 새 표적). 표적 콜라이더를 따로 들고 있는 파생 클래스가 갱신한다.</summary>
         protected virtual void OnTargetChanged() { }
 
+        // ---- 포격 겨냥 칸(2026-11-21): 기함(블록 격자)을 쏠 때 한가운데(함교)만 겨누지 않고, 이쪽을 향한 바깥 칸 하나를 1.2~2.4초마다 바꿔 겨눈다
+        private Transform _gunAimFor;
+        private Game.Ship.ShipGrid _gunGrid;
+        private Game.Ship.GridCoord _gunCell;
+        private bool _gunHasCell;
+        private float _gunCellUntil;
+
+        /// <summary>
+        /// 포 · 기총 · 어뢰가 겨눌 지점. 표적이 블록 격자가 있는 기함이면 이쪽을 향한 바깥 칸(높이 height), 아니면 예전처럼 표적 중심 + height.
+        /// 칸은 잠깐씩 유지해 포탑이 떨리지 않게 한다(일제사격 분산 기록에는 넣지 않는다 — 미사일 · 드론 몫).
+        /// </summary>
+        protected Vector3 PlayerAimPoint(float height = 0.8f)
+        {
+            if (Player == null) return transform.position;
+            Vector3 center = Player.position + Vector3.up * height;
+            if (_gunAimFor != Player) { _gunAimFor = Player; _gunGrid = Game.Ship.ShipHitPoints.GridOf(Player); _gunHasCell = false; }
+            if (_gunGrid == null) return center;
+            if (!_gunHasCell || Time.time >= _gunCellUntil)
+            {
+                _gunHasCell = Game.Ship.ShipHitPoints.TryPick(_gunGrid, transform.position, Game.Ship.HitArc.Side, out _gunCell, register: false);
+                _gunCellUntil = Time.time + Random.Range(1.2f, 2.4f);
+            }
+            if (!_gunHasCell) return center;
+            Vector3 c = Game.Ship.ShipHitPoints.Point(_gunGrid, _gunCell);
+            return new Vector3(c.x, center.y, c.z);
+        }
+
         /// <summary>플레이어가 연막에 가려 조준 사격을 할 수 없는가.</summary>
         protected static bool PlayerConcealed => SmokeScreen.IsActive;
 

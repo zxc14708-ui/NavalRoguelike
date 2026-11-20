@@ -64,7 +64,7 @@ namespace Game.Enemies
         protected override void UpdateBehaviour(float dt)
         {
             weapon.Tick(dt);
-            weapon.AimAt(Player.position + Vector3.up * 0.8f, turretTurnRate, dt);
+            weapon.AimAt(PlayerAimPoint(0.8f), turretTurnRate, dt);
 
             if (_preparing)
             {

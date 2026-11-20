@@ -141,7 +141,7 @@ namespace Game.Enemies
 
         private void UpdateGuns(float tick, float dt)
         {
-            Vector3 aim = Player.position + Vector3.up * 0.8f;
+            Vector3 aim = PlayerAimPoint(0.8f);   // 기함이면 이쪽을 향한 바깥 칸(2026-11-21)
             if (_playerShip != null)
                 aim = Ballistics.PredictIntercept(transform.position, aim,
                     Player.forward * _playerShip.CurrentSpeed, gunProjectileSpeed);

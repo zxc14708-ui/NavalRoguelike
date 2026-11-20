@@ -378,6 +378,7 @@ namespace Game.UI
             if (t is Submarine { IsPreparingTorpedo: true }) return "어뢰 준비";
             if (t is TorpedoBoat { IsPreparingTorpedo: true }) return "어뢰 준비";
             if (t is ModernCorvetteBoss { IsPreparingTorpedo: true }) return "어뢰 준비";
+            if (t is Missile { IsCommandSeeker: true }) return "함교 저격";   // 2026-11-21: 함교 · 레이더를 노리는 미사일
             if (missile) return "미사일";
             return t switch
             {

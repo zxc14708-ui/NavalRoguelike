@@ -68,7 +68,7 @@ namespace Game.Enemies
         {
             Vector3 v = _playerShip != null ? Player.forward * _playerShip.CurrentSpeed : Vector3.zero;
             v.y = 0f;
-            Vector3 p = Player.position + v * shellFlightTime;
+            Vector3 p = PlayerAimPoint(0f) + v * shellFlightTime;   // 기함이면 이쪽을 향한 바깥 칸(2026-11-21)
             p.y = 0f;
             return p;
         }

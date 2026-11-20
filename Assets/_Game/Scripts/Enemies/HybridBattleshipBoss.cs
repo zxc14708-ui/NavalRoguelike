@@ -527,7 +527,7 @@ namespace Game.Enemies
         {
             if (g.Part == null || g.Part.Destroyed) return;
             g.Weapon.Tick(dt);
-            Vector3 target = Player.position + Vector3.up * 0.6f;
+            Vector3 target = PlayerAimPoint(0.6f);   // 기함이면 이쪽을 향한 바깥 칸(2026-11-21)
             Vector3 aim = RadarDown ? target : Ballistics.PredictIntercept(g.Muzzle.position, target, PlayerVelocity, sideGunSpeed);
             g.Weapon.AimAt(aim, sideGunTurnRate, dt);
 

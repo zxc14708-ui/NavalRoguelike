@@ -129,7 +129,7 @@ namespace Game.Enemies
         /// <summary>플레이어 배가 움직이는 만큼 앞을, 선체 중앙 약간 위를 겨눈다.</summary>
         private Vector3 AimPoint()
         {
-            Vector3 target = Player.position + Vector3.up * 0.8f;
+            Vector3 target = PlayerAimPoint(0.8f);   // 기함이면 이쪽을 향한 바깥 칸(2026-11-21)
             if (_playerShip == null) return target;
 
             var muzzle = gunMuzzle != null ? gunMuzzle : transform;

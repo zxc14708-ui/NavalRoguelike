@@ -33,16 +33,43 @@ namespace Game.Enemies
             base.Setup(def, player);
             _playerHull = player != null ? player.GetComponent<Collider>() : null;
             _diving = false;
+            _aimFor = null;   // 풀에서 다시 나오면 칸을 새로 고른다
         }
 
         /// <summary>자폭 공격(한 방 큰 피해)은 호위함에 쓰지 않는다 — 위협은 기함에 모은다(대함미사일·어뢰와 같은 규칙).</summary>
         protected override bool TargetsEscorts => false;
 
-        protected override void OnTargetChanged() => _playerHull = Player != null ? Player.GetComponent<Collider>() : null;
+        protected override void OnTargetChanged()
+        {
+            _playerHull = Player != null ? Player.GetComponent<Collider>() : null;
+            _aimFor = null;   // 다음 프레임에 새 표적의 칸을 고른다
+        }
+
+        // 겨냥 칸(2026-11-21): 위에서 꽂히므로 갑판 블록 전체에서 칸마다 같은 확률 — 예전에는 늘 한가운데(함교)
+        private Transform _aimFor;
+        private Game.Ship.ShipGrid _grid;
+        private Game.Ship.GridCoord _cell;
+        private bool _hasCell;
+
+        private Vector3 AimPoint()
+        {
+            if (_aimFor != Player)
+            {
+                // 등장 때 받은 기함은 OnTargetChanged 없이 들어오므로 여기서 처음 고른다
+                _aimFor = Player;
+                if (_playerHull == null && Player != null) _playerHull = Player.GetComponent<Collider>();
+                _grid = Game.Ship.ShipHitPoints.GridOf(Player);
+                _hasCell = _grid != null && Game.Ship.ShipHitPoints.TryPick(_grid, transform.position, Game.Ship.HitArc.Top, out _cell);
+            }
+            Vector3 aim = Player.position + Vector3.up * 0.8f;
+            if (!_hasCell || _grid == null) return aim;
+            Vector3 c = Game.Ship.ShipHitPoints.Point(_grid, _cell);
+            return new Vector3(c.x, aim.y, c.z);
+        }
 
         protected override void UpdateBehaviour(float dt)
         {
-            Vector3 aim = Player.position + Vector3.up * 0.8f;
+            Vector3 aim = AimPoint();
             Vector3 flat = aim - transform.position;
             flat.y = 0f;
 
@@ -75,7 +102,11 @@ namespace Game.Enemies
         private void Detonate(Vector3 hitPoint)
         {
             if (Player.TryGetComponent<IDamageable>(out var target) && target.IsAlive)
-                target.TakeDamage(new DamageInfo(Definition.AttackDamage, hitPoint, transform.forward, DamageSource.Missile));
+            {
+                // 겨냥 칸이 있으면 그 칸에 맞은 것으로(선체 판정 상자 표면은 칸 경계와 어긋날 수 있다)
+                Vector3 at = _hasCell && _grid != null ? Game.Ship.ShipHitPoints.Point(_grid, _cell) : hitPoint;
+                target.TakeDamage(new DamageInfo(Definition.AttackDamage, at, transform.forward, DamageSource.Missile));
+            }
 
             PooledEffect.Spawn(blastEffect, transform.position);
             Game.View.Explosions.Spawn(hitPoint, 1.2f, Game.View.Explosions.Kind.Impact);

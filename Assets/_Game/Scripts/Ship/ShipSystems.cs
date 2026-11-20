@@ -90,6 +90,7 @@ namespace Game.Ship
         {
             GameEvents.ModuleInstalled += OnModuleChanged;
             GameEvents.ModuleDestroyed += OnModuleChanged;
+            GameEvents.ModuleRestored += OnModuleChanged;
             GameEvents.ModuleRemoved += OnModuleChanged;
             GameEvents.ModuleUpgraded += OnModuleChanged;
             RunUpgrades.Changed += Recalculate;   // 성장 카드(탐지 거리)
@@ -102,6 +103,7 @@ namespace Game.Ship
             MetaWorkshop.Changed -= Recalculate;
             GameEvents.ModuleInstalled -= OnModuleChanged;
             GameEvents.ModuleDestroyed -= OnModuleChanged;
+            GameEvents.ModuleRestored -= OnModuleChanged;
             GameEvents.ModuleRemoved -= OnModuleChanged;
             GameEvents.ModuleUpgraded -= OnModuleChanged;
         }

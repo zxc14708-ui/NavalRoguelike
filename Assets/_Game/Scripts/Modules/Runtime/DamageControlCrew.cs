@@ -46,7 +46,10 @@ namespace Game.Modules.Runtime
                 _target = FindMostDamaged(grid, self);
             }
 
-            _target?.Repair(modulePerSecond * dt);
+            // 2026-11-21: 블록 수리도 교전 중에는 선체와 같은 비율로 줄인다 — 맞는 위치가 퍼진 뒤 0.8/초 수리가 블록마다 오는 피해를 거의 다 지워
+            //             자동 검사에서 6차례 일제사격(블록이 받은 피해 1,122)에도 블록이 하나도 부서지지 않았다. 교전이 끝나면 예전 속도로 고친다.
+            bool moduleUnderFire = Time.time - ship.LastHullDamageTime < underFireWindow;
+            _target?.Repair(modulePerSecond * (moduleUnderFire ? underFireHullRepairRatio : 1f) * dt);
         }
 
         private ModuleInstance FindMostDamaged(ShipGrid grid, ModuleInstance self)

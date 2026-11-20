@@ -214,7 +214,7 @@ namespace Game.WW2
             if (secondaryProjectile == null || secondaryMuzzles.Length == 0) return;
             var muzzle = secondaryMuzzles[_secondaryIndex++ % secondaryMuzzles.Length];
             if (muzzle == null) return;
-            Vector3 target = Player.position + Vector3.up * 0.8f;
+            Vector3 target = PlayerAimPoint(0.8f);   // 기함이면 이쪽을 향한 바깥 칸(2026-11-21)
             Vector3 v = _playerShip != null ? Player.forward * _playerShip.CurrentSpeed : Vector3.zero;
             Vector3 aim = Ballistics.PredictIntercept(muzzle.position, target, v, secondarySpeed);
             Vector3 dir = (aim - muzzle.position).normalized;

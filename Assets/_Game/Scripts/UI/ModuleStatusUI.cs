@@ -57,6 +57,7 @@ namespace Game.UI
         {
             GameEvents.ModuleInstalled += OnModulesChanged;
             GameEvents.ModuleDestroyed += OnModulesChanged;
+            GameEvents.ModuleRestored += OnModulesChanged;
             GameEvents.ModuleRemoved += OnModulesChanged;
             GameEvents.StateChanged += OnStateChanged;
         }
@@ -65,6 +66,7 @@ namespace Game.UI
         {
             GameEvents.ModuleInstalled -= OnModulesChanged;
             GameEvents.ModuleDestroyed -= OnModulesChanged;
+            GameEvents.ModuleRestored -= OnModulesChanged;
             GameEvents.ModuleRemoved -= OnModulesChanged;
             GameEvents.StateChanged -= OnStateChanged;
         }

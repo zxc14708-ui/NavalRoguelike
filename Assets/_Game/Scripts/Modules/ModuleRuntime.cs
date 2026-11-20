@@ -46,6 +46,7 @@ namespace Game.Modules
             GameEvents.ModuleInstalled += HandleLayoutChanged;
             GameEvents.ModuleRemoved += HandleLayoutChanged;
             GameEvents.ModuleDestroyed += HandleLayoutChanged;
+            GameEvents.ModuleRestored += HandleLayoutChanged;
             GameEvents.ModuleRaisedChanged += HandleLayoutChanged;
             GameEvents.ModuleUpgraded += HandleLayoutChanged;   // 탄약고 강화 → 이웃 무기가 지원량을 다시 잡는다
             GameEvents.StateChanged += HandleStateChanged;
@@ -58,6 +59,7 @@ namespace Game.Modules
             GameEvents.ModuleInstalled -= HandleLayoutChanged;
             GameEvents.ModuleRemoved -= HandleLayoutChanged;
             GameEvents.ModuleDestroyed -= HandleLayoutChanged;
+            GameEvents.ModuleRestored -= HandleLayoutChanged;
             GameEvents.ModuleRaisedChanged -= HandleLayoutChanged;
             GameEvents.ModuleUpgraded -= HandleLayoutChanged;
             GameEvents.StateChanged -= HandleStateChanged;
@@ -122,6 +124,9 @@ namespace Game.Modules
 
         /// <summary>HP가 0이 되었을 때. 이펙트 재생과 기능 정지를 처리한다.</summary>
         public virtual void OnModuleDestroyed() { }
+
+        /// <summary>부서졌던 블록이 다시 살아났을 때(정비 수리 · 임시 복구). OnModuleDestroyed에서 끈 것을 되돌린다.</summary>
+        public virtual void OnModuleRestored() { }
 
         /// <summary>
         /// ModuleInstance.ApplyUpgrade에서만 호출된다(스탯은 이미 새 단계). 탄약은 남은 비율을 유지한 채 새 탄창 용량으로 바꾼다 —

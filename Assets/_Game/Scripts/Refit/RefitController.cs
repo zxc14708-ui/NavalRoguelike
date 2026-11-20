@@ -35,6 +35,7 @@ namespace Game.Refit
             GameManager.Instance.SetState(GameState.Refit);
 
             if (ship != null && progression != null) ship.RepairHull(progression.HullRepairOnLevelUp);
+            RestoreDestroyedBlocks();
 
             int cards = progression != null ? progression.CardCount : 3;
             OpenSafely(() =>
@@ -46,6 +47,27 @@ namespace Game.Refit
             });
         }
 
+        /// <summary>정비 화면에 들어가면 부서진 블록을 최대 내구의 이 비율로 다시 살린다(2026-11-21).</summary>
+        public const float RefitRestoreFraction = 0.5f;
+
+        /// <summary>
+        /// 부서진 블록 정비 수리(2026-11-21): 예전에는 안내만 "정비에서 수리된다"였고 실제로는 블록을 집었다 다시 놓아야만 살아났다.
+        /// 맞는 위치가 퍼지면서 무장 블록이 자주 부서지므로, 정비 화면에 들어갈 때마다 절반 내구로 되살려 한 판이 한 번의 파괴로 무너지지 않게 한다.
+        /// </summary>
+        private void RestoreDestroyedBlocks()
+        {
+            var grid = ship != null ? ship.Grid : null;
+            if (grid == null) return;
+            int n = 0;
+            foreach (var m in grid.Modules)
+            {
+                if (m == null || !m.IsDestroyed) continue;
+                m.Restore(RefitRestoreFraction);
+                n++;
+            }
+            if (n > 0) Game.Combat.CombatLog.Add("정비 수리", $"부서진 블록 {n}개를 내구 {RefitRestoreFraction:P0}로 복구");
+        }
+
         /// <summary>
         /// 보스 격침 보상: 카드 중 하나가 에픽 성장 카드로 고정된다. 일반 정비와 같은 화면(카드 → 배치)을 쓴다.
         /// 끝나면 onFinished를 부른다(상태 전환은 호출한 쪽이 이어서 한다).
@@ -55,6 +77,7 @@ namespace Game.Refit
             _onFinished = onFinished;
 
             GameManager.Instance.SetState(GameState.Refit);
+            RestoreDestroyedBlocks();
 
             int cards = progression != null ? progression.CardCount : 3;
             OpenSafely(() =>

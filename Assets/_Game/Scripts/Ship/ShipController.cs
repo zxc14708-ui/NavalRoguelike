@@ -172,6 +172,8 @@ namespace Game.Ship
         // 속력 저하(오버드라이브 뒤 과열 등): 강화 · 전속에 곱한다
         private float _slowUntil, _slowMultiplier = 1f;
         public bool IsSpeedPenalized => Time.time < _slowUntil;
+        /// <summary>침수로 줄어든 최고속력 배율(1 = 그대로). ShipFlooding이 정한다.</summary>
+        public float FloodSpeedMultiplier { get; set; } = 1f;
         public void BeginSpeedPenalty(float speedMultiplier, float duration)
         {
             _slowMultiplier = Mathf.Clamp(speedMultiplier, 0.1f, 1f);
@@ -398,6 +400,7 @@ namespace Game.Ship
                 accelBoost = boost * 1.5f;
             }
             if (IsSpeedPenalized) maxSpeed *= _slowMultiplier;
+            maxSpeed *= FloodSpeedMultiplier;   // 침수(2026-11-21 손상 통제 1단계, ShipFlooding)
 
             // --- 기관: 전령기 출력까지 가감속. 후진은 전진보다 느리다. 선회 중에는 속력을 조금 잃는다.
             float maxReverse = maxSpeed * config.ReverseSpeedRatio;

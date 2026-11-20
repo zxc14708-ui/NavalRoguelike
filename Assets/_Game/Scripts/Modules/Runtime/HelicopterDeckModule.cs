@@ -269,5 +269,8 @@ namespace Game.Modules.Runtime
             _sortieActive = false;
             SetParkedVisible(false);
         }
+
+        /// <summary>정비 수리로 다시 살아나면 헬기도 갑판에 다시 앉아 있다.</summary>
+        public override void OnModuleRestored() => SetParkedVisible(!_sortieActive);
     }
 }

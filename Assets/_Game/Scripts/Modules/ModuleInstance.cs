@@ -112,6 +112,19 @@ namespace Game.Modules
             GameEvents.RaiseModuleDestroyed(this);
         }
 
+        /// <summary>
+        /// 부서진 블록을 다시 살린다(2026-11-21): 정비 화면에 들어가면 최대 내구의 절반으로(RefitController),
+        /// 손상 통제 임시 복구도 이 경로를 쓴다. 부서지지 않았으면 아무 일도 하지 않는다.
+        /// </summary>
+        public void Restore(float fraction)
+        {
+            if (!IsDestroyed || Definition == null) return;
+            IsDestroyed = false;
+            Hp = Mathf.Max(1f, MaxHp * Mathf.Clamp01(fraction));
+            Runtime?.OnModuleRestored();
+            GameEvents.RaiseModuleRestored(this);
+        }
+
         /// <summary>수리반이 모듈을 회복시킨다. 이미 파괴된 모듈은 복구되지 않는다.</summary>
         public void Repair(float amount)
         {

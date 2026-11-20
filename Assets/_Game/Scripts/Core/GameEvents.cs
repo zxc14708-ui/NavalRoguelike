@@ -33,6 +33,7 @@ namespace Game.Core
         // --- 모듈
         public static event Action<ModuleInstance> ModuleInstalled;
         public static event Action<ModuleInstance> ModuleDestroyed;
+        public static event Action<ModuleInstance> ModuleRestored;   // 부서진 블록을 다시 살렸다(정비 수리 · 손상 통제 임시 복구, 2026-11-21)
         public static event Action<ModuleInstance> ModuleRemoved;
         public static event Action<ModuleInstance> ModuleUpgraded;   // 설치된 블록의 강화 단계가 올랐다
 
@@ -87,6 +88,7 @@ namespace Game.Core
 
         public static void RaiseModuleInstalled(ModuleInstance m) => ModuleInstalled?.Invoke(m);
         public static void RaiseModuleDestroyed(ModuleInstance m) => ModuleDestroyed?.Invoke(m);
+        public static void RaiseModuleRestored(ModuleInstance m) => ModuleRestored?.Invoke(m);
         public static void RaiseModuleRemoved(ModuleInstance m) => ModuleRemoved?.Invoke(m);
         public static void RaiseModuleUpgraded(ModuleInstance m) => ModuleUpgraded?.Invoke(m);
 

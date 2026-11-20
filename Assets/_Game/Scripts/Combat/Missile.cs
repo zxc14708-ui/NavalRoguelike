@@ -127,6 +127,15 @@ namespace Game.Combat
         /// <summary>발사마다 새 번호(풀에서 다시 나온 미사일을 같은 미사일로 헷갈리지 않게 — 보스 대공 판정이 쓴다).</summary>
         public int LaunchSerial { get; private set; }
         private static int s_launchSerial;
+        // 겨냥 칸(2026-11-21): 기함(블록 격자)을 노리는 적 미사일은 칸 하나를 골라 그 칸을 겨눈다 — 예전에는 늘 한가운데(함교)
+        private Game.Ship.ShipGrid _cellGrid;
+        private Game.Ship.GridCoord _cell;
+        private bool _hasCell;
+        private Game.Ship.HitArc _arc;
+        /// <summary>함교 저격 미사일인가(레이더 전파 추적 — 작동 중인 함교 · 레이더 칸을 노린다). Launch 뒤 <see cref="TargetCommand"/>로 켠다.</summary>
+        public bool IsCommandSeeker { get; private set; }
+        /// <summary>지금 겨누는 칸(있으면). 함교 저격 표식 · 검사용.</summary>
+        public bool TryGetAimCell(out Game.Ship.ShipGrid grid, out Game.Ship.GridCoord cell) { grid = _cellGrid; cell = _cell; return _hasCell && _cellGrid != null; }
         private IAimPointProvider _aimProvider;   // 보스: 열린 약점·가까운 부분을 겨눈다(2026-11-14)
         public string LogName => isThreat ? $"미사일 #{LogId}" : $"{name.Replace("(Clone)", "")}";
         public float CurrentHp => _hp;
@@ -159,6 +168,9 @@ namespace Game.Combat
             _approachActive = false;
             _profileOverride = null;
             _screenEnteredAt = -1f;
+            _hasCell = false;
+            IsCommandSeeker = false;
+            _arc = profile == MissileProfile.ClimbDive ? Game.Ship.HitArc.Top : Game.Ship.HitArc.Side;
             if (damageOverride > 0f) damage = damageOverride;
 
             // 아군 유도탄은 표적에 예상 피해를 배정해 다른 발사기가 같은 표적에 몰리지 않게 한다
@@ -191,7 +203,21 @@ namespace Game.Combat
         /// <summary>
         /// Launch 직후 부른다: 이번 비행은 솟구치거나 내리꽂지 않고 낮게 곧장 표적으로 날아간다(직사 — 호위함 고정 발사관 대함 미사일, 2026-10-27).
         /// </summary>
-        public void FlyDirect() => _profileOverride = MissileProfile.Direct;
+        public void FlyDirect() { _profileOverride = MissileProfile.Direct; if (!IsCommandSeeker) _arc = Game.Ship.HitArc.Side; }
+
+        /// <summary>
+        /// Launch 직후 부른다: 함교 저격(레이더 전파 추적, 2026-11-21). 기함의 작동 중인 함교 · 레이더 칸 하나를 골라 끝까지 그 칸을 노린다.
+        /// 발사 때 칸이 정해지므로 화면에 노리는 블록 표식을 띄울 수 있다(MissileWarningUI). 기만체 · 재밍에는 보통 미사일처럼 걸린다.
+        /// </summary>
+        public void TargetCommand()
+        {
+            IsCommandSeeker = true;
+            _arc = Game.Ship.HitArc.Command;
+            _hasCell = false;
+            if (_cellGrid != null) _hasCell = Game.Ship.ShipHitPoints.TryPick(_cellGrid, transform.position, _arc, out _cell);
+            if (_hasCell) Game.View.SeekerMarker.Show(this);
+            CombatLog.Add("함교 저격", $"{LogName} 발사 — {(_hasCell && _cellGrid.Get(_cell) != null ? _cellGrid.Get(_cell).Definition.DisplayName : "기함")}을 노림");
+        }
 
         /// <summary>
         /// Launch 직후 부른다: 표적으로 곧장 오지 않고, 발사 위치→표적 선을 angleDeg만큼 돌린 방향의 표적 둘레 radius m 경유점으로
@@ -250,6 +276,8 @@ namespace Game.Combat
             if (target != _claimTarget) ReleaseClaim();
             _target = target;
             _targetable = target != null ? target.GetComponent<ITargetable>() : null;
+            _hasCell = false;
+            _cellGrid = isThreat ? Game.Ship.ShipHitPoints.GridOf(target) : null;
             _aimProvider = target != null ? target.GetComponent<IAimPointProvider>() : null;
         }
 
@@ -356,6 +384,29 @@ namespace Game.Combat
         private Vector3 AimPoint()
         {
             Vector3 p = _target.position;
+            if (_cellGrid != null)
+            {
+                // 옆에서 오는 미사일은 마지막으로 다가오는 방향이 정해진 뒤(45m 안)에 칸을 고른다 — 그 전에는 예전처럼 중심
+                // 배가 돌아 겨냥 칸이 반대편으로 갔으면 다시 고른다(옆 공격, 아직 8m 밖일 때만)
+                if (_hasCell && _arc == Game.Ship.HitArc.Side && !Game.Ship.ShipHitPoints.StillFacing(_cellGrid, _cell, transform.position))
+                {
+                    Vector3 gap = _target.position - transform.position; gap.y = 0f;
+                    if (gap.sqrMagnitude > 64f) _hasCell = false;
+                }
+                if (!_hasCell)
+                {
+                    Vector3 flat = _target.position - transform.position; flat.y = 0f;
+                    if (_arc != Game.Ship.HitArc.Side || flat.sqrMagnitude < 45f * 45f)
+                        _hasCell = Game.Ship.ShipHitPoints.TryPick(_cellGrid, transform.position, _arc, out _cell);
+                }
+                if (_hasCell)
+                {
+                    Vector3 c = Game.Ship.ShipHitPoints.Point(_cellGrid, _cell);
+                    p.x = c.x; p.z = c.z;
+                }
+                p.y = Mathf.Max(p.y + _aimOffset, minAltitude);
+                return p;
+            }
             if (_aimProvider != null)
             {
                 Vector3 a = _aimProvider.AimPointFor(transform.position, true);   // 위에서 꽂히므로 열린 엘리베이터도 노린다
@@ -516,7 +567,9 @@ namespace Game.Combat
             bool damaged = false;
             if (hit != null && hit.TryGetComponent<IDamageable>(out var dmg) && dmg.IsAlive && Factions.CanDamage(Faction, dmg))
             {
-                dmg.TakeDamage(new DamageInfo(damage, transform.position, transform.forward, DamageSource.Missile, _statsKey));
+                // 칸을 겨눈 미사일은 그 칸에 맞은 것으로(터진 자리는 칸 중심에서 hitRadius 안 — 반올림이 옆 칸으로 새지 않게)
+                Vector3 at = _hasCell && _cellGrid != null && hit == _target ? Game.Ship.ShipHitPoints.Point(_cellGrid, _cell) : transform.position;
+                dmg.TakeDamage(new DamageInfo(damage, at, transform.forward, DamageSource.Missile, _statsKey));
                 damaged = true;
             }
 

@@ -666,7 +666,7 @@ namespace Game.Enemies
         private void TailGun(float dist, float dt)
         {
             if (_parts.IsDestroyed(_tailPart) || gunProjectilePrefab == null || _tail.Muzzle == null) return;
-            Vector3 aim = Player.position + Vector3.up * 0.8f;
+            Vector3 aim = PlayerAimPoint(0.8f);   // 기함이면 이쪽을 향한 바깥 칸(2026-11-21)
             if (_playerShip != null) aim = Ballistics.PredictIntercept(_tail.Muzzle.position, aim, Player.forward * _playerShip.CurrentSpeed, tailSpeed);
             _tail.AimAt(aim, 160f, dt);
             _tailTimer -= dt;

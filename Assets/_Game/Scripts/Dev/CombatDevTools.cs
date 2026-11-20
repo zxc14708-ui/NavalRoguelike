@@ -112,6 +112,8 @@ namespace Game.Dev
                 runner.HarborOpsOnly = System.Array.IndexOf(args, "-harborOpsOnly") >= 0;   // 군항 운영 연출(2026-11-20)
                 runner.LunPatternOnly = System.Array.IndexOf(args, "-lunPatternOnly") >= 0;   // 룬급 통과 공격 · 적 추적(2026-11-20)
                 runner.MarkersOnly = System.Array.IndexOf(args, "-markersOnly") >= 0;   // 표식 디자인(2026-11-20)
+                runner.HitMapOnly = System.Array.IndexOf(args, "-hitMapOnly") >= 0;   // 블록 피격 분포 · 파괴 측정(2026-11-21)
+                runner.FloodOnly = System.Array.IndexOf(args, "-floodOnly") >= 0;     // 손상 통제 1단계 침수 · 기울기(2026-11-21)
                 runner.HarborBuildingsOnly = System.Array.IndexOf(args, "-harborBuildingsOnly") >= 0;
                 runner.SignatureOnly = System.Array.IndexOf(args, "-signatureOnly") >= 0;
                 runner.EscortArmsOnly = System.Array.IndexOf(args, "-escortArmsOnly") >= 0;

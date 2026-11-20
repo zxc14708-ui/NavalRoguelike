@@ -38,5 +38,10 @@ namespace Game.Modules.Runtime
         {
             if (antenna != null) antenna.gameObject.SetActive(false);
         }
+
+        public override void OnModuleRestored()
+        {
+            if (antenna != null) antenna.gameObject.SetActive(true);
+        }
     }
 }

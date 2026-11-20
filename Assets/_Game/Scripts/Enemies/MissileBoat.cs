@@ -48,8 +48,13 @@ namespace Game.Enemies
             StartCoroutine(FireSalvo());
         }
 
+        /// <summary>몇 번째 일제사격마다 첫 발이 함교 저격인가.</summary>
+        public const int CommandSeekerEvery = 3;
+        private int _salvos;
+
         private System.Collections.IEnumerator FireSalvo()
         {
+            _salvos++;
             int count = Definition.SalvoSize;
             for (int i = 0; i < count; i++)
             {
@@ -64,7 +69,13 @@ namespace Game.Enemies
 
                 var origin = launchPoint != null ? launchPoint : transform;
                 var go = PoolManager.Instance?.Spawn(Definition.MissilePrefab, origin.position, origin.rotation);
-                go?.GetComponent<Missile>()?.Launch(Player, Definition.AttackDamage);
+                var missile = go != null ? go.GetComponent<Missile>() : null;
+                if (missile != null)
+                {
+                    missile.Launch(Player, Definition.AttackDamage);
+                    // 2026-11-21: 세 번째 일제사격마다 첫 발은 함교 저격(레이더 전파 추적) — 노리는 블록에 붉은 표식
+                    if (i == 0 && _salvos % CommandSeekerEvery == CommandSeekerEvery - 1) missile.TargetCommand();
+                }
 
                 if (i < count - 1) yield return new WaitForSeconds(Definition.SalvoSpacing);
             }

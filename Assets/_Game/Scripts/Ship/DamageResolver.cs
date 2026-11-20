@@ -17,6 +17,30 @@ namespace Game.Ship
         [SerializeField] private ShipSystems systems;
         [SerializeField] private BalanceConfig balance;
 
+        /// <summary>검사용 기록 한 줄(2026-11-21 피격 분포 측정 -hitMapOnly).</summary>
+        public struct HitRecord
+        {
+            public DamageInfo Info;
+            public GridCoord Cell;
+            public ModuleInstance Module;
+            public bool WasDestroyed, DestroyedNow;
+            public float ToModule, ToHull;
+        }
+
+        /// <summary>피해 하나를 해석할 때마다(검사 · 진단용 — 평소엔 구독자 없음).</summary>
+        public static event System.Action<DamageResolver, HitRecord> Resolved;
+
+        /// <summary>검사용: 켜면 맞은 칸만 기록하고 피해는 주지 않는다(맞는 위치 분포만 잴 때).</summary>
+        public static bool DevMeasureOnly;
+
+        public ShipGrid Grid => grid;
+
+        private void Awake()
+        {
+            // 손상 통제 1단계(2026-11-21): 블록 격자가 있는 기함에 침수 · 기울기를 붙인다
+            if (!TryGetComponent<ShipFlooding>(out _)) gameObject.AddComponent<ShipFlooding>();
+        }
+
         /// <summary>피해를 셀 기준으로 해석해 모듈과 선체에 나눠 적용한다.</summary>
         public void Resolve(in DamageInfo info)
         {
@@ -28,6 +52,11 @@ namespace Game.Ship
 
             var coord = HitCell(info.HitPoint);
             var target = grid.Get(coord);
+            if (DevMeasureOnly)
+            {
+                Resolved?.Invoke(this, new HitRecord { Info = info, Cell = coord, Module = target, WasDestroyed = target != null && target.IsDestroyed });
+                return;
+            }
             float amount = info.Amount * RunUpgrades.IncomingDamageMultiplier * ship.IncomingDamageScale;   // 성장 카드: 방어력 · 스킬 배율(지금은 1)
             bool wasDestroyed = target != null && target.IsDestroyed;
 
@@ -40,6 +69,7 @@ namespace Game.Ship
 
             // 2) 맞은 칸에 모듈이 있으면 일정 비율을 모듈이 받는다
             float toHull = amount;
+            ModuleInstance spillTo = null;
 
             if (target != null && target.IsOperational)
             {
@@ -48,15 +78,56 @@ namespace Game.Ship
                 toHull = amount - toModule;
                 target.TakeDamage(toModule);
             }
+            else if (target != null && target.IsDestroyed)
+            {
+                // 2-1) 이미 부서진 칸(2026-11-21): 예전에는 선체가 다 받아 그 칸이 "선체만 깎는 칸"이 됐다(자동 검사 실제 피해의 74%).
+                //      파편 · 화염이 옆으로 번지듯 가장 가까운 살아 있는 블록(맨해튼 2칸 안)이 절반을 받는다. 없으면 예전처럼 선체가 다 받는다.
+                spillTo = NearestLiveModule(coord, SpillRadius);
+                if (spillTo != null)
+                {
+                    float toModule = amount * DestroyedCellSpill;
+                    toHull = amount - toModule;
+                    spillTo.TakeDamage(toModule);
+                }
+            }
 
             // 3) 남은 피해는 선체로
             ship.ApplyHullDamage(toHull);
+            Resolved?.Invoke(this, new HitRecord { Info = info, Cell = coord, Module = spillTo ?? target, WasDestroyed = wasDestroyed,
+                DestroyedNow = spillTo != null ? spillTo.IsDestroyed : target != null && !wasDestroyed && target.IsDestroyed, ToModule = amount - toHull, ToHull = toHull });
 
             CombatLog.Add("피격", $"{info.Source} {info.Amount:0.#} → 칸 ({coord.X},{coord.Z}) " +
                                   (target == null ? "빈 칸"
-                                   : wasDestroyed ? $"{target.Definition.DisplayName}(이미 파괴)"
+                                   : wasDestroyed ? $"{target.Definition.DisplayName}(이미 파괴){(spillTo != null ? $" → 옆 {spillTo.Definition.DisplayName} {amount - toHull:0.#}{(spillTo.IsDestroyed ? " → 파괴" : "")}" : "")}"
                                    : $"{target.Definition.DisplayName} {amount - toHull:0.#}{(target.IsDestroyed ? " → 파괴" : "")}") +
                                   $" · 선체 {toHull:0.#}");
+        }
+
+        /// <summary>부서진 칸에 맞았을 때 옆 블록이 받는 몫(나머지는 선체) · 찾는 거리(맨해튼 칸).</summary>
+        public const float DestroyedCellSpill = 0.5f;
+        public const int SpillRadius = 2;
+
+        private static readonly System.Collections.Generic.List<ModuleInstance> s_spill = new();
+
+        /// <summary>origin에서 맨해튼 거리 1~radius 안의 가장 가까운 작동 중 블록(같은 거리면 아무거나). 없으면 null.</summary>
+        public ModuleInstance NearestLiveModule(GridCoord origin, int radius)
+        {
+            for (int d = 1; d <= radius; d++)
+            {
+                s_spill.Clear();
+                for (int dx = -d; dx <= d; dx++)
+                {
+                    int rest = d - Mathf.Abs(dx);
+                    for (int sgn = -1; sgn <= 1; sgn += 2)
+                    {
+                        var m = grid.Get(new GridCoord(origin.X + dx, origin.Z + sgn * rest));
+                        if (m != null && m.IsOperational && !s_spill.Contains(m)) s_spill.Add(m);
+                        if (rest == 0) break;
+                    }
+                }
+                if (s_spill.Count > 0) return s_spill[Random.Range(0, s_spill.Count)];
+            }
+            return null;
         }
 
         /// <summary>

@@ -114,6 +114,10 @@ namespace Game.Dev
         public bool LunPatternOnly;
         [Tooltip("표식 디자인 검사만 돌린다(-markersOnly, 2026-11-20): 약점 표시 갈라진 방패 · 화면 밖 종류 배지")]
         public bool MarkersOnly;
+        [Tooltip("블록 피격 분포 · 파괴 측정만 돌린다(-hitMapOnly, 2026-11-21)")]
+        public bool HitMapOnly;
+        [Tooltip("손상 통제 1단계(구획 침수 · 기울기) 검사만 돌린다(-floodOnly, 2026-11-21)")]
+        public bool FloodOnly;
         [Tooltip("군항 건물 1단계 검사만 돌린다(-harborBuildingsOnly): 이름표·건물 확대·기록실·작전 포인트")]
         public bool HarborBuildingsOnly;
         [Tooltip("시작 무장·손상통제·함정 고유 스킬 검사만 돌린다(-signatureOnly)")]
@@ -309,6 +313,20 @@ namespace Game.Dev
                 yield return TracerCheck();
                 yield return SignatureCheck();
                 SaveLog("signature");
+                Finish();
+                yield break;
+            }
+            if (FloodOnly)
+            {
+                yield return FloodCheck();
+                SaveLog("flood");
+                Finish();
+                yield break;
+            }
+            if (HitMapOnly)
+            {
+                yield return HitMapCheck();
+                SaveLog("hitmap");
                 Finish();
                 yield break;
             }
@@ -742,11 +760,15 @@ namespace Game.Dev
                 Debug.LogWarning($"[CombatVerification] 출항 절차 뒤에도 전투 상태가 아님: {GameManager.Instance.State}");
         }
 
+        /// <summary>블록 파괴를 재는 검사(-hitMapOnly)가 잠깐 멈춘다(2026-11-21).</summary>
+        private static bool s_pauseModuleHealing;
+
         /// <summary>검증 중 모듈이 파괴되어 다음 시나리오에 영향을 주지 않도록 계속 채운다.</summary>
         private static IEnumerator KeepModulesHealthy()
         {
             while (true)
             {
+                if (s_pauseModuleHealing) { yield return new WaitForSecondsRealtime(0.25f); continue; }
                 var ship = GameManager.Instance != null ? GameManager.Instance.Player : null;
                 if (ship != null && ship.Grid != null)
                     foreach (var m in ship.Grid.Modules)
