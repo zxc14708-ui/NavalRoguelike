@@ -1,5 +1,7 @@
 # NavalRoguelike 전투단·호위함 시스템 인수인계
 
+> **보관(2026-11-20)**: 끝난 작업의 기록이다. 지금 구조와 수치는 `ARCHITECTURE.md`가 기준이다 — 이 문서와 다르면 `ARCHITECTURE.md`를 따른다.
+
 > **2026-10-02 편대 개편 — 이 문서의 0장이 최신이다.** 1~7장의 출항 편성(FORCE PACKAGE·CP)·지원 스킬(AEW/CAP/ASW/EW/STK)·C2 지원 버튼·`TaskForceController`·`KillChainService`는 **삭제된 예전 구조**의 기록이다. 8장의 진영 규칙·생존 규칙(전투 불능 복귀·표적 우선도)은 그대로 유효하다.
 
 ## 0. 현재 구조(편대 개편, 2026-10-02)

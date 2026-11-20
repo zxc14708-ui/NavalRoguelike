@@ -16,6 +16,6 @@
 | 무장 효과음 | `SFX_Autocannon_Shot`(기관포) · `SFX_CIWS_Burst`(CIWS) · `SFX_NavalGun76_Shot`(76mm) · `SFX_TwinGun40_Shot`(40mm 쌍열포) — 2026-11-15 사용자 제공 원본(`ciws.flac`, `76mm 함포.mp3`, `기관포.wav`, `40mm 쌍열포.wav`)을 잘라 48kHz 모노로 변환(`ArtSource/Audio/WeaponSfx_v1/convert.py`), 기관포 · 40mm는 같은 날 사용자 저음 보강판(`autocannon_heavy_48k_mono.wav`, `twin40_heavy_48k_mono.wav`)으로 교체 | **출처 기록 필요** — 사용자가 내려받은 파일. 출시 전 출처·라이선스 확인 필요 | 확인 필요 |
 | 코드 라이브러리 | FastNoiseLite 1.1.1(`Scripts/ThirdParty/FastNoiseLite`) — 섬 해안선·섬 밀도 노이즈 | https://github.com/Auburn/FastNoiseLite · MIT(Copyright 2023 Jordan Peck, Contributors) · 소스 원본 그대로, 머리 문구 보존 · 2026-10-31 | 확인 |
 | 코드 라이브러리 | PrimeTween 1.5.0(npm 패키지 `com.kyrylokuzyk.primetween`) — 정비 카드·HUD·화면 흔들림 연출 | https://github.com/KyryloKuzyk/PrimeTween · 자체 라이선스(게임 바이너리 상업 사용 허용, 소스·tarball 재배포 금지 — 공개 저장소이므로 반드시 npm 레지스트리로만 설치, 소스를 저장소에 넣지 않음) · 2026-10-31 | 확인 |
-| 참고 자료 | 미 해군 Phalanx CIWS, AN/SQQ-89 공개 자료 | 역할 설명에만 참고(점검 문서 `GAME_AUDIT_2026-10-11.md`) | 확인 |
+| 참고 자료 | 미 해군 Phalanx CIWS, AN/SQQ-89 공개 자료 | 역할 설명에만 참고(점검 문서 `Docs/archive/GAME_AUDIT_2026-10-11.md`) | 확인 |
 
 새 에셋을 들이면 이 표에 한 줄을 더한다(출처 URL, 라이선스, 들인 날짜).
