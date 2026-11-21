@@ -33,12 +33,18 @@ namespace Game.Ship
         /// <summary>검사용: 켜면 맞은 칸만 기록하고 피해는 주지 않는다(맞는 위치 분포만 잴 때).</summary>
         public static bool DevMeasureOnly;
 
+        /// <summary>검사용: 0 이상이면 블록이 받는 몫을 이 값으로(밸런스 비교 -balanceSimOnly). 원본 BalanceConfig는 건드리지 않는다.</summary>
+        public static float DevModuleShareOverride = -1f;
+
         public ShipGrid Grid => grid;
 
         private void Awake()
         {
             // 손상 통제 1단계(2026-11-21): 블록 격자가 있는 기함에 침수 · 기울기를 붙인다
             if (!TryGetComponent<ShipFlooding>(out _)) gameObject.AddComponent<ShipFlooding>();
+            if (!TryGetComponent<ShipFire>(out _)) gameObject.AddComponent<ShipFire>();               // 2단계 화재 · 탄약고
+            if (!TryGetComponent<ShipDamageControl>(out _)) gameObject.AddComponent<ShipDamageControl>();   // 손상 통제반 자동 배치
+            if (!TryGetComponent<Game.View.DamageControlFx>(out _)) gameObject.AddComponent<Game.View.DamageControlFx>();   // 작동 연출(경광등 · 용접 불꽃 · 물줄기)
         }
 
         /// <summary>피해를 셀 기준으로 해석해 모듈과 선체에 나눠 적용한다.</summary>
@@ -73,7 +79,7 @@ namespace Game.Ship
 
             if (target != null && target.IsOperational)
             {
-                float split = balance != null ? balance.ModuleDamageShare : 0.6f;
+                float split = DevModuleShareOverride >= 0f ? DevModuleShareOverride : balance != null ? balance.ModuleDamageShare : 0.6f;
                 float toModule = amount * split;
                 toHull = amount - toModule;
                 target.TakeDamage(toModule);
@@ -191,7 +197,7 @@ namespace Game.Ship
                 kv.Key.TakeDamage(protectedDamage);   // 탄약고라면 여기서 연쇄 유폭
                 if (kv.Key.IsDestroyed) destroyed++;
             }
-            ship?.ApplyHullDamage(damage * hullShare * (ModuleSynergy.ProtectedByRepair(grid, origin) ? 0.75f : 1f), "탄약고 유폭");
+            ship?.ApplyHullDamage(damage * hullShare * (ModuleSynergy.ProtectedByRepair(grid, origin) ? 0.75f : 1f), "탄약고 유폭", hostile: false);
             return (damaged, destroyed);
         }
     }

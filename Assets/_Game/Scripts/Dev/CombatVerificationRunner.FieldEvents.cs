@@ -7,7 +7,7 @@ using Game.Missions;
 
 namespace Game.Dev
 {
-    /// <summary>자동 전투 검증 — 전장 이벤트(2026-11-17): 자폭 보트 협공 · 위치 노출 · 구조 활동 · 적 보급선 추격 · 진행.</summary>
+    /// <summary>자동 전투 검증 — 전장 이벤트(2026-11-17): 반잠수정 포위 · 자폭 보트 일렬 돌격(2026-11-21) · 위치 노출 · 구조 활동 · 적 보급선 추격 · 진행.</summary>
     public partial class CombatVerificationRunner
     {
         private IEnumerator FieldEventsCheck()
@@ -40,26 +40,47 @@ namespace Game.Dev
             dir.Exposure.enabled = false;   // 게이지는 따로 본다(다른 이벤트 중 포격이 섞이지 않게)
             dir.DevNoAuto = true;           // 검사 도중 이벤트가 저절로 열리지 않게
 
-            // ---- 1) 자폭 보트 협공: 제자리면 맞는다
+            // ---- 1) 반잠수정 포위(2026-11-21 시안 A1): 경고가 기함을 따라다니다 사라지고, 잠겨 있던 반잠수정이 떠올라 들이받는다
             {
                 ship.RepairHull(ship.HullMaxHp);
                 float hp0 = ship.HullHp;
                 bool started = dir.StartEvent(FieldEventDirector.Kind.Pincer);
                 var p = dir.Current as PincerAttack;
-                yield return new WaitForSeconds(1f);
-                bool lanes = GameObject.Find("Pincer lane 0") != null && GameObject.Find("Pincer aim ring") != null;
+                yield return new WaitForSeconds(0.4f);
+                float r0 = p != null ? p.RingRadius : 0f;
+                // 경고가 기함을 따라다니는가: 기함을 10m 옮겨 본다
+                Vector3 before = ship.transform.position;
+                Warp(before + ship.transform.right * 10f);
+                yield return new WaitForSeconds(0.6f);
+                var ringGo = GameObject.Find("Pincer warning ring");
+                var ringLr = ringGo != null ? ringGo.GetComponent<LineRenderer>() : null;
+                Vector3 ringCenter = Vector3.zero;
+                if (ringLr != null && ringLr.positionCount > 0) { for (int i = 0; i < ringLr.positionCount; i++) ringCenter += ringLr.GetPosition(i); ringCenter /= ringLr.positionCount; }
+                Vector3 off2 = ringCenter - ship.transform.position; off2.y = 0f;
+                bool follows = ringLr != null && ringLr.positionCount > 0 && off2.magnitude < 1.5f;
+                bool chevrons = GameObject.Find("Pincer chevron 5") != null;
+                float r1 = p != null ? p.RingRadius : 0f;
                 yield return ScreenShot("field_pincer_warn");
+                yield return CloseShot("field_pincer_warn_close", ship.transform, 34f);
                 float t0 = Time.realtimeSinceStartup;
-                while (p != null && p.State != PincerAttack.Phase.Done && Time.realtimeSinceStartup - t0 < 12f) yield return null;
+                while (p != null && p.State == PincerAttack.Phase.Warning && Time.realtimeSinceStartup - t0 < 5f) yield return null;
+                bool hidden = p != null && !p.WarningVisible;
+                bool surfacing = p != null && p.BoatsList.Count > 0 && p.BoatsList[0] != null && p.BoatsList[0].Surfacing;
+                yield return new WaitForSeconds(0.55f);
+                yield return CloseShot("field_pincer_surface", ship.transform, 40f);
+                t0 = Time.realtimeSinceStartup;
+                while (p != null && p.State != PincerAttack.Phase.Done && Time.realtimeSinceStartup - t0 < 14f) yield return null;
                 bool hit = p != null && p.Hits >= 1 && ship.HullHp < hp0;
-                _report.AppendLine($"- 협공(제자리): 시작 {Yes(started)} · 예고선 · 표적 원 {Yes(lanes)} · 나온 보트 {p?.Launched} · 기함 충돌 {p?.Hits} · 선체 {hp0:0} → {ship.HullHp:0} · 결과 {p?.Outcome}");
-                if (!started || !lanes || p == null || p.Launched < 2) Fail("자폭 보트 협공이 예고 · 세 방향 돌진을 하지 않음");
-                if (!hit) Fail("제자리에 머문 기함에 협공 보트가 부딪히지 않음");
+                _report.AppendLine($"- 반잠수정 포위(제자리): 시작 {Yes(started)} · 경고가 기함을 따라감 {Yes(follows)} · 원 조여듦 {r0:0}→{r1:0}m · 세 방향 꺾쇠 {Yes(chevrons)} · 나오기 전 경고 사라짐 {Yes(hidden)} · 떠오름 {Yes(surfacing)} · 떠오른 수 {p?.Launched} · 기함 충돌 {p?.Hits} · 선체 {hp0:0} → {ship.HullHp:0} · 결과 {p?.Outcome}");
+                if (!started || p == null || p.Launched < 2) Fail("반잠수정 포위가 열리지 않거나 두 척도 떠오르지 않음");
+                if (!follows || !chevrons || r1 >= r0) Fail("포위 경고(점선 원 · 꺾쇠)가 기함을 따라 조여들지 않음");
+                if (!hidden || !surfacing) Fail("경고가 사라진 뒤 반잠수정이 물속에서 떠오르지 않음");
+                if (!hit) Fail("제자리에 머문 기함을 반잠수정이 들이받지 않음");
                 yield return CloseRefit();
                 CombatDevTools.ClearBattlefield();
             }
 
-            // ---- 2) 협공 회피: 돌진이 시작되면 옆으로 비킨다 → 보트끼리 부딪혀 터지고 둘레 적이 휩쓸린다
+            // ---- 2) 포위 격퇴: 떠오른 반잠수정을 모두 격침하면 보너스 경험치
             {
                 ship.RepairHull(ship.HullMaxHp);
                 Warp(home);
@@ -68,27 +89,71 @@ namespace Game.Dev
                 var p = dir.Current as PincerAttack;
                 float t0 = Time.realtimeSinceStartup;
                 while (p != null && p.State == PincerAttack.Phase.Warning && Time.realtimeSinceStartup - t0 < 5f) yield return null;
-                EnemyController bystander = null;
-                bool charging = p != null && p.State == PincerAttack.Phase.Charging && p.BoatsList.Count >= 2;
-                if (charging)
-                {
-                    // 두 보트 사이 방향으로 40m 비킨다(돌진선 위가 아니게)
-                    Vector3 a = p.BoatsList[0].transform.position - p.AimPoint; a.y = 0f;
-                    Vector3 away = Quaternion.Euler(0f, 60f, 0f) * a.normalized;
-                    Warp(p.AimPoint + away * 40f);
-                    // 한가운데 근처에 적 고속정 하나(폭발에 휩쓸리는지)
-                    var fast = FieldEventDirector.FindEnemy("ene_fastboat");
-                    bystander = EnemySpawner.Instance.SpawnAt(fast, p.AimPoint + Quaternion.Euler(0f, -60f, 0f) * a.normalized * 7f, Quaternion.identity);
-                    if (bystander != null) bystander.DevFrozen = true;
-                }
-                while (p != null && p.State != PincerAttack.Phase.Done && Time.realtimeSinceStartup - t0 < 12f) yield return null;
-                bool swept = bystander == null || !bystander.IsAlive || bystander.CurrentHp < bystander.Definition.MaxHp;
+                yield return new WaitForSeconds(PincerAttack.RiseTime + 0.2f);
+                bool revealed = true;
+                if (p != null)
+                    foreach (var b in p.BoatsList)
+                    {
+                        if (b == null || !b.IsAlive) continue;
+                        if (!b.IsRevealed) revealed = false;
+                        b.TakeDamage(new Game.Combat.DamageInfo(9999f, b.transform.position, Vector3.down, Game.Combat.DamageSource.Gun, "검사"));
+                    }
+                t0 = Time.realtimeSinceStartup;
+                while (p != null && p.State != PincerAttack.Phase.Done && Time.realtimeSinceStartup - t0 < 4f) yield return null;
                 bool gained = xp.Xp + xp.Level * 100000 > xp0;
-                _report.AppendLine($"- 협공(회피): 돌진 시작 {Yes(charging)} · 서로 충돌 {p?.Collided}척 · 기함 충돌 {p?.Hits} · 결과 {p?.Outcome} · 보너스 경험치 +{p?.BonusXp} · 둘레 적 휩쓸림 {Yes(swept)}");
-                if (!charging || p == null || p.Outcome != PincerAttack.Result.Collided || p.Collided < 2 || p.Hits > 0)
-                    Fail("협공을 피했는데 보트끼리 부딪혀 터지지 않음");
-                if (p != null && (p.BonusXp <= 0 || !gained)) Fail("협공 회피 보너스 경험치가 들어오지 않음");
-                if (!swept) Fail("협공 충돌 폭발이 둘레 적에게 피해를 주지 않음");
+                _report.AppendLine($"- 반잠수정 포위(격퇴): 떠오른 뒤 드러남 {Yes(revealed)} · 격침 {p?.Killed} · 기함 충돌 {p?.Hits} · 결과 {p?.Outcome} · 보너스 경험치 +{p?.BonusXp}");
+                if (p == null || p.Outcome != PincerAttack.Result.Repelled || p.Hits > 0) Fail("떠오른 반잠수정을 모두 격침했는데 포위 격퇴로 끝나지 않음");
+                if (p != null && (p.BonusXp <= 0 || !gained)) Fail("포위 격퇴 보너스 경험치가 들어오지 않음");
+                if (!revealed) Fail("떠오른 반잠수정이 드러나지 않음(쏠 수 없음)");
+                yield return CloseRefit();
+                CombatDevTools.ClearBattlefield();
+            }
+
+            // ---- 2b) 자폭 보트 일렬 돌격(2026-11-21 시안 B1): 횡대 — 제자리면 띠 한가운데로 맞는다
+            {
+                ship.RepairHull(ship.HullMaxHp);
+                Warp(home);
+                float hp0 = ship.HullHp;
+                var def = FieldEventDirector.FindEnemy("ene_suicide_boat");
+                var la = LineAssault.Begin(ship, xp, def, LineAssault.Formation.Abreast);
+                yield return new WaitForSeconds(1f);
+                bool band = la != null && la.WarningVisible && GameObject.Find("Line assault arrow 3") != null && GameObject.Find("Line assault edge L") != null;
+                yield return ScreenShot("field_line_warn");
+                yield return CloseShot("field_line_warn_close", ship.transform, 40f);
+                float t0 = Time.realtimeSinceStartup;
+                while (la != null && la.State == LineAssault.Phase.Warning && Time.realtimeSinceStartup - t0 < 5f) yield return null;
+                bool hidden = la != null && !la.WarningVisible;
+                yield return new WaitForSeconds(1.2f);
+                yield return ScreenShot("field_line_charge");
+                t0 = Time.realtimeSinceStartup;
+                while (la != null && la.State != LineAssault.Phase.Done && Time.realtimeSinceStartup - t0 < 12f) yield return null;
+                _report.AppendLine($"- 일렬 돌격(횡대 · 제자리): 경고 띠 · 화살 {Yes(band)} · 띠 폭 {la?.Width:0}m · 나오기 전 경고 사라짐 {Yes(hidden)} · 나온 보트 {la?.Launched} · 기함 충돌 {la?.Hits} · 빠져나감 {la?.Passed} · 선체 {hp0:0} → {ship.HullHp:0} · 결과 {la?.Outcome}");
+                if (la == null || la.Launched < LineAssault.Boats || !band || !hidden) Fail("일렬 돌격이 경고 띠를 보이고 사라진 뒤 다섯 척이 나오지 않음");
+                if (la != null && (la.Hits < 1 || ship.HullHp >= hp0)) Fail("띠 한가운데 머문 기함에 횡대 돌격이 맞지 않음");
+                yield return CloseRefit();
+                CombatDevTools.ClearBattlefield();
+            }
+
+            // ---- 2c) 일렬 돌격(종대): 돌격이 시작되면 띠 밖으로 비킨다 → 모두 빠져나가고 보너스 경험치
+            {
+                ship.RepairHull(ship.HullMaxHp);
+                Warp(home);
+                int xp0 = xp.Xp + xp.Level * 100000;
+                var def = FieldEventDirector.FindEnemy("ene_suicide_boat");
+                var la = LineAssault.Begin(ship, xp, def, LineAssault.Formation.Column);
+                float t0 = Time.realtimeSinceStartup;
+                while (la != null && la.State == LineAssault.Phase.Warning && Time.realtimeSinceStartup - t0 < 5f) yield return null;
+                if (la != null)
+                {
+                    Vector3 side = Vector3.Cross(Vector3.up, la.Direction).normalized;
+                    Warp(la.AimPoint + side * 30f);
+                }
+                t0 = Time.realtimeSinceStartup;
+                while (la != null && la.State != LineAssault.Phase.Done && Time.realtimeSinceStartup - t0 < 14f) yield return null;
+                bool gained = xp.Xp + xp.Level * 100000 > xp0;
+                _report.AppendLine($"- 일렬 돌격(종대 · 회피): 나온 보트 {la?.Launched} · 빠져나감 {la?.Passed} · 기함 충돌 {la?.Hits} · 결과 {la?.Outcome} · 보너스 경험치 +{la?.BonusXp}");
+                if (la == null || la.Outcome != LineAssault.Result.Evaded || la.Passed < la.Launched) Fail("띠 밖으로 비켰는데 종대 보트가 그대로 빠져나가지 않음");
+                if (la != null && (la.BonusXp <= 0 || !gained)) Fail("돌격 회피 보너스 경험치가 들어오지 않음");
                 yield return CloseRefit();
                 CombatDevTools.ClearBattlefield();
             }
@@ -278,7 +343,7 @@ namespace Game.Dev
                 yield return new WaitForSeconds(0.3f);
                 bool cleaned = GameObject.Find("Rescue panel") == null && GameObject.Find("Rescue raft 0") == null && dir.Current == null && !dir.Active;
                 _report.AppendLine($"- 보스 구간 이벤트 {kind} · 스테이지 끝 정리 {Yes(cleaned)}");
-                if (kind != FieldEventDirector.Kind.Pincer) Fail("보스 구간에 협공이 아닌 이벤트를 냄");
+                if (kind != FieldEventDirector.Kind.Pincer && kind != FieldEventDirector.Kind.LineAssault) Fail("보스 구간에 포위 · 돌격이 아닌 이벤트를 냄");
                 if (!cleaned) Fail("스테이지가 끝나도 전장 이벤트가 남음");
                 CombatDevTools.ClearBattlefield();
             }

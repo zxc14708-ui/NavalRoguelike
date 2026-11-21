@@ -7,14 +7,14 @@ using Game.Modules;
 namespace Game.Ship
 {
     /// <summary>
-    /// 손상 통제 1단계 — 구획 침수 · 기울기(2026-11-21, Docs/SESSION_LOG_DAMAGE_PLAN_2026-11-21.md 기획 A).
-    ///   - 구획: 블록 격자를 길이 방향으로 2~6구획(격벽)으로 나눈다(2칸에 하나).
-    ///   - 구멍: 수면 아래를 맞으면 그 칸의 구획에 구멍 — 어뢰 · 기뢰는 늘, 낮게 날아온 미사일은 30%, 낮게 날아온 큰 포탄(8 이상)은 10%.
-    ///     구멍마다 초당 들어오는 물(구획 비율): 어뢰 5% · 미사일 2.5% · 포탄 1.2%.
-    ///   - 막기: 손상 통제반(함교 1조 + 손상통제반 블록마다 1조)이 구멍을 하나씩 8초에 막는다(교전 중에는 4배 느림).
-    ///   - 배수: 구멍이 없는 구획은 초당 1.2%씩 빠진다(함교가 부서지면 절반). 85%를 넘은 구획은 옆 구획으로 초당 1%씩 넘친다.
-    ///   - 효과: 차오른 물 합(구획 수 단위)마다 최고속력 −12%(최소 50%), 기울기 — 구멍 쪽 현으로 구획당 8°(최대 15°) · 앞뒤 구획당 4°,
-    ///     배가 물 합만큼 0.35m까지 가라앉는다. 물이 70%를 넘거나 15° 넘게 기울면 선체가 초당 1%씩 깎인다(전복 · 침몰 진행).
+    /// 손상 통제 — 구획 침수 · 기울기(2026-11-21 1단계, Docs/SESSION_LOG_DAMAGE_PLAN_2026-11-21.md 기획 A).
+    ///   - 구획: 블록 격자를 길이 방향으로 2~6구획(격벽, 2칸에 하나). 구획마다 좌현 · 우현 물을 따로 센다(각 0~1).
+    ///   - 구멍: 수면 아래를 맞으면 그 칸 구획 · 그 현에 구멍 — 어뢰 · 기뢰는 늘, 낮게 날아온 미사일 20%, 낮게 날아온 큰 포탄(8 이상) 10%.
+    ///     구멍마다 초당 들어오는 물: 어뢰 5% · 미사일 2.5% · 포탄 1.2%.
+    ///   - 막기: 손상 통제반(ShipDamageControl)이 구멍을 하나씩 막는다(1조가 8초, 교전 중 4배 느림).
+    ///   - 배수: 구멍이 없는 구획은 초당 1.2%씩(함교가 부서지면 절반). 85% 넘은 구획은 옆 구획으로 넘친다.
+    ///   - 효과: 물 합(구획 단위)마다 최고속력 −12%(최소 50%), 우현 − 좌현 물 차이로 구획당 6°(최대 15°) · 앞뒤 3°, 0.35m까지 가라앉음.
+    ///     물 70% 초과 또는 15° 넘게 기울면 선체가 초당 1%씩(침몰 진행).
     ///   - 정비 화면에 들어가면 물을 다 빼고 구멍을 다 막는다.
     /// 겉모습: 기함 Model(선체 + 블록 모델)만 기울이고 내린다 — 격자 · 판정 · 조준 좌표는 그대로.
     /// </summary>
@@ -24,24 +24,25 @@ namespace Game.Ship
         public static bool Enabled = true;
 
         public const float TorpedoHole = 0.05f, MissileHole = 0.025f, ShellHole = 0.012f;
-        public const float MissileHoleChance = 0.3f, ShellHoleChance = 0.1f, ShellHoleMinDamage = 8f;
+        public const float MissileHoleChance = 0.2f, ShellHoleChance = 0.1f, ShellHoleMinDamage = 8f;
         public const float PumpRate = 0.012f, OverflowAt = 0.85f, OverflowRate = 0.01f;
         public const float SpeedPerCompartment = 0.12f, MinSpeed = 0.5f;
-        public const float ListPerCompartment = 8f, TrimPerCompartment = 4f, MaxList = 15f, SinkAtFull = 0.35f;
-        public const float PatchSeconds = 8f, UnderFireSlow = 4f, UnderFireWindow = 3f;
+        public const float ListPerCompartment = 6f, TrimPerCompartment = 3f, MaxList = 15f, SinkAtFull = 0.35f;
+        public const float PatchSeconds = 8f;
         public const float SinkingFlood = 0.7f, SinkingHullPerSecond = 0.01f;
 
         public sealed class Compartment
         {
             public int MinX, MaxX;
-            public float Water;      // 0 ~ 1
-            public float Along;      // −1(함미) ~ 1(함수)
+            public float Port, Stbd;  // 0 ~ 1
+            public float Along;       // −1(함미) ~ 1(함수)
+            public float Water => (Port + Stbd) * 0.5f;
         }
 
         public sealed class Hole
         {
             public int Compartment;
-            public float Side;       // −1 좌현 · 0 가운데 · 1 우현
+            public float Side;       // −1 좌현 · 1 우현
             public float Rate;
             public float Patch;      // 0 ~ 1
         }
@@ -51,6 +52,7 @@ namespace Game.Ship
         private Transform _model;
         private Quaternion _modelRot;
         private Vector3 _modelPos;
+        private bool _modelPosed;
         private readonly List<Compartment> _comps = new();
         private readonly List<Hole> _holes = new();
         private int _layoutHash;
@@ -78,7 +80,6 @@ namespace Game.Ship
             var resolver = GetComponent<DamageResolver>();
             _grid = resolver != null ? resolver.Grid : null;
             _model = _ship != null ? _ship.transform.Find("Model") : null;
-            if (_model != null) { _modelRot = _model.localRotation; _modelPos = _model.localPosition; }
         }
 
         private void OnEnable()
@@ -102,7 +103,7 @@ namespace Game.Ship
         public void DrainAll()
         {
             _holes.Clear();
-            foreach (var c in _comps) c.Water = 0f;
+            foreach (var c in _comps) c.Port = c.Stbd = 0f;
             Apply(0f);
         }
 
@@ -110,10 +111,10 @@ namespace Game.Ship
         private void EnsureCompartments()
         {
             if (_grid == null) return;
-            int minX = int.MaxValue, maxX = int.MinValue, hash = 17;
+            int minX = int.MaxValue, maxX = int.MinValue;
             foreach (var c in _grid.OccupiedCells) { minX = Mathf.Min(minX, c.X); maxX = Mathf.Max(maxX, c.X); }
             if (minX > maxX) { _comps.Clear(); return; }
-            hash = minX * 397 ^ maxX;
+            int hash = minX * 397 ^ maxX;
             if (hash == _layoutHash && _comps.Count > 0) return;
             _layoutHash = hash;
             int length = maxX - minX + 1;
@@ -128,8 +129,7 @@ namespace Game.Ship
                 _comps.Add(new Compartment { MinX = a, MaxX = Mathf.Max(a, b),
                     Along = length > 1 ? Mathf.Lerp(-1f, 1f, (mid - minX) / (length - 1f)) : 0f });
             }
-            // 나누기가 바뀌면 물은 비율대로 옮긴다(배치 변경은 정비 중이라 보통 0)
-            for (int i = 0; i < _comps.Count && i < old.Count; i++) _comps[i].Water = old[i].Water;
+            for (int i = 0; i < _comps.Count && i < old.Count; i++) { _comps[i].Port = old[i].Port; _comps[i].Stbd = old[i].Stbd; }
             _holes.RemoveAll(h => h.Compartment >= _comps.Count);
         }
 
@@ -164,24 +164,27 @@ namespace Game.Ship
             Vector3 local = _grid.CoordToLocal(cell);
             float side = Mathf.Abs(local.x) > 0.1f ? Mathf.Sign(local.x) : -Mathf.Sign(_grid.transform.InverseTransformDirection(dir).x);
             if (side == 0f) side = 1f;
-            _holes.Add(new Hole { Compartment = CompartmentOf(cell), Side = side, Rate = rate });
+            int comp = CompartmentOf(cell);
+            _holes.Add(new Hole { Compartment = comp, Side = side, Rate = rate });
             HolesMade++;
-            CombatLog.Add("침수", $"구획 {CompartmentOf(cell) + 1}/{_comps.Count} {(side > 0 ? "우현" : "좌현")} 구멍 · 초당 {rate * 100f:0.#}%");
+            CombatLog.Add("침수", $"구획 {comp + 1}/{_comps.Count} {(side > 0 ? "우현" : "좌현")} 구멍 · 초당 {rate * 100f:0.#}%");
             if (Time.time - _bannerAt > 8f)
             {
                 _bannerAt = Time.time;
-                GameEvents.RaiseBanner($"침수 — {(side > 0 ? "우현" : "좌현")} 구획 {CompartmentOf(cell) + 1}에 물이 찹니다(손상 통제반이 막는 중)");
+                GameEvents.RaiseBanner($"침수 — {(side > 0 ? "우현" : "좌현")} 구획 {comp + 1}에 물이 찹니다(손상 통제반이 막는 중)");
             }
         }
 
-        private int Crews()
+        /// <summary>손상 통제반이 구멍 하나를 막는다(amount = 이번 프레임 진행, 1이면 다 막힘). 다 막았으면 true.</summary>
+        public bool Work(Hole h, float amount)
         {
-            int crews = 0;
-            if (_grid == null) return 0;
-            foreach (var m in _grid.Modules)
-                if (m != null && m.IsOperational && m.Definition != null &&
-                    (m.Definition.Type == ModuleType.Bridge || m.Definition.Type == ModuleType.RepairBay)) crews++;
-            return crews;
+            if (h == null || !_holes.Contains(h)) return false;
+            h.Patch += amount;
+            if (h.Patch < 1f) return false;
+            _holes.Remove(h);
+            HolesPatched++;
+            CombatLog.Add("침수", $"구멍 막음 · 남은 {_holes.Count}");
+            return true;
         }
 
         private bool BridgeAlive()
@@ -199,28 +202,11 @@ namespace Game.Ship
             EnsureCompartments();
             if (_comps.Count == 0) return;
 
-            // 구멍으로 물이 든다 · 손상 통제반이 앞에서부터 하나씩 막는다
-            int crews = Crews();
-            bool underFire = Time.time - _ship.LastHullDamageTime < UnderFireWindow;
-            float patch = crews / PatchSeconds / (underFire ? UnderFireSlow : 1f) * dt;
-            for (int i = 0; i < _holes.Count; i++)
+            foreach (var h in _holes)
             {
-                var h = _holes[i];
                 var c = _comps[h.Compartment];
-                c.Water = Mathf.Min(1f, c.Water + h.Rate * dt);
-            }
-            for (int i = 0; i < _holes.Count && patch > 0f; i++)
-            {
-                float use = Mathf.Min(patch, 1f - _holes[i].Patch);
-                _holes[i].Patch += use;
-                patch -= use;
-            }
-            int before = _holes.Count;
-            _holes.RemoveAll(h => h.Patch >= 1f);
-            if (_holes.Count < before)
-            {
-                HolesPatched += before - _holes.Count;
-                CombatLog.Add("침수", $"구멍 {before - _holes.Count}개 막음 · 남은 {_holes.Count}");
+                if (h.Side > 0f) c.Stbd = Mathf.Min(1f, c.Stbd + h.Rate * dt);
+                else c.Port = Mathf.Min(1f, c.Port + h.Rate * dt);
             }
 
             // 배수 · 넘침
@@ -228,53 +214,75 @@ namespace Game.Ship
             for (int i = 0; i < _comps.Count; i++)
             {
                 var c = _comps[i];
-                if (!_holes.Exists(h => h.Compartment == i)) c.Water = Mathf.Max(0f, c.Water - pump);
+                bool holed = false;
+                foreach (var h in _holes) if (h.Compartment == i) { holed = true; break; }
+                if (!holed) { c.Port = Mathf.Max(0f, c.Port - pump); c.Stbd = Mathf.Max(0f, c.Stbd - pump); }
                 if (c.Water > OverflowAt)
                 {
                     float flow = OverflowRate * dt;
-                    if (i > 0) { _comps[i - 1].Water = Mathf.Min(1f, _comps[i - 1].Water + flow * 0.5f); }
-                    if (i < _comps.Count - 1) { _comps[i + 1].Water = Mathf.Min(1f, _comps[i + 1].Water + flow * 0.5f); }
-                    c.Water -= flow;
+                    for (int n = i - 1; n <= i + 1; n += 2)
+                    {
+                        if (n < 0 || n >= _comps.Count) continue;
+                        _comps[n].Port = Mathf.Min(1f, _comps[n].Port + flow * 0.25f);
+                        _comps[n].Stbd = Mathf.Min(1f, _comps[n].Stbd + flow * 0.25f);
+                    }
+                    c.Port = Mathf.Max(0f, c.Port - flow * 0.5f);
+                    c.Stbd = Mathf.Max(0f, c.Stbd - flow * 0.5f);
                 }
             }
             Apply(dt);
+        }
+
+        /// <summary>침몰 진행 피해의 기준 선체 = 함종 선체 × 선체 강화 카드(검사 환경이 최대 선체를 크게 올려도 그대로).</summary>
+        public static float ReferenceHullHp(ShipController ship)
+        {
+            float b = ship.Hull != null ? ship.Hull.HullHp : ship.Config != null ? ship.Config.HullMaxHp : ship.HullMaxHp;
+            return Mathf.Min(ship.HullMaxHp, b * RunUpgrades.HullMultiplier);
         }
 
         /// <summary>물 → 속력 · 기울기 · 가라앉음 · 침몰 진행.</summary>
         private void Apply(float dt)
         {
             float sum = 0f, list = 0f, trim = 0f;
-            for (int i = 0; i < _comps.Count; i++)
+            foreach (var c in _comps)
             {
-                var c = _comps[i];
                 sum += c.Water;
                 trim += c.Water * c.Along * TrimPerCompartment;
-                // 그 구획의 기울기 방향: 열린 구멍(없으면 막힌 구멍이 남긴 물이라 마지막으로 기운 쪽 유지)
-                float side = 0f;
-                foreach (var h in _holes) if (h.Compartment == i) side += h.Side;
-                if (side == 0f) side = c.Water > 0f ? Mathf.Sign(_list == 0f ? 1f : _list) : 0f;
-                list += c.Water * Mathf.Clamp(side, -1f, 1f) * ListPerCompartment;
+                list += (c.Stbd - c.Port) * ListPerCompartment;
             }
             FloodedCompartments = sum;
             TargetList = Mathf.Clamp(list, -MaxList - 5f, MaxList + 5f);
             TargetTrim = Mathf.Clamp(trim, -8f, 8f);
-            _ship.FloodSpeedMultiplier = Mathf.Max(MinSpeed, 1f - SpeedPerCompartment * sum);
+            if (_ship != null) _ship.FloodSpeedMultiplier = Mathf.Max(MinSpeed, 1f - SpeedPerCompartment * sum);
 
             float k = dt > 0f ? 1f - Mathf.Exp(-dt * 1.2f) : 1f;
             _list = Mathf.Lerp(_list, TargetList, k);
             _trim = Mathf.Lerp(_trim, TargetTrim, k);
             _sink = Mathf.Lerp(_sink, SinkAtFull * FloodFraction, k);
+            // 물이 있을 때만 Model을 움직인다 — 처음 기울 때 지금 자세를 기준으로 잡고, 물이 다 빠지면 그 자세로 되돌린다
+            // (물이 없을 때 매 프레임 덮어쓰면 다른 코드가 바꾼 Model 자리 · 자세를 깨뜨린다 — WWII 순양함 주포 일제가 어긋났다)
+            bool still = Mathf.Abs(_list) < 0.02f && Mathf.Abs(_trim) < 0.02f && _sink < 0.002f
+                         && Mathf.Abs(TargetList) < 0.02f && Mathf.Abs(TargetTrim) < 0.02f && FloodFraction < 0.002f;
             if (_model != null)
             {
-                _model.localRotation = Quaternion.Euler(_trim, 0f, -_list) * _modelRot;
-                _model.localPosition = _modelPos + Vector3.down * _sink;
+                if (still)
+                {
+                    if (_modelPosed) { _model.localRotation = _modelRot; _model.localPosition = _modelPos; _modelPosed = false; }
+                    _list = _trim = _sink = 0f;
+                }
+                else
+                {
+                    if (!_modelPosed) { _modelRot = _model.localRotation; _modelPos = _model.localPosition; _modelPosed = true; }
+                    _model.localRotation = Quaternion.Euler(_trim, 0f, -_list) * _modelRot;
+                    _model.localPosition = _modelPos + Vector3.down * _sink;
+                }
             }
 
             Sinking = FloodFraction > SinkingFlood || Mathf.Abs(TargetList) > MaxList;
-            if (Sinking && dt > 0f && _ship.IsAlive)
+            if (Sinking && dt > 0f && _ship != null && _ship.IsAlive)
             {
-                _ship.ApplyHullDamage(_ship.HullMaxHp * SinkingHullPerSecond * dt, "침수 · 전복");
-                if (Time.time - _bannerAt > 6f) { _bannerAt = Time.time; GameEvents.RaiseBanner("침몰 위험 — 배가 크게 기울었습니다. 반대쪽으로 피하며 구멍을 막을 시간을 버십시오"); }
+                _ship.ApplyHullDamage(ReferenceHullHp(_ship) * SinkingHullPerSecond * dt, "침수 · 전복", hostile: false);
+                if (Time.time - _bannerAt > 6f) { _bannerAt = Time.time; GameEvents.RaiseBanner("침몰 위험 — 배가 크게 기울었습니다. 손상 통제반이 구멍을 막는 동안 공격을 피하십시오"); }
             }
         }
     }

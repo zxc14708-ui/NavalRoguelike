@@ -190,6 +190,9 @@ namespace Game.EditorTools
                     Set(so, "gunProjectilePrefab", gun);
                     Set(so, "muzzleFlash", flash);
                     Set(so, "cruiseAltitude", 3f);
+                    // 폭탄 · 로켓(2026-11-21 Codex 점검): 다시 저장해도 통과 공격 패턴이 빠지지 않게 전용 탄 프리팹을 채운다(없으면 비워 둠 — 룬급이 미사일 통과로 대신)
+                    Set(so, "bombPrefab", AssetDatabase.LoadAssetAtPath<GameObject>($"{ProjDir}/PRJ_LunBomb.prefab"));
+                    Set(so, "rocketPrefab", AssetDatabase.LoadAssetAtPath<GameObject>($"{ProjDir}/PRJ_LunRocket.prefab"));
                 }));
 
             // ---- 적 데이터

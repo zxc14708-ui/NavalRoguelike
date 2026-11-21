@@ -114,6 +114,9 @@ namespace Game.Dev
                 runner.MarkersOnly = System.Array.IndexOf(args, "-markersOnly") >= 0;   // 표식 디자인(2026-11-20)
                 runner.HitMapOnly = System.Array.IndexOf(args, "-hitMapOnly") >= 0;   // 블록 피격 분포 · 파괴 측정(2026-11-21)
                 runner.FloodOnly = System.Array.IndexOf(args, "-floodOnly") >= 0;     // 손상 통제 1단계 침수 · 기울기(2026-11-21)
+                runner.FireOnly = System.Array.IndexOf(args, "-fireOnly") >= 0;       // 손상 통제 2~4단계 화재 · 탄약고 · 손상 통제반(2026-11-21)
+                runner.BalanceSimOnly = System.Array.IndexOf(args, "-balanceSimOnly") >= 0;   // 블록 피해 몫 밸런스 비교(2026-11-21)
+                runner.CombatFxOnly = System.Array.IndexOf(args, "-combatFxOnly") >= 0;   // 전투 불빛 · 미사일 연기 · 물보라(2026-11-21)
                 runner.HarborBuildingsOnly = System.Array.IndexOf(args, "-harborBuildingsOnly") >= 0;
                 runner.SignatureOnly = System.Array.IndexOf(args, "-signatureOnly") >= 0;
                 runner.EscortArmsOnly = System.Array.IndexOf(args, "-escortArmsOnly") >= 0;

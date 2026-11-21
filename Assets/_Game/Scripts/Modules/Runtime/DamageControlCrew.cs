@@ -6,7 +6,7 @@ namespace Game.Modules.Runtime
     /// <summary>
     /// 손상 통제 작업. 선체를 서서히 수리하고, 반경 안에서 가장 많이 상한 모듈 하나를 고친다.
     /// 손상통제반과 함교가 같은 규칙을 쓰도록 부품으로 분리했다(수치만 다르다).
-    /// 파괴된(HP 0) 모듈은 복구하지 않는다.
+    /// 부서진 블록도 고친다 — 쌓인 수리가 최대 내구의 30%에 닿으면 다시 작동한다(2026-11-21, ModuleInstance.Repair).
     /// </summary>
     [System.Serializable]
     public class DamageControlCrew
@@ -22,6 +22,8 @@ namespace Game.Modules.Runtime
         [SerializeField, Range(0f, 1f)] private float underFireHullRepairRatio = 0.25f;
 
         private ModuleInstance _target;
+        /// <summary>지금 고치고 있는 블록(다 찼으면 null) — 작동 연출이 읽는다.</summary>
+        public ModuleInstance Target => _target != null && _target.Hp < _target.MaxHp - 0.01f ? _target : null;
         private float _retargetTimer;
 
         /// <param name="hullCap">선체 자동 회복 상한(최대 선체 대비 0~1). 넘으면 고치지 않는다(2026-10-11 손상통제 개편).</param>
@@ -61,7 +63,7 @@ namespace Game.Modules.Runtime
 
             foreach (var m in grid.Modules)
             {
-                if (m == null || m.IsDestroyed || m.Definition == null) continue;
+                if (m == null || m.Definition == null) continue;   // 부서진 블록도 고친다(30% 차면 다시 작동, 2026-11-21)
                 if (self != null && GridCoord.ManhattanDistance(self.Origin, m.Origin) > repairRadiusCells) continue;
 
                 float ratio = m.Hp / Mathf.Max(1f, m.MaxHp);

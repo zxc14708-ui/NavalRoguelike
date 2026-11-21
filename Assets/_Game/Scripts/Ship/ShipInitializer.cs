@@ -21,6 +21,10 @@ namespace Game.Ship
         [SerializeField] private ShipSystems systems;
         public StartingShipConcept SelectedConcept { get; private set; }
         public bool SelectionLocked { get; private set; }
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        /// <summary>검증용: 출항 잠금을 잠깐 풀고 되돌린다(시작 함정마다 확인할 때).</summary>
+        public void DevSetSelectionLocked(bool locked) => SelectionLocked = locked;
+#endif
         private bool _initialized;
 
         private void OnEnable() => GameEvents.StateChanged += OnStateChanged;

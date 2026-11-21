@@ -310,11 +310,30 @@ namespace Game.World
             if (nx >= 4) PlaceKitModel(site, Mil + "MIL_Gate_8m", new Vector3(0f, y, -hz), 0f);
             PlaceKitModel(site, Mil + "MIL_GuardHut", new Vector3(road ? 6.5f : hx - 3f, y, -hz + 2.6f), 180f);
 
-            // 임시 부두: 정문 앞 해안에 기존 해안 소품 부잔교(Codex 기지 섬 부두 모델이 오면 바꾼다 — Docs/NEXT_TASKS 참고)
+            // 부두(2026-11-21 Codex IslandBaseFollowup_v1): 정문 앞 해안에 소 = 부잔교 · 중 · 대 = 콘크리트 계류 부두, 대형은 옆 해안에 돌제 하나 더.
+            // 바다 쪽 끝이 물 위가 아니면(해안이 굽어 육지에 파묻히면) 부잔교로 대신한다
             Vector3 gateDir = site.localRotation * Vector3.back;
             float gateAngle = Mathf.Atan2(gateDir.z, gateDir.x);
             Vector3 shoreLocal = gateDir * Sample(s.Rim, gateAngle) * 0.93f;
-            PlaceAnchored("ENV_FloatingPontoon", root, root.TransformPoint(shoreLocal), root.TransformDirection(gateDir), "ShoreConnection");
+            string pier = kind == Kit.BaseS ? "ENV_FloatingPontoon" : "ENV_BaseMooringPier";
+            GameObject pierGo = null;
+            foreach (float turn in new[] { 0f, 20f, -20f, 40f, -40f })   // 정문 앞이 굽은 해안이면 조금씩 돌려 본다
+            {
+                Vector3 dir = Quaternion.Euler(0f, turn, 0f) * gateDir;
+                Vector3 sl = dir * Sample(s.Rim, Mathf.Atan2(dir.z, dir.x)) * 0.93f;
+                pierGo = PlaceAnchored(pier, root, root.TransformPoint(sl), root.TransformDirection(dir), "ShoreConnection");
+                if (pierGo != null) break;
+            }
+            if (pierGo == null && pier != "ENV_FloatingPontoon")
+                PlaceAnchored("ENV_FloatingPontoon", root, root.TransformPoint(shoreLocal), root.TransformDirection(gateDir), "ShoreConnection");
+            if (kind == Kit.BaseL)
+                for (int k = 0; k < 4; k++)
+                {
+                    Vector3 dir = Quaternion.Euler(0f, (k % 2 == 0 ? 1f : -1f) * (55f + 20f * (k / 2)), 0f) * gateDir;
+                    float ang = Mathf.Atan2(dir.z, dir.x);
+                    Vector3 sl = dir * Sample(s.Rim, ang) * 0.93f;
+                    if (PlaceAnchored("ENV_BaseBreakwater", root, root.TransformPoint(sl), root.TransformDirection(dir), "ShoreConnection") != null) break;
+                }
 
             // 도로(중 · 대): 정문에서 안쪽으로 12m 칸
             float laneHalf = 0f;
@@ -391,6 +410,47 @@ namespace Game.World
                 if (!FitsPlateau(s, inRoot, Battery.W, Battery.D, siteYaw, 0.4f)) continue;
                 spots.Add(root.TransformPoint(inRoot));
             }
+            // 헬기 착륙장(대형, 13 × 13m): 철조망 뒤쪽 부지 · 모서리 중 들어가는 곳
+            if (kind == Kit.BaseL)
+            {
+                // 부지 전체를 훑어 철조망 밖 · 포대 자리와 떨어진 평지를 찾는다.
+                // 2026-11-21 Codex 점검: 철조망이 부지의 80%라 바깥 띠가 13.4m 원래 크기보다 좁아 한 번도 놓이지 않았다 — 100% → 80% → 65%로 줄여 가며 찾는다.
+                bool padPlaced = false;
+                foreach (float padScale in new[] { 1f, 0.8f, 0.65f })
+                {
+                    float size = 13.4f * padScale, clear = size * 0.5f + 0.7f;
+                    var padSpots = new List<Vector3>();
+                    foreach (float frac in new[] { 0.84f, 0.78f, 0.9f, 0.72f, 0.62f, 0.94f })
+                        for (int k = 0; k < 36; k++)
+                        {
+                            float a = k * Mathf.PI * 2f / 36f;
+                            var inRootTry = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * Sample(s.Plateau, a) * frac;
+                            var siteLocal = Quaternion.Inverse(site.localRotation) * inRootTry;
+                            if (Mathf.Abs(siteLocal.x) < hx + clear && Mathf.Abs(siteLocal.z) < hz + clear) continue;   // 철조망 · 도로 · 감시탑과 겹침
+                            padSpots.Add(new Vector3(siteLocal.x, y, siteLocal.z));
+                        }
+                    foreach (var c in padSpots)
+                    {
+                        var inRoot = site.localRotation * c;
+                        if (!FitsPlateau(s, inRoot, size, size, siteYaw, 0.3f)) continue;
+                        bool clash = false;
+                        foreach (var sp in spots) if ((root.InverseTransformPoint(sp) - inRoot).sqrMagnitude < (size * 0.5f + 3.8f) * (size * 0.5f + 3.8f)) { clash = true; break; }
+                        if (clash) continue;
+                        PlaceKitModel(site, Mil + "MIL_Helipad", c, 0f, padScale);
+                        info.HelipadLocal = inRoot;
+                        padPlaced = true;
+                        break;
+                    }
+                    if (padPlaced) break;
+                }
+            }
+            // 탐조등(중 · 대): 정문 양옆 철조망 모서리 — 바다 쪽을 훑고 밤에는 빛을 켠다
+            if (kind != Kit.BaseS)
+                for (int k = -1; k <= 1; k += 2)
+                {
+                    var go = PlaceKitModel(site, Mil + "MIL_Searchlight", new Vector3(k * (hx - 1.4f), y, -hz + 1.4f), 180f + k * 35f);
+                    if (go != null) Game.View.BaseSearchlight.Attach(go, k);
+                }
             info.MilitaryBase = true;
             info.BatterySpots = spots.ToArray();
             info.BaseSize = kind switch { Kit.BaseS => 1, Kit.BaseM => 2, _ => 3 };
@@ -430,6 +490,15 @@ namespace Game.World
                 float r = Sample(s.Rim, a) * 0.86f;
                 var boat = PlaceKitModel(root, Nat + "NAT_WreckBoat", new Vector3(Mathf.Cos(a) * r, SeaY + 0.35f, Mathf.Sin(a) * r), a * Mathf.Rad2Deg + 70f);
                 if (boat != null) boat.transform.Rotate(Vector3.forward, 8f, Space.Self);
+            }
+            // 무인도 소품(2026-11-21 Codex IslandBaseFollowup_v1): 모래에 SOS 표식 · 물가에 떠 있는 보급 상자
+            if (rng.NextDouble() < 0.35)
+                PlaceKitModel(root, Nat + "NAT_SOSMarker", At(a0 + Mathf.PI * 1.05f, 0.35f) + Vector3.up * 0.02f, (float)rng.NextDouble() * 360f);
+            if (rng.NextDouble() < 0.3)
+            {
+                float a = a0 - Mathf.PI * 0.4f;
+                float r = Sample(s.Rim, a) * 1.12f;
+                PlaceKitModel(root, "Environment/Props/ENV_DriftingSupplyCrate", new Vector3(Mathf.Cos(a) * r, SeaY, Mathf.Sin(a) * r), (float)rng.NextDouble() * 360f);
             }
         }
 

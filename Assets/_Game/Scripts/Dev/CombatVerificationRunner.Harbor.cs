@@ -54,8 +54,22 @@ namespace Game.Dev
             canvasGo.layer = 5;
             var canvas = canvasGo.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            // 군항 로딩(2026-11-21 Codex 점검 — 나무 메시 분할 전후 비교): 프리팹 불러오기 + 만들기 + 첫 그리기
+            float load0 = Time.realtimeSinceStartup;
             var menu = NavalBaseMenu.Create(canvasGo.transform);
+            float loadCreate = Time.realtimeSinceStartup - load0;
             if (menu == null) { Fail("시작 화면 해군기지를 만들지 못함"); Destroy(canvasGo); yield break; }
+            menu.RenderNow();
+            float loadFirst = Time.realtimeSinceStartup - load0;
+            int bigMeshes = 0, maxVerts = 0, treeParts = 0;
+            foreach (var mf in menu.ViewCamera.transform.parent.GetComponentsInChildren<MeshFilter>(true))
+            {
+                if (mf.sharedMesh == null) continue;
+                maxVerts = Mathf.Max(maxVerts, mf.sharedMesh.vertexCount);
+                if (mf.sharedMesh.vertexCount > 65000) bigMeshes++;
+                if (mf.sharedMesh.name.Contains("tree")) treeParts++;
+            }
+            _report.AppendLine($"- 군항 로딩: 만들기 {loadCreate * 1000f:0} ms · 첫 그리기까지 {loadFirst * 1000f:0} ms · 가장 큰 메시 정점 {maxVerts} · 정점 6.5만 넘는 메시 {bigMeshes}개 · 나무 메시 조각 {treeParts}개");
             foreach (var t in canvasGo.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = 5;
             // 떼어 낸 초계기: 따로 있고 움직이며, 합친 메시에는 그 자리에 삼각형이 남지 않았는지
             Transform islandRoot = null;

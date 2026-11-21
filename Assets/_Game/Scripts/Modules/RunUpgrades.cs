@@ -27,6 +27,7 @@ namespace Game.Modules
         GunDamage,       // 함포계(기관포·노봉·76mm) 공격력
         MissileDamage,   // 미사일계(VLS·유도로켓) 공격력
         AirDefenseRate,  // 방공계(CIWS·함대공) 연사력
+        Firefighting,    // 자동 소화 장치: 불이 붙을 확률 · 커지는 속도 감소, 저절로 꺼지는 속도 — 2026-11-21 손상 통제, 뒤에만 덧붙임(침수 카드 2종은 같은 날 사용자 요청으로 뺌)
     }
 
     /// <summary>성장 카드 한 종류의 정의(이름·대상·등급별 수치·추첨 가중치).</summary>
@@ -83,6 +84,8 @@ namespace Game.Modules
             new() { Stat = RunStat.GunDamage, Name = "함포계 공격력", Scope = "기관포 · 40mm 쌍열포 · 76mm 함포", Effect = "포탄 무장의 한 발 피해가 크게 늘어난다", Values = new[] { 0.08f, 0.16f, 0.32f }, Weight = 0.8f, RequiresAny = GunTypes },
             new() { Stat = RunStat.MissileDamage, Name = "미사일계 공격력", Scope = "VLS · 유도로켓", Effect = "미사일 무장의 한 발 피해가 크게 늘어난다", Values = new[] { 0.08f, 0.16f, 0.32f }, Weight = 0.8f, RequiresAny = MissileTypes },
             new() { Stat = RunStat.AirDefenseRate, Name = "방공계 연사력", Scope = "CIWS · 함대공", Effect = "방공 무장의 발사 간격이 짧아진다", Values = new[] { 0.08f, 0.16f, 0.32f }, Weight = 0.7f, RequiresAny = AirDefenseTypes },
+            // 손상 통제(2026-11-21): 버티는 배 빌드(침수 카드 "강화 격벽" · "대용량 펌프"는 사용자 요청으로 뺌 — 신경 쓸 게 너무 많아짐)
+            new() { Stat = RunStat.Firefighting, Name = "자동 소화 장치", Scope = "화재", Effect = "불이 덜 붙고 덜 커지며, 손 대지 않아도 조금씩 꺼진다", Values = new[] { 0.15f, 0.25f, 0.45f }, Weight = 0.5f },
         };
 
         public static RunStatDefinition Definition(RunStat stat)

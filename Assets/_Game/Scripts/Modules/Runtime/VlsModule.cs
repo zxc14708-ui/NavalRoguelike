@@ -100,7 +100,7 @@ namespace Game.Modules.Runtime
         /// 남은 셀을 모두 표적들에 차례로 나눠 spacing초 간격으로 쏜다. 덮개가 1번 셀부터 차례로 열리고 열린 순서대로 솟는다.
         /// 다 쓰면 탄창이 비어 평소처럼 전량 재장전에 들어간다. 항공기는 요격탄, 수상함은 대함탄. 예약한 수를 돌려준다.
         /// </summary>
-        public int FireSalvo(System.Collections.Generic.IReadOnlyList<(ITargetable target, bool air)> targets, float spacing)
+        public int FireSalvo(System.Collections.Generic.IReadOnlyList<(ITargetable target, bool air)> targets, float spacing, int offset = 0)
         {
             if (targets == null || targets.Count == 0 || Instance == null || !Instance.IsOperational || IsSalvoing) return 0;
             if (!_ammo.Infinite && !_ammo.CanFire) return 0;
@@ -110,7 +110,7 @@ namespace Game.Modules.Runtime
             int fired0 = _ammo.Infinite ? _nextHatch : _ammo.Capacity - _ammo.Current;
             for (int k = 0; k < count; k++)
             {
-                var (t, air) = targets[k % targets.Count];
+                var (t, air) = targets[(offset + k) % targets.Count];   // 여러 VLS가 한 배분 목록을 이어서 나눠 쏜다(2026-11-21)
                 int cell = n > 0 ? (fired0 + k) % n : -1;
                 float open = Time.time + k * spacing;
                 if (cell >= 0 && _hatchStates != null) _scheduledHatches.Add((open, cell));
@@ -121,6 +121,21 @@ namespace Game.Modules.Runtime
             _salvoUntil = Time.time + count * spacing + hatchOpenSeconds + 0.1f;
             return count;
         }
+
+        /// <summary>전탄 발사로 지금 쏠 수 있는 발 수(배분 계산용).</summary>
+        public int SalvoCapacity
+        {
+            get
+            {
+                if (Instance == null || !Instance.IsOperational || IsSalvoing) return 0;
+                if (!_ammo.Infinite && !_ammo.CanFire) return 0;
+                int n = hatches != null ? hatches.Length : 0;
+                return _ammo.Infinite ? Mathf.Max(1, n) : _ammo.Current / Mathf.Max(1, _ammo.PerShot);
+            }
+        }
+
+        /// <summary>이 표적에 한 발이 줄 피해 예상(배분 — 이미 충분히 맞을 표적에 더 몰지 않게).</summary>
+        public float EstimateDamage(ITargetable target, bool air) => air ? Stats.Damage * AirPayloadDamageRatio : DamageAgainst(target);
 
         /// <summary>검증용: 지금 열려 있는(열리는 중 포함) 셀 수와 덮개가 들린 정도(0~1)의 최댓값, 지금까지 쏜 수.</summary>
         public int OpenHatchCount { get; private set; }
@@ -230,7 +245,7 @@ namespace Game.Modules.Runtime
                 if (gone) continue;
                 if (!_ammo.CanFire) continue;
                 _ammo.Consume();
-                Launch(p.Target, p.Cell, p.Mode);
+                Launch(p.Target, p.Cell, p.Mode, p.Salvo);
                 if (p.Salvo) SalvoLaunches++;
             }
         }
@@ -247,7 +262,7 @@ namespace Game.Modules.Runtime
             return lowCells ? lowCellMinValue : minTargetValue;
         }
 
-        private void Launch(ITargetable target, int cell, PayloadMode mode)
+        private void Launch(ITargetable target, int cell, PayloadMode mode, bool salvo = false)
         {
             var hatch = cell >= 0 && hatches != null && cell < hatches.Length && hatches[cell] != null ? hatches[cell] : transform;
             var prefab = mode == PayloadMode.Air ? interceptorPrefab : missilePrefab;
@@ -262,6 +277,11 @@ namespace Game.Modules.Runtime
                                    aswTorpedoPrefab, Stats.Damage * 0.8f);
             else
                 missile?.Launch(target.Transform, mode == PayloadMode.Air ? Stats.Damage * AirPayloadDamageRatio : DamageAgainst(target));
+            if (salvo && missile != null && mode != PayloadMode.AntiSubmarine)
+            {
+                missile.MarkSalvo(mode == PayloadMode.Surface);   // 수상함은 위에서 수직으로 내리꽂는다
+                Game.Ship.FullSalvoFx.LaunchPlume(hatch.position);   // 갑판에 쌓이는 발사 연기 기둥
+            }
         }
 
         private ITargetable FindSubmarine()

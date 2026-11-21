@@ -1,5 +1,6 @@
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
 using System.Collections;
+using System.Linq;
 using UnityEngine;
 using Game.Combat;
 using Game.Core;
@@ -299,7 +300,14 @@ namespace Game.Dev
                     if (lamps == null || lamps.Lit != Game.View.NavLights.PerShip || (semiLamps != null && semiLamps.Count > 0) || shipLamps == null || shipLamps.Lit < Game.View.NavLights.PerShip) Fail("밤 항해등이 맞게 켜지지 않음");
                     if (fleet != null && (escortLamps == null || escortLamps.Lit != Game.View.NavLights.PerShip || escortSpread < 1f)) Fail("아군 호위함 항해등이 없거나 한곳에 뭉침");
                     if (!beamOn || semi == null || !semi.IsRevealed) Fail("탐조등이 켜지지 않거나 빛 안 반잠수정이 드러나지 않음");
+                    // 2026-11-21: 항해등 횃불 모양(네모 머리 + 막대) · 실제 광원(가까운 24개)
+                    bool torch = shipLamps != null && shipLamps.GetComponentsInChildren<MeshFilter>().Any(f => f.name == "Night lamp" && f.sharedMesh != null && f.sharedMesh.name.StartsWith("Cube"));
+                    _report.AppendLine($"- 항해등 모양 · 광원: 횃불(네모) {Yes(torch)} · 등불 광원 {Game.View.NightLampLights.LitCount}개 켜짐(등록 {Game.View.NightLampLights.Registered}, 최대 {Game.View.NightLampLights.MaxLights})");
+                    if (!torch) Fail("항해등이 아직 둥근 구 모양");
+                    if (Game.View.NightLampLights.LitCount < 1) Fail("밤인데 항해등 광원이 켜지지 않음");
                     yield return ScreenShot("night_lights");
+                    if (boats.Count > 0) yield return CloseShot("night_navlight_torch", boats[0].transform, 9f);
+                    yield return CloseShot("night_navlight_flagship", ship.transform, 13f);
 
                     // 소노부이: 반경 안 잠수함 확정 접촉 · 갑판당 3개
                     var deckKey = new object();

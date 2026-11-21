@@ -29,6 +29,8 @@ namespace Game.World
         public bool MilitaryBase;
         public int BaseSize;
         public Vector3[] BatterySpots;
+        /// <summary>헬기 착륙장 자리(섬 로컬, 없으면 null — 대형 기지 섬, 2026-11-21).</summary>
+        public Vector3? HelipadLocal;
         /// <summary>포대 자리에 세울 고정 적(Resources 경로). 비면 해안 미사일 포대.</summary>
         public string BatteryEnemy;
         /// <summary>유전 플랫폼(2026-11-16 내해): 포대가 부서지면 기름띠가 번질 수면 자리. 이미 번졌으면 Spilled.</summary>

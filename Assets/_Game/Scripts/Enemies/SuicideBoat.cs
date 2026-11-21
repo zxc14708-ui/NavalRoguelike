@@ -4,6 +4,12 @@ using Game.Combat;
 
 namespace Game.Enemies
 {
+    /// <summary>자폭 보트 직진 돌격을 지휘하는 쪽(2026-11-21 일렬 돌격 — Game.Missions.LineAssault). 기함에 부딪혀 터지면 알린다.</summary>
+    public interface ISuicideChargeOwner
+    {
+        void NoteHit(SuicideBoat boat);
+    }
+
     /// <summary>
     /// 자폭 보트. 고속정보다 작고 빠르며 체력이 낮다. 폭약을 싣고 함선에 곧장 돌진해 부딪히는 순간 터진다.
     ///
@@ -43,34 +49,34 @@ namespace Game.Enemies
             _playerShip = player != null ? player.GetComponent<Game.Ship.ShipController>() : null;
             _phase = Random.value * Mathf.PI * 2f;
             Detonated = false;
-            _pincer = null;
+            _charge = null;
         }
 
-        // --- 3방향 협공 돌진(2026-11-17, Game.Missions.PincerAttack): 정해진 방향으로 곧게만 달린다(함선을 따라 꺾지 않는다)
-        private Game.Missions.PincerAttack _pincer;
+        // --- 직진 돌격(2026-11-17 협공 → 2026-11-21 일렬 돌격 Game.Missions.LineAssault): 정해진 방향으로 곧게만 달린다(함선을 따라 꺾지 않는다)
+        private ISuicideChargeOwner _charge;
         private Vector3 _chargeDir;
 
-        /// <summary>협공 돌진 중인가.</summary>
-        public bool Charging => _pincer != null;
+        /// <summary>직진 돌격 중인가.</summary>
+        public bool Charging => _charge != null;
 
-        /// <summary>협공 돌진 시작: dir 방향으로 전속 직진. 함체에 닿으면 평소처럼 터진다.</summary>
-        public void BeginCharge(Game.Missions.PincerAttack pincer, Vector3 dir)
+        /// <summary>직진 돌격 시작: dir 방향으로 전속 직진. 함체에 닿으면 평소처럼 터진다.</summary>
+        public void BeginCharge(ISuicideChargeOwner owner, Vector3 dir)
         {
             dir.y = 0f;
-            _pincer = pincer;
+            _charge = owner;
             _chargeDir = dir.sqrMagnitude > 1e-4f ? dir.normalized : transform.forward;
             transform.rotation = Quaternion.LookRotation(_chargeDir, Vector3.up);
         }
 
-        /// <summary>협공이 끝났는데 살아남았다(혼자 남음): 평소 자폭 보트처럼 함선을 쫓는다.</summary>
-        public void EndCharge() => _pincer = null;
+        /// <summary>돌격을 그만두고 평소 자폭 보트처럼 함선을 쫓는다.</summary>
+        public void EndCharge() => _charge = null;
 
-        /// <summary>협공 보트끼리 한가운데서 부딪혀 터진다: 격침으로 친다(경험치 · 격침 수).</summary>
-        public void CollideInPincer()
+        /// <summary>돌격 경로를 다 지나간 보트: 그대로 빠져나간다(경험치 없이 사라진다).</summary>
+        public void LeaveCharge()
         {
             if (!IsAlive) return;
-            _pincer = null;
-            Die();
+            _charge = null;
+            RemoveWithoutReward();
         }
 
         /// <summary>자폭 공격(한 방 큰 피해)은 호위함에 쓰지 않는다 — 위협은 기함에 모은다(대함미사일·어뢰와 같은 규칙).</summary>
@@ -81,7 +87,7 @@ namespace Game.Enemies
         protected override void UpdateBehaviour(float dt)
         {
             Vector3 self = transform.position;
-            if (_pincer != null)
+            if (_charge != null)
             {
                 Steer(_chargeDir, 1f, dt);
                 Vector3 hull = _playerHull != null ? _playerHull.ClosestPoint(self) : Player.position;
@@ -121,7 +127,7 @@ namespace Game.Enemies
         private void Detonate(Vector3 hitPoint)
         {
             Detonated = true;
-            if (_pincer != null) { _pincer.NoteHit(this); _pincer = null; }
+            if (_charge != null) { _charge.NoteHit(this); _charge = null; }
             if (Player.TryGetComponent<IDamageable>(out var target) && target.IsAlive)
                 target.TakeDamage(new DamageInfo(Definition.AttackDamage, hitPoint, transform.forward, DamageSource.Missile));
 

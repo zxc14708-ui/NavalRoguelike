@@ -75,8 +75,10 @@ namespace Game.Enemies
         [SerializeField] private int enginesToGround = 5;
 
         [Header("Strike runs (2026-11-20)")]
-        [Tooltip("폭탄 · 로켓(착탄 경고 원이 뜨는 포탄 — PRJ_BossShell)")]
+        [Tooltip("폭탄(착탄 경고 원이 뜨는 포탄 — PRJ_LunBomb, 2026-11-21 Codex 모델)")]
         [SerializeField] private GameObject bombPrefab;
+        [Tooltip("무유도 로켓(PRJ_LunRocket, 2026-11-21 Codex 모델). 비면 폭탄 프리팹")]
+        [SerializeField] private GameObject rocketPrefab;
         [SerializeField] private float bombDamage = 9f;
         [SerializeField] private float bombRadius = 5f;
         [Tooltip("폭탄 사이 간격(초) — 통과 속도 34m/s면 약 7m 간격")]
@@ -599,6 +601,7 @@ namespace Game.Enemies
             Vector3 impact = transform.position + fwd * (_speedNow * bombFall);
             impact.y = 0f;
             var go = PoolManager.Instance?.Spawn(bombPrefab, from, Quaternion.LookRotation(fwd));
+            Game.View.LunOrdnanceArt.Dress(go, rocket: false);
             if (go != null && go.TryGetComponent<ArtilleryShell>(out var bomb))
             {
                 bomb.Launch(from, impact, bombFall, bombDamage, bombRadius, _playerHull, "룬급 폭격");
@@ -621,7 +624,8 @@ namespace Game.Enemies
                 float flight = Mathf.Clamp(Vector3.Distance(from, Player.position) / rocketSpeed, 0.5f, 1.4f);
                 Vector3 center = Player.position + lead * flight;
                 Vector3 impact = new(center.x + r.x, 0f, center.z + r.y);
-                var go = PoolManager.Instance?.Spawn(bombPrefab, from, Quaternion.LookRotation(impact - from));
+                var go = PoolManager.Instance?.Spawn(rocketPrefab != null ? rocketPrefab : bombPrefab, from, Quaternion.LookRotation(impact - from));
+                Game.View.LunOrdnanceArt.Dress(go, rocket: true);
                 if (go != null && go.TryGetComponent<ArtilleryShell>(out var rocket))
                 {
                     rocket.Launch(from, impact, flight, rocketDamage, rocketRadius, _playerHull, "룬급 로켓");

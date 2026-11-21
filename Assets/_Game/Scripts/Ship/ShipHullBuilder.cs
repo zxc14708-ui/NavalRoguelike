@@ -29,6 +29,8 @@ namespace Game.Ship
     {
         [SerializeField] private ShipGrid grid;
         [SerializeField] private Transform hullRoot;
+        /// <summary>선체 조각(갑판 · 뱃전 · 함수 · 함미)이 붙는 곳 — 항해등이 뱃전 폭을 잰다.</summary>
+        public Transform HullRoot => hullRoot;
 
         [Header("Pieces")]
         [SerializeField] private GameObject deckPlatePrefab;
@@ -150,6 +152,18 @@ namespace Game.Ship
             BuildBow();
             BuildStern();
             BuildSides();
+            _navLightFrame = Time.frameCount;   // 항해등을 새 선체에 맞게 다시 단다(옛 조각이 실제로 지워진 다음 프레임)
+        }
+
+        // 항해등 다시 달기(2026-11-21 — 시작 함정 선택 · 정비로 선체가 바뀌면 처음 단 등이 엉뚱한 자리에 남았다)
+        private int _navLightFrame = -1;
+
+        private void LateUpdate()
+        {
+            if (_navLightFrame < 0 || Time.frameCount <= _navLightFrame) return;
+            _navLightFrame = -1;
+            var ship = GetComponentInParent<ShipController>();
+            if (ship != null) Game.View.NavLights.Rebuild(ship.gameObject);
         }
 
         // ------------------------------------------------------------------ 함수

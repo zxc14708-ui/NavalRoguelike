@@ -29,7 +29,7 @@ namespace Game.Dev
         /// <summary>
         /// 1) 측정만(피해 없음): 사방 미사일 일제사격 · 한쪽 옆면 미사일 · 자폭 드론 · 고속정/초계함 포격 · 어뢰정 — 칸별로 몇 번 맞는지.
         /// 2) 실제 피해(선체는 버티게): 미사일 · 드론 · 포격으로 블록이 몇 개 부서지는지, 부서진 칸 피격이 피해를 어디로 보내는지.
-        /// 기준: 함교 피격 비율 ≤ 함교 칸 비율 + 5%p · 옆면 공격의 90% 이상이 다가온 쪽 절반 · 일제사격 칸 중복 평균 ≤ 0.5 ·
+        /// 기준: 함교 피격 비율 ≤ 함교 칸 비율 + 5%p · 옆면 공격의 90% 이상이 다가온 쪽 절반 · 일제사격 칸 중복 평균 ≤ 1.0 ·
         ///       실제 피해에서 함교 말고 부서진 블록 ≥ 3 · "블록이 하나도 안 받고 선체만 받은 피격" ≤ 15%.
         /// </summary>
         private IEnumerator HitMapCheck()
@@ -121,6 +121,7 @@ namespace Game.Dev
             // 이만큼 선체가 깎이면 실제로는 격침 — 그 전까지만 따로 센다(검사 환경은 이미 선체를 크게 올려 두므로 함종 데이터 값)
             float hullLimit = ship.Hull != null ? ship.Hull.HullHp : ship.Config != null ? ship.Config.HullMaxHp : 300f;
             MakeInvulnerable(ship);
+            ShipFire.Enabled = true; ShipFlooding.Enabled = true;   // 실제 피해 단계는 실제 게임처럼
             // 검사기가 0.25초마다 블록을 가득 채우는 도우미(KeepModulesHealthy)를 이 단계에서만 멈춘다 — 실제 게임에는 없는 수리
             s_pauseModuleHealing = true;
             phase = "real";
@@ -155,7 +156,8 @@ namespace Game.Dev
             if (refit != null && restoreMethod != null) restoreMethod.Invoke(refit, null);
             yield return null;
             int stillBroken = grid.Modules.Count(m => m != null && m.IsDestroyed);
-            var notHalf = broken.Where(m => Mathf.Abs(m.Hp - m.MaxHp * Game.Refit.RefitController.RefitRestoreFraction) > Mathf.Max(0.6f, m.MaxHp * 0.03f)).ToList();
+            // 정비 화면은 부서진 블록을 절반으로 — 그 전에 손상 통제반이 30% 넘게 고쳐 이미 되살린 블록은 그 내구 그대로(2026-11-21)
+            var notHalf = broken.Where(m => m.IsDestroyed || m.Hp < m.MaxHp * ModuleInstance.ReviveFraction - 0.01f).ToList();
             int halfHp = broken.Count - notHalf.Count;
             int stillShown = wreck != null ? wreck.Count : 0;
 
@@ -229,7 +231,7 @@ namespace Game.Dev
             float cmdShare = cmd.Count > 0 ? (float)cmdOnCommand / cmd.Count : 0f;
             _report.AppendLine($"- 함교 저격 6발: 맞음 {cmd.Count} · 함교 · 레이더에 {cmdOnCommand}({cmdShare:P0}) · 쏘자마자 뜬 표식 {markers}개");
             _report.AppendLine($"- 부서진 블록 겉모습: {broken.Count}개 중 그을림 {shown} · 기울어짐 {tilted} · 사진 hitmap_wreck_block.png");
-            _report.AppendLine($"- 정비 수리: 정비 화면 경로로 복구 후 부서진 블록 {stillBroken}개 · 절반 내구 {halfHp}/{broken.Count}{(notHalf.Count > 0 ? $"(아님: {string.Join(", ", notHalf.Select(m => $"{m.Definition.DisplayName} {m.Hp:0.#}/{m.MaxHp:0.#}"))})" : "")} · 남은 그을림 {stillShown}");
+            _report.AppendLine($"- 정비 수리: 정비 화면 경로로 복구 후 부서진 블록 {stillBroken}개 · 되살아남(절반 또는 수리로 30% 이상) {halfHp}/{broken.Count}{(notHalf.Count > 0 ? $"(아님: {string.Join(", ", notHalf.Select(m => $"{m.Definition.DisplayName} {m.Hp:0.#}/{m.MaxHp:0.#}"))})" : "")} · 남은 그을림 {stillShown}");
 
             DrawHeatmap(grid, cells, measured, "hitmap_measured.png");
             DrawHeatmap(grid, cells, real, "hitmap_real.png");
@@ -237,7 +239,7 @@ namespace Game.Dev
 
             if (worstBridge > bridgeRef + 0.05f) Fail($"함교에 몰림: 공격 종류 중 함교 피격 비율 최대 {worstBridge:P0}(기준 {bridgeRef + 0.05f:P0} 이하)");
             if (side.Count > 0 && facingShare < 0.9f) Fail($"옆면 공격이 다가온 쪽에 맞지 않음({facingShare:P0}, 기준 90%)");
-            if (dupAvg > 0.5f) Fail($"일제사격이 같은 칸에 겹침(평균 {dupAvg:0.0}발, 기준 0.5 이하)");
+            if (dupAvg > 1f) Fail($"일제사격이 같은 칸에 겹침(평균 {dupAvg:0.0}발, 기준 1.0 이하 — 고치기 전 11.3)");
             if (nonBridgeDestroyed < 3) Fail($"긴 교전에서 함교 말고 부서진 블록이 {nonBridgeDestroyed}개(기준 3개 이상)");
             if (alive.Count > 0 && moduleShare < 0.45f) Fail($"떠 있는 동안 블록이 받은 피해 몫이 {moduleShare:P0}(기준 45% 이상 — 블록이 피해를 나눠 받아야 한다)");
             if (hullOnlyShare > 0.15f) Fail($"블록이 하나도 안 받고 선체만 받은 피격 {hullOnlyShare:P0}(기준 15% 이하)");

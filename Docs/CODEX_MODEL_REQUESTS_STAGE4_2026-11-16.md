@@ -292,7 +292,7 @@ ENE_Boss4_Lun                (원점: 수면선 중심, 앞 +Z)
 - 원점 = 동체 중심, 앞 +Z.
 - 선택: 룬급 날개 아래 **로켓 포드**(`ENE_Boss4_Lun`의 좌우 날개 밑, 원점 기준 X ±5.5m 부근) — 6~8발이 든 원통 포드. 있으면 발사점(`RocketPod_L` · `RocketPod_R` 빈 노드)으로 쓴다. 없으면 지금처럼 날개 위치에서 쏜다.
 
-**받은 뒤 Claude**: `PRJ_LunBomb` · `PRJ_LunRocket` 프리팹(기존 `ArtilleryShell` 동작 그대로)에 모델을 넣고 `ENE_Boss4_Lun`의 폭탄 · 로켓 칸을 나눠 연결한다(지금은 둘이 같은 `bombPrefab`을 쓴다 → 로켓 칸을 새로 추가). 검사 `-lunPatternOnly` 근접 사진으로 확인.
+**납품 · 연결(2026-11-21)**: Codex `ArtSource/Stage4Ekranoplan_v1/LunOrdnance`(폭탄 172 · 로켓 124 tris) → `Resources/Effects/Stage4` 모델 + 룬급 전용 탄 프리팹, `View/LunOrdnanceArt`가 붙임. **원래 계획**: `PRJ_LunBomb` · `PRJ_LunRocket` 프리팹(기존 `ArtilleryShell` 동작 그대로)에 모델을 넣고 `ENE_Boss4_Lun`의 폭탄 · 로켓 칸을 나눠 연결한다(지금은 둘이 같은 `bombPrefab`을 쓴다 → 로켓 칸을 새로 추가). 검사 `-lunPatternOnly` 근접 사진으로 확인.
 
 ---
 

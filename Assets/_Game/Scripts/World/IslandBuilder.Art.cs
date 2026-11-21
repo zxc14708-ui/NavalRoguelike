@@ -320,15 +320,19 @@ namespace Game.World
             var prefab = Prop(name);
             if (prefab == null) return null;
             var s = Find(prefab.transform, socket);
-            Vector3 local = s != null ? prefab.transform.InverseTransformPoint(s.position) : Vector3.zero;
+            // 2026-11-21 Codex 점검: FBX를 그대로 쓰는 소품(ENV_BaseMooringPier · ENV_BaseBreakwater — 축 변환을 굽지 않은 Blender +Z 상향)은
+            // 뿌리에 눕히는 회전이 들어 있다. 예전에는 그 회전을 해안 방향 회전으로 덮어써 부두가 해안에 수직으로 섰다.
+            // 소켓 위치를 뿌리 회전 · 축척이 들어간 공간(원본 그대로 놓았을 때의 월드 오프셋)에서 재고, 해안 방향 회전(수평)을 뿌리 회전 앞에 곱한다.
+            Vector3 local = s != null ? s.position - prefab.transform.position : Vector3.zero;
             local.y = 0f;
             Vector3 axis = local.sqrMagnitude > 1e-4f ? -local.normalized : Vector3.forward;   // 소켓 → 원점
             outward.y = 0f;
-            var rot = Quaternion.LookRotation(outward.normalized, Vector3.up) * Quaternion.Inverse(Quaternion.LookRotation(axis, Vector3.up));
-            var pos = shore - rot * local;
+            var yaw = Quaternion.LookRotation(outward.normalized, Vector3.up) * Quaternion.Inverse(Quaternion.LookRotation(axis, Vector3.up));
+            var rot = yaw * prefab.transform.rotation;
+            var pos = shore - yaw * local;
             pos.y = SeaY;
             // 바다 쪽 끝이 물 위여야 한다(육지에 파묻히면 놓지 않는다)
-            Vector3 tip = pos + rot * (axis * 3f);
+            Vector3 tip = pos + yaw * (axis * 3f);
             if (!Islands.IsClear(new Vector3(tip.x, 0f, tip.z), 1.2f)) return null;
             var go = Object.Instantiate(prefab, pos, rot, root);
             go.name = "Coast " + name;

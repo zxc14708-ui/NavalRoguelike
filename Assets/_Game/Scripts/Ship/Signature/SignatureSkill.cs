@@ -84,7 +84,7 @@ namespace Game.Ship
                 StartShipKind.Command =>
                     $"전투기 3기와 조기경보기 1기가 {AirWingAbility.Duration:0}초 동안 함께 싸운다 — 전투기는 둘레 60 m의 적을 기총으로 훑고, 조기경보기는 3초마다 70 m 안 잠수함을 드러낸다.",
                 StartShipKind.MissileDestroyer =>
-                    $"작동 중인 모든 VLS가 남은 셀을 {FullSalvoAbility.Spacing:0.##}초 간격으로 한꺼번에 쏜다 — 사거리 안 수상함과 항공기에 나눠 쏘고 전량 재장전.",
+                    $"작동 중인 모든 VLS가 남은 셀을 {FullSalvoAbility.Spacing:0.##}초 간격으로 한꺼번에 쏜다 — 사거리 안 고가치 표적부터(대형함 · 보스 → 중형 → 소형 → 항공기, 최대 {FullSalvoAbility.MaxTargets}표적) 가치에 맞춰 나눠 마킹하고, 수상함에는 위에서 수직으로 내리꽂는다. 다 쏘면 전량 재장전.",
                 StartShipKind.Assault =>
                     $"{OverdriveAbility.Duration:0}초 동안 기관 한계 돌파 — 모든 무장 연사 +{(OverdriveAbility.FireRate - 1f) * 100f:0}%, 최고 속력 +{(OverdriveAbility.SpeedMultiplier - 1f) * 100f:0}%, 능동 스킬 쿨타임 −{(1f - 1f / OverdriveAbility.SkillRate) * 100f:0}%(회복 ×{OverdriveAbility.SkillRate:0.#}). 함선이 붉게 달아올라 잔상을 남긴다. 끝나면 {OverdriveAbility.OverheatSeconds:0}초 과열 — 연사 · 속력 −{(1f - OverdriveAbility.OverheatFireRate) * 100f:0}%.",
                 _ =>

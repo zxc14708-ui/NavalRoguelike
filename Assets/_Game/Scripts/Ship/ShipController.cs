@@ -347,7 +347,7 @@ namespace Game.Ship
                 {
                     _lastGrounding = Time.time;
                     float damage = (into - GroundingDamageSpeed) * GroundingDamagePerSpeed;
-                    ApplyHullDamage(damage, "섬에 좌초");
+                    ApplyHullDamage(damage, "섬에 좌초", hostile: false);
                     AudioManager.Play(SfxId.HullHitCollision, next, Mathf.Clamp01(0.5f + into * 0.08f));   // 좌초: 충돌음(세게 박을수록 크게)
                     CombatLog.Add("좌초", $"섬에 충돌 {into:0.0} m/s → 선체 {damage:0.#}");
                 }
@@ -531,7 +531,12 @@ namespace Game.Ship
         /// <summary>DamageResolver가 모듈 몫을 뗀 뒤 남은 선체 피해를 적용한다. cause가 없으면 지금 처리 중인 피해의 출처.</summary>
         private float _lastSandbarWarning = -99f;
 
-        public void ApplyHullDamage(float amount, string cause = null)
+        /// <param name="hostile">
+        /// 적의 공격인가(2026-11-21 Codex 점검): 화재 · 침몰 진행 · 유폭 · 좌초 · 기름띠처럼 스스로 입는 피해는 false —
+        /// "최근 피격 시각"(LastHullDamageTime — 손상 통제반이 교전 중 느려지는 기준)을 갱신하지 않는다. 예전에는 불의 선체 피해가 이 시각을
+        /// 계속 갱신해, 적의 공격이 끊겨도 진화가 절반 속도로 묶였다.
+        /// </param>
+        public void ApplyHullDamage(float amount, string cause = null, bool hostile = true)
         {
             if (amount <= 0f || !IsAlive) return;
 
@@ -540,7 +545,7 @@ namespace Game.Ship
             _hullDamageByCause.TryGetValue(cause, out float sum);
             _hullDamageByCause[cause] = sum + Mathf.Min(amount, HullHp);
             HullHp = Mathf.Max(0f, HullHp - amount);
-            LastHullDamageTime = Time.time;
+            if (hostile) LastHullDamageTime = Time.time;
             GameEvents.RaiseHullHpChanged(HullHp, HullMaxHp);
 
             if (HullHp <= 0f && GameManager.Instance != null) GameManager.Instance.TriggerGameOver();

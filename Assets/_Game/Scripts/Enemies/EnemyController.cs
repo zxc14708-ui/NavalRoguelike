@@ -220,6 +220,10 @@ namespace Game.Enemies
         private Game.Ship.GridCoord _gunCell;
         private bool _gunHasCell;
         private float _gunCellUntil;
+        /// <summary>기함에 불이 났을 때 포격이 불난 블록을 노릴 확률.</summary>
+        public const float BurningFocusChance = 0.4f;
+        /// <summary>검증용: 적 포수가 불난 블록을 겨냥으로 고른 횟수(전체).</summary>
+        public static int DevBurningPicks;
 
         /// <summary>
         /// 포 · 기총 · 어뢰가 겨눌 지점. 표적이 블록 격자가 있는 기함이면 이쪽을 향한 바깥 칸(높이 height), 아니면 예전처럼 표적 중심 + height.
@@ -233,7 +237,10 @@ namespace Game.Enemies
             if (_gunGrid == null) return center;
             if (!_gunHasCell || Time.time >= _gunCellUntil)
             {
-                _gunHasCell = Game.Ship.ShipHitPoints.TryPick(_gunGrid, transform.position, Game.Ship.HitArc.Side, out _gunCell, register: false);
+                // 불난 곳에 쏟아붓는다(40%, 2026-11-21 손상 통제 4단계) — 불이 번지고 유폭 위험이 커진다
+                bool burning = Random.value < BurningFocusChance && Game.Ship.ShipHitPoints.TryPickBurning(_gunGrid, transform.position, out _gunCell);
+                if (burning) DevBurningPicks++;
+                _gunHasCell = burning || Game.Ship.ShipHitPoints.TryPick(_gunGrid, transform.position, Game.Ship.HitArc.Side, out _gunCell, register: false);
                 _gunCellUntil = Time.time + Random.Range(1.2f, 2.4f);
             }
             if (!_gunHasCell) return center;

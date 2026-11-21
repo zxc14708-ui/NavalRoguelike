@@ -30,6 +30,15 @@ namespace Game.Enemies
 
         private bool _raising;
         private float _elevation;
+        // 발사관 덮개 · 후염(2026-11-21 Codex IslandBaseFollowup_v1 MIL_MissileBattery_2: LauncherHatchPivot_01/02 · BackblastPoint_01/02)
+        public const float HatchOpenDegrees = 110f;
+        private Transform[] _hatches;
+        private Quaternion[] _hatchRest;
+        private Transform[] _backblast;
+        private float _hatchOpen;   // 0 ~ 1
+        /// <summary>검증용: 덮개가 열린 정도(0~1) · 덮개 수.</summary>
+        public float HatchOpen => _hatchOpen;
+        public int HatchCount => _hatches?.Length ?? 0;
         private Quaternion _elevationRest;
         private bool _restCaptured;
 
@@ -48,6 +57,8 @@ namespace Game.Enemies
             MissilesFired = 0;
             _raising = false;
             _elevation = 0f;
+            FindHatches();
+            _hatchOpen = 0f;
             if (elevationPivot != null)
             {
                 if (!_restCaptured) { _elevationRest = elevationPivot.localRotation; _restCaptured = true; }
@@ -71,6 +82,12 @@ namespace Game.Enemies
                 if (fwd.sqrMagnitude > 1e-4f && _elevation > 0.01f)
                     elevationPivot.Rotate(Vector3.Cross(Vector3.up, fwd.normalized), -_elevation, Space.World);
             }
+
+            // 덮개: 예고 동안 열고(앞 절반), 쏘고 내리면 닫는다
+            _hatchOpen = Mathf.MoveTowards(_hatchOpen, _raising ? 1f : 0f, dt / Mathf.Max(0.1f, raiseSeconds * 0.5f));
+            if (_hatches != null)
+                for (int i = 0; i < _hatches.Length; i++)
+                    if (_hatches[i] != null) _hatches[i].localRotation = _hatchRest[i] * Quaternion.Euler(HatchOpenDegrees * _hatchOpen, 0f, 0f);
 
             if (_raising || AttackTimer > 0f || PlayerConcealed || PlayerBehindIsland) return;
             Vector3 d = Player.position - transform.position; d.y = 0f;
@@ -106,6 +123,7 @@ namespace Game.Enemies
                 var go = PoolManager.Instance?.Spawn(Definition.MissilePrefab, origin.position, origin.rotation);
                 go?.GetComponent<Missile>()?.Launch(Player, Definition.AttackDamage);
                 PooledEffect.Spawn(muzzleFlash, origin.position);
+                Backblast(i);
                 MissilesFired++;
                 if (i < count - 1) yield return new WaitForSeconds(Mathf.Max(0.35f, Definition.SalvoSpacing));
             }
@@ -113,14 +131,82 @@ namespace Game.Enemies
             _raising = false;
         }
 
+        private const string HatchModelPath = "Environment/Military/MIL_MissileBattery_Hatch";
+        private static GameObject s_hatchModel;
+
+        /// <summary>
+        /// 덮개 · 후염 점 찾기. 포대 프리팹은 예전 모델(MIL_MissileBattery_2)의 메시를 하나씩 참조하므로 모델을 바꾸지 않고,
+        /// Codex 개정 모델(MIL_MissileBattery_Hatch — 같은 계층 · 같은 위치)에서 덮개 피벗 · 후염 점만 떼어 예전 고각부 아래에 그대로 옮겨 붙인다(처음 한 번).
+        /// </summary>
+        private void GraftHatches()
+        {
+            if (elevationPivot == null) return;
+            foreach (var t in GetComponentsInChildren<Transform>(true)) if (t.name.StartsWith("LauncherHatchPivot")) return;   // 이미 있음
+            var oldRoot = FindModelRoot();
+            if (oldRoot == null) return;
+            s_hatchModel ??= Resources.Load<GameObject>(HatchModelPath);
+            if (s_hatchModel == null) return;
+            var tmp = Instantiate(s_hatchModel, oldRoot.parent, false);
+            tmp.transform.localPosition = oldRoot.localPosition;
+            tmp.transform.localRotation = oldRoot.localRotation;
+            tmp.transform.localScale = oldRoot.localScale;
+            var moved = new List<Transform>();
+            foreach (var t in tmp.GetComponentsInChildren<Transform>(true))
+                if (t.name.StartsWith("LauncherHatchPivot") || t.name.StartsWith("BackblastPoint")) moved.Add(t);
+            foreach (var t in moved) t.SetParent(elevationPivot, true);   // 고각이 쉬는 자세일 때 — 월드 자리 그대로
+            Destroy(tmp);
+        }
+
+        private void FindHatches()
+        {
+            if (_hatches != null) return;
+            GraftHatches();
+            var hatches = new List<Transform>();
+            var blasts = new List<Transform>();
+            foreach (var t in GetComponentsInChildren<Transform>(true))
+            {
+                if (t.name.StartsWith("LauncherHatchPivot")) hatches.Add(t);
+                else if (t.name.StartsWith("BackblastPoint")) blasts.Add(t);
+            }
+            hatches.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
+            blasts.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
+            _hatches = hatches.ToArray();
+            _hatchRest = new Quaternion[_hatches.Length];
+            for (int i = 0; i < _hatches.Length; i++) _hatchRest[i] = _hatches[i].localRotation;
+            _backblast = blasts.ToArray();
+        }
+
+        /// <summary>발사 후염: 발사관 뒤에서 불꽃 · 흰 연기 뭉치.</summary>
+        private void Backblast(int shot)
+        {
+            if (_backblast == null || _backblast.Length == 0) return;
+            var p = _backblast[shot % _backblast.Length];
+            if (p == null) return;
+            Vector3 back = -LaunchForward(); back.y = Mathf.Max(back.y, 0.1f); back.Normalize();
+            for (int i = 0; i < 14; i++)
+            {
+                Game.View.DecorFx.Emit(Game.View.DecorFx.Fire, p.position, back * Random.Range(3f, 6f) + Random.insideUnitSphere * 1.2f, Random.Range(0.15f, 0.3f), Random.Range(0.5f, 0.9f), new Color(1f, 0.7f, 0.3f, 0.9f));
+                float g = Random.Range(0.75f, 0.92f);
+                Game.View.DecorFx.Emit(Game.View.DecorFx.WreckSmoke, p.position, back * Random.Range(2f, 4f) + Random.insideUnitSphere * 1.5f + Vector3.up, Random.Range(1.5f, 2.5f), Random.Range(0.9f, 1.6f), new Color(g, g, g, 0.55f));
+            }
+        }
+
         protected override void Die()
         {
             if (this is not PlatformBattery)
             {
+                Game.View.RuinSmoke.LeaveRuins("Environment/Military/MIL_Ruins_Battery", FindModelRoot(), transform);
                 Game.View.Explosions.Spawn(transform.position + Vector3.up * 1.6f, 2.2f, Game.View.Explosions.Kind.Impact);
                 Game.View.Explosions.Spawn(transform.position + Vector3.up * 0.8f + Random.insideUnitSphere, 1.4f, Game.View.Explosions.Kind.Impact);
             }
             base.Die();
+        }
+
+        /// <summary>포대 모델 뿌리(MIL_MissileBattery_2) — 잔해가 같은 자리 · 방향 · 크기로 놓인다.</summary>
+        private Transform FindModelRoot()
+        {
+            foreach (var t in GetComponentsInChildren<Transform>(true)) if (t.name.StartsWith("MIL_MissileBattery")) return t;
+            return null;
         }
     }
 }

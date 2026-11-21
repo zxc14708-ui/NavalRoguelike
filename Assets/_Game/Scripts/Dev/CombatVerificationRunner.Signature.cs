@@ -374,7 +374,7 @@ namespace Game.Dev
                 if (Mathf.Abs(cdUsed - 1f) > 0.25f) Fail("오버드라이브가 제 쿨타임까지 빨리 돌림");
                 if (!ship.IsSpeedBoosted || ship.CurrentSpeed <= v0 * 1.15f) Fail("오버드라이브가 속력을 올리지 않음");
                 if (layers == 0) Fail("오버드라이브 붉은 달아오름이 없음");
-                if (ghosts == 0) Fail("오버드라이브 잔상이 없음");
+                if (ghosts < 3) Fail($"오버드라이브 잔상이 뒤에 늘어서지 않음({ghosts}개, 기대 3개 이상)");   // 2026-11-21 트랜스암식 잔상 — 3m마다 · 0.75초
                 yield return ScreenShot("signature_overdrive");
                 yield return CloseShot("signature_overdrive_close", ship.transform, 14f);
                 yield return new WaitForSeconds(OverdriveAbility.Duration - 2.5f + 0.5f);
@@ -412,20 +412,48 @@ namespace Game.Dev
                 {
                     vls.Ammo.Refill();
                     skill.ForceKind(StartShipKind.MissileDestroyer);
+                    // 2026-11-21: 가치가 다른 네 척(고속정 1 · 미사일정 3 · 초계함 4 · 미사일 초계함 5) — 고가치부터 마킹 · 배분되는지
                     var boats = new List<EnemyController>();
-                    foreach (float a in new[] { -50f, -15f, 15f, 50f }) boats.Add(Frozen(CombatDevTools.FindEnemy("ene_pcc_corvette") ?? boatDef, ship.transform.position + Quaternion.Euler(0f, a, 0f) * Fwd() * 34f));
+                    string[] ids = { "ene_fastboat", "ene_missileboat", "ene_pcc_corvette", "ene_missile_corvette" };
+                    float[] angles = { -50f, -15f, 15f, 50f };
+                    for (int i = 0; i < 4; i++) boats.Add(Frozen(CombatDevTools.FindEnemy(ids[i]) ?? boatDef, ship.transform.position + Quaternion.Euler(0f, angles[i], 0f) * Fwd() * (i == 0 ? 26f : 36f)));
                     yield return new WaitForSeconds(0.5f);
                     vls.enabled = true;
                     int l0 = vls.LaunchCount, cap = vls.Ammo.Current;
+                    var salvo = skill.Ability as FullSalvoAbility;
+                    float cd = salvo != null ? salvo.Cooldown : 0f;
                     bool used = skill.TryActivate();
+                    int markers = SalvoMarker.Active.Count;
+                    var plan = new System.Text.StringBuilder();
+                    int lastValue = int.MaxValue; bool ordered = true;
+                    if (salvo != null)
+                        foreach (var (t, n) in salvo.LastPlan)
+                        {
+                            int v = TargetInfo.Value(t);
+                            plan.Append($"{(t is EnemyController ec ? ec.Definition.DisplayName : t.Transform.name)}(가치 {v}) {n}발 · ");
+                            if (v > lastValue) ordered = false;
+                            lastValue = v;
+                        }
+                    bool firstRed = SalvoMarker.Active.Count > 0 && SalvoMarker.Active[0].Order == 1 && SalvoMarker.Active[0].Tint == SalvoMarker.HighValue;
                     yield return new WaitForSeconds(0.55f);
                     yield return CloseShot("signature_salvo_hatches", vls.transform, 7f);
-                    yield return new WaitForSeconds(1.8f);
-                    var salvo = skill.Ability as FullSalvoAbility;
-                    _report.AppendLine($"- 전탄 발사: 사용 {Yes(used)} · 예약 {salvo?.LastScheduled}발(장전 {cap}셀) · 실제 발사 {vls.LaunchCount - l0} · 이후 재장전 {Yes(vls.Ammo.IsReloading)}");
-                    if (!used || salvo == null || salvo.LastScheduled != cap || vls.LaunchCount - l0 != cap || !vls.Ammo.IsReloading) Fail("전탄 발사가 남은 셀을 모두 쏘고 재장전에 들어가지 않음");
+                    var top = salvo != null && salvo.LastPlan.Count > 0 ? salvo.LastPlan[0].target.Transform : null;
+                    if (top != null) yield return CloseShot("signature_salvo_marker", top, 16f);
+                    bool imminent = false; float until = Time.time + 4f;
+                    while (Time.time < until && !imminent) { foreach (var m in SalvoMarker.Active) if (m.Imminent) imminent = true; if (!imminent) yield return null; }
+                    if (imminent && top != null) yield return CloseShot("signature_salvo_imminent", top, 16f);
                     yield return ScreenShot("signature_salvo");
+                    yield return new WaitForSeconds(1.2f);
+                    _report.AppendLine($"- 전탄 발사: 사용 {Yes(used)} · 재사용 {cd:0}초(30이어야) · 예약 {salvo?.LastScheduled}발(장전 {cap}셀) · 실제 발사 {vls.LaunchCount - l0} · 이후 재장전 {Yes(vls.Ammo.IsReloading)}");
+                    _report.AppendLine($"- 전탄 발사 배분(순위대로): {plan} · 가치 높은 순 {Yes(ordered)} · 마커 {markers}개 · 1순위 빨강 {Yes(firstRed)} · 명중 임박 깜박임 {Yes(imminent)} · 수직 낙하 각도 {Missile.LastTopDiveAngle:0}°");
+                    if (!used || salvo == null || salvo.LastScheduled != cap || vls.LaunchCount - l0 != cap || !vls.Ammo.IsReloading) Fail("전탄 발사가 남은 셀을 모두 쏘고 재장전에 들어가지 않음");
+                    if (Mathf.Abs(cd - 30f) > 0.01f) Fail("전탄 발사 재사용이 30초가 아님");
+                    if (!ordered || salvo.LastPlan.Count < 4 || markers != salvo.LastPlan.Count || !firstRed) Fail("전탄 발사가 고가치 표적부터 마킹 · 배분하지 않음");
+                    if (!imminent) Fail("명중 직전 마커가 깜박이지 않음");
+                    if (Missile.LastTopDiveAngle < 60f) Fail("전탄 발사 미사일이 위에서 수직으로 꽂히지 않음");
                     yield return new WaitForSeconds(3f);
+                    _report.AppendLine($"- 다 끝난 뒤 남은 마커: {SalvoMarker.Active.Count}(0이어야)");
+                    if (SalvoMarker.Active.Count > 0) Fail("전탄 발사가 끝났는데 마커가 남음");
                     // 장전 중에는 못 쓴다
                     skill.ForceKind(StartShipKind.MissileDestroyer);
                     bool again = skill.TryActivate();

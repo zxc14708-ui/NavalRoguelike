@@ -113,7 +113,7 @@ namespace Game.World
             var ship = gm != null ? gm.Player : null;
             if (ship == null || fade <= 0f) return;
             Vector3 dp = ship.transform.position - transform.position; dp.y = 0f;
-            if (dp.sqrMagnitude <= r * r) ship.ApplyHullDamage(DamagePerSecond * dt, "불타는 기름띠");
+            if (dp.sqrMagnitude <= r * r) ship.ApplyHullDamage(DamagePerSecond * dt, "불타는 기름띠", hostile: false);
         }
     }
 }

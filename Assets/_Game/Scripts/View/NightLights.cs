@@ -8,14 +8,19 @@ namespace Game.View
     /// <summary>
     /// 밤 조명 묶음(2026-11-19 낮과 밤). 한 물체에 붙는 작은 등불 여럿(빛나는 구 — HDR 색이라 블룸으로 번진다)을 어두울 때만 켠다.
     ///   - 깜박임: period &gt; 0이면 그 주기에서 onFraction만큼만 켠다(부표 · 조난 신호).
-    ///   - 실제 광원은 달지 않는다(가볍게) — 필요한 곳(탐조등 · 등대 · 조명탄)만 따로 단다.
+    ///   - 모양: 기본은 구. 배 항해등은 횃불 모양(2026-11-21 사용자: 둥글지 않게, 블록 게임 횃불 느낌의 직사각형 육면체) —
+    ///     빛나는 네모 머리(0.5 × 0.6 × 0.5) 아래 가는 네모 막대(0.24 × 0.9 × 0.24, 어두운 나무색).
+    ///   - 광원: lightRange &gt; 0인 등은 실제 점광원을 받는다(NightLampLights — 카메라에서 가까운 24개만, 그림자 없음).
     /// </summary>
     public sealed class NightLampSet : MonoBehaviour
     {
-        private struct Lamp { public Renderer R; public Color C; public float Period, On, Phase; }
+        public enum Shape { Sphere, Torch }
+
+        private struct Lamp { public Renderer R, Stick; public Color C; public float Period, On, Phase; }
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         private static Material s_material;
-        private static Mesh s_sphere;
+        private static Mesh s_sphere, s_cube;
+        private static readonly Color StickColor = new(0.28f, 0.18f, 0.09f);
         private readonly List<Lamp> _lamps = new();
         private MaterialPropertyBlock _mpb;
         private bool _shown = true;
@@ -28,6 +33,10 @@ namespace Game.View
 
         /// <summary>local 자리에 등불 하나(color는 HDR 배율 전 색).</summary>
         public void Add(Vector3 local, Color color, float size, float period = 0f, float onFraction = 0.5f, float phase = 0f)
+            => Add(local, color, size, Shape.Sphere, 0f, period, onFraction, phase);
+
+        /// <summary>모양 · 광원 거리를 정해 등불 하나. Torch면 local이 빛나는 머리 가운데, 막대는 그 아래로.</summary>
+        public void Add(Vector3 local, Color color, float size, Shape shape, float lightRange, float period = 0f, float onFraction = 0.5f, float phase = 0f)
         {
             if (s_material == null)
             {
@@ -35,24 +44,55 @@ namespace Game.View
                 var tmp = GameObject.CreatePrimitive(PrimitiveType.Sphere);
                 s_sphere = tmp.GetComponent<MeshFilter>().sharedMesh;
                 Destroy(tmp);
+                tmp = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                s_cube = tmp.GetComponent<MeshFilter>().sharedMesh;
+                Destroy(tmp);
             }
             var go = new GameObject("Night lamp", typeof(MeshFilter), typeof(MeshRenderer));
             go.transform.SetParent(transform, false);
             go.transform.localPosition = local;
             var lossy = transform.lossyScale;
-            go.transform.localScale = new Vector3(size / Mathf.Max(0.01f, lossy.x), size / Mathf.Max(0.01f, lossy.y), size / Mathf.Max(0.01f, lossy.z));
-            go.GetComponent<MeshFilter>().sharedMesh = s_sphere;
+            Vector3 world = shape == Shape.Torch ? new Vector3(0.5f, 0.6f, 0.5f) * size : Vector3.one * size;
+            go.transform.localScale = new Vector3(world.x / Mathf.Max(0.01f, lossy.x), world.y / Mathf.Max(0.01f, lossy.y), world.z / Mathf.Max(0.01f, lossy.z));
+            go.GetComponent<MeshFilter>().sharedMesh = shape == Shape.Torch ? s_cube : s_sphere;
             var r = go.GetComponent<MeshRenderer>();
+            Setup(r, color * 2.6f);
+
+            Renderer stick = null;
+            if (shape == Shape.Torch)
+            {
+                // 막대: 머리 바로 아래(머리 크기 기준 좌표 — 머리 0.5 × 0.6 → 막대 0.24 × 0.9)
+                var s = new GameObject("Night lamp", typeof(MeshFilter), typeof(MeshRenderer));   // 이름을 같게 — 피격 번쩍임 · 격침 · 잔상이 등불을 건너뛴다
+                s.transform.SetParent(go.transform, false);
+                s.transform.localScale = new Vector3(0.24f / 0.5f, 0.9f / 0.6f, 0.24f / 0.5f);
+                s.transform.localPosition = new Vector3(0f, -0.5f - 0.5f * (0.9f / 0.6f), 0f);
+                s.GetComponent<MeshFilter>().sharedMesh = s_cube;
+                stick = s.GetComponent<MeshRenderer>();
+                Setup(stick, StickColor);
+            }
+            _lamps.Add(new Lamp { R = r, Stick = stick, C = color, Period = period, On = onFraction, Phase = phase });
+            if (lightRange > 0f) NightLampLights.Register(go.transform, color, lightRange);
+            _shown = true;
+        }
+
+        private void Setup(Renderer r, Color c)
+        {
             r.sharedMaterial = s_material;
             r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             r.receiveShadows = false;
             _mpb ??= new MaterialPropertyBlock();
             r.GetPropertyBlock(_mpb);
-            _mpb.SetColor(BaseColorId, color * 2.6f);
+            _mpb.SetColor(BaseColorId, c);
             r.SetPropertyBlock(_mpb);
             r.enabled = false;
-            _lamps.Add(new Lamp { R = r, C = color, Period = period, On = onFraction, Phase = phase });
-            _shown = true;
+        }
+
+        /// <summary>등불을 모두 지운다(선체가 바뀌어 다시 달 때 — NavLights.Rebuild).</summary>
+        public void Clear()
+        {
+            foreach (var l in _lamps) if (l.R != null) { l.R.enabled = false; if (l.Stick != null) l.Stick.enabled = false; Destroy(l.R.gameObject); }
+            _lamps.Clear();
+            Lit = 0;
         }
 
         /// <summary>등불을 모두 끄고 다시 켜지 않는다(격침 등) — Show(true)로 되살린다.</summary>
@@ -69,6 +109,7 @@ namespace Game.View
                 if (l.R == null) continue;
                 bool on = night && (l.Period <= 0f || Mathf.Repeat(t / l.Period + l.Phase, 1f) < l.On);
                 if (l.R.enabled != on) l.R.enabled = on;
+                if (l.Stick != null && l.Stick.enabled != on) l.Stick.enabled = on;
                 if (on) lit++;
             }
             Lit = lit;
@@ -76,7 +117,99 @@ namespace Game.View
     }
 
     /// <summary>
+    /// 등불 광원(2026-11-21 사용자: 항해등에 광원 효과). 광원을 받기로 한 등불(항해등) 가운데 켜져 있고 카메라에서 가까운 24개에만
+    /// 실제 점광원을 옮겨 단다 — 배 수십 척 × 등 4개에 하나씩 달면 무거우므로. 등 색 그대로, 어두울수록 밝고 횃불처럼 살짝 일렁인다.
+    /// </summary>
+    public sealed class NightLampLights : MonoBehaviour
+    {
+        public const int MaxLights = 24;
+        private struct Entry { public Transform T; public Renderer R; public Color C; public float Range; }
+        private static readonly List<Entry> s_entries = new();
+        private static NightLampLights s_instance;
+        private readonly Light[] _lights = new Light[MaxLights];
+        private readonly List<int> _lit = new();
+        private readonly List<float> _dist = new();
+        private readonly List<int> _order = new();
+
+        /// <summary>검증용: 지금 켜진 등불 광원 수 · 등록된 등 수.</summary>
+        public static int LitCount { get; private set; }
+        public static int Registered => s_entries.Count;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() { s_instance = null; s_entries.Clear(); LitCount = 0; }
+
+        public static void Register(Transform lamp, Color color, float range)
+        {
+            if (lamp == null) return;
+            if (s_instance == null) s_instance = new GameObject("Night lamp lights").AddComponent<NightLampLights>();
+            s_entries.Add(new Entry { T = lamp, R = lamp.GetComponent<Renderer>(), C = color, Range = range });
+        }
+
+        private void Awake()
+        {
+            for (int i = 0; i < MaxLights; i++)
+            {
+                var go = new GameObject($"Lamp light {i}");
+                go.transform.SetParent(transform, false);
+                var l = go.AddComponent<Light>();
+                l.type = LightType.Point;
+                l.shadows = LightShadows.None;
+                l.enabled = false;
+                _lights[i] = l;
+            }
+        }
+
+        private void OnDestroy() { if (s_instance == this) s_instance = null; }
+
+        private void LateUpdate()
+        {
+            s_entries.RemoveAll(e => e.T == null);
+            _lit.Clear(); _dist.Clear();
+            float k = Mathf.InverseLerp(DayNight.LightsOnDarkness, 1f, DayNight.Darkness01);
+            var cam = Camera.main;
+            Vector3 c = cam != null ? cam.transform.position : Vector3.zero;
+            if (k > 0.01f)
+                for (int i = 0; i < s_entries.Count; i++)
+                {
+                    var e = s_entries[i];
+                    if (e.R == null || !e.R.enabled || !e.T.gameObject.activeInHierarchy) continue;
+                    _lit.Add(i); _dist.Add((e.T.position - c).sqrMagnitude);
+                }
+            if (_lit.Count > MaxLights)
+            {
+                // 가까운 순으로 24개
+                _order.Clear();
+                for (int i = 0; i < _lit.Count; i++) _order.Add(i);
+                _order.Sort((a, b) => _dist[a].CompareTo(_dist[b]));
+                for (int i = 0; i < MaxLights; i++) _order[i] = _lit[_order[i]];
+                _lit.Clear();
+                for (int i = 0; i < MaxLights; i++) _lit.Add(_order[i]);
+            }
+            int n = 0;
+            float t = Time.time;
+            for (int i = 0; i < MaxLights; i++)
+            {
+                var l = _lights[i];
+                if (i < _lit.Count)
+                {
+                    var e = s_entries[_lit[i]];
+                    l.transform.position = e.T.position + Vector3.up * 0.15f;
+                    l.color = e.C;
+                    l.range = e.Range;
+                    float flicker = 0.9f + 0.1f * Mathf.PerlinNoise(t * 6f, _lit[i] * 0.37f);   // 횃불처럼 살짝 일렁인다
+                    l.intensity = 2.4f * k * flicker * Mathf.Lerp(0.6f, 1f, Mathf.InverseLerp(2f, 6f, e.Range));
+                    if (!l.enabled) l.enabled = true;
+                    n++;
+                }
+                else if (l.enabled) l.enabled = false;
+            }
+            LitCount = n;
+        }
+    }
+
+    /// <summary>
     /// 배 항해등(2026-11-19): 좌현 빨강 · 우현 초록 · 돛대 흰색 · 선미 흰색. 선체 메시 범위로 자리를 잡는다.
+    /// 2026-11-21: 둥근 구 대신 횃불 모양 직육면체(빛나는 머리 + 막대) · 실제 점광원(카메라에서 가까운 24개).
     /// 적 수상함 · 기함 · 아군 호위함에 붙는다(반잠수정 · 잠수함 · 항공기는 없음). 밤에 어두워도 배 위치와 방향이 보이게.
     /// </summary>
     public static class NavLights
@@ -107,15 +240,46 @@ namespace Game.View
                 }
             }
             if (!float.IsFinite(min.x)) return null;
+            // 블록 선체로 만든 배(기함)는 좌우 폭을 선체 조각(갑판 · 뱃전)만으로 — 헬기 날개 · 포신처럼 뱃전 밖으로 나온 것이
+            // 현측등을 바다로 밀어냈다(2026-11-21 지휘함)
+            var hull = ship.GetComponentInChildren<Game.Ship.ShipHullBuilder>();
+            if (hull != null && hull.HullRoot != null)
+            {
+                float hxMin = float.PositiveInfinity, hxMax = float.NegativeInfinity;
+                foreach (var mf in hull.HullRoot.GetComponentsInChildren<MeshFilter>())
+                {
+                    if (mf == null || mf.sharedMesh == null || mf.name == "Night lamp") continue;
+                    var b = mf.sharedMesh.bounds;
+                    var m = inv * mf.transform.localToWorldMatrix;
+                    for (int i = 0; i < 8; i++)
+                    {
+                        var p = m.MultiplyPoint3x4(b.center + Vector3.Scale(b.extents, new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1)));
+                        hxMin = Mathf.Min(hxMin, p.x); hxMax = Mathf.Max(hxMax, p.x);
+                    }
+                }
+                if (float.IsFinite(hxMin) && hxMax - hxMin > 0.5f) { min.x = hxMin; max.x = hxMax; }
+            }
             var set = NightLampSet.On(ship);
             float midZ = (min.z + max.z) * 0.5f, deckY = Mathf.Lerp(min.y, max.y, 0.45f);
             // 등 크기는 부표 등불(0.45m)과 같게(2026-11-20) — 예전엔 배 길이에 따라 0.55~1.1m라 너무 컸다
             float size = BulbSize * scale;
-            set.Add(new Vector3(min.x, deckY, midZ + (max.z - min.z) * 0.1f), Port, size);
-            set.Add(new Vector3(max.x, deckY, midZ + (max.z - min.z) * 0.1f), Starboard, size);
-            set.Add(new Vector3((min.x + max.x) * 0.5f, max.y + 0.2f, Mathf.Lerp(midZ, max.z, 0.35f)), Mast, size * 0.9f);
-            set.Add(new Vector3((min.x + max.x) * 0.5f, Mathf.Lerp(min.y, max.y, 0.35f), min.z), Mast, size * 0.075f);
+            // 2026-11-21: 횃불 모양(네모 머리 + 막대) · 실제 광원(현측등 5m · 돛대등 6m · 선미등 2.5m). 머리를 막대 길이만큼 올려 막대가 갑판 위에 선다.
+            float lift = size * 0.9f * 0.6f;
+            var torch = NightLampSet.Shape.Torch;
+            float reach = Mathf.Max(1f, scale);
+            set.Add(new Vector3(min.x, deckY + lift, midZ + (max.z - min.z) * 0.1f), Port, size, torch, 5f * reach);
+            set.Add(new Vector3(max.x, deckY + lift, midZ + (max.z - min.z) * 0.1f), Starboard, size, torch, 5f * reach);
+            set.Add(new Vector3((min.x + max.x) * 0.5f, max.y + 0.2f, Mathf.Lerp(midZ, max.z, 0.35f)), Mast, size * 0.9f, torch, 6f * reach);   // 돛대등은 머리 높이 그대로 — 막대가 아래로 내려와 덜 떠 보인다
+            set.Add(new Vector3((min.x + max.x) * 0.5f, Mathf.Lerp(min.y, max.y, 0.35f), min.z), Mast, size * 0.075f, torch, 2.5f);
             return set;
+        }
+
+        /// <summary>선체가 바뀐 배(기함 — 시작 함정 선택 · 정비)의 항해등을 지우고 새 선체에 맞게 다시 단다.</summary>
+        public static NightLampSet Rebuild(GameObject ship, float scale = 1f)
+        {
+            if (ship == null) return null;
+            if (ship.TryGetComponent<NightLampSet>(out var set)) set.Clear();
+            return Ensure(ship, scale);
         }
 
         /// <summary>배 하나의 항해등 수(좌현 · 우현 · 돛대 · 선미) — 검증용.</summary>

@@ -1,0 +1,166 @@
+{
+  "PRJ_LunBomb": {
+    "triangles": 172,
+    "bounds_blender_m": [
+      [
+        -0.30000001192092896,
+        -0.8999999761581421,
+        -0.30000001192092896
+      ],
+      [
+        0.30000001192092896,
+        0.8999999761581421,
+        0.30000001192092896
+      ]
+    ],
+    "materials": [
+      "Enemy Dark",
+      "Enemy hull grey",
+      "Warning Yellow"
+    ],
+    "parts": [
+      {
+        "name": "PRJ_LunBomb",
+        "type": "EMPTY",
+        "parent": null,
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Body",
+        "type": "MESH",
+        "parent": "PRJ_LunBomb",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "TailFins",
+        "type": "MESH",
+        "parent": "PRJ_LunBomb",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Fuze",
+        "type": "EMPTY",
+        "parent": "PRJ_LunBomb",
+        "position_blender_m": [
+          0.0,
+          0.9,
+          0.0
+        ],
+        "axis_blender": [
+          -0.0,
+          1.0,
+          -0.0
+        ]
+      }
+    ]
+  },
+  "PRJ_LunRocket": {
+    "triangles": 124,
+    "bounds_blender_m": [
+      [
+        -0.20000000298023224,
+        -0.800000011920929,
+        -0.20000000298023224
+      ],
+      [
+        0.20000000298023224,
+        0.800000011920929,
+        0.20000000298023224
+      ]
+    ],
+    "materials": [
+      "Emergency Red",
+      "Enemy Dark",
+      "Enemy hull grey"
+    ],
+    "parts": [
+      {
+        "name": "PRJ_LunRocket",
+        "type": "EMPTY",
+        "parent": null,
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Body",
+        "type": "MESH",
+        "parent": "PRJ_LunRocket",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "TailFins",
+        "type": "MESH",
+        "parent": "PRJ_LunRocket",
+        "position_blender_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "name": "Exhaust",
+        "type": "EMPTY",
+        "parent": "PRJ_LunRocket",
+        "position_blender_m": [
+          0.0,
+          -0.8,
+          0.0
+        ],
+        "axis_blender": [
+          0.0,
+          -1.0,
+          -0.0
+        ]
+      }
+    ]
+  }
+}

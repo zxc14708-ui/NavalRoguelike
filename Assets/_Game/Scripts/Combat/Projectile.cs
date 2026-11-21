@@ -140,6 +140,7 @@ namespace Game.Combat
             }
             _trail.colorGradient = s_tracerRoundGradient;
             _trail.Clear();
+            Game.View.CombatLights.RegisterTracer(transform, TracerRoundColor, 1f);   // 예광탄 불빛 — 진한 주황, 먼저 받는다
             if (_head != null)
             {
                 if (s_tracerHead == null)
@@ -174,6 +175,8 @@ namespace Game.Combat
         /// <summary>발사 직후 1회 설정한다. 방향은 포신 방향이어야 한다(탄 생성 위치 = Muzzle).</summary>
         public void Launch(Vector3 direction, float speed, float damage, DamageSource source)
         {
+            // 포구 불빛(2026-11-21 — 야간 전투가 보이게). 한 발 피해로 크기: 기관포 약 0.4 · 76mm 1.2 · 중포 2
+            if (source == DamageSource.Gun) Game.View.CombatLights.Muzzle(transform.position, Mathf.Lerp(0.35f, 2f, Mathf.InverseLerp(1f, 30f, damage)));
             transform.forward = direction.normalized;
             _speed = speed;
             _damage = damage;
@@ -183,6 +186,9 @@ namespace Game.Combat
 
             ResetTracerRound();
             if (_trail != null) _trail.Clear();
+            // 예광탄 불빛(2026-11-21): 꼬리가 빛나는 탄은 작은 점광원을 받는다(가까운 12발 — CombatLights)
+            if (tracerTime > 0f) Game.View.CombatLights.RegisterTracer(transform, tracerColor, 0.6f);
+            else Game.View.CombatLights.UnregisterTracer(transform);
             _maxTravel = 0f;
             _traveled = 0f;
             _statsKey = CombatStats.KeyFor(gameObject);
@@ -340,6 +346,6 @@ namespace Game.Combat
             if (_trail != null) _trail.Clear();
         }
 
-        public void OnDespawned() { }
+        public void OnDespawned() => Game.View.CombatLights.UnregisterTracer(transform);
     }
 }

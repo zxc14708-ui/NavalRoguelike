@@ -29,7 +29,7 @@ namespace Game.UI
         public static Result Explain(ModuleInstance module, TargetingSystem targeting)
         {
             if (module == null || module.Definition == null) return new Result("", "", false);
-            if (module.IsDestroyed) return new Result("파괴", "파괴됨 — 다음 정비 화면에서 절반 내구로 수리된다", false);
+            if (module.IsDestroyed) return new Result("파괴", "파괴됨 — 손상 통제반이 30%까지 고치면 다시 작동(정비 화면에서는 절반으로 수리)", false);
             var runtime = module.Runtime;
             if (runtime is IAmmoUser user && user.Ammo != null)
             {

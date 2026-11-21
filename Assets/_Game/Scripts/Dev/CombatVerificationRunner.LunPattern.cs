@@ -73,6 +73,12 @@ namespace Game.Dev
             foreach (var p in impacts) spread = Mathf.Max(spread, Vector2.Distance(new Vector2(p.x, p.z), new Vector2(ship.transform.position.x, ship.transform.position.z)));
             _report.AppendLine($"- 로켓 통과: 로켓 {lun.DevRockets - rockets0}발(기대 10) · 착탄 {impacts.Count} · 기함에서 가장 먼 착탄 {spread:0.0} m · 기함 명중 {hits}");
             if (lun.DevRockets - rockets0 < 10) Fail("룬급이 로켓을 다 쏘지 않음");
+            // 2026-11-21 Codex 룬급 폭탄 · 로켓 모델(PRJ_LunBomb · PRJ_LunRocket)이 붙었나
+            int dressedBombs = 0, dressedRockets = 0;
+            foreach (var art in Object.FindObjectsByType<Game.View.LunOrdnanceArt>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                if (art.Dressed) { if (art.name.StartsWith("PRJ_LunRocket")) dressedRockets++; else dressedBombs++; }
+            _report.AppendLine($"- 폭탄 · 로켓 모델: 모델 붙은 폭탄 {dressedBombs} · 로켓 {dressedRockets}(풀 인스턴스 수)");
+            if (dressedBombs == 0 || dressedRockets == 0) Fail("룬급 폭탄 · 로켓에 Codex 모델이 붙지 않음");
             if (impacts.Count > 0 && spread > 25f) Fail("로켓이 기함 둘레가 아닌 먼 곳에 떨어짐");
             ArtilleryShell.Landed -= OnLanded;
 

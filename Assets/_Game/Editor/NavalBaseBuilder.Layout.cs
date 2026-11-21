@@ -844,6 +844,10 @@ namespace Game.EditorTools
                 Flush();
             }
             foreach (var go in done) if (go != null) Object.DestroyImmediate(go);
+            // 큰 합친 메시(빽빽한 나무 등)는 구역별로 나눈다(2026-11-21 Codex 점검 — 46.5 MiB 메시 하나가 D3D12 업로드 경고를 냈다)
+            var replaced = new List<string>();
+            meshes += NavalBaseMeshSplitter.SplitLarge(holder, replaced) - replaced.Count;
+            foreach (var p in replaced) AssetDatabase.DeleteAsset(p);
             RemoveEmpty(_root, keep);
             Debug.Log($"[NavalBase] 조각 {parts}개 → 합친 메시 {meshes}개(재질 {byMat.Count}종)");
         }

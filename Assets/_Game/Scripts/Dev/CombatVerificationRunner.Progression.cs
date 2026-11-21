@@ -291,7 +291,7 @@ namespace Game.Dev
 
             // 1) 등급별 수치
             var sbCat = new StringBuilder();
-            bool catalogOk = Game.Modules.RunUpgrades.Catalog.Count == 13;
+            bool catalogOk = Game.Modules.RunUpgrades.Catalog.Count == 14;   // 2026-11-21 손상 통제 카드 자동 소화 장치 추가(침수 카드 2종은 뺌)
             foreach (var d in Game.Modules.RunUpgrades.Catalog)
             {
                 sbCat.Append($"{d.Name} {d.Values[0] * 100:0.#}/{d.Values[1] * 100:0.#}/{d.Values[2] * 100:0.#}% · ");

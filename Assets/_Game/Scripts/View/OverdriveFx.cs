@@ -6,7 +6,8 @@ namespace Game.View
     /// <summary>
     /// 오버드라이브 연출(2026-11-20, 고속 강습함 고유 스킬). 보기 전용.
     ///   - 붉은 달아오름: 함선 메시마다 같은 메시를 더하기 합성으로 한 겹 더 그려(피격 번쩍임과 같은 Naval/HitFlash 셰이더) 붉게 맥박 친다.
-    ///   - 잔상: 움직이는 동안 0.08초마다 큰 부품 몇 개를 그 자리에 붉은 잔상으로 남겨 0.35초에 사라지게 한다.
+    ///   - 잔상(2026-11-21 강화 — 사용자: 트랜스암처럼 지나간 자리에 잔상이 남았다 사라지게): 움직이는 동안 3m 지날 때마다(최소 0.05초)
+    ///     배 겉모습(큰 부품 18개)을 그 자리에 붉은 잔상으로 남겨 0.75초에 걸쳐 흐려지며 사라진다. 빠를수록 잔상이 길게 늘어선다.
     ///   - 입자: 선미 · 양현에서 붉은 불티가 뒤로 흩날리고, 시작 때 붉은 충격 고리 · 번쩍임, 끝날 때 한 번 더 번쩍이며 식는다.
     ///   - 과열(Overheat): 붉은빛이 식어 가는 주황빛으로 바뀌어 사그라들고, 갑판에서 흰 증기가 피어오른다.
     /// 원래 렌더러 · 재질은 건드리지 않는다. 덧그림은 투명 큐라 격침 잔해에 복사되지 않는다.
@@ -15,8 +16,10 @@ namespace Game.View
     {
         public static readonly Color Glow = new(1f, 0.16f, 0.1f);
         public static readonly Color Heat = new(1f, 0.42f, 0.08f);
-        private const float GhostInterval = 0.08f, GhostLife = 0.35f;
-        private const int GhostParts = 10;
+        private const float GhostInterval = 0.05f, GhostLife = 0.75f, GhostSpacing = 3f, GhostBrightness = 0.95f;
+        private const int GhostParts = 18;
+        private Vector3 _lastGhostPos;
+        private bool _hasLastGhost;
         private static readonly int FlashColorId = Shader.PropertyToID("_FlashColor");
         private static Material s_material;
         private static MaterialPropertyBlock s_mpb;
@@ -133,8 +136,16 @@ namespace Game.View
             // 잔상 · 불티(움직일 때)
             if (!ending && _ship.CurrentSpeed > 3f)
             {
+                // 지나온 거리로 잔상을 남긴다 — 속도와 상관없이 일정한 간격으로 늘어선다
                 _ghostTimer -= dt;
-                if (_ghostTimer <= 0f) { _ghostTimer = GhostInterval; SpawnGhost(); }
+                Vector3 here = _ship.transform.position;
+                if (!_hasLastGhost) { _lastGhostPos = here; _hasLastGhost = true; }
+                if (_ghostTimer <= 0f && (here - _lastGhostPos).sqrMagnitude >= GhostSpacing * GhostSpacing)
+                {
+                    _ghostTimer = GhostInterval;
+                    _lastGhostPos = here;
+                    SpawnGhost();
+                }
                 Vector3 back = -_ship.transform.forward;
                 var col = _ship.GetComponent<BoxCollider>();
                 float half = col != null ? col.size.z * 0.5f : 5f, beam = col != null ? col.size.x * 0.5f : 1.5f;
@@ -150,7 +161,7 @@ namespace Game.View
                 var g = _ghosts[i];
                 float u = (Time.time - g.Born) / GhostLife;
                 if (u >= 1f || g.Root == null) { if (g.Root != null) Destroy(g.Root); _ghosts.RemoveAt(i); continue; }
-                s_mpb.SetColor(FlashColorId, Glow * (0.55f * (1f - u) * (1f - u) * Game.Core.DisplaySettings.FlashScale));
+                s_mpb.SetColor(FlashColorId, GhostColor(u));
                 foreach (var part in g.Parts) if (part != null) part.SetPropertyBlock(s_mpb);
             }
         }
@@ -190,9 +201,16 @@ namespace Game.View
                 var gh = _ghosts[i];
                 float u = (Time.time - gh.Born) / GhostLife;
                 if (u >= 1f || gh.Root == null) { if (gh.Root != null) Destroy(gh.Root); _ghosts.RemoveAt(i); continue; }
-                s_mpb.SetColor(FlashColorId, Glow * (0.55f * (1f - u) * (1f - u) * Game.Core.DisplaySettings.FlashScale));
+                s_mpb.SetColor(FlashColorId, GhostColor(u));
                 foreach (var part in gh.Parts) if (part != null) part.SetPropertyBlock(s_mpb);
             }
+        }
+
+        /// <summary>잔상 색: 갓 남긴 것은 밝은 붉은빛 → 흐려지며 짙은 붉은색으로 사라진다(u = 0 ~ 1).</summary>
+        private static Color GhostColor(float u)
+        {
+            float k = Mathf.Pow(1f - Mathf.Clamp01(u), 1.6f);
+            return Color.Lerp(new Color(0.55f, 0.04f, 0.06f), new Color(1f, 0.28f, 0.2f), k) * (GhostBrightness * k * Game.Core.DisplaySettings.FlashScale);
         }
 
         private void SpawnGhost()

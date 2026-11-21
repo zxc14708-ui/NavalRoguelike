@@ -120,16 +120,28 @@ namespace Game.Modules
         {
             if (!IsDestroyed || Definition == null) return;
             IsDestroyed = false;
-            Hp = Mathf.Max(1f, MaxHp * Mathf.Clamp01(fraction));
+            Hp = Mathf.Max(Hp, Mathf.Max(1f, MaxHp * Mathf.Clamp01(fraction)));
             Runtime?.OnModuleRestored();
             GameEvents.RaiseModuleRestored(this);
         }
 
-        /// <summary>수리반이 모듈을 회복시킨다. 이미 파괴된 모듈은 복구되지 않는다.</summary>
+        /// <summary>부서진 블록이 수리로 이만큼(최대 내구 비율) 차면 다시 작동한다.</summary>
+        public const float ReviveFraction = 0.3f;
+
+        /// <summary>
+        /// 손상 통제반 · 응급 수리가 블록을 고친다. 부서진 블록도 고친다(2026-11-21 사용자: 체력이 회복되면 정상으로 돌아오게) —
+        /// 부서진 동안 쌓인 수리가 최대 내구의 30%에 닿으면 다시 작동하고 겉모습(그을림 · 기울어짐)도 돌아온다.
+        /// </summary>
         public void Repair(float amount)
         {
-            if (IsDestroyed || amount <= 0f || Definition == null) return;
+            if (amount <= 0f || Definition == null) return;
             Hp = Mathf.Min(MaxHp, Hp + amount);
+            if (IsDestroyed && Hp >= MaxHp * ReviveFraction)
+            {
+                IsDestroyed = false;
+                Runtime?.OnModuleRestored();
+                GameEvents.RaiseModuleRestored(this);
+            }
         }
 
         /// <summary>ModuleFactory.SetRaised에서만 호출한다. 내려도 줄었던 체력은 돌아오지 않는다(수리로 채운다).</summary>

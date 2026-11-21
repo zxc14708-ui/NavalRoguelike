@@ -118,6 +118,12 @@ namespace Game.Dev
         public bool HitMapOnly;
         [Tooltip("손상 통제 1단계(구획 침수 · 기울기) 검사만 돌린다(-floodOnly, 2026-11-21)")]
         public bool FloodOnly;
+        [Tooltip("손상 통제 2~4단계(화재 · 탄약고 · 손상 통제반 · 불난 곳 포격) 검사만 돌린다(-fireOnly, 2026-11-21)")]
+        public bool FireOnly;
+        [Tooltip("밸런스 비교(블록이 받는 피해 몫별 실제 교전) 검사만 돌린다(-balanceSimOnly, 2026-11-21)")]
+        public bool BalanceSimOnly;
+        [Tooltip("전투 불빛 · 미사일 연기 · 물보라 검사만 돌린다(-combatFxOnly, 2026-11-21)")]
+        public bool CombatFxOnly;
         [Tooltip("군항 건물 1단계 검사만 돌린다(-harborBuildingsOnly): 이름표·건물 확대·기록실·작전 포인트")]
         public bool HarborBuildingsOnly;
         [Tooltip("시작 무장·손상통제·함정 고유 스킬 검사만 돌린다(-signatureOnly)")]
@@ -313,6 +319,27 @@ namespace Game.Dev
                 yield return TracerCheck();
                 yield return SignatureCheck();
                 SaveLog("signature");
+                Finish();
+                yield break;
+            }
+            if (CombatFxOnly)
+            {
+                yield return CombatFxCheck();
+                SaveLog("combatfx");
+                Finish();
+                yield break;
+            }
+            if (BalanceSimOnly)
+            {
+                yield return BalanceSimCheck();
+                SaveLog("balancesim");
+                Finish();
+                yield break;
+            }
+            if (FireOnly)
+            {
+                yield return FireCheck();
+                SaveLog("fire");
                 Finish();
                 yield break;
             }
@@ -670,33 +697,53 @@ namespace Game.Dev
             yield return Scenario("항공: 자폭 드론 4 + 전투기 2", 35f, "air",
                 () => { CombatDevTools.SpawnRing("ene_drone", 4, 46f); CombatDevTools.SpawnRing("ene_fighter", 2, 50f); });
 
-            yield return RuleChecks();
-            yield return RadarCheck();
-            yield return AmmoCheck();
-            yield return DefenseCheck();
-            yield return LogisticsCheck();
-            yield return TabLayoutCheck();
-            yield return NewEnemyCheck();
-            yield return WaterCheck();
-            yield return TorpedoDodgeCheck();
-            yield return IslandCheck();
-            yield return SuicideBoatCheck();
-            yield return DecorCheck();
-            yield return LifeCheck();
-            yield return UpgradeCheck();
-            yield return FactionCheck();
-            yield return EscortCheck();
-            yield return ThreatCheck();
-            yield return GrowthCheck();
-            yield return EnvArtCheck();
-            yield return VariantCheck();
-            yield return TorpedoTubeCheck();
-            yield return HowitzerCheck();
-            yield return RamMineCheck();
-            yield return NobongCheck();
-            yield return FormationCheck();
-            yield return CodexCheck();
+            yield return Fresh(RuleChecks());
+            yield return Fresh(RadarCheck());
+            yield return Fresh(AmmoCheck());
+            yield return Fresh(DefenseCheck());
+            yield return Fresh(LogisticsCheck());
+            yield return Fresh(TabLayoutCheck());
+            yield return Fresh(NewEnemyCheck());
+            yield return Fresh(WaterCheck());
+            yield return Fresh(TorpedoDodgeCheck());
+            yield return Fresh(IslandCheck());
+            yield return Fresh(SuicideBoatCheck());
+            yield return Fresh(DecorCheck());
+            yield return Fresh(LifeCheck());
+            yield return Fresh(UpgradeCheck());
+            yield return Fresh(FactionCheck());
+            yield return Fresh(EscortCheck());
+            yield return Fresh(ThreatCheck());
+            yield return Fresh(GrowthCheck());
+            yield return Fresh(EnvArtCheck());
+            yield return Fresh(VariantCheck());
+            yield return Fresh(TorpedoTubeCheck());
+            yield return Fresh(HowitzerCheck());
+            yield return Fresh(RamMineCheck());
+            yield return Fresh(NobongCheck());
+            yield return Fresh(FormationCheck());
+            yield return Fresh(CodexCheck());
             Finish();
+        }
+
+        /// <summary>
+        /// 기본 회귀의 검사 사이(2026-11-21): 앞 장면 전투에서 부서진 블록을 모두 되살리고 내구를 채운 뒤 검사를 돌린다.
+        /// 맞는 위치가 퍼진 뒤로 앞 장면이 레이더 · VLS 같은 블록을 부숴 두면 뒤 검사(레이더 에코 · VLS 발사 등)가 그때그때 실패했다.
+        /// </summary>
+        private IEnumerator Fresh(IEnumerator check)
+        {
+            var ship = GameManager.Instance != null ? GameManager.Instance.Player : null;
+            if (ship != null && ship.Grid != null)
+            {
+                foreach (var m in ship.Grid.Modules)
+                {
+                    if (m == null) continue;
+                    if (m.IsDestroyed) m.Restore(1f);
+                    m.Repair(m.MaxHp);
+                }
+                ship.Systems?.Recalculate();
+            }
+            yield return check;
         }
 
         private void Finish()
@@ -721,6 +768,10 @@ namespace Game.Dev
             // 검사 환경은 해역 효과 없이(점검 K04 이전과 같은 섬·레이더) — 해역 검사(-seaOnly)는 스스로 해역에 들어간다
             Game.World.SeaRegion.Leave();
             Game.Enemies.CoastalBatteryField.Disabled = true;
+            // 손상 통제(2026-11-21 화재 · 침수)는 끈다: 예전 검사들은 선체 · 블록 변화를 재는데, 앞 장면의 불 · 물이 남아 피해를 계속 준다.
+            // 손상 통제 검사(-hitMapOnly 실제 피해 · -floodOnly · -fireOnly · -balanceSimOnly)는 스스로 켠다
+            Game.Ship.ShipFire.Enabled = false;
+            Game.Ship.ShipFlooding.Enabled = false;
             foreach (var x in Object.FindObjectsByType<ExperienceSystem>(FindObjectsSortMode.None)) x.enabled = false;
             // 호위함 자체 무장은 끈다: 기함 단독 검사(자폭 보트 충돌·정지 물보라 등)에 끼어들지 않게. 호위함 검사가 필요할 때 켠다.
             foreach (var e in Object.FindObjectsByType<Game.TaskForce.EscortDefense>(FindObjectsSortMode.None)) e.enabled = false;
@@ -762,6 +813,7 @@ namespace Game.Dev
 
         /// <summary>블록 파괴를 재는 검사(-hitMapOnly)가 잠깐 멈춘다(2026-11-21).</summary>
         private static bool s_pauseModuleHealing;
+        private static readonly System.Collections.Generic.Dictionary<Game.Modules.ModuleInstance, float> s_destroyedSince = new();
 
         /// <summary>검증 중 모듈이 파괴되어 다음 시나리오에 영향을 주지 않도록 계속 채운다.</summary>
         private static IEnumerator KeepModulesHealthy()
@@ -772,7 +824,14 @@ namespace Game.Dev
                 var ship = GameManager.Instance != null ? GameManager.Instance.Player : null;
                 if (ship != null && ship.Grid != null)
                     foreach (var m in ship.Grid.Modules)
-                        if (m != null && !m.IsDestroyed) m.Repair(m.MaxHp);
+                    {
+                        if (m == null) continue;
+                        if (!m.IsDestroyed) { m.Repair(m.MaxHp); s_destroyedSince.Remove(m); continue; }
+                        // 부서진 블록도 10초 뒤에 되살린다(2026-11-21): 맞는 위치가 퍼지면서 앞 장면에서 아무 블록이나 부서져 남아
+                        // 뒤 장면 검사(레이더 에코 · VLS 발사 · 물보라 등)가 그때그때 다르게 실패했다. 부서진 직후를 보는 검사는 10초 안에 끝난다
+                        if (!s_destroyedSince.TryGetValue(m, out float since)) s_destroyedSince[m] = Time.realtimeSinceStartup;
+                        else if (Time.realtimeSinceStartup - since > 10f) { m.Restore(1f); s_destroyedSince.Remove(m); }
+                    }
                 yield return new WaitForSecondsRealtime(0.25f);
             }
         }

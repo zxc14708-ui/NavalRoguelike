@@ -86,6 +86,11 @@ namespace Game.Combat
         private bool _decoyed;
         private bool _threatEnded;
         private bool _diving;
+        // 전탄 발사 수직 낙하(2026-11-21): 곧게 솟아 표적 위 하늘로 넘어간 뒤 바로 위에서 수직으로 내리꽂힌다
+        private bool _topAttack;
+        private int _topPhase;          // 0 상승 · 1 표적 위로 · 2 낙하
+        private float _topApex;
+        private Transform _salvoTarget; // 전탄 발사로 배정된 표적(마커가 남은 수를 센다)
         // 접근 방향 바꾸기(2026-10-03, 현대화 초계함): 먼저 표적 둘레의 경유점으로 돌아 들어간 뒤 평소처럼 유도한다
         private bool _approachActive;
         private float _approachAngle, _approachRadius, _approachUntil;
@@ -170,6 +175,7 @@ namespace Game.Combat
             _screenEnteredAt = -1f;
             _hasCell = false;
             IsCommandSeeker = false;
+            _topAttack = false; _topPhase = 0; _salvoTarget = null;
             _arc = profile == MissileProfile.ClimbDive ? Game.Ship.HitArc.Top : Game.Ship.HitArc.Side;
             if (damageOverride > 0f) damage = damageOverride;
 
@@ -185,6 +191,7 @@ namespace Game.Combat
             if (!isThreat) CombatStats.RecordFire(_statsKey);
 
             RestartExhaust();
+            Game.View.CombatLights.Muzzle(transform.position, 1.1f);   // 발사 불빛
             AudioManager.Play(Game.Data.SfxId.MissileLaunch, transform.position, isThreat ? 1f : 0.7f, launchPitch);
 
             // 경고 표시는 적 미사일에만 띄운다
@@ -350,6 +357,7 @@ namespace Game.Combat
                 if (SegmentHits(transform.position, step, hitPoint, out Vector3 impact))
                 {
                     transform.position = impact;
+                    if (_topAttack) LastTopDiveAngle = 90f - Vector3.Angle(Vector3.down, transform.forward);
                     Detonate(_target);
                     return;
                 }
@@ -366,6 +374,7 @@ namespace Game.Combat
 
             transform.position += step;
             KeepAboveWater();
+            if (_nozzle != null) Game.View.MissileTrail.Tick(ref _trail, _nozzle.position, transform.forward, isThreat, dt);
         }
 
         /// <summary>이번 이동 구간에 섬이 있으면 거기서 터진다(아무도 맞지 않음).</summary>
@@ -424,8 +433,53 @@ namespace Game.Combat
             return (point - impact).sqrMagnitude <= hitRadius * hitRadius;
         }
 
+        /// <summary>
+        /// 전탄 발사로 쏜 미사일(Launch 바로 뒤에 부른다). topAttack이면 곧게 솟아(정점 16~20m) 표적 위 하늘로 넘어간 뒤
+        /// 바로 위에서 수직으로 내리꽂힌다 — 표적 위 마커(미사일이 꽂히는 그림)와 맞춘다. 항공기를 노리는 요격탄은 평소대로.
+        /// </summary>
+        public void MarkSalvo(bool topAttack)
+        {
+            _salvoTarget = _target;
+            _topAttack = topAttack && _target != null;
+            _topPhase = 0;
+            _topApex = Random.Range(16f, 20f);
+            if (_topAttack) _arc = Game.Ship.HitArc.Top;
+            if (!s_salvo.Contains(this)) s_salvo.Add(this);
+        }
+
+        /// <summary>전탄 발사 마커용: 지금 날아가는 전탄 발사 미사일 · 배정 표적 · 내리꽂히는 중인가.</summary>
+        public Transform SalvoTarget => _salvoTarget;
+        public bool IsTopDiving => _topAttack && _topPhase == 2;
+        public static System.Collections.Generic.IReadOnlyList<Missile> ActiveSalvo => s_salvo;
+        private static readonly System.Collections.Generic.List<Missile> s_salvo = new(32);
+        /// <summary>전탄 발사 미사일이 끝났다(명중 · 격추 · 추락). 인자 = 배정 표적. 마커가 남은 수를 줄인다.</summary>
+        public static event System.Action<Transform> SalvoEnded;
+        /// <summary>검증용: 마지막으로 수직 낙하로 명중한 미사일이 수평에서 내려꽂힌 각도(°, 90 = 수직).</summary>
+        public static float LastTopDiveAngle { get; private set; }
+
+        private void SteerTopAttack(Vector3 hitPoint, float dt)
+        {
+            Vector3 flat = hitPoint - transform.position; flat.y = 0f;
+            float d = flat.magnitude;
+            switch (_topPhase)
+            {
+                case 0:   // 상승: 곧게 위로(표적 쪽으로 아주 조금 기운다)
+                    TurnTowards(Vector3.up + (d > 0.1f ? flat / d : Vector3.zero) * 0.15f, 360f, dt);
+                    if (transform.position.y >= _topApex * 0.85f) _topPhase = 1;
+                    break;
+                case 1:   // 표적 위 하늘로 — 정점 높이를 지키며 넘어간다
+                    HomeOn(new Vector3(hitPoint.x, _topApex, hitPoint.z), 260f, dt);
+                    if (d < 4.5f) _topPhase = 2;
+                    break;
+                default:  // 낙하: 바로 위에서 내리꽂힌다
+                    HomeOn(hitPoint, MaxTurnRateDegPerSec, dt);
+                    break;
+            }
+        }
+
         private void Steer(Vector3 hitPoint, float dt)
         {
+            if (_topAttack && !IsJammed) { SteerTopAttack(hitPoint, dt); return; }
             if (IsJammed)
             {
                 _jamWanderTimer -= dt;
@@ -627,16 +681,26 @@ namespace Game.Combat
             else gameObject.SetActive(false);
         }
 
-        /// <summary>풀에서 꺼낼 때 이전 비행의 연기 꼬리가 발사 지점까지 이어져 그려지지 않게 지운다.</summary>
+        /// <summary>
+        /// 풀에서 꺼낼 때. 연기 꼬리(2026-11-21 사용자: 더 사실적으로): 예전 흰 띠(TrailRenderer)와 붙어 다니는 연기 입자는 끄고,
+        /// 꼬리에서 연기 뭉치를 지나온 길에 남겨(Game.View.MissileTrail) 부풀며 바람에 흘러 사라지게 한다. 노즐에는 밝은 불꽃,
+        /// 밤에는 추진 불빛(Game.View.CombatLights).
+        /// </summary>
         private void RestartExhaust()
         {
-            if (exhaustTrail != null) exhaustTrail.Clear();
-            if (exhaustSmoke != null)
+            if (exhaustTrail != null) { exhaustTrail.Clear(); exhaustTrail.emitting = false; exhaustTrail.enabled = false; }
+            if (exhaustSmoke != null) exhaustSmoke.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            if (_nozzle == null)
             {
-                exhaustSmoke.Clear(true);
-                exhaustSmoke.Play(true);
+                foreach (var t in GetComponentsInChildren<Transform>(true)) if (t.name == "Exhaust") { _nozzle = t; break; }
+                if (_nozzle == null) _nozzle = transform;
             }
+            _trail = new Game.View.MissileTrail.State { Last = _nozzle.position, Started = false };
+            Game.View.CombatLights.Register(_nozzle);
         }
+
+        private Transform _nozzle;
+        private Game.View.MissileTrail.State _trail;
 
         public void OnSpawned()
         {
@@ -658,12 +722,15 @@ namespace Game.Combat
 
         public void OnDespawned()
         {
+            if (s_salvo.Remove(this)) SalvoEnded?.Invoke(_salvoTarget);
+            _salvoTarget = null; _topAttack = false;
             _aswDelivery = false;
             _aswTorpedo = null;
             SetTarget(null);
             ReleaseClaim();
             TargetAllocator.ReleaseTarget(transform);   // 이 미사일을 노리던 요격탄들의 배정도 지운다
             if (exhaustSmoke != null) exhaustSmoke.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            if (_nozzle != null) Game.View.CombatLights.Unregister(_nozzle);
             if (isThreat) TargetRegistry.Unregister(this);
             else s_friendly.Remove(this);
         }
@@ -674,6 +741,6 @@ namespace Game.Combat
         public static System.Collections.Generic.IReadOnlyList<Missile> ActiveFriendly => s_friendly;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetStatics() => s_friendly.Clear();
+        private static void ResetStatics() { s_friendly.Clear(); s_salvo.Clear(); SalvoEnded = null; LastTopDiveAngle = 0f; }
     }
 }

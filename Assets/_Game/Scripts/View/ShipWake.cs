@@ -416,17 +416,41 @@ namespace Game.View
             _sprayDebt -= n;
             if (n == 0) return;
 
+            // 2026-11-21 사용자: 더 사실적으로 — 예전에는 큰 흰 공(0.6~1.4m)이 떠 안개처럼 보였다.
+            // 지금: 선수가 가르는 물살 = 늘어난 작은 물방울 줄기가 옆 · 위로 튀어 포물선으로 떨어지고(대부분),
+            //       그 위에 옅은 물안개가 조금, 선수 바로 옆 수면에는 하얀 물거품 덩이가 깔린다
             Vector3 fwd = Flat(transform.forward), right = Flat(transform.right);
             float k = Mathf.Clamp(Mathf.Sqrt(_speed / 10f), 0.6f, 1.5f);
+            float night = Game.World.DayNight.Darkness01;
+            Color water = Color.Lerp(new Color(0.93f, 0.97f, 1f), new Color(0.55f, 0.62f, 0.7f), night);
             for (int i = 0; i < n; i++)
             {
                 _spraySide = -_spraySide;
-                Vector3 p = bow - fwd * (beam * Random.Range(0.1f, 0.6f)) + right * (_spraySide * beam * Random.Range(0.3f, 0.5f));
-                p.y = WaterY + 0.35f;
-                Vector3 v = right * (_spraySide * Random.Range(1.4f, 3.2f) * k) + Vector3.up * Random.Range(2f, 3.6f) * k
-                            + fwd * (_speed * Random.Range(0.3f, 0.6f));
-                DecorFx.Emit(DecorFx.Spray, p, v, Random.Range(0.45f, 0.8f), Random.Range(0.6f, 1.4f) * size,
-                    new Color(0.93f, 0.97f, 1f, Random.Range(0.4f, 0.7f)));
+                Vector3 p = bow - fwd * (beam * Random.Range(0.05f, 0.45f)) + right * (_spraySide * beam * Random.Range(0.3f, 0.5f));
+                p.y = WaterY + 0.25f;
+                // 물방울 줄기(3~4개씩)
+                int drops = 3 + (Random.value < 0.5f ? 1 : 0);
+                for (int d = 0; d < drops; d++)
+                {
+                    Vector3 v = right * (_spraySide * Random.Range(1.8f, 4.2f) * k) + Vector3.up * Random.Range(2.2f, 4.4f) * k
+                                + fwd * (_speed * Random.Range(0.35f, 0.7f)) + Random.insideUnitSphere * 0.6f;
+                    DecorFx.Emit(DecorFx.Drops, p + Random.insideUnitSphere * 0.15f * size, v, Random.Range(0.45f, 0.85f), Random.Range(0.06f, 0.13f) * size,
+                        new Color(water.r, water.g, water.b, Random.Range(0.75f, 0.95f)));
+                }
+                // 옅은 물안개(둘에 하나, 작고 옅게)
+                if (Random.value < 0.5f)
+                {
+                    Vector3 mv = right * (_spraySide * Random.Range(0.8f, 1.8f) * k) + Vector3.up * Random.Range(0.8f, 1.6f) * k + fwd * (_speed * 0.4f);
+                    DecorFx.Emit(DecorFx.Spray, p + Vector3.up * 0.3f, mv, Random.Range(0.5f, 0.9f), Random.Range(0.35f, 0.7f) * size,
+                        new Color(water.r, water.g, water.b, Random.Range(0.12f, 0.24f)));
+                }
+                // 선수 옆 수면 물거품(낮게 깔려 뒤로 흐름)
+                if (Random.value < 0.6f)
+                {
+                    Vector3 fp = p; fp.y = WaterY + 0.08f;
+                    DecorFx.Emit(DecorFx.Smoke, fp, right * (_spraySide * Random.Range(0.6f, 1.4f)) + fwd * (_speed * 0.2f), Random.Range(0.6f, 1f), Random.Range(0.35f, 0.6f) * size,   // 중력 없는 입자 — 수면에 깔려 퍼진다
+                        new Color(water.r, water.g, water.b, Random.Range(0.3f, 0.5f)));
+                }
             }
         }
 

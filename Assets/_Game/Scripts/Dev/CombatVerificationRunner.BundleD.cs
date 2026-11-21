@@ -315,7 +315,7 @@ namespace Game.Dev
                     failing.Ship.TakeDamage(new Game.Combat.DamageInfo(9999f, failing.Ship.transform.position, Vector3.forward, Game.Combat.DamageSource.Missile));
                 yield return new WaitForSecondsRealtime(0.3f);
                 bool failed = Game.TaskForce.SupplyEscortMission.LastOutcome == Game.TaskForce.SupplyEscortMission.Outcome.Failed && Game.TaskForce.SupplyEscortMission.LastFailReason == "격침";
-                bool noReward2 = Mathf.Approximately(ship.HullHp, hullBefore) && Game.Refit.RefitDraft.RerollsLeft == rerollBefore;
+                bool noReward2 = ship.HullHp <= hullBefore + 0.01f && Game.Refit.RefitDraft.RerollsLeft == rerollBefore;   // 보상(수리) = 선체가 오름. 그사이 맞아 줄어든 것은 보상 아님(2026-11-21 — 가끔 실패하던 원인)
                 bool panelGone = GameObject.Find("Supply escort panel") == null && GameObject.Find("Supply route") == null;
                 _report.AppendLine($"- 임무 실패(보급선 격침): {Yes(failed)} · 보상 없음 {Yes(noReward2)}(선체 {hullBefore:0.#} → {ship.HullHp:0.#} · 다시 뽑기 {rerollBefore} → {Game.Refit.RefitDraft.RerollsLeft}) · 임무 막대·항로 표시 정리 {Yes(panelGone)}");
                 if (!failed || !noReward2) Fail("보급선 격침 때 실패 처리·보상이 맞지 않음(K03)");

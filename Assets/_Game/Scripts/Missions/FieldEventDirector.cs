@@ -9,7 +9,8 @@ namespace Game.Missions
     /// 전장 이벤트 진행(2026-11-17 — "한 자리에 머물지 않고 계속 움직일 동기"). 스테이지가 시작되면 StageDirector가 연다(현대 판만).
     ///   - 위치 노출 게이지(ExposureGauge)는 스테이지 내내 돈다.
     ///   - 이벤트는 한 번에 하나: 시작 FirstDelay초 뒤 첫 이벤트, 끝나면 GapMin~GapMax초 쉬고 다음.
-    ///     후보: 자폭 보트 협공(PincerAttack, 되풀이 가능) · 구조 활동(RescueMission) · 적 보급선 추격(RunnerMission) — 구조 · 추격은 스테이지마다 한 번씩.
+    ///     후보: 반잠수정 포위(PincerAttack — 2026-11-21 자폭 보트 협공에서 바뀜, 되풀이 가능) · 자폭 보트 일렬 돌격(LineAssault, 2026-11-21, 되풀이 가능) ·
+    ///     구조 활동(RescueMission) · 적 보급선 추격(RunnerMission) — 구조 · 추격은 스테이지마다 한 번씩.
     ///     이번 스테이지에 아직 안 나온 종류를 먼저 고른다. 보스 구간 · 보급선 호위 임무 중에는 구조 · 추격을 내지 않는다(협공만).
     ///   - 스테이지가 끝나면(보스 격침 · 판 종료) 진행 중인 이벤트를 정리한다.
     /// </summary>
@@ -17,7 +18,7 @@ namespace Game.Missions
     {
         public const float FirstDelay = 35f, GapMin = 45f, GapMax = 65f;
 
-        public enum Kind { Pincer, Rescue, Runner }
+        public enum Kind { Pincer, Rescue, Runner, LineAssault }   // 뒤에만 덧붙임
 
         public static FieldEventDirector Instance { get; private set; }
 
@@ -100,6 +101,7 @@ namespace Game.Missions
         private static bool Finished(MonoBehaviour m) => m == null || m switch
         {
             PincerAttack p => p.State == PincerAttack.Phase.Done,
+            LineAssault l => l.State == LineAssault.Phase.Done,
             RescueMission r => r.State != RescueMission.Outcome.Running,
             RunnerMission u => u.State != RunnerMission.Outcome.Running,
             _ => true,
@@ -109,7 +111,7 @@ namespace Game.Missions
         {
             bool quiet = !(_bossPhase?.Invoke() ?? false) && !SupplyMissionRunning;
             var fresh = new List<Kind>();
-            var all = new List<Kind> { Kind.Pincer };
+            var all = new List<Kind> { Kind.Pincer, Kind.LineAssault };
             if (quiet && !_doneThisStage.Contains(Kind.Rescue)) all.Add(Kind.Rescue);
             if (quiet && !_doneThisStage.Contains(Kind.Runner)) all.Add(Kind.Runner);
             foreach (var k in all) if (!_doneThisStage.Contains(k)) fresh.Add(k);
@@ -139,7 +141,8 @@ namespace Game.Missions
             CancelCurrent();
             MonoBehaviour started = kind switch
             {
-                Kind.Pincer => PincerAttack.Begin(_player, _xp, FindEnemy("ene_suicide_boat")),
+                Kind.Pincer => PincerAttack.Begin(_player, _xp, FindEnemy("ene_semisub_suicide")),
+                Kind.LineAssault => LineAssault.Begin(_player, _xp, FindEnemy("ene_suicide_boat")),
                 Kind.Rescue => RescueMission.Begin(_player, _xp),
                 Kind.Runner => RunnerMission.Begin(_player, _xp, _stage, FindEnemy("ene_sea_mine"), FindEnemy("ene_fastboat")),
                 _ => null,
@@ -163,6 +166,7 @@ namespace Game.Missions
             switch (_current)
             {
                 case PincerAttack p: p.Cancel(); break;
+                case LineAssault l: l.Cancel(); break;
                 case RescueMission r: r.Cancel(); break;
                 case RunnerMission u: u.Cancel(); break;
             }

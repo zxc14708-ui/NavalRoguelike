@@ -7,7 +7,8 @@ namespace Game.Modules.Runtime
 {
     /// <summary>
     /// 손상 통제반. 주변(3칸) 손상된 모듈을 서서히 수리하고, 방수·소화로 받는 피해를 줄인다.
-    /// 파괴된(HP 0) 모듈은 복구하지 않는다 — 잃은 것은 잃은 것으로 둔다.
+    /// 부서진 블록도 고친다 — 쌓인 수리가 최대 내구의 30%에 닿으면 다시 작동한다(2026-11-21 사용자: 체력이 회복되면 정상으로).
+    /// 일하는 동안 경광등이 돌고 수리 · 소화 중인 블록에 불꽃 · 물줄기가 보인다(View/DamageControlFx).
     ///
     /// 2026-10-11 손상통제 개편: 선체 자동 회복과 응급 수리[R]는 함교가 맡는다(<see cref="BridgeModule"/>).
     /// 이 블록은 하나마다 함교의 선체 자동 회복 상한(50% → 67 → 83 → 100%)·속도(+50%)와 응급 수리 횟수(+1회)를 늘린다.
@@ -18,6 +19,9 @@ namespace Game.Modules.Runtime
         [SerializeField] private DamageControlCrew crew = new();
 
         private bool _fortified;
+
+        /// <summary>지금 고치고 있는 블록(없으면 null) — 작동 연출(View/DamageControlFx)이 읽는다.</summary>
+        public ModuleInstance RepairTarget => Instance != null && Instance.IsOperational && enabled ? crew.Target : null;
 
         /// <summary>손상 통제는 수리뿐 아니라 방수·소화로 피해 자체도 줄인다.</summary>
         public override void ContributeToShipSystems(ShipSystems systems)

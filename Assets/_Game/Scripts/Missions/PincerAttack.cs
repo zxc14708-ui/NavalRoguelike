@@ -9,65 +9,87 @@ using Game.View;
 namespace Game.Missions
 {
     /// <summary>
-    /// 전장 이벤트 "자폭 보트 3방향 협공"(2026-11-17). 제자리에 머무는 기함을 벌하고, 피해 내는 손맛을 준다.
-    ///   1. 예고(WarnTime): 기함 둘레 세 방향(120° 간격)에 붉은 돌진선과 가운데 표적 원이 뜬다. 선은 기함을 따라 움직인다.
-    ///   2. 돌진: 예고가 끝나는 순간 기함의 예상 위치(지금 속력 × LeadRatio × 도착 시간 앞)를 굳히고, 그 둘레 Distance 원 위
-    ///      세 곳에서 자폭 보트(ene_suicide_boat)가 동시에 나와 그 점으로 곧게 달린다(꺾지 않음). 거리가 같아 같은 순간에 닿는다.
-    ///   3. 기함이 그 자리에 있으면 부딪혀 터진다(평소 자폭 피해). 피했으면 보트끼리 한가운데서 부딪혀 함께 터지고(격침 · 경험치),
-    ///      그 폭발이 둘레 BlastRadius 안의 다른 적에게 BlastDamage — 적을 가운데로 끌어들이는 플레이도 된다.
-    ///   4. 하나도 맞지 않고 둘 이상 부딪히면 "협공 회피" 보너스 경험치(다음 레벨까지의 15%).
-    ///   보트 하나만 남아 한가운데에 닿으면 평소 자폭 보트처럼 기함을 쫓는다. 섬에 가로막힌 방향은 원을 돌려 비켜 고른다.
+    /// 전장 이벤트 "반잠수정 포위"(2026-11-17 자폭 보트 3방향 협공 → 2026-11-21 사용자: 반잠수정 기습 · 시안 A1).
+    ///   1. 경고(WarnTime 2.6초): 기함을 따라다니는 붉은 점선 원이 돌며 조여들고(30 → 18m), 원 위 세 방향(120° 간격)에 안쪽을 가리키는
+    ///      이중 꺾쇠가 공격 방향을 알린다. 끝나기 0.3초 전부터 흰색 · 빨강으로 번쩍이며 옅어지고, 끝나면 사라진다.
+    ///   2. 부상: 경고가 끝나는 순간 기함의 지금 자리 둘레 Distance(34m) 세 곳에서 잠겨 있던 반잠수 자폭정(ene_semisub_suicide)이
+    ///      거품을 뿜으며 떠올라(RiseTime 0.7초) 물보라와 함께 수면에 오른다 — 드러난 채(12초).
+    ///   3. 공격: 기함을 쫓아 들이받는다(평소 자폭 돌진, 기습 중에는 35% 빨라 도망만으로는 못 떨친다) — 쏘아 막거나 섬으로 가로막는다.
+    ///   4. 하나도 맞지 않고 모두 격침하면 "포위 격퇴" 보너스 경험치(다음 레벨까지의 10%).
+    ///   섬에 가로막힌 방향은 원을 15°씩 돌려 비켜 고른다. 두 곳도 안 나오면 취소. 반잠수정 정의가 지금 판에 없으면 열리지 않는다.
     /// </summary>
     public sealed class PincerAttack : MonoBehaviour
     {
-        public const float WarnTime = 2.6f;
-        public const float Distance = 62f;
-        public const float LeadRatio = 0.6f;
-        public const float MeetRadius = 3.5f;
-        public const float BlastRadius = 14f, BlastDamage = 40f;
-        public const float BonusXpRatio = 0.15f;
-        private const int Boats = 3;
+        public const float WarnTime = 2.6f, FadeTime = 0.3f;
+        public const float Distance = 34f;
+        public const float RiseTime = 0.7f;
+        public const float RingStart = 30f, RingEnd = 18f;
+        public const float BonusXpRatio = 0.1f;
+        public const int Boats = 3;
+        private static readonly Color Warn = new(1f, 0.3f, 0.23f, 0.95f);
 
-        public enum Phase { Warning, Charging, Done }
-        public enum Result { None, Collided, Hit, Partial, Cancelled }
+        public enum Phase { Warning, Attacking, Done }
+        public enum Result { None, Repelled, Hit, Cancelled }
 
         private Game.Ship.ShipController _player;
         private Game.Progression.ExperienceSystem _xp;
         private EnemyDefinition _def;
         private float _age, _baseAngle;
-        private Vector3 _aim;
-        private readonly Vector3[] _dirs = new Vector3[Boats];   // 기함 → 보트가 나오는 쪽(돌진 방향의 반대)
-        private readonly List<SuicideBoat> _boats = new();
-        private LineRenderer[] _lanes;
-        private LineRenderer _aimRing;
+        private readonly Vector3[] _dirs = new Vector3[Boats];   // 기함 → 반잠수정이 떠오르는 쪽
+        private readonly List<SemiSubSuicideBoat> _boats = new();
+        private readonly HashSet<SemiSubSuicideBoat> _counted = new();
+        private LineRenderer _ring;
+        private readonly List<LineRenderer> _chevrons = new();
+        private static Material s_dash;
 
         public Phase State { get; private set; } = Phase.Warning;
         public Result Outcome { get; private set; } = Result.None;
-        /// <summary>기함에 부딪혀 터진 보트 수 · 서로 부딪혀 터진 보트 수(검증 · 보상).</summary>
+        /// <summary>기함에 부딪혀 터진 수 · 격침된 수 · 떠오른 수(검증 · 보상).</summary>
         public int Hits { get; private set; }
-        public int Collided { get; private set; }
+        public int Killed { get; private set; }
         public int Launched { get; private set; }
         public int BonusXp { get; private set; }
-        public Vector3 AimPoint => _aim;
-        public IReadOnlyList<SuicideBoat> BoatsList => _boats;
+        /// <summary>경고 표시가 보이는가(검증).</summary>
+        public bool WarningVisible => _ring != null && _ring.positionCount > 0;
+        public float RingRadius { get; private set; }
+        public IReadOnlyList<SemiSubSuicideBoat> BoatsList => _boats;
+        public IReadOnlyList<Vector3> Directions => _dirs;
 
         public static PincerAttack Begin(Game.Ship.ShipController player, Game.Progression.ExperienceSystem xp, EnemyDefinition def)
         {
             if (player == null || def == null || EnemySpawner.Instance == null) return null;
+            if (def.Prefab == null || def.Prefab.GetComponent<SemiSubSuicideBoat>() == null) return null;
             var go = new GameObject("Pincer attack");
             var p = go.AddComponent<PincerAttack>();
             p._player = player;
             p._xp = xp;
             p._def = def;
             p._baseAngle = Random.Range(0f, 360f);
-            p.SetDirections(p._baseAngle);
-            p._lanes = new LineRenderer[Boats];
-            for (int i = 0; i < Boats; i++) p._lanes[i] = MissionMarks.Line(go.transform, $"Pincer lane {i}", new Color(1f, 0.25f, 0.2f, 0.85f), 1.3f, false);
-            p._aimRing = MissionMarks.Line(go.transform, "Pincer aim ring", new Color(1f, 0.3f, 0.2f, 0.9f), 0.9f, true);
+            p.PickDirections(MissionMarks.Flat(player.transform.position));
+            p._ring = MissionMarks.Line(go.transform, "Pincer warning ring", Warn, 0.9f, true);
+            p._ring.sharedMaterial = DashMaterial();
+            p._ring.textureMode = LineTextureMode.Tile;
+            p._ring.textureScale = new Vector2(0.18f, 1f);
+            for (int i = 0; i < Boats * 2; i++)
+            {
+                var c = MissionMarks.Line(go.transform, $"Pincer chevron {i}", Warn, 1.1f, false);
+                c.numCornerVertices = 2;
+                p._chevrons.Add(c);
+            }
             UiSound.Play(UiSound.Cue.Fail);
-            GameEvents.RaiseBanner("자폭 보트 협공 — 세 방향에서 돌진! 붉은 원에서 벗어나세요(피하면 보트끼리 부딪혀 터집니다)");
+            GameEvents.RaiseBanner("반잠수정 포위 — 세 방향 물속에서 떠오릅니다! 떠오르면 바로 쏘세요");
             p.Refresh();
             return p;
+        }
+
+        private static Material DashMaterial()
+        {
+            if (s_dash != null) return s_dash;
+            var tex = new Texture2D(8, 2, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Repeat, filterMode = FilterMode.Point, name = "Pincer dash" };
+            for (int x = 0; x < 8; x++) for (int y = 0; y < 2; y++) tex.SetPixel(x, y, x < 5 ? Color.white : Color.clear);
+            tex.Apply();
+            s_dash = new Material(Shader.Find("Sprites/Default")) { name = "Pincer dash", mainTexture = tex };
+            return s_dash;
         }
 
         private void SetDirections(float baseAngle)
@@ -76,20 +98,27 @@ namespace Game.Missions
                 _dirs[i] = Quaternion.Euler(0f, baseAngle + i * 360f / Boats, 0f) * Vector3.forward;
         }
 
-        /// <summary>보트가 지금 기함 속력으로 도착하기까지 걸리는 시간(가속 포함 대략).</summary>
-        private float ArrivalTime => Distance / Mathf.Max(1f, _def.MoveSpeed * 0.88f);
-
-        private Vector3 PredictAim()
+        private bool Clear(Vector3 center, Vector3 dir)
         {
-            var t = _player.transform;
-            Vector3 v = MissionMarks.Flat(t.forward) * _player.CurrentSpeed;
-            return MissionMarks.Flat(t.position) + v * (ArrivalTime * LeadRatio);
+            Vector3 from = center + dir * Distance;
+            return MissionMarks.OpenWater(from, 5f) && !Game.World.Islands.BlocksShipLine(from, center);
         }
 
-        private bool LaneClear(Vector3 aim, Vector3 dir)
+        /// <summary>섬 · 기슭에 막힌 방향이 있으면 원 전체를 15°씩 돌려 가장 많이 열리는 쪽으로. 열린 방향 수를 돌려준다.</summary>
+        private int PickDirections(Vector3 center)
         {
-            Vector3 from = aim + dir * Distance;
-            return MissionMarks.OpenWater(from, 6f) && !Game.World.Islands.BlocksShipLine(from, aim);
+            int best = 0, bestCount = -1;
+            for (int k = 0; k < 24; k++)
+            {
+                SetDirections(_baseAngle + k * 15f);
+                int n = 0;
+                for (int i = 0; i < Boats; i++) if (Clear(center, _dirs[i])) n++;
+                if (n > bestCount) { bestCount = n; best = k; }
+                if (n == Boats) break;
+            }
+            _baseAngle += best * 15f;
+            SetDirections(_baseAngle);
+            return bestCount;
         }
 
         private void Update()
@@ -101,143 +130,102 @@ namespace Game.Missions
 
             if (State == Phase.Warning)
             {
+                if (_age >= WarnTime) { HideWarning(); Launch(); return; }
                 Refresh();
-                if (_age >= WarnTime) Launch();
                 return;
             }
-            if (State == Phase.Charging) TickCharge();
+            if (State == Phase.Attacking) TickAttack();
         }
 
+        /// <summary>경고: 기함을 따라다니며 돌고 조여드는 점선 원 + 세 방향 안쪽 이중 꺾쇠. 끝나기 0.3초 전부터 번쩍이며 옅어진다.</summary>
         private void Refresh()
         {
-            _aim = PredictAim();
-            float pulse = 0.55f + 0.45f * Mathf.Abs(Mathf.Sin(_age * 9f));
+            Vector3 c = MissionMarks.Flat(_player.transform.position);
+            float e = Mathf.Clamp01(_age / WarnTime);
+            RingRadius = Mathf.Lerp(RingStart, RingEnd, e * e * (3f - 2f * e));
+            float left = WarnTime - _age;
+            float fade = left < FadeTime ? Mathf.Clamp01(left / FadeTime) : 1f;
+            bool flash = left < FadeTime && Mathf.Repeat(_age * 16f, 1f) < 0.5f;
+            Color col = flash ? Color.white : Warn;
+            col.a *= fade;
+            MissionMarks.Ring(_ring, c, RingRadius, 72);
+            MissionMarks.Tint(_ring, col);
+            _ring.material.mainTextureOffset = new Vector2(-_age * 1.5f, 0f);   // 점선이 원을 따라 돈다
+            float pulse = 1f + 0.12f * Mathf.Sin(_age * 9f);
             for (int i = 0; i < Boats; i++)
             {
-                MissionMarks.Segment(_lanes[i], _aim + _dirs[i] * Distance, _aim + _dirs[i] * 4f);
-                MissionMarks.Tint(_lanes[i], new Color(1f, 0.25f, 0.2f, 0.85f * pulse));
+                Vector3 d = _dirs[i];
+                Vector3 side = Vector3.Cross(Vector3.up, d);
+                for (int k = 0; k < 2; k++)
+                {
+                    // 원 바깥에서 안쪽(기함)을 가리키는 꺾쇠 두 개
+                    float r = RingRadius + 4f + k * 3.2f;
+                    float s = 2.4f * pulse;
+                    Vector3 tip = c + d * r, back = c + d * (r + 2.6f);
+                    var line = _chevrons[i * 2 + k];
+                    line.positionCount = 3;
+                    line.SetPosition(0, Y(back + side * s));
+                    line.SetPosition(1, Y(tip));
+                    line.SetPosition(2, Y(back - side * s));
+                    MissionMarks.Tint(line, col);
+                }
             }
-            MissionMarks.Ring(_aimRing, _aim, 6f + 3f * (1f - Mathf.Clamp01(_age / WarnTime)));
+        }
+
+        private static Vector3 Y(Vector3 p) => new(p.x, MissionMarks.WaterLine, p.z);
+
+        private void HideWarning()
+        {
+            if (_ring != null) _ring.positionCount = 0;
+            foreach (var c in _chevrons) if (c != null) c.positionCount = 0;
         }
 
         private void Launch()
         {
-            _aim = PredictAim();
-            // 섬 · 기슭에 막힌 방향이 있으면 원 전체를 돌려 본다(15°씩). 끝까지 막힌 방향은 빼고 낸다.
-            bool[] clear = new bool[Boats];
-            int best = -1, bestCount = -1;
-            for (int k = 0; k < 24; k++)
-            {
-                SetDirections(_baseAngle + k * 15f);
-                int n = 0;
-                for (int i = 0; i < Boats; i++) if (LaneClear(_aim, _dirs[i])) n++;
-                if (n > bestCount) { bestCount = n; best = k; }
-                if (n == Boats) break;
-            }
-            SetDirections(_baseAngle + best * 15f);
-            for (int i = 0; i < Boats; i++) clear[i] = LaneClear(_aim, _dirs[i]);
-
-            foreach (var lane in _lanes) if (lane != null) lane.positionCount = 0;
-            State = Phase.Charging;
-            if (bestCount < 2) { Finish(Result.Cancelled); return; }   // 사방이 섬 — 협공이 성립하지 않는다
-
+            State = Phase.Attacking;
+            Vector3 center = MissionMarks.Flat(_player.transform.position);
+            if (PickDirections(center) < 2) { Finish(Result.Cancelled); return; }   // 사방이 섬 — 포위가 성립하지 않는다
             for (int i = 0; i < Boats; i++)
             {
-                if (!clear[i]) continue;
-                Vector3 from = _aim + _dirs[i] * Distance;
+                if (!Clear(center, _dirs[i])) continue;
+                Vector3 from = center + _dirs[i] * Distance;
                 var rot = Quaternion.LookRotation(-_dirs[i], Vector3.up);
-                var e = EnemySpawner.Instance.SpawnAt(_def, from, rot) as SuicideBoat;
+                var e = EnemySpawner.Instance.SpawnAt(_def, from, rot) as SemiSubSuicideBoat;
                 if (e == null) continue;
-                e.BeginCharge(this, -_dirs[i]);
+                e.BeginAmbush(RiseTime);
                 _boats.Add(e);
                 Launched++;
-                Explosions.Spawn(from, 0.7f, Explosions.Kind.Water, false);   // 물보라를 일으키며 튀어나온다
             }
-            AudioManager.Play(SfxId.DroneBuzz, _player.transform.position, 0.9f, 0.75f);
-            if (Launched < 2) { foreach (var b in _boats) if (b != null) b.EndCharge(); Finish(Result.Cancelled); }
+            AudioManager.Play(SfxId.DroneBuzz, _player.transform.position, 0.9f, 0.6f);
+            if (Launched < 2) { Finish(Result.Cancelled); return; }
         }
 
-        private void TickCharge()
+        private void TickAttack()
         {
-            MissionMarks.Ring(_aimRing, _aim, 4f + 1.5f * Mathf.Abs(Mathf.Sin(_age * 10f)));
             int alive = 0;
-            bool met = false;
-            for (int i = _boats.Count - 1; i >= 0; i--)
+            foreach (var b in _boats)
             {
-                var b = _boats[i];
-                if (b == null || !b.IsAlive || !b.Charging) { _boats.RemoveAt(i); continue; }
-                alive++;
-                // 한가운데에 닿았거나 지나쳤다(돌진 방향으로 잰 남은 거리)
-                Vector3 to = MissionMarks.Flat(_aim - b.transform.position);
-                if (Vector3.Dot(to, b.transform.forward) <= MeetRadius) met = true;
+                if (b == null || _counted.Contains(b)) continue;
+                if (b.IsAlive && b.gameObject.activeInHierarchy) { alive++; continue; }
+                _counted.Add(b);
+                if (b.Detonated) Hits++; else Killed++;
             }
-            if (alive == 0) { Finish(Hits > 0 ? (Collided > 0 ? Result.Partial : Result.Hit) : Result.Partial); return; }
-            if (!met) return;
-            if (alive >= 2) Collide();
-            else
-            {
-                foreach (var b in _boats) if (b != null) b.EndCharge();   // 혼자 남은 보트는 평소처럼 쫓는다
-                Finish(Hits > 0 ? Result.Hit : Result.Partial);
-            }
-        }
-
-        /// <summary>보트가 기함에 부딪혀 터졌다(SuicideBoat.Detonate가 알린다).</summary>
-        internal void NoteHit(SuicideBoat boat)
-        {
-            Hits++;
-            _boats.Remove(boat);
-        }
-
-        private void Collide()
-        {
-            Vector3 center = Vector3.zero;
-            var snapshot = _boats.ToArray();
-            foreach (var b in snapshot) center += b.transform.position;
-            center /= snapshot.Length;
-            foreach (var b in snapshot)
-            {
-                if (b == null || !b.IsAlive) continue;
-                b.CollideInPincer();
-                Collided++;
-            }
-            _boats.Clear();
-            Explosions.Spawn(center + Vector3.up * 0.8f, 2.6f, Explosions.Kind.Charge);
-            Explosions.FlashLight(center + Vector3.up * 2f, 3f, new Color(1f, 0.6f, 0.3f));
-            AudioManager.Play(SfxId.WreckBlast, center, 1f, 0.9f);
-
-            // 한가운데 폭발이 둘레의 다른 적까지 휩쓴다(기함 · 아군은 맞지 않는다)
-            int swept = 0;
-            var list = TargetRegistry.HostileTo(CombatFaction.Player, TargetKind.Surface);
-            var victims = new List<IDamageable>();
-            for (int i = 0; i < list.Count; i++)
-            {
-                var t = list[i];
-                if (t == null || !t.IsAlive || t.Transform == null || t is not IDamageable d) continue;
-                if (MissionMarks.Flat(t.Transform.position - center).sqrMagnitude > BlastRadius * BlastRadius) continue;
-                victims.Add(d);
-            }
-            foreach (var d in victims)
-            {
-                if (!d.IsAlive) continue;
-                d.TakeDamage(new DamageInfo(BlastDamage, center, Vector3.down, DamageSource.Missile, "협공 유폭"));
-                swept++;
-            }
-
-            if (Hits == 0)
+            if (alive > 0) return;
+            if (Hits == 0 && Killed > 0)
             {
                 BonusXp = _xp != null ? Mathf.Max(1, Mathf.CeilToInt(_xp.XpToNext * BonusXpRatio)) : 0;
                 if (_xp != null) _xp.AddXp(BonusXp);
                 UiSound.Play(UiSound.Cue.Confirm);
-                GameEvents.RaiseBanner($"협공 회피 — 자폭 보트 {Collided}척이 서로 부딪혀 폭발{(swept > 0 ? $" · 휩쓸린 적 {swept}" : "")} · 경험치 +{BonusXp}");
-                Finish(Result.Collided);
+                GameEvents.RaiseBanner($"포위 격퇴 — 반잠수정 {Killed}척 격침 · 경험치 +{BonusXp}");
+                Finish(Result.Repelled);
             }
-            else Finish(Result.Partial);
+            else Finish(Result.Hit);
         }
 
         public void Cancel()
         {
             if (State == Phase.Done) return;
-            foreach (var b in _boats) if (b != null && b.IsAlive) b.EndCharge();
+            HideWarning();
             Finish(Result.Cancelled);
         }
 
@@ -246,8 +234,8 @@ namespace Game.Missions
             if (State == Phase.Done) return;
             State = Phase.Done;
             Outcome = result;
+            HideWarning();
             Destroy(gameObject, 0.6f);
-            if (_aimRing != null) _aimRing.positionCount = 0;
         }
     }
 }

@@ -22,14 +22,32 @@ namespace Game.UI
         private static readonly Color Destroyed = new(0.85f, 0.16f, 0.12f, 0.85f);
         private static readonly Color TurretDot = new(1f, 0.62f, 0.2f, 1f);
 
+        private static readonly Color WaterColor = new(0.2f, 0.55f, 1f, 1f);
+        private static readonly Color FireColor = new(1f, 0.38f, 0.08f, 1f);
+
         private ShipGrid _grid;
         private int _signature;
+        // 손상 통제(2026-11-21): 침수 구획은 파랗게(현마다 물 높이), 타는 블록은 깜박이는 불 표시
+        private ShipFlooding _flood;
+        private ShipFire _fire;
+        private bool _dcLooked;
+
+        private void LookUpDamageControl()
+        {
+            if (_dcLooked || _grid == null) return;
+            _dcLooked = true;
+            var ship = _grid.GetComponentInParent<ShipController>();
+            if (ship == null) return;
+            _flood = ship.GetComponentInChildren<ShipFlooding>(true);
+            _fire = ship.GetComponentInChildren<ShipFire>(true);
+        }
         private readonly List<GridCoord> _cells = new(64);
 
         public void Bind(ShipGrid grid)
         {
             _grid = grid;
             _signature = 0;
+            _dcLooked = false;
             SetVerticesDirty();
         }
 
@@ -53,6 +71,11 @@ namespace Game.UI
                     var m = _grid.Get(c);
                     h = h * 31 + c.X * 7919 + c.Z * 104729 + (m != null ? StateOf(m) : 0);
                 }
+                LookUpDamageControl();
+                if (_flood != null)
+                    foreach (var comp in _flood.Compartments) h = h * 31 + Mathf.RoundToInt(comp.Port * 20f) * 101 + Mathf.RoundToInt(comp.Stbd * 20f);
+                if (_fire != null && _fire.Fires.Count > 0)
+                    h = h * 31 + _fire.Fires.Count * 977 + (Mathf.FloorToInt(Time.unscaledTime * 4f) & 1);   // 깜박임
                 return h == 0 ? 2 : h;
             }
         }
@@ -123,8 +146,22 @@ namespace Game.UI
                 Tri(vh, Map(l, x), Map((l + rr) * 0.5f, x + 1.35f), Map(rr, x), HullColor);
             }
 
+            // --- 침수: 구획 줄마다 좌현(왼쪽) · 우현(오른쪽) 반을 물 높이만큼 파랗게
+            LookUpDamageControl();
+            if (_flood != null)
+                foreach (var comp in _flood.Compartments)
+                    for (int x = comp.MinX; x <= comp.MaxX; x++)
+                    {
+                        int i = x - min.X;
+                        if (i < 0 || i >= rows) continue;
+                        float l = rowMin[i] - 0.5f - pad, rr = rowMax[i] + 0.5f + pad, mid = (l + rr) * 0.5f;
+                        if (comp.Port > 0.02f) Quad(vh, Map(l, x - 0.5f), Map(mid, x + 0.5f), new Color(WaterColor.r, WaterColor.g, WaterColor.b, 0.15f + 0.6f * comp.Port));
+                        if (comp.Stbd > 0.02f) Quad(vh, Map(mid, x - 0.5f), Map(rr, x + 0.5f), new Color(WaterColor.r, WaterColor.g, WaterColor.b, 0.15f + 0.6f * comp.Stbd));
+                    }
+
             // --- 모듈 칸
             const float inset = 0.14f;
+            bool blink = (Mathf.FloorToInt(Time.unscaledTime * 4f) & 1) == 0;
             foreach (var c in _cells)
             {
                 var m = _grid.Get(c);
@@ -135,6 +172,8 @@ namespace Game.UI
 
                 if (m.Definition != null && IsWeapon(m.Definition.Type) && !m.IsDestroyed && m.Origin.Equals(c))
                     Quad(vh, Map(c.Z - 0.2f, c.X - 0.2f), Map(c.Z + 0.2f, c.X + 0.2f), TurretDot);
+                if (_fire != null && _fire.IsBurning(m))
+                    Quad(vh, Map(c.Z - 0.32f, c.X - 0.32f), Map(c.Z + 0.32f, c.X + 0.32f), blink ? FireColor : Color.Lerp(FireColor, Color.yellow, 0.5f));
             }
         }
 

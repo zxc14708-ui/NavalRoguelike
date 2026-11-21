@@ -32,6 +32,7 @@ namespace Game.Dev
             foreach (var m in modules) m.enabled = false;
             var flood = ship.GetComponent<ShipFlooding>();
             if (flood == null) { Fail("기함에 ShipFlooding 없음"); yield break; }
+            ShipFlooding.Enabled = true; ShipFire.Enabled = false;   // 검사 환경은 꺼 둔다 — 이 검사에서만 침수를 켠다
             flood.DrainAll();
             MakeInvulnerable(ship);
             var model = ship.transform.Find("Model");

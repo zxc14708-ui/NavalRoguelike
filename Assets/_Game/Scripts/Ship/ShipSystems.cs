@@ -23,6 +23,20 @@ namespace Game.Ship
 
         public float DetectionRange { get; private set; }
 
+        private float _smokeDetection = 1f;
+        /// <summary>화재 연기로 줄어든 레이더 탐지 배율(ShipFire가 정한다). 바뀌면 다시 계산한다.</summary>
+        public float SmokeDetectionMultiplier
+        {
+            get => _smokeDetection;
+            set
+            {
+                value = Mathf.Clamp(value, 0.1f, 1f);
+                if (Mathf.Abs(value - _smokeDetection) < 0.001f) return;
+                _smokeDetection = value;
+                Recalculate();
+            }
+        }
+
         /// <summary>
         /// 지금 가장 멀리 듣는 소나의 반경(형태·속력 반영, 0 = 소나 없음). 방향 조건까지 따지려면 SonarCovers를 쓴다.
         /// </summary>
@@ -152,6 +166,7 @@ namespace Game.Ship
 
             // 성장 카드: 탐지 거리(레이더·소나)
             DetectionRange *= RunUpgrades.DetectionMultiplier;
+            DetectionRange *= _smokeDetection;   // 화재 연기(2026-11-21 ShipFire)
             for (int i = 0; i < _sonars.Count; i++)
                 _sonars[i] = (_sonars[i].variant, _sonars[i].range * RunUpgrades.DetectionMultiplier);
 

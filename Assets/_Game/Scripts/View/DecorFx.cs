@@ -19,13 +19,19 @@ namespace Game.View
         public static readonly Vector3 Wind = new(2.2f, 0f, 1.2f);
 
         private static Transform s_root;
-        private static ParticleSystem s_spray, s_smoke, s_wreckSmoke, s_fire, s_sparks, s_flash, s_blastFire, s_chaff;
+        private static ParticleSystem s_spray, s_smoke, s_wreckSmoke, s_fire, s_sparks, s_flash, s_blastFire, s_chaff, s_missileSmoke, s_drops, s_blastSmoke;
         private static Material s_material, s_blastMaterial;
 
         public static ParticleSystem Spray => Get(ref s_spray, "Bow spray", 2000, 1f, 1.7f, 0.75f, false);
+        /// <summary>물방울(2026-11-21): 속도 방향으로 늘어난 작은 물방울이 튀어 올랐다 중력으로 떨어진다 — 뱃머리 · 물기둥.</summary>
+        public static ParticleSystem Drops => Get(ref s_drops, "Spray droplets", 4000, 1f, 0.7f, 1.15f, false, stretched: true);
+        /// <summary>미사일 · 로켓 연기 꼬리(2026-11-21): 작게 나와 수명 동안 5배로 부풀며 천천히 흩어진다.</summary>
+        public static ParticleSystem MissileSmoke => Get(ref s_missileSmoke, "Missile smoke", 9000, 0.7f, 4.2f, -0.01f, true);
         /// <summary>기만체 은박(채프): 작은 반짝이가 아주 천천히 떨어진다(크기 그대로, 2026-11-09)</summary>
         public static ParticleSystem Chaff => Get(ref s_chaff, "Decoy chaff", 1500, 1f, 0.9f, 0.04f, false);
         public static ParticleSystem Smoke => Get(ref s_smoke, "Funnel smoke", 2500, 1f, 3.4f, 0f, true);
+        /// <summary>폭발 연기(2026-11-21): 불덩이 뒤에 솟는 검은 연기 기둥 · 공중 폭발 연기 뭉치. 작게 나와 3배로 부풀며 오래 남는다.</summary>
+        public static ParticleSystem BlastSmoke => Get(ref s_blastSmoke, "Blast smoke", 2500, 0.55f, 3.1f, -0.015f, true);
         public static ParticleSystem WreckSmoke => Get(ref s_wreckSmoke, "Wreck smoke", 1200, 1f, 3.6f, 0f, true);
         public static ParticleSystem Fire => Get(ref s_fire, "Wreck fire", 900, 1f, 0.35f, -0.05f, false);
         /// <summary>폭발 파편 불똥(속도 방향으로 늘어남, 중력으로 떨어짐)</summary>
@@ -58,8 +64,8 @@ namespace Game.View
         {
             if (ps == null) return;
             if (ps == s_flash) color.a *= Game.Core.DisplaySettings.FlashScale;   // 번쩍임 줄이기(섬광 입자)
-            else if (ps != s_sparks && Random.value > Game.Core.DisplaySettings.DecorDensity) return;   // 장식 효과 품질(폭발 불똥·섬광은 그대로)
-            if (Game.Core.DisplaySettings.ThinSmoke && (ps == s_smoke || ps == s_wreckSmoke)) color.a *= 0.5f;   // 연기 옅게
+            else if (ps != s_sparks && ps != s_missileSmoke && Random.value > Game.Core.DisplaySettings.DecorDensity) return;   // 장식 효과 품질(폭발 불똥·섬광 · 미사일 연기는 그대로 — 연기 꼬리는 위협 방향을 알려 준다, 빠지면 점선이 된다)
+            if (Game.Core.DisplaySettings.ThinSmoke && (ps == s_smoke || ps == s_wreckSmoke || ps == s_missileSmoke || ps == s_blastSmoke)) color.a *= 0.5f;   // 연기 옅게
             var p = new ParticleSystem.EmitParams
             {
                 position = position,

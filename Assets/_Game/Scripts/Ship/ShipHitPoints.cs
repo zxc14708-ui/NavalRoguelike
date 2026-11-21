@@ -31,7 +31,7 @@ namespace Game.Ship
         private static readonly Dictionary<int, (GridCoord cell, float depth, GridCoord second, float secondDepth, bool hasSecond)> s_lines = new();
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetStatics() => s_recent.Clear();
+        private static void ResetStatics() { s_recent.Clear(); s_fires.Clear(); }
 
         /// <summary>블록 격자가 있는 함선(기함)이면 그 격자. 호위함 · 기만체 · 적이면 null — 예전처럼 중심을 겨눈다.</summary>
         public static ShipGrid GridOf(Transform target)
@@ -39,6 +39,53 @@ namespace Game.Ship
             if (target == null || !target.TryGetComponent<ShipController>(out var ship)) return null;
             var grid = ship.Grid;
             return grid != null && grid.OccupiedCells.Count > 0 ? grid : null;
+        }
+
+        private static readonly Dictionary<ShipGrid, ShipFire> s_fires = new();
+        private static readonly List<GridCoord> s_burning = new();
+
+        /// <summary>
+        /// 불붙은 블록 칸 하나(2026-11-21 손상 통제 4단계 — 적 포수는 불난 곳에 쏟아붓는다). 쏜 쪽에서 바로 보이는 바깥 칸만
+        /// (안쪽 칸을 겨누면 옆에서 날아온 포탄은 앞의 바깥 블록에 먼저 맞는다). 없으면 false.
+        /// </summary>
+        public static bool TryPickBurning(ShipGrid grid, Vector3 shooter, out GridCoord cell)
+        {
+            cell = default;
+            if (grid == null) return false;
+            if (!s_fires.TryGetValue(grid, out var fire) || fire == null)
+            {
+                var ship = grid.GetComponentInParent<ShipController>();
+                s_fires[grid] = fire = ship != null ? ship.GetComponentInChildren<ShipFire>(true) : null;
+            }
+            if (fire == null || fire.Fires.Count == 0) return false;
+            s_burning.Clear();
+            foreach (var f in fire.Fires)
+                if (f.Module != null)
+                    foreach (var c in f.Module.OccupiedCoords)
+                        if (IsOuterFacing(grid, c, shooter)) s_burning.Add(c);
+            if (s_burning.Count == 0) return false;
+            cell = s_burning[Random.Range(0, s_burning.Count)];
+            return true;
+        }
+
+        /// <summary>그 칸이 쏜 쪽에서 본 바깥 칸인가(같은 줄에 쏜 쪽으로 더 튀어나온 칸이 없다).</summary>
+        public static bool IsOuterFacing(ShipGrid grid, GridCoord cell, Vector3 shooter)
+        {
+            var t = grid.transform;
+            Vector3 d = t.InverseTransformDirection(shooter - t.position); d.y = 0f;
+            if (d.sqrMagnitude < 1e-4f) return true;
+            d.Normalize();
+            Vector3 perp = new(-d.z, 0f, d.x);
+            float size = Mathf.Max(0.01f, grid.CellSize);
+            Vector3 p = grid.CoordToLocal(cell); p.y = 0f;
+            int line = Mathf.RoundToInt(Vector3.Dot(p, perp) / size);
+            float depth = Vector3.Dot(p, d);
+            foreach (var c in grid.OccupiedCells)
+            {
+                Vector3 q = grid.CoordToLocal(c); q.y = 0f;
+                if (Mathf.RoundToInt(Vector3.Dot(q, perp) / size) == line && Vector3.Dot(q, d) > depth + 0.01f) return false;
+            }
+            return true;
         }
 
         /// <summary>옆 공격의 겨냥 칸이 아직 쏜 쪽을 향하나(배가 돌아 반대편이 됐으면 false — 다시 고른다).</summary>

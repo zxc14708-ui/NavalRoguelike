@@ -106,8 +106,19 @@ namespace Game.Dev
             float period = 60f / source.AntennaRpm;
             yield return new WaitForSeconds(period * 1.2f);
             int contacts = scope.CountEchoes(false);
-            _report.AppendLine($"- 멈춘 표적 20·28(범위 안)과 {range + 8f:0}(범위 밖): 한 바퀴 뒤 표적 에코 {contacts}개, 클러터 포함 {scope.CountEchoes(true)}개");
-            if (contacts != 2) Fail($"범위 안 표적 2척인데 에코 {contacts}개");
+            // 섬 뒤(레이더 그림자)에 들어간 표적은 찍히지 않는 게 맞다 — 섬이 판마다 다르게 서서 가끔 실패하던 것(2026-11-21)
+            int expected = 0, shadowed = 0;
+            var player = CombatDevTools.PlayerTransform();
+            foreach (var e in frozen)   // 스폰이 섬에 막혀 빠진 표적도 있을 수 있어 실제 거리로 센다
+            {
+                if (e == null || !e.IsAlive || player == null) continue;
+                Vector3 d = e.transform.position - player.position; d.y = 0f;
+                if (d.magnitude > range) continue;
+                if (Game.World.Islands.BlocksShipLine(player.position, e.transform.position)) shadowed++;
+                else expected++;
+            }
+            _report.AppendLine($"- 멈춘 표적 20·28(범위 안)과 {range + 8f:0}(범위 밖): 한 바퀴 뒤 표적 에코 {contacts}개(섬 뒤 {shadowed}척 제외 기대 {expected}), 클러터 포함 {scope.CountEchoes(true)}개");
+            if (contacts != expected) Fail($"범위 안 표적 {expected}척(섬 뒤 제외)인데 에코 {contacts}개");
             yield return RadarShot("radar_static");
 
             // 3) 표적이 사라지면 에코는 한 바퀴 안에 사라짐

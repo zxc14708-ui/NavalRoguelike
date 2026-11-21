@@ -29,6 +29,8 @@ namespace Game.Modules.Runtime
     public class BridgeModule : DecoyLauncherModule, IFlankSource, IRadarSource, IRepairBurstSource, ISkillCharges
     {
         [SerializeField] private DamageControlCrew crew = new();
+        /// <summary>함교 손상 통제반이 지금 고치는 블록(없으면 null) — 작동 연출이 읽는다.</summary>
+        public ModuleInstance RepairTarget => Instance != null && Instance.IsOperational && enabled ? crew.Target : null;
 
         [Header("Damage Control")]
         [Tooltip("손상통제반이 없을 때 선체 자동 회복 상한(최대 선체 대비)")]
@@ -91,7 +93,7 @@ namespace Game.Modules.Runtime
             Ship.RepairHull(burstHull);
             if (Grid != null)
                 foreach (var m in Grid.Modules)
-                    if (m != null && !m.IsDestroyed) m.Repair(m.MaxHp * burstModuleRatio);
+                    if (m != null) m.Repair(m.MaxHp * burstModuleRatio);   // 부서진 블록도(40% → 바로 다시 작동, 2026-11-21)
             _charges--;
             _burstGapLeft = burstGap;
             if (_rechargeLeft <= 0f) _rechargeLeft = chargeRecharge;   // 이미 차고 있던 1회는 그대로 이어서

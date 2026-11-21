@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 using Game.Core;
+using Game.Combat;
 using Game.Enemies;
 using Game.World;
 
@@ -130,6 +131,32 @@ namespace Game.Dev
                 }
                 if (kind == IslandBuilder.Kit.SandIslet && nat < 4) Fail("모래섬 장식(야자수·텐트·모닥불·유목)이 다 놓이지 않음");
             }
+            // Codex 후속(2026-11-21): 부두 · 돌제 · 헬기 착륙장 · 탐조등
+            foreach (var (kind, info) in infos)
+            {
+                if (info == null || !IslandBuilder.IsBase(kind)) continue;
+                int pier = 0, breakwater = 0, pontoon = 0, lights = 0, pads = 0, upright = 0;
+                foreach (var t in info.Root.GetComponentsInChildren<Transform>(true))
+                {
+                    // 2026-11-21 Codex 점검: 부두 · 돌제 · 부잔교는 수면에 누워야 한다(높이 < 가로 · 세로 중 긴 쪽의 60%) — 예전에는 해안에 수직으로 섰다
+                    if (t.name.StartsWith("Coast ENV_"))
+                    {
+                        Bounds pb = default; bool anyR = false;
+                        foreach (var r in t.GetComponentsInChildren<Renderer>(true)) { if (!anyR) { pb = r.bounds; anyR = true; } else pb.Encapsulate(r.bounds); }
+                        if (anyR && pb.size.y > 0.6f * Mathf.Max(pb.size.x, pb.size.z)) upright++;
+                    }
+                    if (t.name == "Coast ENV_BaseMooringPier") pier++;
+                    else if (t.name == "Coast ENV_BaseBreakwater") breakwater++;
+                    else if (t.name == "Coast ENV_FloatingPontoon") pontoon++;
+                    else if (t.name == "MIL_Helipad") pads++;
+                }
+                lights = info.Root.GetComponentsInChildren<Game.View.BaseSearchlight>(true).Length;
+                _report.AppendLine($"- {kind} 부두 · 시설(Codex 후속): 계류 부두 {pier} · 돌제 {breakwater} · 부잔교 {pontoon} · 헬기 착륙장 {pads} · 탐조등 {lights} · 세워진 부두 {upright}(0이어야)");
+                if (upright > 0) Fail($"{kind} 기지 섬 부두가 수면에 눕지 않고 섬");
+                if (pier + pontoon + breakwater == 0) Fail($"{kind} 기지 섬에 부두가 없음");
+                if (kind != IslandBuilder.Kit.BaseS && lights < 2) Fail($"{kind} 기지 섬에 탐조등이 2개보다 적음");
+                if (kind == IslandBuilder.Kit.BaseL && pads == 0) _report.AppendLine("  - 대형 기지에 헬기 착륙장 자리가 없음(부지가 좁음 — 기록만)");
+            }
             var dressed = new[]
             {
                 field.PlaceDressed(o - f * 40f - rt * 130f, 14f, false, 11),
@@ -213,11 +240,12 @@ namespace Game.Dev
                 {
                     float dist = Vector3.Distance(Flat(bat.transform.position), Flat(ship.transform.position));
                     bool raised = false, shot = false;
-                    float maxElev = 0f, t0 = Time.time;
+                    float maxElev = 0f, maxHatch = 0f, t0 = Time.time;
                     while (Time.time - t0 < 24f && bat.IsAlive)
                     {
                         if (bat.Raising) raised = true;
                         maxElev = Mathf.Max(maxElev, bat.Elevation);
+                        maxHatch = Mathf.Max(maxHatch, bat.HatchOpen);
                         if (raised && !shot && bat.Elevation > 18f) { shot = true; yield return CloseShot("coastal_missile_raise", bat.transform, 9f); }
                         ship.RepairHull(ship.HullMaxHp);
                         if (bat.MissilesFired >= 2 && Time.time - t0 > 5f) break;
@@ -225,7 +253,17 @@ namespace Game.Dev
                     }
                     _report.AppendLine($"  - 거리 {dist:0}m · 예고(발사관 들어 올림) {Yes(raised)} · 최대 고각 {maxElev:0}° · 쏜 미사일 {bat.MissilesFired} · 높이 y {bat.transform.position.y:0.00}");
                     if (!raised || bat.MissilesFired < 2) Fail("해안 미사일 포대가 예고 뒤 2발을 쏘지 않음");
+                    _report.AppendLine($"  - 발사관 덮개(Codex): 덮개 {bat.HatchCount}개 · 가장 크게 열린 정도 {maxHatch:P0}");
+                    if (bat.HatchCount < 2) Fail("해안 미사일 포대 모델에 발사관 덮개가 없음");
+                    if (maxHatch < 0.9f) Fail("발사 예고 때 발사관 덮개가 열리지 않음");
                     yield return AerialShot("coastal_missile_base", bat.transform.position, (bat.transform.position - ship.transform.position).normalized, 36f, 28f);
+                    // 격침 → 잔해(MIL_Ruins_Battery) · 연기
+                    int ruins0 = Game.View.RuinSmoke.Placed;
+                    bat.TakeDamage(new DamageInfo(99999f, bat.transform.position, Vector3.down, DamageSource.Gun));
+                    yield return new WaitForSeconds(1.2f);
+                    _report.AppendLine($"  - 격침 뒤 잔해: {Game.View.RuinSmoke.Placed - ruins0}개");
+                    if (Game.View.RuinSmoke.Placed <= ruins0) Fail("해안 미사일 포대를 부숴도 잔해가 남지 않음");
+                    yield return AerialShot("coastal_missile_ruins", bat.transform.position, (bat.transform.position - ship.transform.position).normalized, 30f, 22f);
                 }
             }
             CombatDevTools.ClearBattlefield();
