@@ -165,6 +165,25 @@ namespace Game.Ship
         /// <summary>받는 피해 배율(1 = 그대로). 잠깐 줄이는 스킬이 쓴다(예전 강습함 돌격 기동 — 지금은 쓰는 곳 없음)(DamageResolver가 곱한다).</summary>
         public float IncomingDamageScale { get; set; } = 1f;
 
+        /// <summary>
+        /// 받는 피해를 한 번 더 거르는 장치(2026-11-22 응급 차폐 장갑). DamageResolver가 감쇠(손상 통제·장갑)를 적용한 뒤 부른다.
+        /// 큰 한 방을 보고 스스로 켜지는 보호막처럼, 이번 한 방의 크기를 보고 줄인 값을 돌려준다.
+        /// </summary>
+        public interface IIncomingDamageFilter { float Filter(ShipController ship, in DamageInfo info, float amount); }
+        private readonly List<IIncomingDamageFilter> _damageFilters = new();
+        public void AddDamageFilter(IIncomingDamageFilter f) { if (f != null && !_damageFilters.Contains(f)) _damageFilters.Add(f); }
+        public void RemoveDamageFilter(IIncomingDamageFilter f) => _damageFilters.Remove(f);
+        public float FilterIncoming(in DamageInfo info, float amount)
+        {
+            for (int i = _damageFilters.Count - 1; i >= 0; i--)
+            {
+                var f = _damageFilters[i];
+                if (f == null || (f is Object o && o == null)) { _damageFilters.RemoveAt(i); continue; }
+                amount = f.Filter(this, info, amount);
+            }
+            return amount;
+        }
+
         /// <summary>전속: 잠시 최고속력·가속·선회를 올린다. 스로틀은 여전히 플레이어가 잡는다.</summary>
         // 속력 강화(오버드라이브 등, 2026-11-20): 전속과 따로 — 둘이 겹치면 큰 쪽(곱하지 않음). 전속이 먼저 끝나도 남은 강화는 그대로.
         private float _boostUntil, _boostMultiplier = 1f;

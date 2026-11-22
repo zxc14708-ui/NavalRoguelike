@@ -75,6 +75,27 @@ namespace Game.Dev
             _report.AppendLine($"- 설정 › 조함: 탭 · 미리보기 {Yes(tab)}");
             if (!tab) Fail("설정에 조함 탭 · 타륜 표시 미리보기가 없음");
             yield return ScreenShot("helm_settings");
+            // 조작키 탭(2026-11-22): 세 열 — '기본 키 복원'과 겹치는 줄이 없어야 한다
+            Call(hud, "ShowSettingsTab", 0);
+            yield return new WaitForSecondsRealtime(0.3f);
+            var restore = System.Array.Find(Object.FindObjectsByType<UnityEngine.UI.Button>(FindObjectsSortMode.None), b => b.GetComponentInChildren<TMPro.TMP_Text>()?.text.Contains("키 복원") ?? false);
+            int overlaps = 0;
+            var ctrlPage = GameObject.Find("Controls page");
+            if (restore != null && ctrlPage != null)
+            {
+                var rr = (RectTransform)restore.transform;
+                foreach (Transform row in ctrlPage.transform)
+                {
+                    if (row == restore.transform) continue;
+                    var r2 = row as RectTransform;
+                    if (r2 == null) continue;
+                    var a0 = new Rect(rr.anchoredPosition, rr.sizeDelta); var b0 = new Rect(r2.anchoredPosition, r2.sizeDelta);
+                    if (a0.Overlaps(b0)) overlaps++;
+                }
+            }
+            _report.AppendLine($"- 설정 › 조작키: '기본 키 복원'과 겹치는 줄 {overlaps}개(0이어야)");
+            if (restore == null || overlaps > 0) Fail("설정 조작키 줄이 '기본 키 복원'과 겹침");
+            yield return ScreenShot("settings_controls");
             Call(hud, "CloseSettings");
             hud.ResumeFromPause();
 

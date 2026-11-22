@@ -86,14 +86,14 @@ namespace Game.Ship
         public int CommandCapacity { get; private set; }
 
         private float _escortFireRateBonus, _speedBonus, _accelerationBonus;
-        private float _movingGunDamageBonus, _guidedRangeBonus, _missileReloadReduction;
+        private float _movingGunDamageBonus, _guidedRangeBonus, _missileReloadReduction, _missileResupplyReduction;
         private int _fireControlTracks;
         public float EscortFireRateMultiplier => 1f + _escortFireRateBonus;
         public float SpeedMultiplier => 1f + _speedBonus;
         public float AccelerationMultiplier => 1f + _accelerationBonus;
         public float GuidedWeaponRangeMultiplier => 1f + _guidedRangeBonus;
         public float MissileReloadMultiplier => 1f - _missileReloadReduction;
-        public float MissileResupplyMultiplier => 1f - _missileReloadReduction;
+        public float MissileResupplyMultiplier => 1f - _missileResupplyReduction;   // 발사 간격과 따로(2026-11-22)
         public float MovingGunDamageMultiplier => SpeedRatio >= 0.5f ? 1f + _movingGunDamageBonus : 1f;
 
         /// <summary>함교가 모두 부서져 사격통제가 무너졌는가(함교가 처음부터 없으면 false).</summary>
@@ -141,7 +141,7 @@ namespace Game.Ship
             MaxTrackedTargets = config.BaseTrackedTargets;
             CommandCapacity = config.BaseCommandCapacity;
             _escortFireRateBonus = _speedBonus = _accelerationBonus = 0f;
-            _movingGunDamageBonus = _guidedRangeBonus = _missileReloadReduction = 0f;
+            _movingGunDamageBonus = _guidedRangeBonus = _missileReloadReduction = _missileResupplyReduction = 0f;
             _fireControlTracks = 0;
             bool wasDown = BridgeDown;
             int bridges = 0, liveBridges = 0;
@@ -208,8 +208,11 @@ namespace Game.Ship
             _guidedRangeBonus = Mathf.Max(_guidedRangeBonus, Mathf.Clamp(guidedRange, 0f, 0.5f));
         }
 
-        public void RaiseMissileLogistics(float reduction)
-            => _missileReloadReduction = Mathf.Max(_missileReloadReduction, Mathf.Clamp(reduction, 0f, 0.5f));
+        public void RaiseMissileLogistics(float reduction, float resupply = 0f)
+        {
+            _missileReloadReduction = Mathf.Max(_missileReloadReduction, Mathf.Clamp(reduction, 0f, 0.5f));
+            _missileResupplyReduction = Mathf.Max(_missileResupplyReduction, Mathf.Clamp(resupply > 0f ? resupply : reduction, 0f, 0.5f));
+        }
 
         /// <summary>집계한 지원을 무기 스탯 복사본에만 적용한다. 사격·표적 선택·UI가 같은 값을 읽는다.</summary>
         public void ApplyModuleBonuses(ModuleType type, ref ModuleStats stats)

@@ -26,8 +26,14 @@ namespace Game.UI
         public string Body;
         public Color Accent = Color.white;
         public readonly List<CodexModel> Models = new();
-        /// <summary>역할 필터에 걸리는 역할.</summary>
+        /// <summary>쓰임새(대공 · 대함 · 대잠 — 겹칠 수 있다). 2026-11-22부터 필터가 아니라 분류 줄 배지로만 보여 준다.</summary>
         public CodexRole Roles;
+        /// <summary>
+        /// 분류(2026-11-22 사용자: 대공 · 대함 · 대잠 필터가 서로 겹친다 → 겹치지 않게). 한 항목은 분류 하나에만 든다.
+        /// 무장: 함포 · 미사일 · 방공 · 대잠 · 탐지·전자전 · 지원 · 특수 / 편대: 방공 · 대잠 · 전자전 · 수상 타격 · 기본 /
+        /// 적: 수상 · 항공 · 잠수 · 보스 / 안내: 시작 함정 · 용어 · 규칙.
+        /// </summary>
+        public string Group;
         /// <summary>형태·단계 버튼을 고르면 본문 맨 위에 붙는 그 단계 요약(이전 단계 대비, 점검 C02). 없으면 null.</summary>
         public System.Func<int, string> ModelNote;
         /// <summary>배치 도식: 설치할 수 있는 자리(무장만, 점검 C03). 없으면 도식을 그리지 않는다.</summary>
@@ -143,6 +149,9 @@ namespace Game.UI
             ModuleType.RepairBay => 14,
             ModuleType.FleetRelay => 15,
             ModuleType.TurboIntake => 16,
+            ModuleType.FireSupport => 17,
+            ModuleType.ReconDroneBay => 18,
+            ModuleType.EmergencyShield => 19,
             ModuleType.FireControlArray => 17,
             ModuleType.MissileLogistics => 18,
             ModuleType.TorpedoTube => 8,   // 폭뢰 옆에
@@ -166,9 +175,10 @@ namespace Game.UI
                 {
                     Id = def.Id,
                     Title = def.DisplayName,
-                    Tag = $"{ModuleCardText.BuildTag(def)}  ·  {RarityName(def.Rarity)}",
+                    Tag = $"{RoleBadges(RolesOf(def.Type))}{ModuleCardText.BuildTag(def)}  ·  {RarityName(def.Rarity)}",
                     Accent = new Color(0.66f, 1f, 0.75f),
                     Roles = RolesOf(def.Type),
+                    Group = GroupOf(def.Type),
                     Zone = def.Placement.Zone,
                 };
                 AddRanges(e, def);
@@ -283,6 +293,14 @@ namespace Game.UI
                         EscortRole.AntiSubmarine => CodexRole.Sub,
                         EscortRole.ElectronicWarfare => CodexRole.Air | CodexRole.Support,
                         _ => CodexRole.Surface,
+                    },
+                    Group = role switch
+                    {
+                        EscortRole.AirDefense => "방공",
+                        EscortRole.AntiSubmarine => "대잠",
+                        EscortRole.ElectronicWarfare => "전자전",
+                        EscortRole.None => "기본",
+                        _ => "수상 타격",
                     },
                 };
                 // 사양만(2026-10-27 사전 간략화)
@@ -399,6 +417,9 @@ namespace Game.UI
                     Accent = def.Rank == EnemyRank.Boss ? new Color(1f, 0.42f, 0.35f)
                         : def.Rank == EnemyRank.Elite ? new Color(0.95f, 0.64f, 0.23f) : new Color(0.85f, 0.9f, 0.92f),
                     Roles = CounterRoles(def),
+                    Group = def.Rank == Game.Data.EnemyRank.Boss ? "보스"
+                          : def.Kind == Game.Combat.TargetKind.Submarine ? "잠수"
+                          : def.Kind == Game.Combat.TargetKind.Aircraft ? "항공" : "수상",
                 };
                 if (def.PreferredRange > 0f) e.Ranges.Add(new CodexRange("교전", 0f, def.PreferredRange));
                 // 사양만(2026-10-27 사전 간략화) — 설명·대응 문단 없이 수치와 관련 무장 링크

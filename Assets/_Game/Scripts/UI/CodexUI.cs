@@ -34,10 +34,18 @@ namespace Game.UI
         private const float RangeScale = 60f;
         private const float ItemHeight = 40f, ItemSpacing = 4f;
 
-        private static readonly (CodexRole role, string name)[] Filters =
+        /// <summary>
+        /// 탭별 분류 칩(2026-11-22 사용자: 대공 · 대함 · 대잠으로 나누면 서로 겹친다 → 겹치지 않는 분류). 항목은 분류 하나에만 든다(CodexEntry.Group).
+        /// 쓰임새(대공 · 대함 · 대잠)는 무장 분류 줄 앞 배지로 보여 준다.
+        /// </summary>
+        private static string[] GroupsOf(CodexSection s) => s switch
         {
-            (CodexRole.None, "전체"), (CodexRole.Air, "대공"), (CodexRole.Surface, "대함"), (CodexRole.Sub, "대잠"), (CodexRole.Support, "지원"),
+            CodexSection.Weapons => new[] { "전체", "함포", "미사일", "방공", "대잠", "탐지·전자전", "지원", "특수" },
+            CodexSection.Escorts => new[] { "전체", "기본", "방공", "대잠", "전자전", "수상 타격" },
+            CodexSection.Enemies => new[] { "전체", "수상", "항공", "잠수", "보스" },
+            _ => new[] { "전체", "시작 함정", "용어", "규칙" },
         };
+        private RectTransform _filterRow;
         private static readonly CodexSection[] Sections = { CodexSection.Weapons, CodexSection.Escorts, CodexSection.Enemies, CodexSection.Guide };
 
         private TMP_FontAsset _font;
@@ -55,7 +63,7 @@ namespace Game.UI
         private TMP_InputField _search;
         private Image _titleAccent;
         private CodexPreview _preview;
-        private CodexRole _filter;
+        private string _group;   // null = 전체
         private bool _byName;
         private bool _favoritesOnly;
         private Image _favoritesOnlyImage, _favoriteImage;
@@ -73,7 +81,7 @@ namespace Game.UI
         public string BodyText => _body != null ? _body.text : "";
         /// <summary>검증용: 지금 목록에 보이는 항목 수(검색·필터 적용 후).</summary>
         public int VisibleCount => _listItems.Count;
-        public CodexRole Filter => _filter;
+        public string Group => _group;
         /// <summary>검증용: 즐겨찾기만 보기 · 목록에 보이는 글(★·미발견 표시 포함) · 머리 글.</summary>
         public bool FavoritesOnly => _favoritesOnly;
         public List<string> VisibleLabels { get { var l = new List<string>(); foreach (var i in _listItems) l.Add(i.text.text); return l; } }
@@ -155,16 +163,13 @@ namespace Game.UI
             favOnly.name = "Codex favorites only";
             _favoritesOnlyImage = favOnly.GetComponent<Image>();
             favOnly.onClick.AddListener(() => SetFavoritesOnly(!_favoritesOnly));
-            for (int i = 0; i < Filters.Length; i++)
-            {
-                var role = Filters[i].role;
-                var chip = Btn(content, Filters[i].name, new Vector2(26 + i * 61, 436), new Vector2(56, 32), 15);
-                chip.name = $"Codex filter {Filters[i].name}";
-                chip.onClick.AddListener(() => SetFilter(role));
-                _filterImages.Add(chip.GetComponent<Image>());
-            }
+            _filterRow = new GameObject("Codex filters", typeof(RectTransform)).GetComponent<RectTransform>();
+            _filterRow.SetParent(content, false);
+            _filterRow.anchorMin = _filterRow.anchorMax = Vector2.zero; _filterRow.pivot = Vector2.zero;
+            _filterRow.anchoredPosition = Vector2.zero; _filterRow.sizeDelta = Vector2.zero;
+            BuildFilterChips();
 
-            _listContent = Scroll(content, "Entry list", new Vector2(26, 62), new Vector2(300, 366), out _listScroll);
+            _listContent = Scroll(content, "Entry list", new Vector2(26, 62), new Vector2(300, 330), out _listScroll);
             var layout = _listContent.gameObject.AddComponent<VerticalLayoutGroup>();
             layout.spacing = ItemSpacing;
             layout.padding = new RectOffset(4, 4, 4, 4);
@@ -218,7 +223,7 @@ namespace Game.UI
             click.Owner = this;
             click.Text = _body;
 
-            Text(content, "Footer", "검색·역할로 좁히기 · 파란 밑줄은 눌러서 이동 · ESC 또는 [메뉴로]로 닫기 · 수치는 지금 게임 데이터 기준",
+            Text(content, "Footer", "검색·분류로 좁히기 · 파란 밑줄은 눌러서 이동 · ESC 또는 [메뉴로]로 닫기 · 수치는 지금 게임 데이터 기준",
                 new Vector2(26, 18), new Vector2(940, 28), 15, ConsoleText);
             var close = Btn(content, "메뉴로", new Vector2(980, 12), new Vector2(154, 40), 17);
             close.name = "Codex close";
@@ -268,11 +273,31 @@ namespace Game.UI
             if (_search != null) _search.text = query ?? "";   // onValueChanged가 목록을 다시 만든다
         }
 
-        public void SetFilter(CodexRole role)
+        /// <summary>분류 고르기(null 또는 "전체" = 전체).</summary>
+        public void SetGroup(string group)
         {
-            _filter = role;
+            _group = string.IsNullOrEmpty(group) || group == "전체" ? null : group;
             PaintFilters();
             RefreshList(keepSelection: true);
+        }
+
+        /// <summary>지금 탭의 분류 칩을 다시 만든다(두 줄, 한 줄 네 칸).</summary>
+        private void BuildFilterChips()
+        {
+            if (_filterRow == null) return;
+            for (int i = _filterRow.childCount - 1; i >= 0; i--) Destroy(_filterRow.GetChild(i).gameObject);
+            _filterImages.Clear();
+            var groups = GroupsOf(Section);
+            for (int i = 0; i < groups.Length; i++)
+            {
+                string g = groups[i];
+                int row = i / 4, col = i % 4;
+                var chip = Btn(_filterRow, g, new Vector2(26 + col * 76, 436 - row * 36), new Vector2(72, 32), g.Length > 4 ? 12 : 15);
+                chip.name = $"Codex filter {g}";
+                chip.onClick.AddListener(() => SetGroup(g));
+                _filterImages.Add(chip.GetComponent<Image>());
+            }
+            PaintFilters();
         }
 
         private void ToggleSort()
@@ -284,7 +309,9 @@ namespace Game.UI
 
         private void PaintFilters()
         {
-            for (int i = 0; i < _filterImages.Count; i++) _filterImages[i].color = Filters[i].role == _filter ? ConsoleActive : ConsoleIdle;
+            var groups = GroupsOf(Section);
+            for (int i = 0; i < _filterImages.Count && i < groups.Length; i++)
+                _filterImages[i].color = (i == 0 ? _group == null : groups[i] == _group) ? ConsoleActive : ConsoleIdle;
             if (_favoritesOnlyImage != null) _favoritesOnlyImage.color = _favoritesOnly ? ConsoleActive : ConsoleIdle;
         }
 
@@ -325,7 +352,7 @@ namespace Game.UI
 
         private bool Matches(CodexEntry e)
         {
-            if (_filter != CodexRole.None && (e.Roles & _filter) == 0) return false;
+            if (_group != null && e.Group != _group) return false;
             if (_favoritesOnly && !Game.Core.PlayerProfile.IsFavorite(e.Id)) return false;
             string q = _search != null ? _search.text.Trim() : "";
             if (q.Length == 0) return true;
@@ -397,8 +424,9 @@ namespace Game.UI
         /// <summary>탭 전환. 그 탭에서 마지막으로 본 항목·목록 위치로 돌아간다(처음이면 첫 항목).</summary>
         public void ShowSection(CodexSection section)
         {
-            if (section != Section) SaveListScroll();
+            if (section != Section) { SaveListScroll(); _group = null; }
             Section = section;
+            BuildFilterChips();
             for (int i = 0; i < _tabImages.Count; i++) _tabImages[i].color = Sections[i] == section ? ConsoleActive : ConsoleIdle;
 
             var list = Entries(section);
@@ -424,13 +452,14 @@ namespace Game.UI
                 if (index < 0) continue;
                 if (!Matches(Entries(section)[index]))
                 {
-                    _filter = CodexRole.None;
+                    _group = null;
                     _favoritesOnly = false;
                     PaintFilters();
                     if (_search != null) _search.SetTextWithoutNotify("");
                 }
-                if (section != Section) SaveListScroll();
+                if (section != Section) { SaveListScroll(); _group = null; }
                 Section = section;
+                BuildFilterChips();
                 for (int i = 0; i < _tabImages.Count; i++) _tabImages[i].color = Sections[i] == section ? ConsoleActive : ConsoleIdle;
                 RefreshList(keepSelection: false);
                 Select(index);

@@ -80,6 +80,7 @@ namespace Game.EditorTools
                 EditorUtility.SetDirty(profile);
             }
             AssetDatabase.SaveAssets();
+            RebakeAswIcons();   // 대잠 폭뢰는 기본 프리팹이 아니라 측면 발사대 형태 모델로(2026-11-22)
             Debug.Log("[Icons] 모든 모듈·강화 단계 아이콘을 다시 구웠습니다.");
         }
 
@@ -93,6 +94,52 @@ namespace Game.EditorTools
         /// <summary>함대공·전자전·레이더·기만체·손상 통제반 아이콘만 다시 굽는다(NavalGreyPack v7 적용 뒤). 그래픽 필요.</summary>
         [MenuItem("Naval/Art/Rebake Support Module Icons (SAM · EW · Radar · Decoy · Repair)")]
         public static void RebakeSupportModuleIcons() => RebakeIcons("mod_sam", "mod_ew", "mod_radar", "mod_decoy", "mod_repairbay");
+
+        /// <summary>
+        /// 대잠 폭뢰 카드 아이콘(2026-11-22 사용자: 카드가 예전 그림): 지금 쓰는 측면 발사대 형태 모델로 굽는다 —
+        /// 기본 = 발사기 1문, 강화 I = 2문, 강화 II = 4문(AswLauncherModule.ShapeProjector와 같은 모습).
+        /// </summary>
+        [MenuItem("Naval/Art/Rebake ASW Icons (Side Projector Lv1-3)")]
+        public static void RebakeAswIcons()
+        {
+            var def = AssetDatabase.LoadAssetAtPath<Game.Modules.ModuleDefinition>($"{Root}/Data/Modules/mod_asw.asset");
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{Root}/Resources/Modules/Variants/MOD_DepthChargeProjector.prefab");
+            if (def == null || prefab == null) { Debug.LogError("[Icons] mod_asw 또는 발사대 형태 모델이 없습니다."); return; }
+
+            Sprite Shape(int level, string id) => Bake(prefab, id, 1, go =>
+            {
+                var s = Game.Modules.ModuleVariantVisual.Find(go.transform, "OutboardDirection");
+                Vector3 o = s != null ? Vector3.ProjectOnPlane(s.position - go.transform.position, Vector3.up) : Vector3.right;
+                if (o.sqrMagnitude < 1e-6f) o = Vector3.right;
+                Game.Modules.Runtime.AswLauncherModule.ShapeProjector(go.transform, level, o.normalized, 2f, go.transform.localScale, null, null);
+            });
+
+            Shape(1, def.name);              // 배치 실행의 첫 렌더는 조명이 덜 잡혀 어둡게 나온다 — 한 번 버리고
+            var icon = Shape(1, def.name);   // 다시 굽는다
+            if (icon != null)
+            {
+                var so = new SerializedObject(def);
+                so.FindProperty("icon").objectReferenceValue = icon;
+                so.ApplyModifiedPropertiesWithoutUndo();
+                EditorUtility.SetDirty(def);
+            }
+            foreach (var guid in AssetDatabase.FindAssets("t:ModuleUpgradeProfile", new[] { Root + "/Resources/Upgrades" }))
+            {
+                var profile = AssetDatabase.LoadAssetAtPath<Game.Modules.ModuleUpgradeProfile>(AssetDatabase.GUIDToAssetPath(guid));
+                if (profile == null || profile.Module != def) continue;
+                var so = new SerializedObject(profile);
+                var stages = so.FindProperty("stages");
+                for (int level = 1; level <= stages.arraySize && level <= 2; level++)
+                {
+                    var up = Shape(level + 1, $"{def.name}_U{level}");
+                    if (up != null) stages.GetArrayElementAtIndex(level - 1).FindPropertyRelative("icon").objectReferenceValue = up;
+                }
+                so.ApplyModifiedPropertiesWithoutUndo();
+                EditorUtility.SetDirty(profile);
+            }
+            AssetDatabase.SaveAssets();
+            Debug.Log("[Icons] 대잠 폭뢰 아이콘(발사대 1·2·4문)을 다시 구웠습니다.");
+        }
 
         /// <summary>지정한 모듈 아이콘(강화 단계 포함)만 같은 경로에 다시 굽는다.</summary>
         public static void RebakeIcons(params string[] ids)
@@ -129,7 +176,8 @@ namespace Game.EditorTools
 
         /// <summary>모듈 아이콘을 굽고 스프라이트를 돌려준다. 실패하면 null.</summary>
         /// <param name="visualLevel">블록 강화 외형 단계(1 = 기본형, 2 = U1, 3 = U2). 프리팹에 Visual_LevelN이 없으면 무시.</param>
-        public static Sprite Bake(GameObject prefab, string id, int visualLevel = 1)
+        /// <param name="customize">찍기 전에 인스턴스를 고친다(예: 폭뢰 발사대 단계 모습, 2026-11-22). 없으면 그대로.</param>
+        public static Sprite Bake(GameObject prefab, string id, int visualLevel = 1, System.Action<GameObject> customize = null)
         {
             if (prefab == null) return null;
 
@@ -156,6 +204,8 @@ namespace Game.EditorTools
                         var v = instance.transform.Find($"Visual_Level{i}");
                         if (v != null) v.gameObject.SetActive(i == visualLevel);
                     }
+
+                customize?.Invoke(instance);
 
                 var renderers = instance.GetComponentsInChildren<Renderer>();
                 if (renderers.Length == 0) return null;

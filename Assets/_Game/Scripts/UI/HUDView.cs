@@ -894,18 +894,21 @@ namespace Game.UI
             var controls = ActiveControlTitles();
             int rows = controls.Count + (Ruleset.IsWw2 ? System.Enum.GetValues(typeof(Ww2Control)).Length : 0);
             int index = 0;
+            // 세 열 × 7줄(2026-11-22 — 예전 두 열은 조작이 17개로 늘어 오른쪽 아래 줄이 '기본 키 복원' 버튼과 겹치고 패널 밖으로 나갔다).
+            // 세 번째 열 맨 아래 줄은 '기본 키 복원' 자리 — 그래서 한 열에 7줄씩, 마지막 열은 6줄까지.
+            const int perColumn = 7;
+            const float colWidth = 300f, rowStep = 50f;
             Vector2 Slot(int i)
             {
-                // 두 열: 왼쪽 8줄, 오른쪽 7줄(오른쪽 아래는 '기본 키 복원' 자리)
-                int column = i < 8 ? 0 : 1, row = i < 8 ? i : i - 8;
-                return new Vector2(14 + column * 466, 345 - row * 44);
+                int column = i / perColumn, row = i % perColumn;
+                return new Vector2(14 + column * (colWidth + 8f), 345 - row * rowStep);
             }
             foreach (var (action, title) in controls)
             {
-                var line = Panel(page, title, Vector2.zero, Slot(index++), new Vector2(452, 38), ConsoleIdle);
-                Label(line, "Action", title, new Vector2(12, 6), new Vector2(292, 27), 17, Color.white);
-                var key = MenuButton(line, GameSettings.BindingLabel(action), new Vector2(312, 4),
-                    new Vector2(134, 33), ConsoleActive, 15);
+                var line = Panel(page, title, Vector2.zero, Slot(index++), new Vector2(colWidth, 40), ConsoleIdle);
+                Label(line, "Action", title, new Vector2(10, 7), new Vector2(170, 27), 16, Color.white);
+                var key = MenuButton(line, GameSettings.BindingLabel(action), new Vector2(184, 4),
+                    new Vector2(110, 33), ConsoleActive, 15);
                 key.onClick.AddListener(() =>
                 {
                     _pendingBinding = action;
@@ -920,10 +923,10 @@ namespace Game.UI
                 foreach (Ww2Control c in System.Enum.GetValues(typeof(Ww2Control)))
                 {
                     string title = Ww2Controls.Title(c);
-                    var line = Panel(page, title, Vector2.zero, Slot(index++), new Vector2(452, 38), new Color(.16f, .12f, .05f, 1f));
-                    Label(line, "Action", title, new Vector2(12, 6), new Vector2(292, 27), 15, new Color(1f, .86f, .55f));
+                    var line = Panel(page, title, Vector2.zero, Slot(index++), new Vector2(colWidth, 40), new Color(.16f, .12f, .05f, 1f));
+                    Label(line, "Action", title, new Vector2(10, 7), new Vector2(170, 27), 14, new Color(1f, .86f, .55f));
                     var control = c;
-                    var key = MenuButton(line, Ww2Controls.BindingLabel(c), new Vector2(312, 4), new Vector2(134, 33), ConsoleActive, 15);
+                    var key = MenuButton(line, Ww2Controls.BindingLabel(c), new Vector2(184, 4), new Vector2(110, 33), ConsoleActive, 15);
                     key.onClick.AddListener(() =>
                     {
                         _pendingWw2Binding = control;
@@ -933,7 +936,8 @@ namespace Game.UI
                     });
                 }
             }
-            MenuButton(page, Ruleset.IsWw2 ? "WWII 키 복원" : "기본 키 복원", new Vector2(720, 10), new Vector2(210, 36),
+            var restoreAt = Slot(3 * perColumn - 1);   // 세 번째 열 맨 아래
+            MenuButton(page, Ruleset.IsWw2 ? "WWII 키 복원" : "기본 키 복원", restoreAt + new Vector2(0f, 2f), new Vector2(colWidth, 36),
                 ConsoleIdle, 15).onClick.AddListener(() =>
                 {
                     if (Ruleset.IsWw2) Ww2Controls.ResetBindings();

@@ -15,7 +15,7 @@ using static Game.EditorTools.NavalEditorUtil;
 namespace Game.EditorTools
 {
     /// <summary>Independent native art/data prototypes. Never rewrites Prototype_Main or its starting loadout.</summary>
-    public static class NavalStartingShipBuilder
+    public static partial class NavalStartingShipBuilder
     {
         public const string Art = "Assets/_Game/Art/StartingShips";
         public const string Prefabs = "Assets/_Game/Prefabs/StartingShips";

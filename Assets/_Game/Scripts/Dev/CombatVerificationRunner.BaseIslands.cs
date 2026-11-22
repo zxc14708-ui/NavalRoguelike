@@ -238,21 +238,50 @@ namespace Game.Dev
                 if (bat == null) Fail("다가가도 기지 섬에 해안 미사일 포대가 서지 않음");
                 else
                 {
+                    var weapons = DisableWeapons(null);
                     float dist = Vector3.Distance(Flat(bat.transform.position), Flat(ship.transform.position));
                     bool raised = false, shot = false;
                     float maxElev = 0f, maxHatch = 0f, t0 = Time.time;
+                    // 2026-11-22: 첫 미사일 — 2~3초 곧게(방향 변화) · 1.3배 크기 · 발사 연기
+                    Game.Combat.Missile first = null; Vector3 f0 = Vector3.zero; float firstAt = 0f, boostTurn = 0f, boostTime = 0f, launchPitch = 0f, scaleRatio = 0f; bool cloudShot = false;
+                    int smoke0 = Game.View.DecorFx.Count(Game.View.DecorFx.MissileSmoke), smokeMax = 0;
                     while (Time.time - t0 < 24f && bat.IsAlive)
                     {
+                        if (first == null && bat.MissilesFired > 0)
+                            foreach (var mm in Object.FindObjectsByType<Game.Combat.Missile>(FindObjectsSortMode.None))
+                                if (mm.isActiveAndEnabled && mm.Boosting && (mm.transform.position - bat.transform.position).sqrMagnitude < 400f)
+                                {
+                                    first = mm; f0 = mm.transform.forward; firstAt = Time.time;
+                                    launchPitch = Vector3.Angle(new Vector3(f0.x, 0f, f0.z), f0);
+                                    var prefabScale = bat.Definition.MissilePrefab.transform.localScale;
+                                    scaleRatio = mm.transform.localScale.x / Mathf.Max(0.0001f, prefabScale.x);
+                                    break;
+                                }
+                        if (first != null && first.isActiveAndEnabled)
+                        {
+                            if (first.Boosting) { boostTurn = Mathf.Max(boostTurn, Vector3.Angle(f0, first.transform.forward)); boostTime = Time.time - firstAt; }
+                            smokeMax = Mathf.Max(smokeMax, Game.View.DecorFx.Count(Game.View.DecorFx.MissileSmoke) - smoke0);
+                            if (!cloudShot && Time.time - firstAt > 0.7f) { cloudShot = true; yield return CloseShot("coastal_missile_launch_smoke", bat.transform, 16f); }
+                        }
                         if (bat.Raising) raised = true;
                         maxElev = Mathf.Max(maxElev, bat.Elevation);
                         maxHatch = Mathf.Max(maxHatch, bat.HatchOpen);
                         if (raised && !shot && bat.Elevation > 18f) { shot = true; yield return CloseShot("coastal_missile_raise", bat.transform, 9f); }
                         ship.RepairHull(ship.HullMaxHp);
-                        if (bat.MissilesFired >= 2 && Time.time - t0 > 5f) break;
+                        if (bat.MissilesFired >= 2 && Time.time - t0 > 5f && (first == null || !first.isActiveAndEnabled || !first.Boosting)) break;   // 첫 미사일의 곧게 나는 구간까지 본다
                         yield return null;
                     }
                     _report.AppendLine($"  - 거리 {dist:0}m · 예고(발사관 들어 올림) {Yes(raised)} · 최대 고각 {maxElev:0}° · 쏜 미사일 {bat.MissilesFired} · 높이 y {bat.transform.position.y:0.00}");
                     if (!raised || bat.MissilesFired < 2) Fail("해안 미사일 포대가 예고 뒤 2발을 쏘지 않음");
+                    _report.AppendLine($"  - 발사(2026-11-22): 처음 고각 {launchPitch:0}° · 곧게 난 시간 {boostTime:0.0}초 · 그동안 방향 변화 최대 {boostTurn:0.0}° · 크기 {scaleRatio:0.00}배 · 발사 연기 뭉치 {smokeMax}개");
+                    if (first == null) Fail("해안 포대 미사일이 곧게 나는 발사 구간 없이 나감");
+                    else
+                    {
+                        if (boostTime < 1.6f || boostTurn > 2f) Fail("해안 포대 미사일이 2~3초 곧게 날지 않음");
+                        if (launchPitch > 25f) Fail("해안 포대 미사일이 거의 수직으로 솟음");
+                        if (Mathf.Abs(scaleRatio - Game.Enemies.CoastalMissileBattery.MissileScale) > 0.05f) Fail("해안 포대 미사일 크기가 1.3배가 아님");
+                        if (smokeMax < 150) Fail("발사 연기가 적음"); else if (smokeMax > 1500) Fail("발사 연기 뭉치가 너무 많음(프레임마다 내는지 확인)");
+                    }
                     _report.AppendLine($"  - 발사관 덮개(Codex): 덮개 {bat.HatchCount}개 · 가장 크게 열린 정도 {maxHatch:P0}");
                     if (bat.HatchCount < 2) Fail("해안 미사일 포대 모델에 발사관 덮개가 없음");
                     if (maxHatch < 0.9f) Fail("발사 예고 때 발사관 덮개가 열리지 않음");
@@ -264,6 +293,7 @@ namespace Game.Dev
                     _report.AppendLine($"  - 격침 뒤 잔해: {Game.View.RuinSmoke.Placed - ruins0}개");
                     if (Game.View.RuinSmoke.Placed <= ruins0) Fail("해안 미사일 포대를 부숴도 잔해가 남지 않음");
                     yield return AerialShot("coastal_missile_ruins", bat.transform.position, (bat.transform.position - ship.transform.position).normalized, 30f, 22f);
+                    foreach (var weapon in weapons) if (weapon != null) weapon.enabled = true;
                 }
             }
             CombatDevTools.ClearBattlefield();

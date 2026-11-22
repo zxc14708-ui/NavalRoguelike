@@ -506,6 +506,13 @@ namespace Game.Dev
                 Finish();
                 yield break;
             }
+            if (SupportOnly)
+            {
+                yield return SupportCheck();
+                SaveLog("support");
+                Finish();
+                yield break;
+            }
             if (VariantOnly)
             {
                 yield return VariantCheck();
@@ -726,6 +733,7 @@ namespace Game.Dev
             yield return Fresh(GrowthCheck());
             yield return Fresh(EnvArtCheck());
             yield return Fresh(VariantCheck());
+            yield return Fresh(SupportCheck());
             yield return Fresh(TorpedoTubeCheck());
             yield return Fresh(HowitzerCheck());
             yield return Fresh(RamMineCheck());

@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e1c7a92b0d34f5e8a61c3d9f27b5a18, type: 3}
+  m_Name: UPG_FleetRelay
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Modules.ModuleUpgradeProfile
+  module: {fileID: 11400000, guid: 2935e4e2962600d4c83bd25d7ac68f2c, type: 2}
+  stages:
+  - displayName: "\uC804\uD22C\uB2E8 \uD1B5\uC2E0 \uC911\uACC4 \uAC15\uD654 I"
+    description: "40\uCD08\uB9C8\uB2E4 \xB7 \uBCF4\uAE09\uC120 Lv2 + \uACE0\uC18D\uC815
+      4\uCC99 \xB7 \uC218\uB9AC 2\uAC1C \xB7 \uC2A4\uD0AC \u221240% \xB7 18\uCD08
+      \uC9C0\uC6D0"
+    modifier:
+      damageMultiplier: 1
+      rangeMultiplier: 1
+      cooldownMultiplier: 1
+      magazineMultiplier: 1
+      ammoReloadMultiplier: 1
+      turnSpeedMultiplier: 1
+      supplyMultiplier: 1
+      explosionDamageMultiplier: 1
+      repairMultiplier: 1
+      detectionMultiplier: 1
+      maxHpMultiplier: 1.2
+      selfDamageMultiplier: 1
+      speedMultiplier: 1
+    icon: {fileID: 0}
+  - displayName: "\uC804\uD22C\uB2E8 \uD1B5\uC2E0 \uC911\uACC4 \uAC15\uD654 II"
+    description: "35\uCD08\uB9C8\uB2E4 \xB7 \uBCF4\uAE09\uC120 Lv3 + \uACE0\uC18D\uC815
+      6\uCC99 \xB7 \uC218\uB9AC 3\uAC1C \xB7 \uC2A4\uD0AC \u221250% \xB7 20\uCD08
+      \uC9C0\uC6D0"
+    modifier:
+      damageMultiplier: 1
+      rangeMultiplier: 1
+      cooldownMultiplier: 1
+      magazineMultiplier: 1
+      ammoReloadMultiplier: 1
+      turnSpeedMultiplier: 1
+      supplyMultiplier: 1
+      explosionDamageMultiplier: 1
+      repairMultiplier: 1
+      detectionMultiplier: 1
+      maxHpMultiplier: 1.4
+      selfDamageMultiplier: 1
+      speedMultiplier: 1
+    icon: {fileID: 0}

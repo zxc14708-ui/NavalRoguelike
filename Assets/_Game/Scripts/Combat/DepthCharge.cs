@@ -26,10 +26,24 @@ namespace Game.Combat
         private Vector3 _from, _to;
         private string _statsKey;
         private float _t, _sinkTimer, _damage;
+        private float _flight, _sink;
         private bool _sinking;
 
-        public void Launch(Vector3 from, Vector3 to, float damage)
+        /// <summary>폭발 반경(m). 이 안의 잠수함 · 반잠수정 · 적 어뢰가 휘말린다.</summary>
+        public float BlastRadius => blastRadius;
+        /// <summary>기본 비행 + 가라앉음 시간(초).</summary>
+        public float DefaultFuseTime => flightTime + sinkTime;
+
+        public void Launch(Vector3 from, Vector3 to, float damage) => Launch(from, to, damage, -1f, -1f);
+
+        /// <summary>
+        /// 비행 · 가라앉음 시간을 바꿔 던진다(음수 = 기본). 선미 투하대의 어뢰 요격은 얕은 신관(짧은 가라앉음)으로
+        /// 어뢰 항주 심도에서 바로 터진다(2026-11-22).
+        /// </summary>
+        public void Launch(Vector3 from, Vector3 to, float damage, float flight, float sink)
         {
+            _flight = flight > 0f ? flight : flightTime;
+            _sink = sink > 0f ? sink : sinkTime;
             _from = from;
             _to = new Vector3(to.x, 0f, to.z);   // 수면에 떨어진다
             _damage = damage;
@@ -47,9 +61,10 @@ namespace Game.Combat
 
             if (!_sinking)
             {
-                _t += dt / Mathf.Max(0.05f, flightTime);
+                _t += dt / Mathf.Max(0.05f, _flight > 0f ? _flight : flightTime);
                 float t = Mathf.Clamp01(_t);
-                transform.position = Vector3.Lerp(_from, _to, t) + Vector3.up * (arcHeight * 4f * t * (1f - t));
+                float arc = arcHeight * Mathf.Clamp01((_flight > 0f ? _flight : flightTime) / Mathf.Max(0.05f, flightTime));   // 짧게 던지면 낮게
+                transform.position = Vector3.Lerp(_from, _to, t) + Vector3.up * (arc * 4f * t * (1f - t));
                 transform.Rotate(Vector3.right, 540f * dt, Space.Self);   // 굴러가며 날아가는 모습
 
                 if (_t >= 1f)
@@ -63,7 +78,7 @@ namespace Game.Combat
 
             _sinkTimer += dt;
             transform.position += Vector3.down * (sinkSpeed * dt);
-            if (_sinkTimer >= sinkTime) Detonate();
+            if (_sinkTimer >= (_sink > 0f ? _sink : sinkTime)) Detonate();
         }
 
         private void Detonate()
@@ -105,6 +120,17 @@ namespace Game.Combat
                 }
             }
 
+            // 적 어뢰 요격(2026-11-22): 폭발 반경 안을 달리던 어뢰는 함께 터진다
+            var torps = Torpedo.Active;
+            for (int i = torps.Count - 1; i >= 0; i--)
+            {
+                if (i >= torps.Count) continue;
+                var tp = torps[i];
+                if (tp == null || !tp.IsAlive) continue;
+                Vector3 d = tp.transform.position - center; d.y = 0f;
+                if (d.sqrMagnitude <= sqr) tp.Intercept();
+            }
+
             PooledEffect.Spawn(blastEffect, new Vector3(center.x, 0f, center.z));
             AudioManager.Play(Game.Data.SfxId.UnderwaterBlast, center, 0.9f);
 
@@ -112,7 +138,7 @@ namespace Game.Combat
             else gameObject.SetActive(false);
         }
 
-        public void OnSpawned() { _t = 0f; _sinking = false; }
+        public void OnSpawned() { _t = 0f; _sinking = false; _flight = _sink = -1f; }
         public void OnDespawned() { }
     }
 }

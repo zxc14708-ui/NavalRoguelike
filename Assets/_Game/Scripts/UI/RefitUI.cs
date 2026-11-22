@@ -249,6 +249,7 @@ namespace Game.UI
             if (_rolePicking) { HandleRoleInput(); UpdateCamera(); return; }
             if (_fleetPicking) { HandleFleetInput(); UpdateCamera(); return; }
             if (_upgradePicking) { HandleUpgradePickInput(); UpdateCamera(); Refresh(); return; }
+            if (HandleUpgradeConfirmInput()) { UpdateCamera(); Refresh(); return; }   // 같은 블록 강화 확인 창(2026-11-22)
 
             HandleKeyboard();
             HandleMouse();
@@ -404,6 +405,8 @@ namespace Game.UI
                 statusText.text = $"모듈 {grid.Modules.Count}   탐지 {systems.DetectionRange:0}   " +
                                   $"피해 감소 {systems.DamageReduction * 100f:0}%" +
                                   (grid.TonnageBudget > 0f ? $"   탑재 {grid.Tonnage:0.#}/{grid.TonnageBudget:0.#}t" : "");   // WWII 함종(패치 C1)
+                if (!string.IsNullOrEmpty(_statusNote) && Time.unscaledTime < _statusNoteUntil) statusText.text = $"<color=#e0c05a>{_statusNote}</color>";
+                else if (ShowInstallUpgradeMarkers) statusText.text += "   <color=#5be37a>같은 블록 위에 놓으면 강화</color>";
             }
 
             UpdateArcViews();

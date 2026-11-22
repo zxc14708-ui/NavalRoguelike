@@ -1,0 +1,79 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee8925205f16a2b47900cba0670cd113, type: 3}
+  m_Name: mod_recondronebay
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Modules.ModuleDefinition
+  id: mod_recondronebay
+  displayName: "\uC815\uCC30 \uB4DC\uB860 \uACA9\uB0A9\uACE0"
+  description: "\uC77C\uC815 \uC2DC\uAC04\uB9C8\uB2E4 \uC815\uCC30 \uB4DC\uB860\uC774
+    \uB0A0\uC544\uAC00 \uB458\uB808 24m\uC758 \uC801\uC744 \uB4DC\uB7EC\uB0B4\uACE0(\uC7A0\uD56D
+    \uC7A0\uC218\uD568 \xB7 \uBC18\uC7A0\uC218\uC815 \uD3EC\uD568) \uAC00\uC7A5 \uD070
+    \uC801\uC5D0 \uC57D\uC810 \uD45C\uC2DC(\uBC1B\uB294 \uD53C\uD574 +20%)\uB97C
+    \uBD99\uC778\uB2E4. Lv1\xB72\xB73 = 25\xB722\xB718\uCD08\uB9C8\uB2E4 1\xB72\xB73\uAE30,
+    6\xB78\xB710\uCD08 \uC815\uCC30."
+  type: 31
+  icon: {fileID: 21300000, guid: c396e8745f9135f4088fa5cc87dd5986, type: 3}
+  width: 1
+  height: 1
+  canRotate: 1
+  placement:
+    Zone: 0
+  heightClass: 1
+  maxCount: 0
+  maxHp: 40
+  rarity: 0
+  weight: 0.65
+  tonnage: 0
+  mountClass: 0
+  prefab: {fileID: 8338829998985786493, guid: dabe4f69ce15dd74f981760133d7365f, type: 3}
+  stats:
+    Range: 0
+    MinRange: 0
+    Damage: 0
+    ReloadTime: 0
+    ProjectileSpeed: 0
+    FireArcDegrees: 0
+    TurretTurnRate: 0
+    AmmoFamily: 0
+    MagazineCapacity: 0
+    AmmoPerShot: 0
+    AmmoReloadAmount: 0
+    AmmoReloadTime: 0
+    DetectionRange: 0
+    ExtraTrackedTargets: 0
+    SupportRadiusCells: 0
+    ReloadBonus: 0
+    AmmoCapacityBonus: 0
+    ResupplyBonus: 0
+    CookOffDamage: 0
+    DamageReduction: 0
+    HullRepairPerSecond: 0
+    ModuleRepairPerSecond: 0
+    SortieCooldown: 0
+    HelicopterSpeed: 0
+    EscortFireRateBonus: 0
+    SpeedBonus: 0
+    AccelerationBonus: 0
+    MovingGunDamageBonus: 0
+    GuidedRangeBonus: 0
+    MissileReloadReduction: 0
+    MissileResupplyReduction: 0
+    FireControlTracks: 0
+  targetEfficiency:
+    SmallSurface: 1
+    MediumSurface: 1
+    LargeSurface: 1
+    Boss: 1
+    Submarine: 1
+    Drone: 1
+    Air: 1
+    Missile: 1

@@ -52,68 +52,78 @@ namespace Game.Dev
             var b = CombatDevTools.InstallModuleNear("mod_autocannon", new GridCoord(0, 0), 8);
             if (a == null || b == null || refit == null) { Fail("시험 준비 실패(기관포 설치 또는 정비 화면 없음)"); Application.logMessageReceived -= CountErrors; yield break; }
 
-            // 1) 카드 흐름: 무장 강화는 독립 카드(설치 카드와 따로). 같은 블록이 둘이면 고르고, 취소하면 카드로 돌아온다
-            var upgradeCards = new List<Game.Refit.RefitCard> { Game.Refit.RefitCard.WeaponUpgrade(ac), Game.Refit.RefitCard.Install(CombatDevTools.FindModule("mod_radar")), Game.Refit.RefitCard.Install(CombatDevTools.FindModule("mod_sonar")) };
+            // 1) 카드 흐름(2026-11-22 사용자): "장비 강화" 카드는 없다. 같은 블록 설치 카드를 고르면 같은 블록들에 강화 표시,
+            //    같은 블록 위에 놓으면 "강화하시겠습니까?" 확인 창 → 강화(바로 전투 재개 · 안내 띠) / 취소(계속 들고 있음). 빈 칸이면 하나 더 설치.
+            var upgradeCards = new List<Game.Refit.RefitCard> { Game.Refit.RefitCard.Install(ac), Game.Refit.RefitCard.Install(CombatDevTools.FindModule("mod_radar")), Game.Refit.RefitCard.Install(CombatDevTools.FindModule("mod_sonar")) };
             GameManager.Instance.SetState(GameState.Refit);
-            // 장비 강화도 대상을 고르면 바로 전투 재개(2026-11-17) — 재개 콜백 · 안내 띠
             int upResumes = 0;
             string upBanner = null;
             System.Action<string> onUpBanner = m => upBanner = m;
             GameEvents.BannerRequested += onUpBanner;
-            refit.Open(99, upgradeCards, () => upResumes++);   // 3장: 호위함 개량은 3번째 카드를 대체한다
+            refit.Open(99, upgradeCards, () => upResumes++);
             yield return null;
             yield return RefitShot(refit, "upgrade_1_cards");
             Call(refit, "ChooseCard", 0);
-            bool picking0 = Get<bool>(refit, "_upgradePicking"), held0 = Get<ModuleDefinition>(refit, "_held") != null;
+            bool held0 = Get<ModuleDefinition>(refit, "_held") == ac;
             yield return null;
-            yield return RefitShot(refit, "upgrade_2_choice");
             int markers = 0;
             foreach (var t in Get<List<Transform>>(refit, "_upgradeMarkers") ?? new List<Transform>()) if (t != null && t.gameObject.activeSelf) markers++;
-            Call(refit, "BackToCards");
-            bool backToCards = Get<bool>(refit, "_choosing");
-            Call(refit, "ChooseCard", 0);
-            bool picking = Get<bool>(refit, "_upgradePicking");
+            yield return RefitShot(refit, "upgrade_2_markers");
+            refit.DevTryPlaceHeldAt(a.Origin);
+            bool confirm1 = refit.UpgradeConfirmOpen && refit.UpgradeConfirmTarget == a;
             yield return null;
-            yield return RefitShot(refit, "upgrade_3_pick");
-            bool resumedBeforePick = upResumes > 0;   // 취소 · 다시 고르기 동안에는 재개하지 않는다
-            bool upgraded = (bool)Call(refit, "TryUpgradeAt", a.Origin);
+            yield return RefitShot(refit, "upgrade_3_confirm");
+            refit.DevAnswerUpgradeConfirm(false);
+            bool stillHeld = !refit.UpgradeConfirmOpen && Get<ModuleDefinition>(refit, "_held") == ac && a.UpgradeLevel == 0;
+            bool resumedBeforePick = upResumes > 0;
+            refit.DevTryPlaceHeldAt(a.Origin);
+            refit.DevAnswerUpgradeConfirm(true);
             GameEvents.BannerRequested -= onUpBanner;
             bool upResumed = !resumedBeforePick && upResumes == 1 && upBanner != null && upBanner.Contains("강화");
             int aLv = a.UpgradeLevel, bLv = b.UpgradeLevel;
-            _report.AppendLine($"- 카드: 무장 강화 카드 → 강화 대상 선택 {(picking0 ? "예" : "아니오")}(설치 선택 없음: 들기 {held0}) · 강조 {markers}개 · 취소 → 카드 {(backToCards ? "예" : "아니오")} · 다시 선택 {picking} · 기관포 A 강화 {upgraded} → A {aLv} / B {bLv} · 고르면 바로 재개 {(upResumed ? "예" : "아니오")}(\"{upBanner}\")");
-            if (!upResumed) Fail("장비 강화 대상을 골랐는데 바로 전투로 돌아가지 않음(재개 · 안내 띠)");
-            if (!picking0 || held0 || !backToCards || !picking || !upgraded) Fail("무장 강화 카드 흐름이 동작하지 않음");
+            _report.AppendLine($"- 같은 블록 설치 카드: 들기 {Yes(held0)} · 강화 표시 {markers}개 · 같은 블록 위 → 확인 창 {Yes(confirm1)} · 취소 → 계속 들고 있음 {Yes(stillHeld)} · 강화 → A Lv{a.Level} / B Lv{b.Level} · 바로 재개 {Yes(upResumed)}(\"{upBanner}\")");
+            if (!held0 || !confirm1 || !stillHeld) Fail("같은 블록 설치 카드의 강화 확인 흐름이 동작하지 않음");
+            if (!upResumed) Fail("강화를 확인했는데 바로 전투로 돌아가지 않음(재개 · 안내 띠)");
             if (aLv != 1 || bLv != 0) Fail("강화가 고른 블록 하나에만 적용되지 않음");
-            if (markers < 2) Fail("강화 대상 강조가 부족함");
+            if (markers < 2) Fail("같은 블록 강화 표시가 부족함");
 
-            // 설치 카드는 강화 선택 없이 바로 들어 올린다(같은 블록이 있어도)
+            // 빈 칸에 놓으면 하나 더 설치(같은 블록이 있어도)
             int countBefore = grid.CountOf(ac);
             refit.Open(99, new List<Game.Refit.RefitCard> { Game.Refit.RefitCard.Install(ac), Game.Refit.RefitCard.Install(CombatDevTools.FindModule("mod_radar")), Game.Refit.RefitCard.Install(CombatDevTools.FindModule("mod_sonar")) }, () => { });
             Call(refit, "ChooseCard", 0);
-            bool holding = Get<ModuleDefinition>(refit, "_held") == ac, pickingNow = Get<bool>(refit, "_upgradePicking");
+            bool holding = Get<ModuleDefinition>(refit, "_held") == ac;
             Call(refit, "PlaceHeld");
             int countAfter = grid.CountOf(ac);
-            _report.AppendLine($"- 설치 카드: 들기 {holding} · 강화 선택으로 빠지지 않음 {!pickingNow} · 기관포 {countBefore} → {countAfter}문(강화 단계 A {a.UpgradeLevel} 그대로)");
-            if (!holding || pickingNow || countAfter != countBefore + 1) Fail("설치 카드가 동작하지 않음");
+            _report.AppendLine($"- 빈 칸에 놓기: 들기 {Yes(holding)} · 기관포 {countBefore} → {countAfter}문(A Lv{a.Level} 그대로)");
+            if (!holding || countAfter != countBefore + 1) Fail("설치 카드로 빈 칸에 하나 더 놓지 못함");
 
-            // 대상이 하나뿐이면 고르지 않고 바로 적용(탄약고: 시험장에 없으면 하나만 설치해 둔다)
+            // 지원 블록(탄약고): 가진 것이 최고 단계가 아니면 하나 더 놓지 못하고 강화만
             var magDef = CombatDevTools.FindModule("mod_magazine");
             var existingMags = new List<ModuleInstance>();
-            ModuleUpgrades.GetTargets(grid, magDef, existingMags);
-            ModuleInstance onlyMag = existingMags.Count == 1 ? existingMags[0] : null;
+            foreach (var m in grid.Modules) if (m != null && m.Definition == magDef) existingMags.Add(m);
             bool installedHere = false;
-            if (existingMags.Count == 0) { onlyMag = CombatDevTools.InstallModuleNear("mod_magazine", new GridCoord(0, 0), 8); installedHere = onlyMag != null; }
+            ModuleInstance onlyMag = existingMags.Count > 0 ? existingMags[0] : null;
+            if (onlyMag == null) { onlyMag = CombatDevTools.InstallModuleNear("mod_magazine", new GridCoord(0, 0), 8); installedHere = onlyMag != null; }
             if (onlyMag != null)
             {
-                int magResumes = 0;
-                refit.Open(99, new List<Game.Refit.RefitCard> { Game.Refit.RefitCard.WeaponUpgrade(magDef), Game.Refit.RefitCard.Install(CombatDevTools.FindModule("mod_radar")), Game.Refit.RefitCard.Install(CombatDevTools.FindModule("mod_sonar")) }, () => magResumes++);
+                int magResumes = 0, mags0 = grid.CountOf(magDef), lv0 = onlyMag.Level;
+                refit.Open(99, new List<Game.Refit.RefitCard> { Game.Refit.RefitCard.Install(magDef), Game.Refit.RefitCard.Install(CombatDevTools.FindModule("mod_radar")), Game.Refit.RefitCard.Install(CombatDevTools.FindModule("mod_sonar")) }, () => magResumes++);
                 Call(refit, "ChooseCard", 0);
-                bool auto = onlyMag.UpgradeLevel == 1 && !Get<bool>(refit, "_upgradePicking") && magResumes == 1;
-                _report.AppendLine($"- 대상이 하나뿐인 강화 카드: 바로 적용 · 바로 재개 {(auto ? "예" : "아니오")}(탄약고 단계 {onlyMag.UpgradeLevel} · 재개 {magResumes})");
-                if (!auto) Fail("대상이 하나뿐인데 바로 적용되지 않음");
+                bool upgradeOnly = ModuleUpgrades.MustMaxBeforeAnother(grid, magDef);
+                // 빈 칸을 찾아 놓아 본다 → 막혀야 한다
+                GridCoord empty = default; bool foundEmpty = false;
+                for (int x = -grid.MaxHalfLength; x <= grid.MaxHalfLength && !foundEmpty; x++)
+                    for (int z = -grid.MaxHalfBeam; z <= grid.MaxHalfBeam && !foundEmpty; z++)
+                        if (grid.CanPlace(magDef, new GridCoord(x, z), 0, out _)) { empty = new GridCoord(x, z); foundEmpty = true; }
+                if (foundEmpty) refit.DevTryPlaceHeldAt(empty);
+                bool blocked = grid.CountOf(magDef) == mags0 && Get<ModuleDefinition>(refit, "_held") == magDef;
+                refit.DevTryPlaceHeldAt(onlyMag.Origin);
+                bool askMag = refit.UpgradeConfirmOpen;
+                refit.DevAnswerUpgradeConfirm(true);
+                _report.AppendLine($"- 지원 블록(탄약고 Lv{lv0}): 강화만 {Yes(upgradeOnly)} · 빈 칸에 놓기 막힘 {Yes(blocked)}(빈 칸 {Yes(foundEmpty)}) · 같은 블록 위 확인 창 {Yes(askMag)} → Lv{onlyMag.Level} · 재개 {magResumes}");
+                if (!upgradeOnly || (foundEmpty && !blocked) || !askMag || onlyMag.Level != lv0 + 1) Fail("지원 블록이 최고 단계 전에 하나 더 놓이거나 강화되지 않음");
                 if (installedHere) CombatDevTools.RemoveModule(onlyMag);
             }
-            else _report.AppendLine("- 대상이 하나뿐인 강화 카드: 시험장에 탄약고가 둘 이상이라 건너뜀");
 
             // 2) 블록마다 다른 단계
             a.ApplyUpgrade();
@@ -455,24 +465,19 @@ namespace Game.Dev
                 if (cards[1].Kind != Game.Refit.RefitCardKind.Install) growthSlot++;
                 var seen = new HashSet<string>();
                 foreach (var c in cards) if (!seen.Add(c.Label)) dup++;
-                if (cards[1].Kind == Game.Refit.RefitCardKind.WeaponUpgrade) upgradeAt1++;
-                // 통합 장비 강화 카드(2026-10-03): 블록이 정해지지 않은 한 종류, 한 번 뽑을 때 한 장까지
-                int upgrades = 0;
-                foreach (var c in cards)
-                    if (c.Kind == Game.Refit.RefitCardKind.WeaponUpgrade) { upgrades++; if (c.Module != null) notUnified++; }
-                if (upgrades > 1) notUnified++;
+                // 장비 강화 카드 삭제(2026-11-22): 한 장도 나오면 안 된다
+                foreach (var c in cards) if (c.Kind == Game.Refit.RefitCardKind.WeaponUpgrade) notUnified++;
             }
             for (int i = 0; i < draws; i++)
             {
                 var cards = draft.DrawCards(3, 20);
-                if (cards.Count == 3 && cards[1].Kind == Game.Refit.RefitCardKind.WeaponUpgrade) upgradeAt20++;
+                if (cards.Count == 3) foreach (var c in cards) if (c.Kind == Game.Refit.RefitCardKind.WeaponUpgrade) upgradeAt20++;
             }
-            _report.AppendLine($"- 3장 자리({draws}회): 1번이 설치 {installSlot} · 2번이 성장/강화 {growthSlot} · 중복 {dup} · 장수 이상 {malformed} / 2번 자리의 무장 강화 비율 레벨 1 {upgradeAt1 * 100f / draws:0}% → 레벨 20 {upgradeAt20 * 100f / draws:0}%(기대 약 30% → 65%)");
+            _report.AppendLine($"- 3장 자리({draws}회): 1번이 설치 {installSlot} · 2번이 성장 {growthSlot} · 중복 {dup} · 장수 이상 {malformed}");
             if (malformed > 0 || installSlot < draws * 0.98f || growthSlot != draws - malformed) Fail("카드 자리 규칙(1번 설치 · 2번 성장)이 지켜지지 않음");
             if (dup > 0) Fail("한 번 뽑을 때 같은 카드가 겹침");
-            _report.AppendLine($"- 장비 강화 카드 통합: 블록별 카드 또는 한 번에 두 장 이상 {notUnified}회(기대 0)");
-            if (notUnified > 0) Fail("장비 강화 카드가 하나로 통합되지 않음(블록별 카드 또는 두 장 이상)");
-            if (upgradeAt20 <= upgradeAt1 + draws * 0.15f) Fail("진행할수록 무장 강화 카드 확률이 올라가지 않음");
+            _report.AppendLine($"- 장비 강화 카드(삭제됨): 레벨 1 {notUnified}장 · 레벨 20 {upgradeAt20}장(기대 0)");
+            if (notUnified > 0 || upgradeAt20 > 0) Fail("삭제한 장비 강화 카드가 나옴");
 
             // 6-2) 등급 확률: 레벨이 오를수록 희귀·에픽이 늘고, 에픽 수치가 일반보다 크다
             int N = 6000, rare1 = 0, epic1 = 0, rare20 = 0, epic20 = 0;
@@ -523,7 +528,7 @@ namespace Game.Dev
             GameManager.Instance.SetState(GameState.Refit);
             var shown = new List<Game.Refit.RefitCard>
             {
-                Game.Refit.RefitCard.WeaponUpgrade(ac),
+                Game.Refit.RefitCard.Install(ac),
                 Game.Refit.RefitCard.Growth(Game.Modules.RunStat.Damage, Game.Modules.CardTier.Epic, true),
                 Game.Refit.RefitCard.Install(CombatDevTools.FindModule("mod_sonar")),
             };
@@ -836,9 +841,11 @@ namespace Game.Dev
             yield return CloseShot("variant_rack", rack != null && rack.Runtime != null ? rack.Runtime.transform : ship.transform, 6f);
 
             // 4) 실제 투하·발사: 드러난 잠수함을 고정해 두고 해당 폭뢰만 켠다
+            //    단계별(2026-11-22 사용자): 한 번에 Lv1 1발 · Lv2 2발 · Lv3 4발, 발사대 발사기 1·2·4문 · 투하대 레일 1·2줄 + 즉응 탄약함
             var projRt = proj?.Runtime as Game.Modules.Runtime.AswLauncherModule;
             var rackRt = rack?.Runtime as Game.Modules.Runtime.AswLauncherModule;
             foreach (var r in Object.FindObjectsByType<Game.Modules.Runtime.AswLauncherModule>(FindObjectsSortMode.None)) r.enabled = false;
+            int maxPending = 0;
             IEnumerator Engage(Game.Modules.Runtime.AswLauncherModule rt, Vector3 at, float wait, System.Action<int, float, List<Vector3>> done)
             {
                 var e = EnemySpawner.Instance.SpawnAt(subDef, at, Quaternion.LookRotation(fwd));
@@ -846,30 +853,105 @@ namespace Game.Dev
                 if (sb != null) { sb.DevFrozen = true; sb.RevealFor(30f); }
                 float hp0 = sb != null ? sb.CurrentHp : 0f;
                 int s0 = rt != null ? rt.Salvos : 0;
-                if (rt != null) { Put(rt, "_cooldown", 0f); rt.enabled = true; }
+                maxPending = 0;
+                if (rt != null) { Put(rt, "_cooldown", 0f); rt.Ammo.Refill(); rt.enabled = true; }
                 float tt = Time.time;
                 while (Time.time - tt < wait && (rt == null || rt.Salvos == s0)) yield return null;
-                yield return new WaitForSeconds(2.5f);   // 비행 + 가라앉음
+                float t1 = Time.time;
+                while (Time.time - t1 < 2.5f)   // 비행 + 가라앉음
+                {
+                    if (rt != null) maxPending = Mathf.Max(maxPending, rt.PendingDrops);
+                    yield return null;
+                }
                 if (rt != null) rt.enabled = false;
                 done(rt != null ? rt.Salvos - s0 : 0, sb != null ? hp0 - sb.CurrentHp : 0f, rt != null ? new List<Vector3>(rt.LastAims) : new List<Vector3>());
                 CombatDevTools.ClearBattlefield();
                 yield return null;
             }
+            string Look(Game.Modules.Runtime.AswLauncherModule rt) => rt == null ? "-" : $"발사점 {rt.LaunchPointCount} · 덧붙임 {rt.ExtraVisualCount} · 숨김 {rt.HiddenPartCount}";
             Vector3 projPos = proj != null && proj.Runtime != null ? proj.Runtime.transform.position : ship.transform.position;
-            int pPort = 0, pStar = 0; float pPortLoss = 0f;
-            yield return Engage(projRt, projPos - right * 14f, 4f, (n, loss, _) => { pPort = n; pPortLoss = loss; });
-            yield return Engage(projRt, projPos + right * 14f, 3f, (n, _, __) => pStar = n);
             Vector3 dropOrigin = rackRt != null ? rackRt.RackDropOrigin : ship.transform.position;
-            int rAft = 0, rBeam = 0; float rLoss = 0f; List<Vector3> rAims = null;
-            yield return Engage(rackRt, dropOrigin - fwd * 3f + right * 1f, 4f, (n, loss, aims) => { rAft = n; rLoss = loss; rAims = aims; });
-            yield return Engage(rackRt, (rack != null && rack.Runtime != null ? rack.Runtime.transform.position : ship.transform.position) + right * 16f, 3f, (n, _, __) => rBeam = n);
             int behind = 0;
-            if (rAims != null) foreach (var p in rAims) if (Vector3.Dot(p - dropOrigin, -fwd) >= -1.5f && Mathf.Abs(Vector3.Dot(p - dropOrigin, right)) <= 3.5f) behind++;
-            _report.AppendLine($"- 발사대(좌현): 좌현 14m 잠수함 → {pPort}회 발사 · 피해 {pPortLoss:0} / 우현 14m → {pStar}회 · 투하대: 항적 3m 뒤 → {rAft}회 {rAims?.Count ?? 0}발(항적 위 {behind}발) · 피해 {rLoss:0}(기본 {aswDef.Stats.Damage}×{ModuleVariants.RackDamageMultiplier}) / 옆 16m → {rBeam}회");
+            int CountBehind(List<Vector3> aims)
+            {
+                int n = 0;
+                if (aims != null) foreach (var p in aims) if (Vector3.Dot(p - dropOrigin, -fwd) >= -3.5f && Mathf.Abs(Vector3.Dot(p - dropOrigin, right)) <= 3.5f) n++;
+                return n;
+            }
+
+            // Lv1: 1발
+            string pLook1 = Look(projRt), rLook1 = Look(rackRt);
+            int pPts1 = projRt != null ? projRt.LaunchPointCount : 0, rHid1 = rackRt != null ? rackRt.HiddenPartCount : 0;
+            int pPort = 0, pStar = 0, pAims1 = 0; float pPortLoss = 0f;
+            yield return Engage(projRt, projPos - right * 14f, 4f, (n, loss, aims) => { pPort = n; pPortLoss = loss; pAims1 = aims.Count; });
+            yield return Engage(projRt, projPos + right * 14f, 3f, (n, _, __) => pStar = n);
+            int rAft1 = 0, rAims1 = 0;
+            yield return Engage(rackRt, dropOrigin - fwd * 3f + right * 1f, 4f, (n, _, aims) => { rAft1 = n; rAims1 = aims.Count; });
+            _report.AppendLine($"- Lv1 모델: 발사대 [{pLook1}] · 투하대 [{rLook1}] / 발사대(좌현): 좌현 14m 잠수함 → {pPort}회 {pAims1}발 · 피해 {pPortLoss:0} / 우현 14m → {pStar}회 · 투하대 항적 3m 뒤 → {rAft1}회 {rAims1}발");
             if (pPort < 1 || pPortLoss <= 0f) Fail("발사대가 트인 현측의 잠수함을 공격하지 않음");
             if (pStar > 0) Fail("발사대가 막힌 현측으로 던짐");
-            if (rAft < 1 || (rAims?.Count ?? 0) != ModuleVariants.RackSalvo || behind != ModuleVariants.RackSalvo || rLoss <= 0f) Fail("투하대가 항적 위에 4발을 떨어뜨려 맞히지 않음");
+            if (pAims1 != 1 || rAims1 != 1) Fail("Lv1 폭뢰가 한 번에 1발이 아님");
+            if (pPts1 != 1) Fail("Lv1 발사대 모델의 발사기가 1문이 아님");
+            if (rHid1 <= 0) Fail("Lv1 투하대가 레일 1줄로 보이지 않음(둘째 레일이 숨지 않음)");
+
+            // Lv2 → Lv3
+            proj?.ApplyUpgrade(); rack?.ApplyUpgrade();
+            yield return null;
+            string pLook2 = Look(projRt), rLook2 = Look(rackRt);
+            int pPts2 = projRt != null ? projRt.LaunchPointCount : 0, rHid2 = rackRt != null ? rackRt.HiddenPartCount : -1;
+            int pAims2 = 0;
+            yield return Engage(projRt, projPos - right * 14f, 4f, (_, __, aims) => pAims2 = aims.Count);
+            proj?.ApplyUpgrade(); rack?.ApplyUpgrade();
+            yield return null;
+            yield return null;
+            string pLook3 = Look(projRt), rLook3 = Look(rackRt);
+            int pPts3 = projRt != null ? projRt.LaunchPointCount : 0, pExtra3 = projRt != null ? projRt.ExtraVisualCount : 0, rExtra3 = rackRt != null ? rackRt.ExtraVisualCount : 0;
+            yield return CloseShot("variant_projector_lv3", proj != null && proj.Runtime != null ? proj.Runtime.transform : ship.transform, 7f);
+            yield return CloseShot("variant_rack_lv3", rack != null && rack.Runtime != null ? rack.Runtime.transform : ship.transform, 6f);
+            int pAims3 = 0;
+            yield return Engage(projRt, projPos - right * 14f, 4f, (_, __, aims) => pAims3 = aims.Count);
+            int rAft = 0, rBeam = 0, rPend = 0; float rLoss = 0f; List<Vector3> rAims = null;
+            yield return Engage(rackRt, dropOrigin - fwd * 3f + right * 1f, 4f, (n, loss, aims) => { rAft = n; rLoss = loss; rAims = aims; rPend = maxPending; });
+            yield return Engage(rackRt, (rack != null && rack.Runtime != null ? rack.Runtime.transform.position : ship.transform.position) + right * 16f, 3f, (n, _, __) => rBeam = n);
+            behind = CountBehind(rAims);
+            _report.AppendLine($"- Lv2 모델: 발사대 [{pLook2}] · 투하대 [{rLook2}] · 발사대 {pAims2}발 / Lv{proj?.Level ?? 0} 모델: 발사대 [{pLook3}] · 투하대 [{rLook3}] · 발사대 {pAims3}발");
+            _report.AppendLine($"- Lv3 투하대: 항적 3m 뒤 → {rAft}회 {rAims?.Count ?? 0}발(항적 위 {behind}발 · 차례 투하 대기 최대 {rPend}) · 피해 {rLoss:0}(기본 {aswDef.Stats.Damage}×{ModuleVariants.RackDamageMultiplier}) / 옆 16m → {rBeam}회");
+            if (pPts2 != 2 || pAims2 != 2) Fail("Lv2 발사대가 2문 · 2발이 아님");
+            if (rHid2 != 0) Fail("Lv2 투하대가 레일 2줄이 아님");
+            if (pPts3 != 4 || pExtra3 < 1 || pAims3 != 4) Fail("Lv3 발사대가 4문 · 4발이 아님");
+            if (rExtra3 < 1) Fail("Lv3 투하대에 즉응 탄약함이 없음");
+            if (rAft < 1 || (rAims?.Count ?? 0) != ModuleVariants.RackSalvo || behind != ModuleVariants.RackSalvo || rLoss <= 0f) Fail("Lv3 투하대가 항적 위에 4발을 떨어뜨려 맞히지 않음");
+            if (rPend < 1) Fail("투하대가 항적을 따라 차례로 떨어뜨리지 않음(한꺼번에 투하)");
             if (rBeam > 0) Fail("투하대가 옆 멀리 있는 잠수함에 던짐(사거리가 없어야 함)");
+
+            // 5) 선미 어뢰 요격: 뒤 22m에서 이 배로 달려오는 어뢰 → 투하대가 길목에 얕은 신관 폭뢰
+            var torpPrefab = subDef != null && subDef.Prefab != null && subDef.Prefab.GetComponent<Submarine>() is Submarine subComp
+                ? PrivateField<GameObject>(subComp, "torpedoPrefab") : null;
+            if (torpPrefab == null || rackRt == null || PoolManager.Instance == null) Fail("어뢰 요격 시험 준비 실패(어뢰 프리팹 · 투하대)");
+            else
+            {
+                int ic0 = Torpedo.InterceptedCount, is0 = rackRt.InterceptSalvos;
+                float hull0 = ship.HullHp;
+                Put(rackRt, "_cooldown", 0f); rackRt.Ammo.Refill(); rackRt.enabled = true;
+                Vector3 from = dropOrigin - fwd * 22f + right * 0.8f; from.y = 0f;
+                var go = PoolManager.Instance.Spawn(torpPrefab, from, Quaternion.LookRotation(Vector3.ProjectOnPlane(ship.transform.position - from, Vector3.up)));
+                go.GetComponent<Torpedo>()?.Launch(ship.transform.position, 20f);
+                float tt = Time.time;
+                bool shot = false;
+                while (Time.time - tt < 4f && Torpedo.InterceptedCount == ic0)
+                {
+                    if (!shot && rackRt.InterceptSalvos > is0) { shot = true; yield return CloseShot("asw_torpedo_intercept", rack.Runtime.transform, 9f); }
+                    yield return null;
+                }
+                yield return new WaitForSeconds(0.3f);
+                rackRt.enabled = false;
+                int intercepted = Torpedo.InterceptedCount - ic0, salvosI = rackRt.InterceptSalvos - is0;
+                float hullLoss = hull0 - ship.HullHp;
+                foreach (var tp in new List<Torpedo>(Torpedo.Active)) if (tp != null) PoolManager.Instance.Despawn(tp.gameObject);
+                _report.AppendLine($"- 선미 어뢰 요격: 뒤 22m 어뢰 → 요격 투하 {salvosI}회 · 요격 {intercepted}발 · 선체 피해 {hullLoss:0}");
+                if (salvosI < 1 || intercepted < 1) Fail("선미 투하대가 뒤에서 오는 어뢰를 요격하지 않음");
+                CombatDevTools.ClearBattlefield();
+            }
 
             // 정리
             for (int i = added.Count - 1; i >= 0; i--) CombatDevTools.RemoveModule(added[i]);

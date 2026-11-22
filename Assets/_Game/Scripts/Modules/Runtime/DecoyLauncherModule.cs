@@ -47,6 +47,17 @@ namespace Game.Modules.Runtime
         /// <summary>기만체를 쏘는가. WWII 함교는 기만체가 없다(패치 A 9.1) — 기만체 스킬이 이 장비를 세지 않는다.</summary>
         public virtual bool DecoyEnabled => true;
 
+        /// <summary>기만체의 남은 재사용 시간(초).</summary>
+        public float CooldownLeft => Mathf.Max(0f, _cooldown);
+
+        /// <summary>남은 재사용 시간을 비율만큼 줄인다(전투단 통신 중계 보급선, 2026-11-22). 줄였으면 true.</summary>
+        public bool ReduceCooldown(float fraction)
+        {
+            if (_cooldown <= 0f || fraction <= 0f) return false;
+            _cooldown *= 1f - Mathf.Clamp01(fraction);
+            return true;
+        }
+
         public bool IsReady => DecoyEnabled && _cooldown <= 0f && decoyPrefab != null && Instance != null && Instance.IsOperational;
 
         public float Readiness01 => Stats.ReloadTime > 0f

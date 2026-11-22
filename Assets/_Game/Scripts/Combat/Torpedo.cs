@@ -25,7 +25,7 @@ namespace Game.Combat
         public static IReadOnlyList<Torpedo> Active => s_active;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetStatics() { s_active.Clear(); Finished = null; }
+        private static void ResetStatics() { s_active.Clear(); Finished = null; InterceptedCount = 0; }
 
         [SerializeField] private float speed = 16f;
         [SerializeField] private float lifeTime = 9f;
@@ -124,6 +124,23 @@ namespace Game.Combat
             }
 
             transform.position += transform.forward * step;
+        }
+
+        /// <summary>요격된 어뢰 수(검증용 · 폭뢰 선미 투하대의 어뢰 요격, 2026-11-22).</summary>
+        public static int InterceptedCount { get; private set; }
+
+        /// <summary>
+        /// 수중 폭발에 휘말려 터진다(폭뢰 선미 투하대의 어뢰 요격, 2026-11-22). 빗나감으로 기록하고 작은 물기둥을 남긴다.
+        /// </summary>
+        public void Intercept()
+        {
+            if (!isActiveAndEnabled) return;
+            InterceptedCount++;
+            Report(false);
+            var p = transform.position;
+            PooledEffect.Spawn(impactEffect, new Vector3(p.x, 0f, p.z), 0.6f);
+            CombatLog.Add("어뢰", "폭뢰 폭발로 요격");
+            Despawn();
         }
 
         private void Report(bool hit)

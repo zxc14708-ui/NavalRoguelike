@@ -49,8 +49,17 @@ namespace Game.UI
             _heldWasInstalled = false;
             _heldRotation = 0;
 
+            // 강화만 되는 지원 블록이거나 놓을 자리가 없으면 강화할 같은 블록에서 시작한다(2026-11-22)
+            ModuleInstance upTarget = null;
+            foreach (var m in grid.Modules) if (ModuleUpgrades.CanUpgradeWith(m, _held)) { upTarget = m; break; }
+            if (upTarget != null && (HeldUpgradeOnly || !grid.HasAnyValidPlacement(_held)))
+            {
+                _cursor = upTarget.Origin;
+                _heldRotation = upTarget.RotationSteps;
+                if (HeldUpgradeOnly) SetStatusNote($"지원 블록: 가진 {_held.DisplayName}를 Lv3까지 강화해야 하나 더 놓을 수 있습니다 — 같은 블록 위에 놓아 강화");
+            }
             // 빠른 배치: 바로 놓을 수 있는 좋은 자리에서 시작한다. 클릭 한 번이면 설치된다.
-            if (TryFindSuggestedPlacement(_held, out var cell, out int rotation))
+            else if (TryFindSuggestedPlacement(_held, out var cell, out int rotation))
             {
                 _cursor = cell;
                 _heldRotation = rotation;
@@ -138,7 +147,7 @@ namespace Game.UI
         /// <summary>들고 있으면 놓고, 아니면 커서 아래 모듈을 집는다(재배치).</summary>
         private void Confirm()
         {
-            if (_held != null) { PlaceHeld(); return; }
+            if (_held != null) { if (TryOfferInstallUpgrade()) return; PlaceHeld(); return; }   // 같은 블록 위 = 강화 확인(2026-11-22)
 
             var instance = grid.Get(_cursor);
             if (instance == null) return;

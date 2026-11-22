@@ -41,7 +41,7 @@ namespace Game.Modules
         public const float HullRangeMultiplier = 0.65f;
 
         // ---- 폭뢰
-        public const int RackSalvo = 4;
+        public const int RackSalvo = 4;                // 최고 단계(Lv3)의 한 번 투하 수 — 단계별 1 · 2 · 4발(AswLauncherModule.ChargesForLevel)
         public const float RackDamageMultiplier = 1.25f;
         public const float RackReloadMultiplier = 0.8f;
         public const float RackReach = 8f;             // 투하 지점에서 이 반경 안의 잠수함만 노린다
@@ -96,8 +96,8 @@ namespace Game.Modules
             ModuleVariant.BowSonar => $"앞쪽 ±{BowSonarHalfArc:0}°만 탐지, 언제나 작동",
             ModuleVariant.TowedSonar => $"사방 탐지 · 반경 {TowedRangeMultiplier:0.#}배 · 최고 속력 {TowedFastSpeedRatio * 100f:0}% 이상이면 반경 절반",
             ModuleVariant.HullSonar => $"사방 탐지 · 반경 {HullRangeMultiplier * 100f:0}%",
-            ModuleVariant.DepthChargeRack => $"배 바로 뒤에 {RackSalvo}발 투하 · 피해 {RackDamageMultiplier * 100f:0}% · 재장전 {RackReloadMultiplier * 100f:0}% — 잠수함 위를 지나가야 맞음",
-            ModuleVariant.DepthChargeProjector => $"트인 현측으로 던짐(정횡 ±{ProjectorHalfArc:0}°) · 앞뒤로는 못 던짐",
+            ModuleVariant.DepthChargeRack => $"배 바로 뒤 항적에 Lv1·2·3 = 1·2·4발 차례로 투하 · 피해 {RackDamageMultiplier * 100f:0}% · 재장전 {RackReloadMultiplier * 100f:0}% · 뒤에서 오는 어뢰 요격 — 잠수함 위를 지나가야 맞음",
+            ModuleVariant.DepthChargeProjector => $"트인 현측으로 Lv1·2·3 = 1·2·4발(발사기 1·2·4문) · 정횡 ±{ProjectorHalfArc:0}° · 앞뒤로는 못 던짐",
             ModuleVariant.TorpedoTubeSide => $"트인 현측(정횡 ±{TorpedoTubeHalfArc:0}°)으로 부채꼴 3발 · 앞뒤로는 못 쏨",
             _ => "",
         };

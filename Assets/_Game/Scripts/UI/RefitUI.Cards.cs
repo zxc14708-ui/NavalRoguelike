@@ -151,8 +151,11 @@ namespace Game.UI
                         string impact = BuildGuide.InstallImpact(def, grid);
                         if (impact != null) stats.text = impact + "\n" + stats.text;
                     }
+                    // 이미 가진 블록(2026-11-22): 같은 블록 위에 놓으면 강화 · 지원 블록은 최고 단계 전까지 강화만
+                    string owned = InstallOwnedLine(def);
+                    if (owned != null) stats.text = owned + "\n" + stats.text;
                     // 지금은 놓을 자리가 없는 블록(대잠 보장 카드 등) — 고르기 전에 알린다(2026-10-11 점검 B04)
-                    if (grid != null && !grid.HasAnyValidPlacement(def))
+                    else if (grid != null && !grid.HasAnyValidPlacement(def))
                         stats.text += "\n<color=#e0956a>지금은 놓을 자리가 없음 — 배치 화면에서 다른 블록을 옮기거나 철거해 자리를 만드세요</color>";
                 }
             }
@@ -224,6 +227,9 @@ namespace Game.UI
             ModuleType.DecoyLauncher or ModuleType.EwSuite => new Color(0.82f, 0.6f, 1f),
             ModuleType.RepairBay => new Color(0.5f, 0.82f, 0.54f),
             ModuleType.FleetRelay => new Color(0.38f, 0.79f, 0.86f),
+            ModuleType.FireSupport => new Color(0.88f, 0.58f, 0.42f),
+            ModuleType.ReconDroneBay => new Color(0.62f, 0.85f, 0.42f),
+            ModuleType.EmergencyShield => new Color(0.5f, 0.82f, 1f),
             ModuleType.TurboIntake => new Color(0.88f, 0.58f, 0.42f),
             ModuleType.FireControlArray => new Color(0.56f, 0.82f, 1f),
             ModuleType.MissileLogistics => new Color(0.5f, 0.72f, 0.88f),
@@ -438,6 +444,20 @@ namespace Game.UI
                 ChooseCard(i);
                 return;
             }
+        }
+
+        /// <summary>설치 카드 머리 줄: 이미 가진 같은 블록의 단계와 강화 가능 여부(없으면 null).</summary>
+        private string InstallOwnedLine(ModuleDefinition def)
+        {
+            if (grid == null || def == null || grid.CountOf(def) == 0) return null;
+            int max = ModuleUpgrades.MaxLevel(def) + 1, low = int.MaxValue;
+            foreach (var m in grid.Modules) if (m != null && m.Definition == def && !m.IsDestroyed) low = Mathf.Min(low, m.Level);
+            if (low == int.MaxValue) return null;
+            if (ModuleUpgrades.MustMaxBeforeAnother(grid, def))
+                return $"<color=#5be37a>보유 Lv{low} — 같은 블록 위에 놓아 Lv{low + 1}로 강화</color>  <color=#e0c05a>(지원 블록: Lv{max}이 되어야 하나 더)</color>";
+            if (ModuleUpgrades.HasUpgradeTarget(grid, def))
+                return $"<color=#5be37a>보유 Lv{low} — 같은 블록 위에 놓으면 강화(Lv{low + 1}) · 빈 칸이면 하나 더</color>";
+            return max > 1 ? $"<color=#c8d4dc>보유(모두 최고 단계 Lv{max}) — 빈 칸에 하나 더</color>" : null;
         }
 
         private static string RewardLabel(ModuleDefinition def, bool used)

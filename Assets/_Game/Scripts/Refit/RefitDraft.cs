@@ -9,8 +9,9 @@ using Game.TaskForce;
 namespace Game.Refit
 {
     /// <summary>
-    /// 정비 보상 카드를 뽑는다. 카드 종류는 셋이다.
-    ///   설치(Install)        — 새 블록. 놓을 자리가 있는 블록만
+    /// 정비 보상 카드를 뽑는다. 카드 종류는 둘이다(2026-11-22 사용자: "장비 강화" 카드 삭제 — 같은 블록 설치 카드로 강화).
+    ///   설치(Install)        — 새 블록(놓을 자리가 있는 블록) 또는 이미 가진 같은 블록 강화(배치 화면에서 같은 블록 위에 놓으면 확인 창).
+    ///                         지원 블록은 가진 것이 최고 단계가 아니면 강화만 된다(ModuleUpgrades.MustMaxBeforeAnother)
     ///   장비 강화(WeaponUpgrade) — 통합 카드 한 종류(2026-10-03, 예전 블록·단계별 "기관포 강화 I" 카드를 하나로).
     ///                         고르면 설치된 블록 중 강화 단계가 남은 것 하나를 골라 한 단계 올린다. 한 번 뽑을 때 한 장까지
     ///   성장(Growth)         — 공격력·연사력·스킬 회복 같은 함선 전체 능력. 희귀도(일반/희귀/에픽)가 있다
@@ -103,13 +104,12 @@ namespace Game.Refit
                                    TaskForceEscortFormation fleet = null, bool usedFleet = true)
         {
             bool canInstall = HasInstallCandidate(usedInstall);
-            bool canUpgrade = HasUpgradeCandidate(usedUpgrade);
             bool canStat = HasStatCandidate(usedStats);
             int fleetTarget = !usedFleet && fleet != null ? fleet.PickUpgradeTarget() : -1;
             bool canDeploy = !usedFleet && fleet != null && fleet.CanDeploy;
 
             float wInstall = canInstall ? 0.30f : 0f;
-            float wUpgrade = canUpgrade ? 0.70f * UpgradeShare(level) : 0f;
+            float wUpgrade = 0f;   // 장비 강화 카드 삭제(2026-11-22) — 설치 카드가 강화도 한다
             float wStat = canStat ? 0.40f : 0f;
             float wDeploy = canDeploy ? FleetDeployWeight : 0f;
             float wFleetUp = fleetTarget >= 0 ? FleetUpgradeWeight : 0f;
@@ -127,11 +127,8 @@ namespace Game.Refit
         /// <summary>성장 슬롯: 무장 강화 카드(진행할수록 더 자주) 또는 성장 카드.</summary>
         private RefitCard DrawGrowth(int level, bool boss, HashSet<ModuleDefinition> usedUpgrade, HashSet<RunStat> usedStats)
         {
-            bool canUpgrade = HasUpgradeCandidate(usedUpgrade);
-            bool canStat = HasStatCandidate(usedStats);
-            if (canUpgrade && (!canStat || Random.value < UpgradeShare(level))) return DrawUpgrade(level, usedUpgrade);
-            if (canStat) return DrawStat(level, usedStats, boss);
-            return null;
+            // 장비 강화 카드 삭제(2026-11-22): 성장 슬롯은 성장 카드만
+            return HasStatCandidate(usedStats) ? DrawStat(level, usedStats, boss) : null;
         }
 
         private RefitCard DrawEpicStat(HashSet<RunStat> usedStats)
@@ -163,8 +160,11 @@ namespace Game.Refit
             foreach (var def in definitions)
             {
                 if (def == null || used.Contains(def)) continue;
-                if (grid != null && !grid.HasAnyValidPlacement(def)) continue;
                 if (BridgeCovers(def, grid)) continue;               // 함교가 이미 같은 효과를 낸다(함급 패시브, 2026-10-23)
+                // 놓을 자리가 있거나(지원 블록은 가진 것이 최고 단계일 때만) 가진 같은 블록을 강화할 수 있으면(2026-11-22)
+                bool canPlace = grid == null || (grid.HasAnyValidPlacement(def) && !ModuleUpgrades.MustMaxBeforeAnother(grid, def));
+                bool canUpgrade = grid != null && ModuleUpgrades.HasUpgradeTarget(grid, def);
+                if (!canPlace && !canUpgrade) continue;
                 _installPool.Add(def);
             }
             if (_installPool.Count > 0) return;
@@ -207,9 +207,13 @@ namespace Game.Refit
             return definitions;
         }
 
+        /// <summary>
+        /// Resources/Modules에서 더하는 블록. 다중 표적 사격통제 · 미사일 재장전 구획은 미사일 구축함 함교가 흡수해 뺐다(2026-11-22 —
+        /// 데이터는 남겨 예전 저장 · 시작 배치가 그대로 작동). 포격 지원 요청 · 정찰 드론 격납고 · 응급 차폐 장갑을 새로 더한다.
+        /// </summary>
         public static bool IsConceptSupport(ModuleType type)
             => type is ModuleType.FleetRelay or ModuleType.TurboIntake
-                or ModuleType.FireControlArray or ModuleType.MissileLogistics
+                or ModuleType.FireSupport or ModuleType.ReconDroneBay or ModuleType.EmergencyShield
                 or ModuleType.TorpedoTube or ModuleType.Howitzer or ModuleType.RamBow or ModuleType.MineRail
                 or ModuleType.Nobong;   // 경어뢰 발사관·곡사포(2026-10-08)도 Resources/Modules에서 더한다
 

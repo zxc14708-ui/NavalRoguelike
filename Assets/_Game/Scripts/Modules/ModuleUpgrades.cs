@@ -103,6 +103,8 @@ namespace Game.Modules
             s.ReloadTime *= M(m.cooldownMultiplier);
             s.SortieCooldown *= M(m.cooldownMultiplier);   // 헬기데크 출격 간격(다른 블록은 0)
             s.HelicopterSpeed *= M(m.speedMultiplier);
+            s.SpeedBonus *= M(m.speedMultiplier);          // 강습 추진 흡기 강화(2026-11-22) — 다른 블록은 0
+            s.AccelerationBonus *= M(m.speedMultiplier);
             s.MagazineCapacity = ScaleCapacity(s.MagazineCapacity, M(m.magazineMultiplier), s.AmmoPerShot);
             s.AmmoReloadTime *= M(m.ammoReloadMultiplier);
             s.TurretTurnRate *= M(m.turnSpeedMultiplier);
@@ -164,6 +166,22 @@ namespace Game.Modules
             if (grid == null || card == null || MaxLevel(card) == 0) return false;
             foreach (var m in grid.Modules)
                 if (CanUpgradeWith(m, card)) return true;
+            return false;
+        }
+
+        /// <summary>
+        /// 지원 블록(2026-11-22 사용자: 지원 분류 블록은 하나를 3단계까지 강화해야 다음 것을 놓는다). 사전의 "지원" 분류와 같은 블록 —
+        /// 탄약고 · 손상 통제반 · 전투단 통신 중계 · 강습 추진 흡기 · 포격 지원 요청 · 정찰 드론 격납고 · 응급 차폐 장갑.
+        /// </summary>
+        public static bool IsSupport(ModuleType t) => t is ModuleType.Magazine or ModuleType.RepairBay or ModuleType.FleetRelay or ModuleType.TurboIntake
+            or ModuleType.FireSupport or ModuleType.ReconDroneBay or ModuleType.EmergencyShield;
+
+        /// <summary>지원 블록인데 가진 것 중 아직 최고 단계가 아닌 것이 있다 — 하나 더 놓지 못하고 강화만 한다.</summary>
+        public static bool MustMaxBeforeAnother(ShipGrid grid, ModuleDefinition def)
+        {
+            if (grid == null || def == null || !IsSupport(def.Type) || MaxLevel(def) == 0) return false;
+            foreach (var m in grid.Modules)
+                if (m != null && m.Definition == def && !m.IsDestroyed && m.UpgradeLevel < MaxLevel(def)) return true;
             return false;
         }
 

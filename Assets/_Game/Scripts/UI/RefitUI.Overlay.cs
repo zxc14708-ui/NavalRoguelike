@@ -282,7 +282,14 @@ namespace Game.UI
                                (grid != null && grid.TonnageBudget > 0f && _held.Tonnage > 0f ? $"  {_held.Tonnage:0.#}t" : "") +
                                (_heldWasInstalled ? $"   (원래 자리 {_heldOrigin} · 우클릭/Esc로 복귀)" : ""));
 
-                if (!grid.CanPlace(_held, _cursor, _heldRotation, out string reason) && reason != null)
+                var under = _heldIsReward ? grid.Get(_cursor) : null;
+                if (under != null && under.Definition == _held)   // 같은 블록 위(2026-11-22): 놓으면 강화
+                    _sb.AppendLine(ModuleUpgrades.CanUpgradeWith(under, _held)
+                        ? $"<color=#5be37a>같은 블록 — 클릭하면 강화(Lv{under.Level} → Lv{under.Level + 1})</color>"
+                        : $"<color=#e0c05a>같은 블록 — 이미 최고 단계(Lv{under.Level})</color>");
+                else if (HeldUpgradeOnly)
+                    _sb.AppendLine($"<color=#e0c05a>지원 블록 — 가진 {_held.DisplayName}를 Lv{ModuleUpgrades.MaxLevel(_held) + 1}까지 강화해야 하나 더 놓을 수 있음(같은 블록 위에 놓아 강화)</color>");
+                else if (!grid.CanPlace(_held, _cursor, _heldRotation, out string reason) && reason != null)
                     _sb.AppendLine($"<color=#e06a5a>{reason}</color>");
                 else
                 {

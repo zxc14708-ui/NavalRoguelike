@@ -14,9 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Game.Modules.ModuleDefinition
   id: mod_fleetrelay
   displayName: "\uC804\uD22C\uB2E8 \uD1B5\uC2E0 \uC911\uACC4"
-  description: "\uD638\uC704\uD568 \uC790\uC728 \uBB34\uC7A5\uC758 \uC7AC\uC0AC\uC6A9
-    \uC18D\uB3C4\uB97C 15% \uB192\uC778\uB2E4. \uC2AC\uB86F/CP\uB97C \uCD94\uAC00\uD558\uC9C0
-    \uC54A\uB294\uB2E4."
+  description: "\uC77C\uC815 \uC2DC\uAC04\uB9C8\uB2E4 \uBCF4\uAE09\uC120\uACFC \uACE0\uC18D\uC815
+    \uD3B8\uB300\uB97C \uBD80\uB978\uB2E4. \uBCF4\uAE09\uC120\uC740 \uD0C4\uC57D
+    \uC804\uB7C9 \uBCF4\uAE09 \xB7 \uBE14\uB85D \uC218\uB9AC 1\xB72\xB73\uAC1C \xB7
+    \uC7AC\uC0AC\uC6A9 \uC911\uC778 \uC2A4\uD0AC \u221230\xB740\xB750%, \uACE0\uC18D\uC815
+    2\xB74\xB76\uCC99\uC740 \uB458\uB808 26m \uC801\uC744 \uAE30\uAD00\uD3EC\uB85C
+    \uC3DC\uB2E4. Lv1\xB72\xB73 = 45\xB740\xB735\uCD08\uB9C8\uB2E4 15\xB718\xB720\uCD08
+    \uC9C0\uC6D0. \uD638\uC704\uD568 \uC790\uC728 \uBB34\uC7A5 \uC7AC\uC0AC\uC6A9
+    +15%\uB294 \uADF8\uB300\uB85C."
   type: 17
   icon: {fileID: 21300000, guid: 09fce06b13942e343b33a48f4022a1c5, type: 3}
   width: 1
@@ -29,6 +34,8 @@ MonoBehaviour:
   maxHp: 40
   rarity: 0
   weight: 0.65
+  tonnage: 0
+  mountClass: 0
   prefab: {fileID: 7775186106027197502, guid: b01ae2772b79d164b854a3a0c16b057c, type: 3}
   stats:
     Range: 0
@@ -61,6 +68,8 @@ MonoBehaviour:
     MovingGunDamageBonus: 0
     GuidedRangeBonus: 0
     MissileReloadReduction: 0
+    MissileResupplyReduction: 0
+    FireControlTracks: 0
   targetEfficiency:
     SmallSurface: 1
     MediumSurface: 1

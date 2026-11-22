@@ -53,6 +53,29 @@ namespace Game.UI
         };
 
         /// <summary>적을 상대하는 데 필요한 역할(미사일을 쏘는 적은 대공도).</summary>
+        /// <summary>무장 분류(겹치지 않음, 2026-11-22).</summary>
+        public static string GroupOf(ModuleType t) => t switch
+        {
+            ModuleType.Autocannon or ModuleType.Nobong or ModuleType.NavalGun or ModuleType.Howitzer
+                or ModuleType.Ww2DualPurposeGun or ModuleType.Ww2HeavyGun => "함포",
+            ModuleType.Vls or ModuleType.GuidedRocket => "미사일",
+            ModuleType.Ciws or ModuleType.SamLauncher or ModuleType.Ww2QuadAa => "방공",
+            ModuleType.AswLauncher or ModuleType.TorpedoTube or ModuleType.Sonar or ModuleType.HelicopterDeck => "대잠",
+            ModuleType.Radar or ModuleType.EwSuite or ModuleType.DecoyLauncher => "탐지·전자전",
+            ModuleType.RamBow or ModuleType.MineRail or ModuleType.Ww2BroadsideTorpedo => "특수",
+            _ => "지원",
+        };
+
+        /// <summary>쓰임새 배지(분류 줄 앞): 대공 · 대함 · 대잠.</summary>
+        public static string RoleBadges(CodexRole r)
+        {
+            var parts = new List<string>();
+            if ((r & CodexRole.Air) != 0) parts.Add("<color=#7fd4ff>대공</color>");
+            if ((r & CodexRole.Surface) != 0) parts.Add("<color=#ffb36a>대함</color>");
+            if ((r & CodexRole.Sub) != 0) parts.Add("<color=#9ae6c8>대잠</color>");
+            return parts.Count > 0 ? $"[{string.Join("·", parts)}]  " : "";
+        }
+
         private static CodexRole CounterRoles(EnemyDefinition def)
         {
             var r = def.Kind switch
@@ -122,9 +145,9 @@ namespace Game.UI
             [ModuleType.NavalGun] = new[] { (ModuleType.Magazine, "2칸 안이면 발사 간격 −25% · 탄 +50%"), (ModuleType.Radar, "34 m 끝까지 일찍 잡는다"), (ModuleType.TurboIntake, "항해 중 포 피해 증가") },
             [ModuleType.Nobong] = new[] { (ModuleType.Radar, "자체 센서가 없어 레이더 표적만 쏜다"), (ModuleType.Ciws, "드론·항공기 근접 방어") },
             [ModuleType.Howitzer] = new[] { (ModuleType.Radar, "44 m 사거리는 전용 레이더(52 m)가 있어야 다 쓴다"), (ModuleType.NavalGun, "가까운 적은 함포로") },
-            [ModuleType.GuidedRocket] = new[] { (ModuleType.FireControlArray, "유도 무장 사거리 증가"), (ModuleType.MissileLogistics, "발사 간격 단축"), (ModuleType.Magazine, "발사 간격만 지원") },
-            [ModuleType.Vls] = new[] { (ModuleType.Radar, "48 m 끝까지 쓰려면 전용 레이더"), (ModuleType.FireControlArray, "유도 무장 사거리 증가"), (ModuleType.MissileLogistics, "셀 보급 단축") },
-            [ModuleType.SamLauncher] = new[] { (ModuleType.Radar, "멀리서 먼저 잡는다"), (ModuleType.Ciws, "뚫고 온 미사일 최종 방어"), (ModuleType.FireControlArray, "유도 무장 사거리 증가") },
+            [ModuleType.GuidedRocket] = new[] { (ModuleType.Radar, "먼 표적을 먼저 잡는다"), (ModuleType.Magazine, "발사 간격만 지원"), (ModuleType.ReconDroneBay, "약점 표시한 큰 적에 집중") },
+            [ModuleType.Vls] = new[] { (ModuleType.Radar, "48 m 끝까지 쓰려면 전용 레이더"), (ModuleType.ReconDroneBay, "약점 표시 · 숨은 적 드러냄"), (ModuleType.Bridge, "미사일 구축함 함교: 사거리 +15% · 발사 간격 −25%") },
+            [ModuleType.SamLauncher] = new[] { (ModuleType.Radar, "멀리서 먼저 잡는다"), (ModuleType.Ciws, "뚫고 온 미사일 최종 방어"), (ModuleType.EmergencyShield, "뚫린 한 방 뒤 피해 감소") },
             [ModuleType.Ciws] = new[] { (ModuleType.SamLauncher, "바깥에서 먼저 요격"), (ModuleType.DecoyLauncher, "기만체로 들어오는 수를 줄인다"), (ModuleType.EwSuite, "재밍으로 빗나가게") },
             [ModuleType.AswLauncher] = new[] { (ModuleType.Sonar, "잠수함을 드러내야 쏜다"), (ModuleType.HelicopterDeck, "헬기가 접촉을 확정한다") },
             [ModuleType.TorpedoTube] = new[] { (ModuleType.Sonar, "소나 접촉 쪽으로 쏜다"), (ModuleType.HelicopterDeck, "헬기 접촉 확정") },
@@ -136,8 +159,10 @@ namespace Game.UI
             [ModuleType.Magazine] = new[] { (ModuleType.Autocannon, "붙이면 빠르지만 유폭 때 함께 잃는다"), (ModuleType.NavalGun, "붙이면 빠르지만 유폭 때 함께 잃는다"), (ModuleType.RepairBay, "옆 손상통제반이 유폭 피해를 줄인다") },
             [ModuleType.RepairBay] = new[] { (ModuleType.Magazine, "옆 탄약고 유폭 피해 감소"), (ModuleType.Bridge, "함교의 자동 회복·응급 수리를 키운다") },
             [ModuleType.TurboIntake] = new[] { (ModuleType.RamBow, "속력이 곧 충돌 피해"), (ModuleType.Autocannon, "항해 중 포 피해 증가"), (ModuleType.NavalGun, "항해 중 포 피해 증가") },
-            [ModuleType.FireControlArray] = new[] { (ModuleType.Vls, "사거리 증가"), (ModuleType.GuidedRocket, "사거리 증가"), (ModuleType.SamLauncher, "사거리 증가") },
-            [ModuleType.MissileLogistics] = new[] { (ModuleType.Vls, "발사·셀 보급 단축"), (ModuleType.GuidedRocket, "발사 간격 단축") },
+            [ModuleType.FleetRelay] = new[] { (ModuleType.Vls, "보급선이 탄약을 전량 채운다"), (ModuleType.RepairBay, "보급선이 부서진 블록을 되살린다"), (ModuleType.Autocannon, "고속정이 근접 적을 함께 쏜다") },
+            [ModuleType.FireSupport] = new[] { (ModuleType.Radar, "멀리 몰린 적을 드러내야 포격한다"), (ModuleType.ReconDroneBay, "약점 표시한 적에 포격이 더 아프다") },
+            [ModuleType.ReconDroneBay] = new[] { (ModuleType.AswLauncher, "드러난 잠수함에 폭뢰"), (ModuleType.Vls, "약점 표시한 큰 적 집중 타격"), (ModuleType.FireSupport, "몰린 적 포격") },
+            [ModuleType.EmergencyShield] = new[] { (ModuleType.RepairBay, "버틴 뒤 수리로 회복"), (ModuleType.Ciws, "큰 한 방을 줄이고 남은 미사일 요격") },
             [ModuleType.RamBow] = new[] { (ModuleType.TurboIntake, "속력이 곧 충돌 피해") },
             [ModuleType.MineRail] = new[] { (ModuleType.TurboIntake, "빠르게 달리며 쫓는 적 앞에 뿌린다") },
             [ModuleType.Bridge] = new[] { (ModuleType.RepairBay, "손상통제반마다 회복 상한·속도·응급 수리 +1") },
@@ -207,6 +232,7 @@ namespace Game.UI
                 Tag = "규칙 집합 ww2_v1  ·  패치 B",
                 Accent = new Color(1f, 0.78f, 0.42f),
                 Roles = CodexRole.Surface | CodexRole.Air,
+                Group = "규칙",
                 Body = sb.ToString().TrimEnd(),
             };
         }
@@ -221,6 +247,7 @@ namespace Game.UI
                 Title = c.Title,
                 Tag = $"시작 함정  ·  고유 스킬 [{key}] {skill}",
                 Accent = c.Color,
+                Group = "시작 함정",
                 Roles = c.Kind switch
                 {
                     StartShipKind.Command => CodexRole.Air | CodexRole.Support,
@@ -261,6 +288,7 @@ namespace Game.UI
             Tag = $"용어  ·  {tag}",
             Accent = new Color(0.66f, 1f, 0.75f),
             Roles = roles,
+            Group = "용어",
             Body = body,
         };
 

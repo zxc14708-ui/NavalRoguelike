@@ -15,12 +15,14 @@ MonoBehaviour:
   module: {fileID: 11400000, guid: 101af9214a87fba44a103c2a34f0c7d8, type: 2}
   stages:
   - displayName: "\uB300\uC7A0 \uBC1C\uC0AC\uAE30 \uAC15\uD654 I"
-    description: "\uD53C\uD574 +25% \xB7 \uBC1C\uC0AC \uAC04\uACA9 \u221210%"
+    description: "\uD55C \uBC88\uC5D0 \uD3ED\uB8B0 2\uBC1C(\uBC1C\uC0AC\uAE30 2\uBB38
+      \xB7 \uB808\uC77C 2\uC904) \xB7 \uD53C\uD574 +25% \xB7 \uBC1C\uC0AC \uAC04\uACA9
+      \u221210% \xB7 \uD0C4\uC57D +25%"
     modifier:
       damageMultiplier: 1.25
       rangeMultiplier: 1
       cooldownMultiplier: 0.9
-      magazineMultiplier: 1
+      magazineMultiplier: 1.25
       ammoReloadMultiplier: 1
       turnSpeedMultiplier: 1
       supplyMultiplier: 1
@@ -30,15 +32,16 @@ MonoBehaviour:
       maxHpMultiplier: 1
       selfDamageMultiplier: 1
       speedMultiplier: 1
-    icon: {fileID: 0}
+    icon: {fileID: 21300000, guid: c83358cd62962af4bbc700a5b7a57f0f, type: 3}
   - displayName: "\uB300\uC7A0 \uBC1C\uC0AC\uAE30 \uAC15\uD654 II"
-    description: "\uD53C\uD574 +50% \xB7 \uBC1C\uC0AC \uAC04\uACA9 \u221220% \xB7
-      \uC0AC\uAC70\uB9AC +15%"
+    description: "\uD55C \uBC88\uC5D0 \uD3ED\uB8B0 4\uBC1C(\uBC1C\uC0AC\uAE30 4\uBB38
+      \xB7 \uC989\uC751 \uD0C4\uC57D\uD568) \xB7 \uD53C\uD574 +50% \xB7 \uBC1C\uC0AC
+      \uAC04\uACA9 \u221220% \xB7 \uC0AC\uAC70\uB9AC +15% \xB7 \uD0C4\uC57D +50%"
     modifier:
       damageMultiplier: 1.5
       rangeMultiplier: 1.15
       cooldownMultiplier: 0.8
-      magazineMultiplier: 1
+      magazineMultiplier: 1.5
       ammoReloadMultiplier: 1
       turnSpeedMultiplier: 1
       supplyMultiplier: 1
@@ -48,4 +51,4 @@ MonoBehaviour:
       maxHpMultiplier: 1
       selfDamageMultiplier: 1
       speedMultiplier: 1
-    icon: {fileID: 0}
+    icon: {fileID: 21300000, guid: 4f838d8314366e24b9182d54ad079a23, type: 3}

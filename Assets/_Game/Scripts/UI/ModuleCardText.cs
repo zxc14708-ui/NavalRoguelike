@@ -153,10 +153,28 @@ namespace Game.UI
                     Row(sb, "재장전", $"{s.AmmoReloadTime:0} 초 (전량) · 발사 후 {s.MinRange:0} m부터 작동");
                     break;
                 case ModuleType.FleetRelay:
-                    Row(sb, "편대 재사용 속도", $"+{s.EscortFireRateBonus * 100f:0}%");
-                    Row(sb, "대상", "호위함 자율 무장");
-                    Row(sb, "지휘 점수·슬롯", "증가 없음");
-                    Row(sb, "중복", "가장 강한 1개만 적용");
+                    Row(sb, "지원 함정 호출", $"{Game.Modules.Runtime.FleetRelayModule.IntervalFor(1):0} · {Game.Modules.Runtime.FleetRelayModule.IntervalFor(2):0} · {Game.Modules.Runtime.FleetRelayModule.IntervalFor(3):0}초마다 (Lv1·2·3)");
+                    Row(sb, "고속정 편대", $"{Game.Modules.Runtime.FleetRelayModule.BoatsFor(1)} · {Game.Modules.Runtime.FleetRelayModule.BoatsFor(2)} · {Game.Modules.Runtime.FleetRelayModule.BoatsFor(3)}척 — 둘레 {Game.Modules.Runtime.SupportCallFleet.BoatGunRange:0} m 기관포");
+                    Row(sb, "보급선", "탄약 전량 · 블록 수리 1 · 2 · 3개 · 스킬 재사용 −30 · 40 · 50%");
+                    Row(sb, "머무는 시간", $"{Game.Modules.Runtime.FleetRelayModule.StayFor(1):0} · {Game.Modules.Runtime.FleetRelayModule.StayFor(2):0} · {Game.Modules.Runtime.FleetRelayModule.StayFor(3):0}초");
+                    Row(sb, "편대 재사용 속도", $"+{s.EscortFireRateBonus * 100f:0}% (호위함 자율 무장)");
+                    break;
+                case ModuleType.FireSupport:
+                    Row(sb, "포격 요청", $"{Game.Modules.Runtime.FireSupportModule.IntervalFor(1):0} · {Game.Modules.Runtime.FireSupportModule.IntervalFor(2):0} · {Game.Modules.Runtime.FireSupportModule.IntervalFor(3):0}초마다 (Lv1·2·3)");
+                    Row(sb, "포탄", $"{Game.Modules.Runtime.FireSupportModule.ShellsFor(1)} · {Game.Modules.Runtime.FireSupportModule.ShellsFor(2)} · {Game.Modules.Runtime.FireSupportModule.ShellsFor(3)}발 · 한 발 피해 {Game.Modules.Runtime.FireSupportModule.ShellDamage:0}(반경 {Game.Modules.Runtime.FireSupportModule.ShellBlast:0.#} m)");
+                    Row(sb, "낙탄 지역", $"반경 {Game.Modules.Runtime.FireSupportModule.RadiusFor(1):0.#} · {Game.Modules.Runtime.FireSupportModule.RadiusFor(2):0.#} · {Game.Modules.Runtime.FireSupportModule.RadiusFor(3):0.#} m — 적이 가장 많이 모인 곳");
+                    Row(sb, "경고", $"{Game.Modules.Runtime.FireSupportModule.WarnTime:0.#}초 전 수면에 경고 원");
+                    break;
+                case ModuleType.ReconDroneBay:
+                    Row(sb, "드론 출격", $"{Game.Modules.Runtime.ReconDroneBayModule.IntervalFor(1):0} · {Game.Modules.Runtime.ReconDroneBayModule.IntervalFor(2):0} · {Game.Modules.Runtime.ReconDroneBayModule.IntervalFor(3):0}초마다 {Game.Modules.Runtime.ReconDroneBayModule.DronesFor(1)} · {Game.Modules.Runtime.ReconDroneBayModule.DronesFor(2)} · {Game.Modules.Runtime.ReconDroneBayModule.DronesFor(3)}기");
+                    Row(sb, "정찰", $"둘레 {Game.Modules.Runtime.ReconDroneBayModule.RevealRadius:0} m — 잠항 잠수함 · 반잠수정도 드러냄");
+                    Row(sb, "약점 표시", $"가장 큰 적 받는 피해 +{(Game.Modules.Runtime.ReconDroneBayModule.MarkMultiplier - 1f) * 100f:0}%");
+                    Row(sb, "맴도는 시간", $"{Game.Modules.Runtime.ReconDroneBayModule.LoiterFor(1):0} · {Game.Modules.Runtime.ReconDroneBayModule.LoiterFor(2):0} · {Game.Modules.Runtime.ReconDroneBayModule.LoiterFor(3):0}초");
+                    break;
+                case ModuleType.EmergencyShield:
+                    Row(sb, "작동", $"한 번에 선체 {Game.Modules.Runtime.EmergencyShieldModule.TriggerFraction * 100f:0}% 이상 피해를 받으면 자동");
+                    Row(sb, "보호막", $"{Game.Modules.Runtime.EmergencyShieldModule.Duration:0}초 동안 받는 피해 −{Game.Modules.Runtime.EmergencyShieldModule.Reduction * 100f:0}%(그 한 방부터)");
+                    Row(sb, "재사용", $"{Game.Modules.Runtime.EmergencyShieldModule.CooldownFor(1):0} · {Game.Modules.Runtime.EmergencyShieldModule.CooldownFor(2):0} · {Game.Modules.Runtime.EmergencyShieldModule.CooldownFor(3):0}초 (Lv1·2·3)");
                     break;
                 case ModuleType.TurboIntake:
                     Row(sb, "최고 속력", $"+{s.SpeedBonus * 100f:0}%");
@@ -449,7 +467,10 @@ namespace Game.UI
             ModuleType.DecoyLauncher or ModuleType.EwSuite => "기만·전자전",
             ModuleType.Magazine => "보급",
             ModuleType.RepairBay => "손상 통제",
-            ModuleType.FleetRelay => "편대 지원",
+            ModuleType.FleetRelay => "지원 함정",
+            ModuleType.FireSupport => "포격 지원",
+            ModuleType.ReconDroneBay => "정찰",
+            ModuleType.EmergencyShield => "방호",
             ModuleType.TurboIntake => "기관 보조",
             ModuleType.FireControlArray => "사격 통제",
             ModuleType.MissileLogistics => "미사일 보급",
@@ -470,6 +491,9 @@ namespace Game.UI
             ModuleType.DecoyLauncher or ModuleType.EwSuite => "#d09aff",
             ModuleType.RepairBay => "#7fd08a",
             ModuleType.FleetRelay => "#62cadc",
+            ModuleType.FireSupport => "#e0956a",
+            ModuleType.ReconDroneBay => "#9fd86a",
+            ModuleType.EmergencyShield => "#7fd0ff",
             ModuleType.TurboIntake => "#e0956a",
             ModuleType.FireControlArray => "#8fd0ff",
             ModuleType.MissileLogistics => "#7fb8e0",
@@ -808,7 +832,10 @@ namespace Game.UI
             ModuleType.Magazine => "가까운 포의 발사·보급을 빠르게 (파괴 시 유폭)",
             ModuleType.RepairBay => "선체·모듈을 서서히 수리",
             ModuleType.HelicopterDeck => "대잠 헬기 자동 출격",
-            ModuleType.FleetRelay => "편대 통신을 중계해 호위함 자율 무장을 빠르게",
+            ModuleType.FleetRelay => "보급선 + 고속정 편대를 주기적으로 불러 보급 · 수리 · 화력 지원",
+            ModuleType.FireSupport => "적이 몰린 곳에 화면 밖 순양함의 포격을 주기적으로",
+            ModuleType.ReconDroneBay => "드론이 적을 드러내고(잠수함 포함) 큰 적에 약점 표시",
+            ModuleType.EmergencyShield => "큰 피해를 받으면 잠깐 피해를 줄이는 보호막",
             ModuleType.TurboIntake => "기관 보조 — 빠르게 항해할 때 실탄 화력 증가",
             ModuleType.FireControlArray => "사격 통제 — 동시 추적과 유도 무장 사거리 증가",
             ModuleType.MissileLogistics => "미사일 발사와 셀 보급 대기 시간을 단축",
@@ -826,7 +853,10 @@ namespace Game.UI
             var s = module.Runtime != null ? module.Runtime.Stats : module.EffectiveStats;
             return module.Definition.Type switch
             {
-                ModuleType.FleetRelay => $"편대 +{s.EscortFireRateBonus * 100f:0}%",
+                ModuleType.FleetRelay => module.Runtime is Game.Modules.Runtime.FleetRelayModule fr ? fr.TimerStatus : $"편대 +{s.EscortFireRateBonus * 100f:0}%",
+                ModuleType.FireSupport => module.Runtime is Game.Modules.Runtime.FireSupportModule fs ? fs.TimerStatus : "",
+                ModuleType.ReconDroneBay => module.Runtime is Game.Modules.Runtime.ReconDroneBayModule rd ? rd.TimerStatus : "",
+                ModuleType.EmergencyShield => module.Runtime is Game.Modules.Runtime.EmergencyShieldModule es ? es.TimerStatus : "",
                 ModuleType.TurboIntake => $"속력 +{s.SpeedBonus * 100f:0}%",
                 ModuleType.FireControlArray => $"추적 +{s.ExtraTrackedTargets}",
                 ModuleType.MissileLogistics => $"발사 −{s.MissileReloadReduction * 100f:0}%",

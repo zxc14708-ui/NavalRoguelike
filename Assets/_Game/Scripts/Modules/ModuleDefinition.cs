@@ -155,5 +155,9 @@ namespace Game.Modules
         public float GuidedRangeBonus;
         [Tooltip("VLS·유도로켓 발사 간격과 주기적 셀 보급 시간 단축. 0.15 = -15%.")]
         public float MissileReloadReduction;
+        [Tooltip("셀 보급(전량 재장전) 시간만 따로 단축(0이면 MissileReloadReduction과 같게). 미사일 구축함 함교 −20%(2026-11-22).")]
+        public float MissileResupplyReduction;
+        [Tooltip("함교가 흡수한 다중 표적 사격통제의 추가 추적 수(미사일 구축함 +3, 2026-11-22). 동종 중 가장 큰 값 하나.")]
+        public int FireControlTracks;
     }
 }

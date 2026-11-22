@@ -177,21 +177,26 @@ namespace Game.Dev
                 yield return null;
                 var codex = Object.FindFirstObjectByType<CodexUI>();
                 codex.ShowSection(CodexSection.Weapons);
-                codex.SetFilter(CodexRole.Sub);
+                // 2026-11-22: 분류는 겹치지 않는다 — 무장 하나는 분류 하나에만(대공 · 대함 · 대잠은 배지)
+                codex.SetGroup("대잠");
                 yield return null;
                 var subs = new List<string>();
                 bool allSub = true;
                 foreach (var e in codex.Entries(CodexSection.Weapons))
-                    if ((e.Roles & CodexRole.Sub) != 0) subs.Add(e.Title);
+                    if (e.Group == "대잠") subs.Add(e.Title);
                 foreach (var item in (System.Collections.IList)Get<object>(codex, "_listItems"))
                 {
                     int index = (int)item.GetType().GetField("Item1").GetValue(item);
-                    if ((codex.Entries(CodexSection.Weapons)[index].Roles & CodexRole.Sub) == 0) allSub = false;
+                    if (codex.Entries(CodexSection.Weapons)[index].Group != "대잠") allSub = false;
                 }
-                _report.AppendLine($"- 사전 대잠 필터: 목록 {codex.VisibleCount} = 역할 {subs.Count} · 모두 대잠 {Yes(allSub)} ({string.Join(", ", subs)})");
-                if (codex.VisibleCount != subs.Count || !allSub || codex.VisibleCount == 0) Fail("사전 역할 필터가 맞지 않음(C01)");
+                int sumGroups = 0, total = codex.Entries(CodexSection.Weapons).Count;
+                foreach (var g in new[] { "함포", "미사일", "방공", "대잠", "탐지·전자전", "지원", "특수" })
+                    foreach (var e in codex.Entries(CodexSection.Weapons)) if (e.Group == g) sumGroups++;
+                _report.AppendLine($"- 사전 대잠 분류: 목록 {codex.VisibleCount} = 분류 {subs.Count} · 모두 대잠 {Yes(allSub)} ({string.Join(", ", subs)}) · 분류 합 {sumGroups} = 무장 {total}(겹침 · 빠짐 없음 {Yes(sumGroups == total)})");
+                if (codex.VisibleCount != subs.Count || !allSub || codex.VisibleCount == 0) Fail("사전 분류 필터가 맞지 않음(C01)");
+                if (sumGroups != total) Fail("사전 무장 분류가 겹치거나 빠진 항목이 있음");
                 yield return ScreenShot("bundleb_codex_filter");
-                codex.SetFilter(CodexRole.None);
+                codex.SetGroup(null);
                 codex.SetSearch("CIWS");
                 yield return null;
                 _report.AppendLine($"- 사전 검색 \"CIWS\": {codex.VisibleCount}개 · 선택 {codex.Selected?.Title}");

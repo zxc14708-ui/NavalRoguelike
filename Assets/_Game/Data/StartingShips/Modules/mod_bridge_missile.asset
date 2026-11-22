@@ -14,12 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Game.Modules.ModuleDefinition
   id: mod_bridge_missile
   displayName: "\uBBF8\uC0AC\uC77C \uAD6C\uCD95\uD568 \uD568\uAD50"
-  description: "3\uCE78 \uD568\uAD50. \uC9C0\uD718\xB7\uC190\uC0C1\uD1B5\uC81C\xB7\uAE30\uB9CC\uCCB4\xB7\uC804\uC18D\xB7\uD56D\uD574
-    \uB808\uC774\uB354\uC5D0 \uD568\uAE09 \uD328\uC2DC\uBE0C: \uB2E4\uC911 \uD45C\uC801
-    \uC0AC\uACA9\uD1B5\uC81C \xB7 \uBBF8\uC0AC\uC77C \uC7AC\uC7A5\uC804 \uAD6C\uD68D
-    \uB0B4\uC7A5 \u2014 \uB3D9\uC2DC \uCD94\uC801 +2 \xB7 \uC720\uB3C4 \uC0AC\uAC70\uB9AC
-    +10% \xB7 \uBBF8\uC0AC\uC77C \uC7A5\uC804 \u221215% \xB7 \uD0D0\uC9C0 48. \uD568\uAD50\uAC00
-    \uBD80\uC11C\uC9C0\uBA74 \uD568\uAED8 \uC783\uB294\uB2E4."
+  description: "3칸 함교. 지휘·손상통제·기만체·전속·항해 레이더에 함급 패시브: 사격통제·재장전 체계 내장 — 동시 추적 +6(함교 3 + 사격통제 3) · 유도 무장 사거리 +15% · VLS 발사 간격 −25% · 전량 재장전 −20%. 부서지면 함께 잃는다."
   type: 0
   icon: {fileID: 21300000, guid: 24eb7b9144e42214c889442b81521555, type: 3}
   width: 3
@@ -64,8 +59,10 @@ MonoBehaviour:
     SpeedBonus: 0
     AccelerationBonus: 0
     MovingGunDamageBonus: 0
-    GuidedRangeBonus: 0.1
-    MissileReloadReduction: 0.15
+    GuidedRangeBonus: 0.15
+    MissileReloadReduction: 0.25
+    MissileResupplyReduction: 0.2
+    FireControlTracks: 3
   targetEfficiency:
     SmallSurface: 1
     MediumSurface: 1

@@ -91,6 +91,12 @@ namespace Game.Combat
         private int _topPhase;          // 0 상승 · 1 표적 위로 · 2 낙하
         private float _topApex;
         private Transform _salvoTarget; // 전탄 발사로 배정된 표적(마커가 남은 수를 센다)
+        // 해안 미사일 포대 발사(2026-11-22): 처음 몇 초는 발사 방향으로 곧게(유도 없음) · 크게 · 굵은 발사 연기
+        private float _boostLeft, _launchSmokeLeft, _smokeAccum;
+        /// <summary>발사 연기 뭉치 수(초당). 프레임 수와 상관없이 같은 양(2026-11-22 — 예전엔 프레임마다 4개라 빠른 PC에서 수천 개).</summary>
+        public const float LaunchSmokeRate = 150f;
+        private Vector3 _baseScale;
+        private bool _baseScaleSet, _scaled;
         // 접근 방향 바꾸기(2026-10-03, 현대화 초계함): 먼저 표적 둘레의 경유점으로 돌아 들어간 뒤 평소처럼 유도한다
         private bool _approachActive;
         private float _approachAngle, _approachRadius, _approachUntil;
@@ -176,6 +182,9 @@ namespace Game.Combat
             _hasCell = false;
             IsCommandSeeker = false;
             _topAttack = false; _topPhase = 0; _salvoTarget = null;
+            _boostLeft = 0f; _launchSmokeLeft = 0f; _smokeAccum = 0f;
+            if (!_baseScaleSet) { _baseScale = transform.localScale; _baseScaleSet = true; }
+            if (_scaled) { transform.localScale = _baseScale; _scaled = false; }
             _arc = profile == MissileProfile.ClimbDive ? Game.Ship.HitArc.Top : Game.Ship.HitArc.Side;
             if (damageOverride > 0f) damage = damageOverride;
 
@@ -355,10 +364,11 @@ namespace Game.Combat
             if (_target != null)
             {
                 Vector3 hitPoint = AimPoint();
-                if (!SteerApproach(hitPoint, dt)) Steer(hitPoint, dt);
+                if (_boostLeft > 0f) _boostLeft -= dt;   // 발사 구간: 곧게
+                else if (!SteerApproach(hitPoint, dt)) Steer(hitPoint, dt);
                 step = transform.forward * (speed * dt);
 
-                if (HitsIsland(step)) return;
+                if (_boostLeft <= 0f && HitsIsland(step)) return;   // 발사 구간(섬 위 포대에서 낮게 나간다)은 섬에 걸리지 않게
 
                 // 이번 프레임 이동 구간 전체로 판정한다. 빠른 미사일이 한 프레임에 표적을 건너뛰면 되돌아와 맴돈다.
                 if (SegmentHits(transform.position, step, hitPoint, out Vector3 impact))
@@ -382,6 +392,22 @@ namespace Game.Combat
             transform.position += step;
             KeepAboveWater();
             if (_nozzle != null) Game.View.MissileTrail.Tick(ref _trail, _nozzle.position, transform.forward, isThreat, dt);
+            if (_launchSmokeLeft > 0f)
+            {
+                // 발사 연기: 처음 2초 꽁무니에서 굵고 하얀 연기가 뭉게뭉게(실제 대함미사일 부스터처럼) — 발사대를 가릴 만큼
+                _launchSmokeLeft -= dt;
+                Vector3 n = _nozzle != null ? _nozzle.position : transform.position;
+                _smokeAccum += dt * LaunchSmokeRate;
+                int puffs = Mathf.Min(12, (int)_smokeAccum);
+                _smokeAccum -= puffs;
+                for (int k = 0; k < puffs; k++)
+                {
+                    float g = Random.Range(0.84f, 0.96f);
+                    Game.View.DecorFx.Emit(Game.View.DecorFx.MissileSmoke, n - transform.forward * Random.Range(0f, 0.8f) + Random.insideUnitSphere * 0.5f,
+                        -transform.forward * Random.Range(1f, 2.5f) + Random.insideUnitSphere * 1f + Game.View.DecorFx.Wind * 0.3f,
+                        Random.Range(3.6f, 5f), Random.Range(1.5f, 2.3f), new Color(g, g, g, 0.72f));
+                }
+            }
         }
 
         /// <summary>이번 이동 구간에 섬이 있으면 거기서 터진다(아무도 맞지 않음).</summary>
@@ -453,6 +479,22 @@ namespace Game.Combat
             if (_topAttack) _arc = Game.Ship.HitArc.Top;
             if (!s_salvo.Contains(this)) s_salvo.Add(this);
         }
+
+        /// <summary>
+        /// 해안 미사일 포대 발사(2026-11-22 사용자: 수직으로 솟았다 내리꽂히지 말고 곧게 나갔다가 접근, 크게, 발사 연기 많이).
+        /// Launch 바로 뒤에 부른다. boostSeconds 동안은 발사 방향 그대로 곧게 날고(유도 없음), 그 뒤 평소처럼 순항 고도로 다가가 급강하한다.
+        /// 모습은 visualScale배(풀로 돌아가면 원래대로), 처음 smokeSeconds 동안 꽁무니에서 굵은 연기를 뿜는다.
+        /// </summary>
+        public void BeginBoost(float boostSeconds, float visualScale, float smokeSeconds)
+        {
+            _boostLeft = Mathf.Max(0f, boostSeconds);
+            _launchSmokeLeft = Mathf.Max(0f, smokeSeconds);
+            if (!_baseScaleSet) { _baseScale = transform.localScale; _baseScaleSet = true; }
+            if (!Mathf.Approximately(visualScale, 1f)) { transform.localScale = _baseScale * visualScale; _scaled = true; }
+        }
+
+        /// <summary>검증용: 곧게 나는 발사 구간이 남았는가.</summary>
+        public bool Boosting => _boostLeft > 0f;
 
         /// <summary>전탄 발사 마커용: 지금 날아가는 전탄 발사 미사일 · 배정 표적 · 내리꽂히는 중인가.</summary>
         public Transform SalvoTarget => _salvoTarget;
@@ -731,6 +773,8 @@ namespace Game.Combat
         {
             if (s_salvo.Remove(this)) SalvoEnded?.Invoke(_salvoTarget);
             _salvoTarget = null; _topAttack = false;
+            _boostLeft = 0f; _launchSmokeLeft = 0f; _smokeAccum = 0f;
+            if (_scaled) { transform.localScale = _baseScale; _scaled = false; }
             _aswDelivery = false;
             _aswTorpedo = null;
             SetTarget(null);

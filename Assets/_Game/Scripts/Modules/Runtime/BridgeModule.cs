@@ -151,6 +151,17 @@ namespace Game.Modules.Runtime
         public bool FlankReady => _flankCooldown <= 0f && Ship != null && Instance != null && Instance.IsOperational;
         public float FlankReadiness01 => flankCooldown > 0f ? 1f - Mathf.Clamp01(_flankCooldown / flankCooldown) : 1f;
 
+        /// <summary>전속의 남은 재사용 시간(초).</summary>
+        public float FlankCooldownLeft => Mathf.Max(0f, _flankCooldown);
+
+        /// <summary>전속 재사용 시간을 비율만큼 줄인다(전투단 통신 중계 보급선, 2026-11-22). 줄였으면 true.</summary>
+        public bool ReduceFlankCooldown(float fraction)
+        {
+            if (_flankCooldown <= 0f || fraction <= 0f) return false;
+            _flankCooldown *= 1f - Mathf.Clamp01(fraction);
+            return true;
+        }
+
         public void Flank()
         {
             if (!FlankReady) return;
@@ -167,7 +178,9 @@ namespace Game.Modules.Runtime
             systems.RaiseEscortFireRateBonus(Stats.EscortFireRateBonus);
             systems.RaisePropulsionBonuses(Stats.SpeedBonus, Stats.AccelerationBonus, Stats.MovingGunDamageBonus);
             systems.RaiseFireControl(0, Stats.GuidedRangeBonus);
-            systems.RaiseMissileLogistics(Stats.MissileReloadReduction);
+            systems.RaiseMissileLogistics(Stats.MissileReloadReduction, Stats.MissileResupplyReduction);
+            // 미사일 구축함(2026-11-22): 다중 표적 사격통제를 함교가 흡수 — 사격통제 추적 +FireControlTracks
+            if (Stats.FireControlTracks > 0) systems.RaiseFireControl(Stats.FireControlTracks, Stats.GuidedRangeBonus);
         }
 
         protected override void OnInitialized()

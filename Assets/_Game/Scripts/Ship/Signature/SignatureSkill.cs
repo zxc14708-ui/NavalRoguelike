@@ -104,6 +104,14 @@ namespace Game.Ship
 
         private bool _forced;
 
+        /// <summary>남은 재사용 시간을 비율만큼 줄인다(전투단 통신 중계 보급선, 2026-11-22). 줄였으면 true.</summary>
+        public bool ReduceCooldown(float fraction)
+        {
+            if (CooldownLeft <= 0f || fraction <= 0f) return false;
+            CooldownLeft = Mathf.Max(0f, CooldownLeft * (1f - Mathf.Clamp01(fraction)));
+            return true;
+        }
+
         /// <summary>검사·디버그용: 함정 종류를 직접 정한다(고른 함정과 상관없이).</summary>
         public void ForceKind(StartShipKind kind)
         {

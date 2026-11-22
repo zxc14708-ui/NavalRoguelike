@@ -104,7 +104,7 @@ namespace Game.UI
         private void UpdateUpgradeMarkers()
         {
             int used = 0;
-            if (_upgradePicking && cellHighlightPrefab != null && moduleRoot != null)
+            if ((_upgradePicking || ShowInstallUpgradeMarkers) && cellHighlightPrefab != null && moduleRoot != null)
             {
                 float cell = grid.CellSize;
                 foreach (var m in grid.Modules)

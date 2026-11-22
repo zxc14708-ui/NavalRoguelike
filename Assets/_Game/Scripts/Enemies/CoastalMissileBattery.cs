@@ -120,8 +120,16 @@ namespace Game.Enemies
             {
                 if (!IsAlive || Player == null || PlayerConcealed) break;
                 var origin = points[i % points.Count];
-                var go = PoolManager.Instance?.Spawn(Definition.MissilePrefab, origin.position, origin.rotation);
-                go?.GetComponent<Missile>()?.Launch(Player, Definition.AttackDamage);
+                // 발사 방향(2026-11-22): 모델 발사점의 축(블렌더 축이라 위를 보기도 했다 — 미사일이 수직으로 솟았다)이 아니라
+                // 기함 쪽 수평 방향을 발사관 고각만큼 든 방향으로 곧게. 2~3초 곧게 난 뒤 기함에 다가간다(Missile.BeginBoost).
+                Vector3 flat = Player.position - origin.position; flat.y = 0f;
+                if (flat.sqrMagnitude < 1f) flat = LaunchForward();
+                flat.y = 0f; flat.Normalize();
+                Vector3 dir = Quaternion.AngleAxis(-LaunchElevation, Vector3.Cross(Vector3.up, flat)) * flat;
+                var go = PoolManager.Instance?.Spawn(Definition.MissilePrefab, origin.position, Quaternion.LookRotation(dir, Vector3.up));
+                var missile = go != null ? go.GetComponent<Missile>() : null;
+                missile?.Launch(Player, Definition.AttackDamage);
+                missile?.BeginBoost(Random.Range(BoostMin, BoostMax), MissileScale, LaunchSmokeSeconds);
                 PooledEffect.Spawn(muzzleFlash, origin.position);
                 Backblast(i);
                 MissilesFired++;
@@ -177,8 +185,25 @@ namespace Game.Enemies
         }
 
         /// <summary>발사 후염: 발사관 뒤에서 불꽃 · 흰 연기 뭉치.</summary>
+        /// <summary>해안 포대 미사일(2026-11-22): 발사 고각(°) · 곧게 나는 시간(초) · 크기 배율 · 발사 연기 시간.</summary>
+        public const float LaunchElevation = 16f, BoostMin = 2f, BoostMax = 3f, MissileScale = 1.3f, LaunchSmokeSeconds = 2f;
+
+        /// <summary>발사대를 덮는 연기 구름(2026-11-22 사용자: 발사대가 가려질 만큼) — 발사대 둘레에 낮게 퍼졌다 바람에 흘러간다.</summary>
+        private void LaunchCloud()
+        {
+            Vector3 c = transform.position + Vector3.up * 1.2f;
+            for (int i = 0; i < 44; i++)
+            {
+                Vector3 r = Random.insideUnitSphere; r.y = Mathf.Abs(r.y) * 0.6f;
+                float g = Random.Range(0.82f, 0.95f);
+                Game.View.DecorFx.Emit(Game.View.DecorFx.WreckSmoke, c + r * 3.2f, new Vector3(r.x * 2.6f, Random.Range(0.3f, 1.2f), r.z * 2.6f) + Game.View.DecorFx.Wind * 0.2f,
+                    Random.Range(4f, 5.5f), Random.Range(2.8f, 4.4f), new Color(g, g, g, 0.78f));
+            }
+        }
+
         private void Backblast(int shot)
         {
+            LaunchCloud();
             if (_backblast == null || _backblast.Length == 0) return;
             var p = _backblast[shot % _backblast.Length];
             if (p == null) return;
