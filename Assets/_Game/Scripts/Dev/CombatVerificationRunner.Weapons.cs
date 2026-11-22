@@ -60,6 +60,10 @@ namespace Game.Dev
             float AntennaYaw() { var d = antenna.TransformDirection(localAxis); return Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg; }
             float prevAntennaYaw = antenna != null ? AntennaYaw() : 0f;
             float start = Time.time, maxDt = 0f;
+            // 진단(2026-11-22): 배 · 안테나 회전축 기울기 — 축이 기울면 수평 투영 회전 속도가 축마다 달라진다
+            var shipT = CombatDevTools.PlayerTransform();
+            float shipYaw0 = shipT != null ? shipT.eulerAngles.y : 0f;
+            _report.AppendLine($"- 안테나 축 점검(2026-11-22): 배 기울기 {(shipT != null ? Vector3.Angle(shipT.up, Vector3.up) : 0f):0.0}° · 안테나 부모 기울기 {(antenna != null && antenna.parent != null ? Vector3.Angle(antenna.parent.up, Vector3.up) : 0f):0.0}° · 안테나 축 {localAxis} · 안테나 자체 기울기 {(antenna != null ? Vector3.Angle(antenna.up, antenna.parent != null ? antenna.parent.up : Vector3.up) : 0f):0.0}°");
             while (Time.time - start < 6f)
             {
                 yield return new WaitForEndOfFrame();
@@ -83,6 +87,7 @@ namespace Game.Dev
             }
             float elapsed = Time.time - start;
             float sweepRpm = sweepTurn / elapsed / 6f;
+            _report.AppendLine($"- 진단: 측정 동안 배 방향 변화 {(shipT != null ? Mathf.DeltaAngle(shipYaw0, shipT.eulerAngles.y) : 0f):0.0}°");
             _report.AppendLine($"- {elapsed:0.0}초 측정: 화면 스윕 {sweepRpm:0.0} rpm" +
                                (antenna != null ? $", 함교 안테나 모델 {antennaTurn / elapsed / 6f:0.0} rpm" : ", 안테나 Transform 없음(적산 방식)") +
                                $", 스윕-안테나 방위 차 평균 {sumOffset / Mathf.Max(1, samples):0.0}° / 최대 {maxOffset:0.0}°");
@@ -105,7 +110,11 @@ namespace Game.Dev
 
             float period = 60f / source.AntennaRpm;
             yield return new WaitForSeconds(period * 1.2f);
-            int contacts = scope.CountEchoes(false);
+            // 에코 수명은 한 바퀴의 95% — 한 순간만 세면 빔이 다시 지나가기 직전(5%)에 걸린 표적이 빠져 가끔 실패했다(2026-11-21).
+            // 0.3바퀴 동안 매 프레임 세어 가장 많은 값을 쓴다(표적마다 꺼진 구간은 5%라 이 동안 모두 켜진 순간이 반드시 있다).
+            int contacts = 0;
+            float sampleUntil = Time.time + period * 0.3f;
+            while (Time.time < sampleUntil) { contacts = Mathf.Max(contacts, scope.CountEchoes(false)); yield return null; }
             // 섬 뒤(레이더 그림자)에 들어간 표적은 찍히지 않는 게 맞다 — 섬이 판마다 다르게 서서 가끔 실패하던 것(2026-11-21)
             int expected = 0, shadowed = 0;
             var player = CombatDevTools.PlayerTransform();
@@ -114,12 +123,28 @@ namespace Game.Dev
                 if (e == null || !e.IsAlive || player == null) continue;
                 Vector3 d = e.transform.position - player.position; d.y = 0f;
                 if (d.magnitude > range) continue;
-                if (Game.World.Islands.BlocksShipLine(player.position, e.transform.position)) shadowed++;
+                if (Game.World.Islands.BlocksLine(player.position + Vector3.up * 6f, e.transform.position + Vector3.up * 1f)) shadowed++;   // 레이더 화면과 같은 그림자 판정(안테나 6m)
                 else expected++;
             }
             _report.AppendLine($"- 멈춘 표적 20·28(범위 안)과 {range + 8f:0}(범위 밖): 한 바퀴 뒤 표적 에코 {contacts}개(섬 뒤 {shadowed}척 제외 기대 {expected}), 클러터 포함 {scope.CountEchoes(true)}개");
             if (contacts != expected) Fail($"범위 안 표적 {expected}척(섬 뒤 제외)인데 에코 {contacts}개");
             yield return RadarShot("radar_static");
+
+            // 섬(2026-11-22): 해안선을 채운 하나의 면으로 그린다(예전 점 찍기는 안이 빈 고리처럼 보였다) — 30m 앞에 섬 하나를 두고 본다
+            var fieldR = Game.World.IslandField.Instance;
+            var shipR = CombatDevTools.PlayerTransform();
+            if (fieldR != null && shipR != null)
+            {
+                Vector3 fw = shipR.forward; fw.y = 0f; fw.Normalize();
+                var isl = fieldR.PlaceDressed(shipR.position + fw * 34f, 12f, false, 7);
+                yield return new WaitForSeconds(period * 1.1f);
+                int landIslands = scope.LandIslands;
+                _report.AppendLine($"- 섬 표시: 34m 앞 섬(반지름 12m) → 레이더에 면으로 그린 섬 {landIslands}개 · 점 찍기 육지 에코 {scope.CountEchoes(true) - scope.CountEchoes(false)}개(클러터 포함)");
+                if (isl != null && landIslands < 1) Fail("레이더에 섬이 하나의 면으로 그려지지 않음");
+                yield return RadarShot("radar_land");
+                fieldR.ClearAll();   // 섬 정리(Islands 목록에서도 빠진다)
+                yield return null;
+            }
 
             // 3) 표적이 사라지면 에코는 한 바퀴 안에 사라짐
             CombatDevTools.ClearBattlefield();

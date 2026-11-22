@@ -131,6 +131,19 @@ namespace Game.Combat
                 }
                 Game.View.Explosions.FlashLight(position + forward * (0.6f * size), style == Style.Heavy ? 0.45f : 0.25f,
                     new Color(1f, 0.74f, 0.4f));
+                // 화염 질감 통일(2026-11-21): 앞으로 터지는 불덩이에 폭발과 같은 디졸브 불꽃(갈라지며 식는 결)을 더한다
+                var blast = Game.View.DecorFx.BlastFire;
+                if (blast != null)
+                {
+                    int blobs = style == Style.Heavy ? 5 : 3;
+                    for (int i = 0; i < blobs; i++)
+                    {
+                        Vector2 spread = Random.insideUnitCircle * 0.35f;
+                        Vector3 v = (forward * Random.Range(3f, 6f) + (side * spread.x + up * spread.y) * 4f) * size;
+                        Game.View.DecorFx.Emit(blast, position + forward * ((0.3f + 0.25f * i) * size), v, Random.Range(0.12f, 0.2f),
+                            Random.Range(0.6f, 0.95f) * size, Color.Lerp(new Color(1f, 0.95f, 0.7f, 1f), new Color(1f, 0.55f, 0.2f, 1f), Random.value));
+                    }
+                }
             }
             for (int i = 0; i < flareCount; i++)
             {

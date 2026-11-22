@@ -23,6 +23,7 @@
 | 6 | [Slay the Spire Map in Unity](https://github.com/silverua/slay-the-spire-map-in-unity) | 분기 항로·보급·전투 노드 | 코드 MIT, 포함 리소스는 별도 확인 | 2026-10-31 구조만 참고해 새로 작성(코드·리소스 미도입 — 아래 적용 기록) |
 | 7 | [NaughtyAttributes](https://github.com/dbrizov/NaughtyAttributes) | 데이터 편집·인스펙터 검증 편의 | MIT | README·라이선스 표기 확인, 적용 전 |
 | — | [NOVA Shader](https://github.com/CyberAgentGameEntertainment/NovaShader) | 파티클 효과(폭발·포구 화염·연기) | MIT | 2026-10-31 Claude 검토. 방식만 참고해 자체 셰이더로 구현(아래 8) |
+| — | [awesome-gamedev-agent-skills](https://github.com/gamedev-skills/awesome-gamedev-agent-skills) | AI 에이전트용 게임 개발 스킬(Unity 6.3 포함 79종) — 코드가 아니라 작업 지침 | Apache-2.0 | 2026-11-22 Claude 검토. 설치 안 함 — 필요할 때 몇 개만 골라 쓰기(아래 9) |
 
 ## 1. Unity Movement AI — 함대 이동과 회피
 
@@ -94,6 +95,21 @@
 - 연결 지점: `Assets/_Game/Scripts/View/DecorFx.cs`(공용 파티클 채널), `Assets/_Game/Scripts/View/Explosions.cs`.
 - 2026-10-31 적용 방식: 패키지를 들이지 않고, "정점 알파 = 디졸브 진행 + 녹는 가장자리 발광" 방식만 참고해 자체 셰이더 `Assets/_Game/Art/Shaders/NavalBlastFire.shader`(`Naval/BlastFire`)를 새로 작성했다. 코드는 복사하지 않았다. 함체 명중 폭발 불덩이(`DecorFx.BlastFire`)에만 사용, 검사 `-blastOnly`.
 - 패키지로 들일 경우: git URL `...NovaShader.git?path=/Assets/Nova#3.6.0`, MIT 저작권 표기 보존. 재질 키워드는 편집기 스크립트(`ParticlesUberUnlitMaterialPostProcessor.SetupMaterialKeywords`)로 맞춰야 한다.
+
+## 9. awesome-gamedev-agent-skills — AI 에이전트용 게임 개발 스킬(검토만)
+
+- 저장소: https://github.com/gamedev-skills/awesome-gamedev-agent-skills (확인 시점 커밋 `c6ca6c4`, 2026-11-12 · Apache-2.0 · 별 약 1만)
+- 내용: Claude Code · Codex 등이 읽는 `SKILL.md` 작업 지침 79종 + 엔진을 알아보고 2~3개를 골라 불러오는 라우터. 게임 코드가 아니라 에이전트용 설명서다. Unity 9종은 Unity 6.3 LTS(6000.3) 기준이라 이 프로젝트 버전과 맞다.
+- 이 프로젝트에 쓸 만한 것(필요할 때 그 폴더만 가져와 검토 후 사용):
+  - `unity-build-size`: 빌드 보고서(Editor 로그)로 큰 에셋 · 압축 안 된 텍스처 · 오디오를 찾는 읽기 전용 파이썬 스크립트. 출시 전 용량 점검(군항 메시 정리 같은 일)에 바로 쓸 만하다.
+  - `unity-build-pipeline` · `steam-publish` · `itch-publish`: 출시 단계(IL2CPP · 스트리핑 · SteamPipe 업로드). 출시 전 할 일(Burst 다시 켜기)과 같이 본다.
+  - `save-systems`: 버전 번호 · 원자적 쓰기 · 단계별 이전. 블록 전직(NEXT_TASKS 1-2)에서 "전직 상태 저장과 기존 저장 마이그레이션"을 만들 때 참고.
+  - `unity-csharp-scripting`의 `check_unity_project.py`: .meta · GUID 중복 · 빠진 스크립트 참조를 읽기만 하며 점검. 이미 있는 빌드 직전 데이터 동기화 검사(DataSync)와 겹치므로 비교용.
+  - `performance-optimization` · `game-ui-ux`(접근성 최소 기준) · `roguelike`(메타 진행 · 시드 런): 일반 원칙 확인용.
+- 주의:
+  - 79종을 한꺼번에 설치하지 않는다. 에이전트가 모든 스킬 설명을 목록에 올리므로 맥락을 차지하고, 일반 지침이 이 프로젝트 규칙(AGENTS.md · 한국어 문서 · 미러 검증 · 프리팹 일괄 재생성 금지)과 엇갈릴 수 있다. 쓸 때는 라우터 없이 필요한 스킬 폴더 몇 개만.
+  - 스킬 안의 파이썬 스크립트는 외부 코드다. 들이기 전에 읽어 보고(대부분 읽기 전용이라고 적혀 있음) 실행한다. README의 광고(후원사 링크)는 무시.
+  - 설치는 사용자가 정한다(`npx skills add …` 또는 `claude plugin install …`). 들이면 아래 적용 기록 표에 버전 · 사용한 스킬을 적는다.
 
 ## 적용할 때 기록할 사항
 

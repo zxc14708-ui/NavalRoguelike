@@ -400,6 +400,9 @@ namespace Game.Dev
             var ship = GameManager.Instance.Player;
             var t = ship.transform;
             CombatDevTools.ClearBattlefield();
+            // 섬을 치운다(2026-11-22): 전속 · 최대 타로 한참 달리다 섬에 걸리면 STOP 전에 이미 멈춰 "곧바로 멈춤"으로 가끔 실패했다
+            var helmIslands = Game.World.IslandField.Instance;
+            if (helmIslands != null) { Game.World.IslandField.Disabled = true; helmIslands.ClearAll(); }
             ship.DevRudderOverride = 0f;
             ship.SetEngineOrder(0f);
             yield return new WaitForSeconds(4f);
@@ -480,6 +483,7 @@ namespace Game.Dev
             if (Mathf.Abs(ship.YawRate) > 1f) Fail("타 중앙인데 계속 돔");
 
             // 5) STOP: 전령기를 내려도 미끄러진다
+            float speedBeforeStop = ship.CurrentSpeed;
             ship.SetEngineOrder(0f);
             Vector3 p0 = t.position;
             start = Time.time;
@@ -490,7 +494,7 @@ namespace Game.Dev
                 yield return null;
             }
             float glide = Vector3.Distance(new Vector3(p0.x, 0, p0.z), new Vector3(t.position.x, 0, t.position.z));
-            _report.AppendLine($"- STOP: 멈추기까지 {stopAt:0.0}초, 미끄러진 거리 {glide:0.0}m");
+            _report.AppendLine($"- STOP: 멈추기 전 속력 {speedBeforeStop:0.0} m/s · 멈추기까지 {stopAt:0.0}초, 미끄러진 거리 {glide:0.0}m · 좌초 {Yes(ship.IsAground)}");
             if (stopAt < 1f) Fail("STOP에 곧바로 멈춤");
 
             // 6) 정지 상태 타: 거의 돌지 않는다
@@ -502,6 +506,7 @@ namespace Game.Dev
 
             ship.DevRudderOverride = null;
             ship.SetEngineOrder(0f);
+            if (helmIslands != null) Game.World.IslandField.Disabled = false;
         }
 
         // ------------------------------------------------------------ Tab 현황판

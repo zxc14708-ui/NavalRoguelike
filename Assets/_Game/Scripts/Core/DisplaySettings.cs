@@ -34,6 +34,7 @@ namespace Game.Core
         private static int _cloudShadow = 1;
         private static bool _combatNumbers = true;
         private static int _nightBrightness = 1;
+        private static int _helmGuide = 4, _helmGuideIdle;
         // 자동 검증(-combatVerify)은 구름 그림자를 늘 보통으로 시작하고 바꿔도 저장하지 않는다(플레이어 설정과 섞이지 않게)
         private static readonly bool s_verify = System.Array.IndexOf(System.Environment.GetCommandLineArgs(), "-combatVerify") >= 0;
 
@@ -60,6 +61,12 @@ namespace Game.Core
         /// <summary>밤 밝기(2026-11-19) 0 어둡게 · 1 보통 · 2 밝게 — DayNightLighting이 밤 조명 세기에 곱한다.</summary>
         public static int NightBrightness { get { Load(); return _nightBrightness; } }
         public static float NightBrightnessScale => NightBrightness switch { 0 => 0.7f, 1 => 1f, _ => 1.6f };
+        /// <summary>타륜 표시(2026-11-22): 배 둘레에 타각 · 예상 항적을 그린다. 0 = 끄기, 1~5 = 디자인(기본 4 유령선 예측 — 처음 하는 사람에게 가장 쉽다).</summary>
+        public static readonly string[] HelmGuideNames = { "끄기", "깔끔한 HUD", "항해 나침반", "빛나는 호", "유령선 예측", "호 + 유령선" };
+        public static int HelmGuide { get { Load(); return _helmGuide; } }
+        /// <summary>타륜을 놓은 뒤(2초 지나서): 0 = 옅게, 1 = 숨김, 2 = 그대로.</summary>
+        public static readonly string[] HelmGuideIdleNames = { "옅게", "숨김", "그대로" };
+        public static int HelmGuideIdle { get { Load(); return _helmGuideIdle; } }
         /// <summary>장식 입자를 내는 비율(높음 1 · 보통 0.65 · 낮음 0.35).</summary>
         public static float DecorDensity => EffectsQuality switch { 0 => 1f, 1 => 0.65f, _ => 0.35f };
 
@@ -96,6 +103,8 @@ namespace Game.Core
             _combatNumbers = PlayerPrefs.GetInt(Prefix + "CombatNumbers", 1) == 1;
             _nightBrightness = s_verify ? 1 : Mathf.Clamp(PlayerPrefs.GetInt(Prefix + "NightBrightness", 1), 0, NightBrightnessNames.Length - 1);
             _cloudShadow = s_verify ? 1 : Mathf.Clamp(PlayerPrefs.GetInt(Prefix + "CloudShadow", 1), 0, CloudShadowNames.Length - 1);
+            _helmGuide = s_verify ? 4 : Mathf.Clamp(PlayerPrefs.GetInt(Prefix + "HelmGuide", 4), 0, HelmGuideNames.Length - 1);
+            _helmGuideIdle = s_verify ? 0 : Mathf.Clamp(PlayerPrefs.GetInt(Prefix + "HelmGuideIdle", 0), 0, HelmGuideIdleNames.Length - 1);
             int quality = PlayerPrefs.GetInt(Prefix + "Quality", -1);
             if (quality >= 0 && quality < QualitySettings.names.Length && quality != QualitySettings.GetQualityLevel())
                 QualitySettings.SetQualityLevel(quality, true);
@@ -129,6 +138,20 @@ namespace Game.Core
             _nightBrightness = Mathf.Clamp(level, 0, NightBrightnessNames.Length - 1);
             if (s_verify) Changed?.Invoke();
             else Save("NightBrightness", _nightBrightness);
+        }
+        public static void SetHelmGuide(int style)
+        {
+            Load();
+            _helmGuide = Mathf.Clamp(style, 0, HelmGuideNames.Length - 1);
+            if (s_verify) Changed?.Invoke();
+            else Save("HelmGuide", _helmGuide);
+        }
+        public static void SetHelmGuideIdle(int mode)
+        {
+            Load();
+            _helmGuideIdle = Mathf.Clamp(mode, 0, HelmGuideIdleNames.Length - 1);
+            if (s_verify) Changed?.Invoke();
+            else Save("HelmGuideIdle", _helmGuideIdle);
         }
         public static void SetCloudShadow(int level)
         {

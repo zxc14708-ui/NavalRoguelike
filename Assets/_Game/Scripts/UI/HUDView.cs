@@ -174,7 +174,7 @@ namespace Game.UI
         private GameObject _settingsOverlay;
         private RectTransform _settingsPage;
         private TMP_Text _settingsMessage;
-        private Image _controlsTabImage, _audioTabImage, _displayTabImage, _graphicsTabImage, _aboutTabImage;
+        private Image _controlsTabImage, _audioTabImage, _displayTabImage, _graphicsTabImage, _aboutTabImage, _helmTabImage;
         private NavalControl? _pendingBinding;
         private Ww2Control? _pendingWw2Binding;   // WWII 전용 키(패치 B)
         private int _settingsTab;
@@ -801,6 +801,11 @@ namespace Game.UI
             var graphics = MenuButton(content, "그래픽", new Vector2(491, 468), new Vector2(146, 42), ConsoleIdle, 19);
             var about = MenuButton(content, "정보", new Vector2(646, 468), new Vector2(146, 42), ConsoleIdle, 19);
             _aboutTabImage = about.GetComponent<Image>();
+            // 조함 보조(2026-11-22): 타륜 표시 디자인 고르기 + 미리보기
+            var helm = MenuButton(content, "조함", new Vector2(801, 468), new Vector2(146, 42), ConsoleIdle, 19);
+            helm.name = "Helm tab";
+            _helmTabImage = helm.GetComponent<Image>();
+            helm.onClick.AddListener(() => ShowSettingsTab(5));
             about.onClick.AddListener(() => ShowSettingsTab(4));
             _graphicsTabImage = graphics.GetComponent<Image>();
             graphics.onClick.AddListener(() => ShowSettingsTab(3));
@@ -835,24 +840,27 @@ namespace Game.UI
             if (_displayTabImage != null) _displayTabImage.color = tab == 2 ? ConsoleActive : ConsoleIdle;
             if (_graphicsTabImage != null) _graphicsTabImage.color = tab == 3 ? ConsoleActive : ConsoleIdle;
             if (_aboutTabImage != null) _aboutTabImage.color = tab == 4 ? ConsoleActive : ConsoleIdle;
+            if (_helmTabImage != null) _helmTabImage.color = tab == 5 ? ConsoleActive : ConsoleIdle;
             if (_settingsPage != null)
             {
                 _settingsPage.gameObject.SetActive(false);
                 Destroy(_settingsPage.gameObject);
             }
             var content = _settingsMessage.transform.parent;
-            _settingsPage = Panel(content, tab == 0 ? "Controls page" : tab == 1 ? "Audio page" : tab == 2 ? "Display page" : tab == 3 ? "Graphics page" : "About page", Vector2.zero,
+            _settingsPage = Panel(content, tab == 0 ? "Controls page" : tab == 1 ? "Audio page" : tab == 2 ? "Display page" : tab == 3 ? "Graphics page" : tab == 5 ? "Helm page" : "About page", Vector2.zero,
                 new Vector2(26, 59), new Vector2(948, 395), new Color(0.012f, 0.065f, 0.05f, 0.85f));
             if (tab == 0) BuildControlsSettings(_settingsPage);
             else if (tab == 1) BuildAudioSettings(_settingsPage);
             else if (tab == 2) BuildDisplaySettings(_settingsPage);
             else if (tab == 3) BuildGraphicsSettings(_settingsPage);
+            else if (tab == 5) BuildHelmSettings(_settingsPage);
             else BuildAboutPage(_settingsPage);
             _settingsMessage.text = tab == 0
                 ? "키를 누른 뒤 새 키를 입력하세요. ESC로 취소 · 정비 배치키는 고정입니다."
                 : tab == 1 ? "음량은 즉시 적용되며 자동 저장됩니다."
                 : tab == 2 ? DisplayMessage()
                 : tab == 3 ? "위협·피격 표시(미사일·어뢰·경고·폭발 섬광)는 줄이지 않습니다. 값은 즉시 적용·저장됩니다."
+                : tab == 5 ? "오른쪽 미리보기는 실제 전투 화면의 모습과 같은 규칙으로 그립니다. 값은 즉시 적용·저장됩니다."
                 : "오류를 알려 줄 때 [진단 내보내기] 파일을 함께 보내 주세요(계정 이름은 지워집니다).";
         }
 

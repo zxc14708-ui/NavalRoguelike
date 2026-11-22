@@ -43,6 +43,7 @@ namespace Game.Dev
 
             // 2) 미사일: 흰 띠 대신 연기 뭉치 · 노즐 불꽃 · 추진 불빛
             int smoke0 = Game.View.DecorFx.Count(Game.View.DecorFx.MissileSmoke);
+            int blastMax = 0;
             CombatDevTools.MissileVolley(6, 70f, 10f, 0.01f);
             int ex = 0, smoke = 0, emitters = 0; bool trailOff = true;
             until = Time.time + 2.2f;
@@ -52,6 +53,7 @@ namespace Game.Dev
                 ex = Mathf.Max(ex, Game.View.CombatLights.LitExhaust);
                 emitters = Mathf.Max(emitters, Game.View.CombatLights.Emitters);
                 smoke = Mathf.Max(smoke, Game.View.DecorFx.Count(Game.View.DecorFx.MissileSmoke));
+                blastMax = Mathf.Max(blastMax, Game.View.DecorFx.Count(Game.View.DecorFx.BlastFire));
                 foreach (var m in Object.FindObjectsByType<Missile>(FindObjectsSortMode.None))
                     foreach (var tr in m.GetComponentsInChildren<TrailRenderer>()) if (tr.enabled && tr.emitting) trailOff = false;
                 if (!shot && Time.time > until - 1f)
@@ -62,7 +64,8 @@ namespace Game.Dev
                 }
                 yield return null;
             }
-            _report.AppendLine($"- 미사일 6발: 추진 불빛 최대 {ex}개(꼬리 {emitters}) · 연기 뭉치 {smoke - smoke0}개 · 예전 흰 띠 꺼짐 {Yes(trailOff)}");
+            _report.AppendLine($"- 미사일 6발: 추진 불빛 최대 {ex}개(꼬리 {emitters}) · 연기 뭉치 {smoke - smoke0}개 · 예전 흰 띠 꺼짐 {Yes(trailOff)} · 디졸브 불꽃(발사 · 노즐 — 폭발과 같은 질감) 최대 {blastMax}개");
+            if (Game.View.DecorFx.BlastFire != null && blastMax < 6) Fail("미사일 발사 · 노즐 불꽃이 폭발과 같은 디졸브 불꽃을 쓰지 않음");
             if (ex < 1) Fail("밤에 날아가는 미사일에 추진 불빛이 없음");
             if (smoke - smoke0 < 30) Fail("미사일 연기 꼬리가 거의 없음");
             if (!trailOff) Fail("예전 흰 띠(TrailRenderer)가 아직 그려짐");
@@ -133,9 +136,15 @@ namespace Game.Dev
             var original = init.SelectedConcept;
             var sb = new System.Text.StringBuilder();
             int checkedShips = 0;
-            foreach (var concept in Game.Data.StartingShipCatalog.All)
+            // 현대 시작 함정 4척 + WWII 함정(구축함 · 순양함 · 전함 — WWII 규칙 집합으로 바꿔 고른다, 2026-11-21)
+            var concepts = new System.Collections.Generic.List<Game.Data.StartingShipConcept>(Game.Data.StartingShipCatalog.All);
+            var ww2 = Game.Core.Ruleset.Ww2Definition;
+            if (ww2 != null) foreach (var h in ww2.Hulls) if (h != null) concepts.Add(h);
+            string ruleset0 = Game.Core.Ruleset.Current;
+            foreach (var concept in concepts)
             {
                 if (concept == null) continue;
+                Game.Core.Ruleset.EnterFor(concept);
                 if (!init.SelectionLocked && !init.TrySelect(concept, out string why)) { sb.Append($"{concept.Title}(이 판에서 못 고름: {why}) · "); continue; }
                 yield return null; yield return null; yield return null;   // 선체 다시 만들기 → 다음 프레임 항해등
                 var set = ship.GetComponent<Game.View.NightLampSet>();
@@ -156,9 +165,10 @@ namespace Game.Dev
                 sb.Append($"{concept.Title} 등 {heads.Count}개 · 켜짐 {(set != null ? set.Lit : 0)} · 현측 간격 {stbd - port:0.0}m/격자 폭 {beam:0.0}m · ");
                 if (!placed || !lit) Fail($"플레이어블 군함 {concept.Title}: 항해등이 없거나 선체에 맞지 않음");
                 checkedShips++;
-                if (checkedShips <= 6) yield return CloseShot($"fx_navlight_{concept.Id}", ship.transform, 16f);
+                if (checkedShips <= 8) yield return CloseShot($"fx_navlight_{concept.Id}", ship.transform, 16f);
                 if (init.SelectionLocked) break;
             }
+            Game.Core.Ruleset.Enter(ruleset0);
             if (original != null) { init.TrySelect(original, out _); yield return null; yield return null; }
             init.DevSetSelectionLocked(wasLocked);
             _report.AppendLine($"- 플레이어블 항해등({checkedShips}척): {sb}");

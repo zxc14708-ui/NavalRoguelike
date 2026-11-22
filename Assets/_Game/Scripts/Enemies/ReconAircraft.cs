@@ -53,7 +53,7 @@ namespace Game.Enemies
             point.y = cruiseAltitude;
             Fly(point, Definition.MoveSpeed, Definition.TurnRateDegPerSec, false, dt);
 
-            if (radome != null) radome.Rotate(Vector3.up, radomeRpm * 6f * dt, Space.World);
+            if (radome != null) Game.View.SpinAxis.AboutUp(radome, radomeRpm * 6f * dt);
             if (propellers != null)
                 foreach (var p in propellers)
                     if (p != null) p.Rotate(transform.forward, propellerRpm * 6f * dt, Space.World);

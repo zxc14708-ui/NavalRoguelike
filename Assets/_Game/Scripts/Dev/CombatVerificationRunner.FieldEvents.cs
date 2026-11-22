@@ -158,6 +158,47 @@ namespace Game.Dev
                 CombatDevTools.ClearBattlefield();
             }
 
+            // ---- 2d) 강화판(2026-11-21): 3스테이지 포위 4척 · 일렬 돌격 횡대 + 종대 동시(한 줄 6척) · 밤 경고 2.0초
+            {
+                ship.RepairHull(ship.HullMaxHp);
+                Warp(home);
+                Game.World.DayNight.Forced = Game.World.DayPhase.Night; Game.World.DayNight.Tick(0, 1, -1, 0f, 1f);
+                var semiDef = FieldEventDirector.FindEnemy("ene_semisub_suicide");
+                var p = PincerAttack.Begin(ship, xp, semiDef, 3);
+                float warnP = p != null ? p.WarnSeconds : 0f;
+                float t0 = Time.realtimeSinceStartup;
+                while (p != null && p.State == PincerAttack.Phase.Warning && Time.realtimeSinceStartup - t0 < 5f) yield return null;
+                float tookP = Time.realtimeSinceStartup - t0;
+                yield return null;
+                int launchedP = p != null ? p.Launched : 0, countP = p != null ? p.Count : 0;   // 포위는 곧 정리되므로 값을 미리 받아 둔다
+                if (p != null) p.Cancel();
+                CombatDevTools.ClearBattlefield();
+                yield return new WaitForSeconds(0.3f);
+
+                var boatDef = FieldEventDirector.FindEnemy("ene_suicide_boat");
+                var la = LineAssault.Begin(ship, xp, boatDef, null, 3);
+                yield return new WaitForSeconds(0.8f);
+                bool both = la != null && la.Partner != null && la.WarningVisible && la.Partner.WarningVisible;
+                yield return ScreenShot("field_line_cross_warn");
+                t0 = Time.realtimeSinceStartup;
+                while (la != null && la.State == LineAssault.Phase.Warning && Time.realtimeSinceStartup - t0 < 5f) yield return null;
+                yield return null;
+                int launchedL = la != null ? la.Launched + (la.Partner != null ? la.Partner.Launched : 0) : 0;
+                yield return new WaitForSeconds(1f);
+                yield return ScreenShot("field_line_cross_charge");
+                t0 = Time.realtimeSinceStartup;
+                while (la != null && la.State != LineAssault.Phase.Done && Time.realtimeSinceStartup - t0 < 14f) yield return null;
+                bool partnerDone = la == null || la.Partner == null || la.Partner.State == LineAssault.Phase.Done;
+                _report.AppendLine($"- 강화판(3스테이지 · 밤): 포위 {countP}척(떠오름 {launchedP}) · 밤 경고 {warnP:0.0}초(실제 {tookP:0.0}초) · 일렬 돌격 횡대 · 종대 동시 {Yes(both)} · 한 줄 {la?.Count}척 · 나온 보트 {launchedL} · 결과 {la?.Outcome} · 짝 돌격 함께 끝남 {Yes(partnerDone)}");
+                if (countP != 4 || launchedP < 3) Fail("3스테이지 포위가 4척으로 나오지 않음");
+                if (Mathf.Abs(warnP - PincerAttack.NightWarnTime) > 0.01f) Fail("밤에 포위 경고가 짧아지지 않음");
+                if (!both || la.Count != LineAssault.MaxBoats || launchedL < LineAssault.MaxBoats + 2) Fail("3스테이지 일렬 돌격이 횡대 · 종대 동시(한 줄 6척)로 나오지 않음");
+                if (la != null && la.State != LineAssault.Phase.Done) Fail("횡대 · 종대 협공이 끝나지 않음");
+                Game.World.DayNight.Forced = null; Game.World.DayNight.Reset();
+                yield return CloseRefit();
+                CombatDevTools.ClearBattlefield();
+            }
+
             // ---- 3) 위치 노출: 제자리면 차오르고 포격, 움직이면 줄어든다
             {
                 Warp(home);

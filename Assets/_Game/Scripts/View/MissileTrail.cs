@@ -7,7 +7,7 @@ namespace Game.View
     /// 미사일 · 로켓 연기 꼬리(2026-11-21 사용자: 더 사실적으로). 예전에는 흰 띠(TrailRenderer) 한 줄이었다.
     ///   - 지나온 길 0.25m마다 연기 뭉치 하나(서로 겹쳐 이어진 연기 기둥): 0.4~0.5m로 나와 수명 동안 5배로 부풀고, 뒤로 조금 밀리다 바람에 흘러 옅어진다.
     ///     적 미사일은 길게(2.4~3.2초), 우리 미사일 · 로켓은 짧게(1.5~2.1초 — 많이 쏘므로 화면을 덮지 않게).
-    ///   - 노즐: 매 프레임 밝은 불꽃 한 점(흰빛이 도는 주황) — 꼬리 맨 앞이 달아올라 보인다.
+    ///   - 노즐: 매 프레임 밝은 불꽃 한 점(흰빛이 도는 주황) — 꼬리 맨 앞이 달아올라 보인다. 속심은 폭발 불덩이와 같은 디졸브 불꽃(2026-11-21 화염 질감 통일).
     ///   - 밤에는 연기가 조금 어둡게(달빛에 비친 회색).
     /// 입자는 DecorFx.MissileSmoke · Fire를 모든 미사일이 나눠 쓴다.
     /// </summary>
@@ -48,8 +48,13 @@ namespace Game.View
             }
             s.Last = nozzle;
 
-            // 노즐 불꽃(밤에는 조금 더 밝게)
-            DecorFx.Emit(DecorFx.Fire, nozzle + back * 0.1f, back * 2.5f, Random.Range(0.04f, 0.07f), Random.Range(0.28f, 0.42f) * (1f + 0.3f * night),
+            // 노즐 불꽃(밤에는 조금 더 밝게). 2026-11-21 화염 질감 통일: 폭발 불덩이와 같은 디졸브 불꽃(갈라지며 식는 결)을 속심으로,
+            // 부드러운 불빛을 겉에 — 재질이 없으면(셰이더 미지원) 예전처럼 부드러운 불꽃만.
+            var core = DecorFx.BlastFire;
+            if (core != null)
+                DecorFx.Emit(core, nozzle + back * 0.15f, back * 3f + Random.insideUnitSphere * 0.4f, Random.Range(0.06f, 0.1f), Random.Range(0.3f, 0.45f) * (1f + 0.3f * night),
+                    Color.Lerp(new Color(1f, 0.95f, 0.75f, 1f), new Color(1f, 0.6f, 0.22f, 1f), Random.value * 0.5f));
+            DecorFx.Emit(DecorFx.Fire, nozzle + back * 0.1f, back * 2.5f, Random.Range(0.04f, 0.07f), Random.Range(0.28f, 0.42f) * (core != null ? 0.75f : 1f) * (1f + 0.3f * night),
                 Color.Lerp(new Color(1f, 0.95f, 0.75f, 1f), new Color(1f, 0.55f, 0.18f, 0.95f), Random.value * 0.6f));
         }
     }

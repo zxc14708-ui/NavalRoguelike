@@ -141,8 +141,8 @@ namespace Game.Missions
             CancelCurrent();
             MonoBehaviour started = kind switch
             {
-                Kind.Pincer => PincerAttack.Begin(_player, _xp, FindEnemy("ene_semisub_suicide")),
-                Kind.LineAssault => LineAssault.Begin(_player, _xp, FindEnemy("ene_suicide_boat")),
+                Kind.Pincer => PincerAttack.Begin(_player, _xp, FindEnemy("ene_semisub_suicide"), _stage),      // 스테이지가 오를수록 척수 ↑(강화판)
+                Kind.LineAssault => LineAssault.Begin(_player, _xp, FindEnemy("ene_suicide_boat"), null, _stage),
                 Kind.Rescue => RescueMission.Begin(_player, _xp),
                 Kind.Runner => RunnerMission.Begin(_player, _xp, _stage, FindEnemy("ene_sea_mine"), FindEnemy("ene_fastboat")),
                 _ => null,

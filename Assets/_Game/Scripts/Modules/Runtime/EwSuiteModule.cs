@@ -36,7 +36,7 @@ namespace Game.Modules.Runtime
         protected override void Tick(float dt)
         {
             if (_cooldown > 0f) _cooldown -= dt * RunUpgrades.SkillRate;   // 성장 카드: 스킬 회복 속도
-            if (antenna != null) antenna.Rotate(Vector3.up, antennaRpm * 6f * dt, Space.World);
+            if (antenna != null) Game.View.SpinAxis.AboutUp(antenna, antennaRpm * 6f * dt);
         }
 
         public void Jam()

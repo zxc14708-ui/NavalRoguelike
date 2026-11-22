@@ -191,7 +191,7 @@ namespace Game.Modules.Runtime
             TickRecharge(dt);
             crew.Tick(Ship, Grid, Instance, HullRepairRate, Stats.ModuleRepairPerSecond, dt, HullRepairCap);
 
-            if (radarAntenna != null) radarAntenna.Rotate(Vector3.up, antennaRpm * 6f * dt, Space.World);
+            if (radarAntenna != null) Game.View.SpinAxis.AboutUp(radarAntenna, antennaRpm * 6f * dt);   // 배가 흔들려도 비뚤어지지 않게(2026-11-22)
             _radar.Advance(antennaRpm, dt);
         }
 

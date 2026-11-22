@@ -426,7 +426,7 @@ namespace Game.Enemies
             if (_phase >= 1) UpdateWaves(dt);
             UpdateAntiAir(dt);
 
-            if (_radar != null && !RadarDown) _radar.Rotate(Vector3.up, radarRpm * 6f * dt, Space.World);
+            if (_radar != null && !RadarDown) Game.View.SpinAxis.AboutUp(_radar, radarRpm * 6f * dt);
         }
 
         private void UpdatePhase()

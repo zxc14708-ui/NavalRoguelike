@@ -285,7 +285,7 @@ namespace Game.Enemies
             float desired = cycleRanges.Length > 0 ? cycleRanges[_cycle] : Definition.PreferredRange;
             OrbitPlayer(desired, Hurt ? 0.85f : 0.7f, dt);
 
-            if (radar != null) radar.Rotate(Vector3.up, radarRpm * 6f * dt, Space.World);
+            if (radar != null) Game.View.SpinAxis.AboutUp(radar, radarRpm * 6f * dt);
             EmitDamageFx(dt);
             UpdateLaunchers(dt);
             _bowGun.Tick(dt);

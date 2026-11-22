@@ -17,15 +17,16 @@ namespace Game.Missions
     ///   3. 공격: 기함을 쫓아 들이받는다(평소 자폭 돌진, 기습 중에는 35% 빨라 도망만으로는 못 떨친다) — 쏘아 막거나 섬으로 가로막는다.
     ///   4. 하나도 맞지 않고 모두 격침하면 "포위 격퇴" 보너스 경험치(다음 레벨까지의 10%).
     ///   섬에 가로막힌 방향은 원을 15°씩 돌려 비켜 고른다. 두 곳도 안 나오면 취소. 반잠수정 정의가 지금 판에 없으면 열리지 않는다.
+    ///   강화판(2026-11-21): 3스테이지부터 4척 · 4스테이지부터 5척(방향 간격 360/척수), 밤(어둠 0.5 이상)에는 경고가 2.6 → 2.0초.
     /// </summary>
     public sealed class PincerAttack : MonoBehaviour
     {
-        public const float WarnTime = 2.6f, FadeTime = 0.3f;
+        public const float WarnTime = 2.6f, NightWarnTime = 2.0f, FadeTime = 0.3f;
         public const float Distance = 34f;
         public const float RiseTime = 0.7f;
         public const float RingStart = 30f, RingEnd = 18f;
         public const float BonusXpRatio = 0.1f;
-        public const int Boats = 3;
+        public const int Boats = 3, MaxBoats = 5;
         private static readonly Color Warn = new(1f, 0.3f, 0.23f, 0.95f);
 
         public enum Phase { Warning, Attacking, Done }
@@ -35,7 +36,9 @@ namespace Game.Missions
         private Game.Progression.ExperienceSystem _xp;
         private EnemyDefinition _def;
         private float _age, _baseAngle;
-        private readonly Vector3[] _dirs = new Vector3[Boats];   // 기함 → 반잠수정이 떠오르는 쪽
+        private readonly Vector3[] _dirs = new Vector3[MaxBoats];   // 기함 → 반잠수정이 떠오르는 쪽
+        private int _count = Boats;
+        private float _warn = WarnTime;
         private readonly List<SemiSubSuicideBoat> _boats = new();
         private readonly HashSet<SemiSubSuicideBoat> _counted = new();
         private LineRenderer _ring;
@@ -54,8 +57,14 @@ namespace Game.Missions
         public float RingRadius { get; private set; }
         public IReadOnlyList<SemiSubSuicideBoat> BoatsList => _boats;
         public IReadOnlyList<Vector3> Directions => _dirs;
+        /// <summary>이번 포위의 반잠수정 수 · 경고 시간(강화판 — 스테이지 · 밤).</summary>
+        public int Count => _count;
+        public float WarnSeconds => _warn;
 
-        public static PincerAttack Begin(Game.Ship.ShipController player, Game.Progression.ExperienceSystem xp, EnemyDefinition def)
+        /// <summary>스테이지에 따른 반잠수정 수: 1~2스테이지 3척 · 3스테이지 4척 · 4스테이지부터 5척.</summary>
+        public static int CountFor(int stage) => stage >= 4 ? 5 : stage >= 3 ? 4 : Boats;
+
+        public static PincerAttack Begin(Game.Ship.ShipController player, Game.Progression.ExperienceSystem xp, EnemyDefinition def, int stage = 1)
         {
             if (player == null || def == null || EnemySpawner.Instance == null) return null;
             if (def.Prefab == null || def.Prefab.GetComponent<SemiSubSuicideBoat>() == null) return null;
@@ -64,20 +73,22 @@ namespace Game.Missions
             p._player = player;
             p._xp = xp;
             p._def = def;
+            p._count = CountFor(stage);
+            p._warn = Game.World.DayNight.Darkness01 >= 0.5f ? NightWarnTime : WarnTime;
             p._baseAngle = Random.Range(0f, 360f);
             p.PickDirections(MissionMarks.Flat(player.transform.position));
             p._ring = MissionMarks.Line(go.transform, "Pincer warning ring", Warn, 0.9f, true);
             p._ring.sharedMaterial = DashMaterial();
             p._ring.textureMode = LineTextureMode.Tile;
             p._ring.textureScale = new Vector2(0.18f, 1f);
-            for (int i = 0; i < Boats * 2; i++)
+            for (int i = 0; i < p._count * 2; i++)
             {
                 var c = MissionMarks.Line(go.transform, $"Pincer chevron {i}", Warn, 1.1f, false);
                 c.numCornerVertices = 2;
                 p._chevrons.Add(c);
             }
             UiSound.Play(UiSound.Cue.Fail);
-            GameEvents.RaiseBanner("반잠수정 포위 — 세 방향 물속에서 떠오릅니다! 떠오르면 바로 쏘세요");
+            GameEvents.RaiseBanner($"반잠수정 포위 — {p._count}방향 물속에서 떠오릅니다! 떠오르면 바로 쏘세요");
             p.Refresh();
             return p;
         }
@@ -94,8 +105,8 @@ namespace Game.Missions
 
         private void SetDirections(float baseAngle)
         {
-            for (int i = 0; i < Boats; i++)
-                _dirs[i] = Quaternion.Euler(0f, baseAngle + i * 360f / Boats, 0f) * Vector3.forward;
+            for (int i = 0; i < _count; i++)
+                _dirs[i] = Quaternion.Euler(0f, baseAngle + i * 360f / _count, 0f) * Vector3.forward;
         }
 
         private bool Clear(Vector3 center, Vector3 dir)
@@ -112,9 +123,9 @@ namespace Game.Missions
             {
                 SetDirections(_baseAngle + k * 15f);
                 int n = 0;
-                for (int i = 0; i < Boats; i++) if (Clear(center, _dirs[i])) n++;
+                for (int i = 0; i < _count; i++) if (Clear(center, _dirs[i])) n++;
                 if (n > bestCount) { bestCount = n; best = k; }
-                if (n == Boats) break;
+                if (n == _count) break;
             }
             _baseAngle += best * 15f;
             SetDirections(_baseAngle);
@@ -130,7 +141,7 @@ namespace Game.Missions
 
             if (State == Phase.Warning)
             {
-                if (_age >= WarnTime) { HideWarning(); Launch(); return; }
+                if (_age >= _warn) { HideWarning(); Launch(); return; }
                 Refresh();
                 return;
             }
@@ -141,9 +152,9 @@ namespace Game.Missions
         private void Refresh()
         {
             Vector3 c = MissionMarks.Flat(_player.transform.position);
-            float e = Mathf.Clamp01(_age / WarnTime);
+            float e = Mathf.Clamp01(_age / _warn);
             RingRadius = Mathf.Lerp(RingStart, RingEnd, e * e * (3f - 2f * e));
-            float left = WarnTime - _age;
+            float left = _warn - _age;
             float fade = left < FadeTime ? Mathf.Clamp01(left / FadeTime) : 1f;
             bool flash = left < FadeTime && Mathf.Repeat(_age * 16f, 1f) < 0.5f;
             Color col = flash ? Color.white : Warn;
@@ -152,7 +163,7 @@ namespace Game.Missions
             MissionMarks.Tint(_ring, col);
             _ring.material.mainTextureOffset = new Vector2(-_age * 1.5f, 0f);   // 점선이 원을 따라 돈다
             float pulse = 1f + 0.12f * Mathf.Sin(_age * 9f);
-            for (int i = 0; i < Boats; i++)
+            for (int i = 0; i < _count; i++)
             {
                 Vector3 d = _dirs[i];
                 Vector3 side = Vector3.Cross(Vector3.up, d);
@@ -185,7 +196,7 @@ namespace Game.Missions
             State = Phase.Attacking;
             Vector3 center = MissionMarks.Flat(_player.transform.position);
             if (PickDirections(center) < 2) { Finish(Result.Cancelled); return; }   // 사방이 섬 — 포위가 성립하지 않는다
-            for (int i = 0; i < Boats; i++)
+            for (int i = 0; i < _count; i++)
             {
                 if (!Clear(center, _dirs[i])) continue;
                 Vector3 from = center + _dirs[i] * Distance;

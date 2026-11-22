@@ -58,7 +58,7 @@ namespace Game.Enemies
         protected override void UpdateBehaviour(float dt)
         {
             OrbitPlayer(Definition.PreferredRange, 0.75f, dt);
-            if (radar != null) radar.Rotate(Vector3.up, 90f * dt, Space.World);
+            if (radar != null) Game.View.SpinAxis.AboutUp(radar, 90f * dt);
 
             Vector3 aim = PlayerAimPoint(0.8f);   // 기함이면 이쪽을 향한 바깥 칸(2026-11-21)
             if (_playerShip != null && weapon.Muzzle != null)

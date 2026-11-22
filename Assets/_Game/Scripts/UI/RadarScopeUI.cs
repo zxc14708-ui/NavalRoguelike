@@ -88,6 +88,10 @@ namespace Game.UI
         public float DisplayRange => _range;
         /// <summary>화면에 그려진 스윕 방위(도).</summary>
         public float SweepBearing => Mathf.Repeat(-_sweep.rectTransform.localEulerAngles.z, 360f);
+        /// <summary>검증용: 레이더에 면으로 그려진 섬 수.</summary>
+        public int LandIslands => _land != null ? _land.Islands : 0;
+        private RadarLandGraphic _land;
+
         public int CountEchoes(bool includeClutter)
         {
             int n = 0;
@@ -135,6 +139,13 @@ namespace Game.UI
             var faceImage = face.gameObject.AddComponent<RawImage>();
             faceImage.texture = s_face;
             faceImage.raycastTarget = false;
+
+            // 섬(육지 반사)은 해안선을 채운 면으로(2026-11-22 — 예전 점 찍기는 안이 빈 고리처럼 보였다). 에코보다 아래에 그린다.
+            var landRect = NewRect("Land", panel);
+            Place(landRect, center, new Vector2(DisplayRadius * 2f, DisplayRadius * 2f));
+            _land = landRect.gameObject.AddComponent<RadarLandGraphic>();
+            _land.color = new Color(Phosphor.r * 0.85f, Phosphor.g * 0.9f, Phosphor.b * 0.7f, 1f);
+            _land.raycastTarget = false;
 
             _contacts = NewRect("Echoes", panel);
             Place(_contacts, center, Vector2.zero);
@@ -212,8 +223,13 @@ namespace Game.UI
                 float tacticalRange = _targeting != null ? _targeting.RadarRange : 0f;
                 _range = Mathf.Max(1f, Mathf.Max(tacticalRange, Mathf.Max(systemRange, _source.RadarRange)));
                 Sweep();
+                _land.Set(_player.transform.position, DisplayRadius / _range, _source.AntennaBearing, DisplayRadius, true);
             }
-            else _hasPrev = false;
+            else
+            {
+                _hasPrev = false;
+                if (_land != null) _land.Set(Vector3.zero, 0f, 0f, DisplayRadius, false);
+            }
 
             _sonarPaintTimer -= Time.deltaTime;
             if (_sonarPaintTimer <= 0f && _player != null && _targeting != null)
@@ -268,7 +284,7 @@ namespace Game.UI
             PaintKind(TargetKind.Aircraft, self, from, delta, period);
             PaintKind(TargetKind.Missile, self, from, delta, period);
             PaintKind(TargetKind.Decoy, self, from, delta, period);
-            PaintLand(self, from, delta, period);
+            // 섬은 RadarLandGraphic이 해안선을 채운 면으로 그린다(2026-11-22)
 
             var friendly = Missile.ActiveFriendly;
             for (int i = 0; i < friendly.Count; i++)
@@ -289,30 +305,6 @@ namespace Game.UI
                 var offset = new Vector2(Mathf.Sin(bearing), Mathf.Cos(bearing)) * worldRadius;
                 Spawn(offset, Vector2.zero, false, EchoType.Clutter, period * 0.5f, Random.Range(0.1f, 0.32f));
             }
-        }
-
-        /// <summary>섬: 해안선 표본점마다 넓고 흐린 육지 반사. 레이더 화면에서 섬 모양이 드러난다.</summary>
-        private void PaintLand(Vector3 self, float from, float delta, float period)
-        {
-            var islands = Game.World.Islands.All;
-            for (int i = 0; i < islands.Count; i++)
-            {
-                var isl = islands[i];
-                if (isl.Sandbar || isl.Rim == null) continue;   // 모래톱은 물속이라 레이더에 땅으로 찍지 않는다
-                var c = new Vector2(isl.Center.x - self.x, isl.Center.z - self.z);
-                if (c.magnitude - isl.Radius > _range) continue;
-                PaintLandPoint(c, from, delta, period);
-                foreach (var r in isl.Rim) PaintLandPoint(new Vector2(r.x - self.x, r.y - self.z), from, delta, period);
-            }
-        }
-
-        private void PaintLandPoint(Vector2 offset, float from, float delta, float period)
-        {
-            float dist = offset.magnitude;
-            if (dist > _range || dist < 0.5f) return;
-            float bearing = Mathf.Atan2(offset.x, offset.y) * Mathf.Rad2Deg;
-            if (Mathf.Repeat(bearing - from, 360f) >= delta) return;
-            Spawn(offset, Vector2.zero, false, EchoType.Land, period * 0.98f, 0.55f);
         }
 
         private void PaintKind(TargetKind kind, Vector3 self, float from, float delta, float period)

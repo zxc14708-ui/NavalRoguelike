@@ -124,6 +124,8 @@ namespace Game.Dev
         public bool BalanceSimOnly;
         [Tooltip("전투 불빛 · 미사일 연기 · 물보라 검사만 돌린다(-combatFxOnly, 2026-11-21)")]
         public bool CombatFxOnly;
+        [Tooltip("타륜 표시(디자인 5가지 · 예상 항적 · 설정 미리보기) 검사만 돌린다(-helmGuideOnly, 2026-11-22)")]
+        public bool HelmGuideOnly;
         [Tooltip("군항 건물 1단계 검사만 돌린다(-harborBuildingsOnly): 이름표·건물 확대·기록실·작전 포인트")]
         public bool HarborBuildingsOnly;
         [Tooltip("시작 무장·손상통제·함정 고유 스킬 검사만 돌린다(-signatureOnly)")]
@@ -326,6 +328,13 @@ namespace Game.Dev
             {
                 yield return CombatFxCheck();
                 SaveLog("combatfx");
+                Finish();
+                yield break;
+            }
+            if (HelmGuideOnly)
+            {
+                yield return HelmGuideCheck();
+                SaveLog("helmguide");
                 Finish();
                 yield break;
             }

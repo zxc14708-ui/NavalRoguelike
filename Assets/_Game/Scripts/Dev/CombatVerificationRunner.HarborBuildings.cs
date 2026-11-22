@@ -336,11 +336,23 @@ namespace Game.Dev
 
         private static string Name(Game.Modules.ModuleInstance m) => m != null ? m.Definition.DisplayName : "없음";
 
-        /// <summary>시작 화면 전체(군항 배경 + UI)를 화면 그대로 찍는다. 창 모드(-Windowed)로 돌려야 그려진다.</summary>
+        /// <summary>
+        /// 시작 화면 전체(군항 배경 + UI)를 화면 그대로 찍는다(창 모드). 배치 모드에서는 화면이 없어 캡처가 비므로(2026-11-21 —
+        /// 예전에는 여기서 예외가 나 검사가 멈췄다) 군항 카메라의 렌더 텍스처를 대신 찍는다(UI 없이).
+        /// </summary>
         private IEnumerator HarborShot(string name)
         {
             yield return new WaitForEndOfFrame();
-            var tex = ScreenCapture.CaptureScreenshotAsTexture();
+            Texture2D tex = Application.isBatchMode ? null : ScreenCapture.CaptureScreenshotAsTexture();
+            if (tex == null)
+            {
+                var menu = NavalBaseMenu.Active;
+                var rt = menu != null && menu.ViewCamera != null ? menu.ViewCamera.targetTexture : null;
+                if (rt == null) yield break;
+                menu.RenderNow();
+                tex = ReadTexture(rt);
+            }
+            if (tex == null) yield break;
             System.IO.File.WriteAllBytes(System.IO.Path.Combine(OutputDirectory, name + ".png"), tex.EncodeToPNG());
             Destroy(tex);
         }

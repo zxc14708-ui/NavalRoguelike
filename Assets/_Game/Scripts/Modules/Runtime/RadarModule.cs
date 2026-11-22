@@ -30,7 +30,7 @@ namespace Game.Modules.Runtime
         {
             // 회전하는 안테나는 레이더가 살아있음을 알리는 시각 신호다
             // 아트 모델 피벗은 Blender 축이라 로컬 축으로 돌리면 안테나가 굴러간다. 월드 위축으로 돌린다.
-            if (antenna != null) antenna.Rotate(Vector3.up, antennaRpm * 6f * dt, Space.World);
+            if (antenna != null) Game.View.SpinAxis.AboutUp(antenna, antennaRpm * 6f * dt);
             _radar.Advance(antennaRpm, dt);
         }
 

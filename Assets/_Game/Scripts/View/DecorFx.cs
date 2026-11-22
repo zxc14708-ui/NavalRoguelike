@@ -53,7 +53,7 @@ namespace Game.View
                 cool.SetKeys(
                     new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(new Color(1f, 0.62f, 0.38f), 0.35f), new GradientColorKey(new Color(0.42f, 0.2f, 0.14f), 1f) },
                     new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(0.82f, 0.3f), new GradientAlphaKey(0f, 1f) });
-                return Get(ref s_blastFire, "Blast fireball", 600, 0.8f, 1.55f, -0.04f, false, material: s_blastMaterial, gradient: cool);
+                return Get(ref s_blastFire, "Blast fireball", 1500, 0.8f, 1.55f, -0.04f, false, material: s_blastMaterial, gradient: cool);
             }
         }
 

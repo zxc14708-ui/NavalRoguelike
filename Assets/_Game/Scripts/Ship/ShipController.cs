@@ -275,6 +275,7 @@ namespace Game.Ship
             if (!Game.Core.Ruleset.IsWw2) FlareSkill.Ensure(this);   // 조명탄[B](2026-11-19 낮과 밤) — 현대 판만
             Game.View.NavLights.Ensure(gameObject);       // 밤 항해등(2026-11-19)
             Game.View.Searchlight.Ensure(gameObject);     // 밤 탐조등 — 반잠수정을 드러낸다
+            Game.View.HelmGuide.Ensure(this);             // 타륜 표시(2026-11-22) — 타각 · 예상 항적, 설정 › 조함
             Game.View.FunnelSmoke.Ensure(gameObject, () => Mathf.Abs(ThrottleInput));   // 연돌 연기(기관 명령만큼)
             GameEvents.RaiseHullHpChanged(HullHp, HullMaxHp);
             RebuildCollider();

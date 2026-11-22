@@ -170,14 +170,17 @@ namespace Game.Dev
 
             _report.AppendLine("| 공격 | 맞음 | 함교 | 함교 비율 | 맞은 칸 종류 | 가장 많이 맞은 칸 |");
             _report.AppendLine("|---|---|---|---|---|---|");
-            float worstBridge = 0f;
+            float worstBridge = 0f, worstExcess = -1f, worstLimit = 0f;
             foreach (var (label, key) in new[] { ("사방 미사일 일제사격", "volley"), ("한쪽 옆면 미사일", "side"), ("자폭 드론", "drone"), ("고속정 · 초계함 포격", "gun"), ("어뢰정", "torpedo") })
             {
                 var set = measured.Where(r => r.Phase == key).ToList();
                 if (set.Count == 0) { _report.AppendLine($"| {label} | 0 | - | - | - | - |"); continue; }
                 int b = set.Count(r => IsBridge(r.R.Module));
                 float share = (float)b / set.Count;
-                if (key != "torpedo") worstBridge = Mathf.Max(worstBridge, share);
+                // 기준(2026-11-22): 고르게 맞을 때의 비율 + 표본 크기에 맞춘 여유(2 표준편차, 최소 5%p) — 자폭 드론 24발처럼 적은 표본에서
+                // 4발 기대에 6발이 나오는 우연(확률 약 25%)으로 실패하던 것
+                float limit = bridgeRef + Mathf.Max(0.05f, 2f * Mathf.Sqrt(Mathf.Max(0.0001f, bridgeRef * (1f - bridgeRef)) / set.Count));
+                if (key != "torpedo") { worstBridge = Mathf.Max(worstBridge, share); if (share - limit > worstExcess) { worstExcess = share - limit; worstLimit = limit; } }
                 var top = set.GroupBy(r => r.R.Cell).OrderByDescending(g => g.Count()).First();
                 string topName = grid.Get(top.Key) != null ? grid.Get(top.Key).Definition.DisplayName : "빈 칸";
                 _report.AppendLine($"| {label} | {set.Count} | {b} | {share:P0} | {set.Select(r => r.R.Cell).Distinct().Count()} | ({top.Key.X},{top.Key.Z}) {topName} {top.Count()}회 |");
@@ -237,7 +240,7 @@ namespace Game.Dev
             DrawHeatmap(grid, cells, real, "hitmap_real.png");
             _report.AppendLine("- 원자료 hitmap.csv · 칸별 그림 hitmap_measured.png(측정) · hitmap_real.png(실제 피해, 부서진 블록 검은 테두리)");
 
-            if (worstBridge > bridgeRef + 0.05f) Fail($"함교에 몰림: 공격 종류 중 함교 피격 비율 최대 {worstBridge:P0}(기준 {bridgeRef + 0.05f:P0} 이하)");
+            if (worstExcess > 0f) Fail($"함교에 몰림: 공격 종류 중 함교 피격 비율이 기준을 넘음(최대 {worstBridge:P0} · 넘은 종류의 기준 {worstLimit:P0} 이하)");
             if (side.Count > 0 && facingShare < 0.9f) Fail($"옆면 공격이 다가온 쪽에 맞지 않음({facingShare:P0}, 기준 90%)");
             if (dupAvg > 1f) Fail($"일제사격이 같은 칸에 겹침(평균 {dupAvg:0.0}발, 기준 1.0 이하 — 고치기 전 11.3)");
             if (nonBridgeDestroyed < 3) Fail($"긴 교전에서 함교 말고 부서진 블록이 {nonBridgeDestroyed}개(기준 3개 이상)");

@@ -18,11 +18,13 @@ namespace Game.Missions
     ///   3. 기함에 닿으면 평소처럼 터진다. 경로 끝(PassDist 60m 뒤)을 지나면 그대로 빠져나간다(사라짐 — 경험치 없음).
     ///   4. 하나도 맞지 않으면 "돌격 회피" 보너스 경험치(다음 레벨까지의 10%).
     ///   섬에 막힌 경로는 20°씩 돌려 비켜 고른다. 끝까지 막히면 열리지 않는다.
+    ///   강화판(2026-11-21): 2스테이지부터 한 줄 6척, 3스테이지부터 횡대와 종대가 동시에 온다(두 띠가 기함 근처에서 엇갈림 — 짝 돌격은
+    ///   배너 · 보너스를 따로 내지 않고 본 돌격이 둘을 합쳐 판정), 밤(어둠 0.5 이상)에는 경고가 2.6 → 2.0초.
     /// </summary>
     public sealed class LineAssault : MonoBehaviour, ISuicideChargeOwner
     {
-        public const float WarnTime = 2.6f, FadeTime = 0.3f;
-        public const int Boats = 5;
+        public const float WarnTime = 2.6f, NightWarnTime = 2.0f, FadeTime = 0.3f;
+        public const int Boats = 5, MaxBoats = 6;
         public const float AbreastGap = 5f, ColumnGap = 7f, Margin = 4f;
         public const float StartDist = 70f, PassDist = 60f, LeadRatio = 0.5f;
         public const float BonusXpRatio = 0.1f;
@@ -43,7 +45,16 @@ namespace Game.Missions
         private readonly List<LineRenderer> _arrows = new();
         private static Material s_dash;
 
+        private int _count = Boats;
+        private float _warn = WarnTime;
+        private LineAssault _partner, _leader;
+
         public Formation Shape { get; private set; }
+        /// <summary>한 줄 보트 수 · 경고 시간 · 함께 오는 짝 돌격(3스테이지부터 — 없으면 null).</summary>
+        public int Count => _count;
+        public float WarnSeconds => _warn;
+        public LineAssault Partner => _partner;
+        public static int CountFor(int stage) => stage >= 2 ? MaxBoats : Boats;
         public Phase State { get; private set; } = Phase.Warning;
         public Result Outcome { get; private set; } = Result.None;
         public int Hits { get; private set; }
@@ -52,16 +63,21 @@ namespace Game.Missions
         public int BonusXp { get; private set; }
         public Vector3 Direction => _dir;
         public Vector3 AimPoint => _aim;
-        public float Width => Shape == Formation.Abreast ? (Boats - 1) * AbreastGap + Margin * 2f : Margin * 2.5f;
+        public float Width => Shape == Formation.Abreast ? (_count - 1) * AbreastGap + Margin * 2f : Margin * 2.5f;
         public bool WarningVisible => _band != null && _band.positionCount > 0;
         public IReadOnlyList<SuicideBoat> BoatsList => _boats;
 
-        public static LineAssault Begin(Game.Ship.ShipController player, Game.Progression.ExperienceSystem xp, EnemyDefinition def, Formation? shape = null)
+        public static LineAssault Begin(Game.Ship.ShipController player, Game.Progression.ExperienceSystem xp, EnemyDefinition def, Formation? shape = null, int stage = 1)
+            => Begin(player, xp, def, shape, stage, null);
+
+        private static LineAssault Begin(Game.Ship.ShipController player, Game.Progression.ExperienceSystem xp, EnemyDefinition def, Formation? shape, int stage, LineAssault leader)
         {
             if (player == null || def == null || EnemySpawner.Instance == null) return null;
-            var go = new GameObject("Line assault");
+            var go = new GameObject(leader != null ? "Line assault partner" : "Line assault");
             var a = go.AddComponent<LineAssault>();
-            a._player = player; a._xp = xp; a._def = def;
+            a._player = player; a._xp = xp; a._def = def; a._leader = leader;
+            a._count = CountFor(stage);
+            a._warn = Game.World.DayNight.Darkness01 >= 0.5f ? NightWarnTime : WarnTime;
             a.Shape = shape ?? (Random.value < 0.5f ? Formation.Abreast : Formation.Column);
             Vector3 fwd = MissionMarks.Flat(player.transform.forward);
             if (fwd.sqrMagnitude < 1e-4f) fwd = Vector3.forward;
@@ -71,13 +87,21 @@ namespace Game.Missions
             a._dir = Quaternion.Euler(0f, yaw, 0f) * fwd;
             a._aim = a.PredictAim();
             if (!a.FindClearPath()) { Destroy(go); return null; }
-            a._band = MissionMarks.Line(go.transform, "Line assault band", Band, a.Width, false);
+            string tag = leader != null ? "Line assault partner" : "Line assault";
+            a._band = MissionMarks.Line(go.transform, tag + " band", Band, a.Width, false);
             a._band.numCapVertices = 0;
-            a._edgeL = a.DashLine(go.transform, "Line assault edge L");
-            a._edgeR = a.DashLine(go.transform, "Line assault edge R");
-            for (int i = 0; i < Chevrons; i++) a._arrows.Add(MissionMarks.Line(go.transform, $"Line assault arrow {i}", Arrow, 1.2f, false));
-            UiSound.Play(UiSound.Cue.Fail);
-            GameEvents.RaiseBanner(a.Shape == Formation.Abreast ? "자폭 보트 횡대 돌격 — 붉은 띠 밖으로 비키세요!" : "자폭 보트 종대 돌격 — 붉은 띠 밖으로 비키세요!");
+            a._edgeL = a.DashLine(go.transform, tag + " edge L");
+            a._edgeR = a.DashLine(go.transform, tag + " edge R");
+            for (int i = 0; i < Chevrons; i++) a._arrows.Add(MissionMarks.Line(go.transform, $"{tag} arrow {i}", Arrow, 1.2f, false));
+            if (leader == null)
+            {
+                // 3스테이지부터: 다른 대형이 함께 온다(횡대면 종대, 종대면 횡대) — 띠가 기함 근처에서 엇갈린다
+                if (stage >= 3 && shape == null)
+                    a._partner = Begin(player, xp, def, a.Shape == Formation.Abreast ? Formation.Column : Formation.Abreast, stage, a);
+                UiSound.Play(UiSound.Cue.Fail);
+                GameEvents.RaiseBanner(a._partner != null ? "자폭 보트 횡대 · 종대 협공 — 두 붉은 띠를 모두 피하세요!"
+                    : a.Shape == Formation.Abreast ? "자폭 보트 횡대 돌격 — 붉은 띠 밖으로 비키세요!" : "자폭 보트 종대 돌격 — 붉은 띠 밖으로 비키세요!");
+            }
             a.Refresh();
             return a;
         }
@@ -109,8 +133,8 @@ namespace Game.Missions
         {
             Vector3 side = Vector3.Cross(Vector3.up, _dir);
             Vector3 start = _aim - _dir * StartDist;
-            for (int i = 0; i < Boats; i++)
-                yield return Shape == Formation.Abreast ? start + side * ((i - (Boats - 1) * 0.5f) * AbreastGap)
+            for (int i = 0; i < _count; i++)
+                yield return Shape == Formation.Abreast ? start + side * ((i - (_count - 1) * 0.5f) * AbreastGap)
                                                          : start - _dir * (i * ColumnGap);
         }
 
@@ -142,7 +166,7 @@ namespace Game.Missions
             _age += Time.deltaTime;
             if (State == Phase.Warning)
             {
-                if (_age >= WarnTime) { HideWarning(); Launch(); return; }
+                if (_age >= _warn) { HideWarning(); Launch(); return; }
                 _aim = PredictAim();
                 Refresh();
                 return;
@@ -153,7 +177,7 @@ namespace Game.Missions
         /// <summary>경고 띠: 시작 → 끝까지 넓은 반투명 붉은 띠, 양쪽 가장자리 점선, 띠 위로 흐르는 꺾쇠 화살.</summary>
         private void Refresh()
         {
-            float left = WarnTime - _age;
+            float left = _warn - _age;
             float fade = left < FadeTime ? Mathf.Clamp01(left / FadeTime) : 1f;
             bool flash = left < FadeTime && Mathf.Repeat(_age * 16f, 1f) < 0.5f;
             Vector3 a = _aim - _dir * StartDist, b = _aim + _dir * PassDist;
@@ -222,12 +246,16 @@ namespace Game.Missions
                 alive++;
             }
             if (alive > 0) return;
-            if (Hits == 0)
+            if (_leader != null) { Finish(Hits == 0 ? Result.Evaded : Result.Hit); return; }   // 짝 돌격: 판정 · 보상은 본 돌격이 합쳐서
+            if (_partner != null && _partner.State != Phase.Done) return;
+            int hits = Hits + (_partner != null ? _partner.Hits : 0);
+            int launched = Launched + (_partner != null ? _partner.Launched : 0);
+            if (hits == 0)
             {
-                BonusXp = _xp != null ? Mathf.Max(1, Mathf.CeilToInt(_xp.XpToNext * BonusXpRatio)) : 0;
+                BonusXp = _xp != null ? Mathf.Max(1, Mathf.CeilToInt(_xp.XpToNext * BonusXpRatio * (_partner != null ? 1.5f : 1f))) : 0;
                 if (_xp != null) _xp.AddXp(BonusXp);
                 UiSound.Play(UiSound.Cue.Confirm);
-                GameEvents.RaiseBanner($"돌격 회피 — 자폭 보트 {Launched}척에게 한 번도 맞지 않음 · 경험치 +{BonusXp}");
+                GameEvents.RaiseBanner($"돌격 회피 — 자폭 보트 {launched}척에게 한 번도 맞지 않음 · 경험치 +{BonusXp}");
                 Finish(Result.Evaded);
             }
             else Finish(Result.Hit);
@@ -242,6 +270,7 @@ namespace Game.Missions
         public void Cancel()
         {
             if (State == Phase.Done) return;
+            if (_partner != null) _partner.Cancel();
             foreach (var b in _boats) if (b != null && b.IsAlive) b.EndCharge();
             Finish(Result.Cancelled);
         }
@@ -252,7 +281,9 @@ namespace Game.Missions
             State = Phase.Done;
             Outcome = result;
             HideWarning();
+            if (_leader != null) return;   // 짝 돌격은 본 돌격이 결과를 읽은 뒤 함께 정리한다
             Destroy(gameObject, 0.6f);
+            if (_partner != null) { if (_partner.State != Phase.Done) _partner.Cancel(); Destroy(_partner.gameObject, 0.6f); }
         }
     }
 }

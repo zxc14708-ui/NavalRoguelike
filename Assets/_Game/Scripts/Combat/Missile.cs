@@ -192,6 +192,13 @@ namespace Game.Combat
 
             RestartExhaust();
             Game.View.CombatLights.Muzzle(transform.position, 1.1f);   // 발사 불빛
+            // 발사 화염(2026-11-21 화염 질감 통일): 꽁무니로 뿜어지는 디졸브 불덩이 몇 개 — 폭발 · 포구 화염과 같은 결
+            var launchFire = Game.View.DecorFx.BlastFire;
+            if (launchFire != null)
+                for (int i = 0; i < 3; i++)
+                    Game.View.DecorFx.Emit(launchFire, transform.position - transform.forward * (0.3f + 0.3f * i),
+                        -transform.forward * Random.Range(2f, 4f) + Random.insideUnitSphere * 1.5f, Random.Range(0.2f, 0.32f), Random.Range(0.6f, 0.9f),
+                        Color.Lerp(new Color(1f, 0.93f, 0.65f, 1f), new Color(1f, 0.5f, 0.18f, 1f), Random.value));
             AudioManager.Play(Game.Data.SfxId.MissileLaunch, transform.position, isThreat ? 1f : 0.7f, launchPitch);
 
             // 경고 표시는 적 미사일에만 띄운다

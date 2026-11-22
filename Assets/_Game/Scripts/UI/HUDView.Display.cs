@@ -195,6 +195,66 @@ namespace Game.UI
             });
         }
 
+        /// <summary>검증용: 설정 › 조함 미리보기.</summary>
+        public HelmGuidePreview HelmPreview { get; private set; }
+
+        /// <summary>
+        /// 설정 › 조함 탭(2026-11-22): 타륜 표시 디자인 6가지(끄기 · 1~5) · 타륜을 놓은 뒤(옅게 · 숨김 · 그대로) + 오른쪽에 미리보기
+        /// (HelmGuidePreview — 위에서 본 배 둘레에 고른 디자인, 타륜이 저절로 좌우로 돈다).
+        /// </summary>
+        private void BuildHelmSettings(Transform page)
+        {
+            int style = DisplaySettings.HelmGuide, idle = DisplaySettings.HelmGuideIdle;
+            string[] desc =
+            {
+                "타륜 표시를 쓰지 않습니다. 왼쪽 아래 선체 패널의 타각 눈금만 보입니다.",
+                "배를 감싼 얇은 하늘색 링 위 화살표가 타각만큼 옆으로 옮겨 기울고, 앞으로 5초 동안 갈 길을 점선(1초마다 점)으로 보여 줍니다. 화면을 가장 덜 가립니다.",
+                "뱃머리 쪽 반원에 10° 눈금과 숫자 — 돌린 각도까지 눈금에 불이 들어오고, 앞으로 갈 길에는 꺾쇠가 흘러갑니다. 각도를 정확히 읽기 좋습니다.",
+                "링 대신 뱃머리(흰 점)에서 타각까지 굵은 호가 채워지고, 갈 길은 앞으로 갈수록 가늘고 옅어지는 띠로 보입니다. 가장 눈에 잘 띕니다.",
+                "옅은 링과 화살표, 그리고 1 · 3 · 5초 뒤 배가 있을 자리에 반투명 배 실루엣을 겹쳐 그립니다. 처음 하는 사람에게 가장 쉽습니다.",
+                "빛나는 호(3)와 유령선(4)을 함께 — 얼마나 돌렸는지와 어디로 가는지를 한눈에 봅니다.",
+            };
+            void Row(float y, string title, string value, System.Action<int> change)
+            {
+                var line = Panel(page, title, Vector2.zero, new Vector2(14, y), new Vector2(560, 38), ConsoleIdle);
+                Label(line, "Title", title, new Vector2(14, 6), new Vector2(150, 27), 18, Color.white);
+                var prev = MenuButton(line, "◀", new Vector2(170, 3), new Vector2(40, 32), ConsoleActive, 16);
+                var label = MenuButton(line, value, new Vector2(216, 3), new Vector2(292, 32), new Color(0.02f, 0.11f, 0.075f, 1f), 16);
+                label.name = $"{title} value";
+                var next = MenuButton(line, "▶", new Vector2(514, 3), new Vector2(40, 32), ConsoleActive, 16);
+                prev.onClick.AddListener(() => change(-1));
+                next.onClick.AddListener(() => change(+1));
+                label.onClick.AddListener(() => change(+1));
+            }
+            int n = DisplaySettings.HelmGuideNames.Length, ni = DisplaySettings.HelmGuideIdleNames.Length;
+            Row(348f, "타륜 표시", style == 0 ? "끄기" : $"{style} · {DisplaySettings.HelmGuideNames[style]}", d => { DisplaySettings.SetHelmGuide((style + d + n) % n); ShowSettingsTab(5); });
+            Row(306f, "타륜을 놓으면", idle switch { 0 => "옅게 — 2초 뒤 35%로", 1 => "숨김 — 2초 뒤 사라짐", _ => "그대로 — 늘 진하게" },
+                d => { DisplaySettings.SetHelmGuideIdle((idle + d + ni) % ni); ShowSettingsTab(5); });
+            var body = Label(page, "Helm description", desc[Mathf.Clamp(style, 0, desc.Length - 1)], new Vector2(20, 150), new Vector2(548, 140), 16, ConsoleText);
+            body.alignment = TextAlignmentOptions.TopLeft;
+            body.textWrappingMode = TextWrappingModes.Normal;
+            var tip = Label(page, "Helm tip", "색: 타각이 작으면 <color=#5be37a>초록</color> · 중간 <color=#ffd24a>노랑</color> · 크면 <color=#ff9a3c>주황</color>. 타륜을 돌리는 동안과 놓은 뒤 2초는 진하게 보입니다.",
+                new Vector2(20, 60), new Vector2(548, 80), 14, new Color(0.62f, 0.7f, 0.75f, 1f));
+            tip.alignment = TextAlignmentOptions.TopLeft;
+            tip.textWrappingMode = TextWrappingModes.Normal;
+
+            // 미리보기(오른쪽)
+            var frame = Panel(page, "Helm preview frame", Vector2.zero, new Vector2(590, 44), new Vector2(344, 344), ConsoleActive);
+            var go = new GameObject("Helm preview", typeof(RectTransform));
+            go.transform.SetParent(frame, false);
+            var rect = (RectTransform)go.transform;
+            rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one;
+            rect.offsetMin = new Vector2(2, 2); rect.offsetMax = new Vector2(-2, -2);
+            var preview = go.AddComponent<HelmGuidePreview>();
+            preview.raycastTarget = false;
+            preview.Style = style;
+            preview.IdleMode = idle;
+            var cap = Label(page, "Helm preview caption", "", new Vector2(590, 10), new Vector2(344, 30), 15, Color.white);
+            cap.alignment = TextAlignmentOptions.Center;
+            preview.Caption = cap as TextMeshProUGUI;
+            HelmPreview = preview;
+        }
+
         /// <summary>설정 한 줄: 이름 | ◀ 값 ▶. 값을 누르면 다음 값(▶와 같다).</summary>
         private void Cycler(Transform page, float y, string title, string value, System.Action<int> change)
         {
