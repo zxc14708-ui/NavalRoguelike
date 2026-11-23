@@ -108,6 +108,13 @@ namespace Game.Combat
             s_threats.Clear();
         }
 
+        /// <summary>이어하기(2026-11-23): 저장해 둔 적 미사일 처리 기록을 되살린다.</summary>
+        public static void RestoreThreat(ThreatOutcome outcome, int count, int seen, float sum, float min, float max)
+        {
+            if (count <= 0 && seen <= 0) return;
+            s_threats[outcome] = new ThreatEntry { Count = count, Seen = seen, SumSeconds = sum, MinSeconds = min, MaxSeconds = max };
+        }
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics() => Reset();
     }

@@ -277,12 +277,14 @@ namespace Game.Dev
         {
             var lamps = NavLights.Ensure(ship.gameObject);
             var bulbs = new List<Transform>();
-            foreach (Transform t in ship)
-                if (t.name == "Night lamp") bulbs.Add(t);
+            foreach (var t in ship.GetComponentsInChildren<Transform>())   // 등은 흔들리는 모델 아래(2026-11-22) — 머리만
+                if (t.name == "Night lamp" && (t.parent == null || t.parent.name != "Night lamp")) bulbs.Add(t);
             float ratio = bulbs.Count == NavLights.PerShip
                 ? bulbs[3].lossyScale.x / bulbs[0].lossyScale.x : 0f;
-            _report.AppendLine($"- 선미등: 현측등 지름 대비 {ratio:P1}(기대 7.5%, 기존 선미등의 10%)");
-            if (lamps == null || Mathf.Abs(ratio - .075f) > .001f) Fail("선미등 지름이 이전 값의 10%가 아님");
+            float head = bulbs.Count == NavLights.PerShip ? bulbs[3].lossyScale.x : 0f;
+            _report.AppendLine($"- 선미등: 현측등 지름 대비 {ratio:P0}(기대 {NavLights.SternRatio:P0}) · 머리 {head * 100f:0.0}cm(보여야 함 — 2cm 이상)");
+            if (lamps == null || Mathf.Abs(ratio - NavLights.SternRatio) > .001f) Fail("선미등 크기 비율이 맞지 않음");
+            if (head < 0.02f) Fail("선미등이 너무 작아 보이지 않음");
         }
 
         private IEnumerator CheckStage4Wreck(EnemyController enemy, ShipWreck.SinkMode mode, string shot, float distance)

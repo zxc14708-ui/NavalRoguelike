@@ -181,6 +181,7 @@ namespace Game.Modules.Runtime
         {
             var root = new GameObject("Recon drone").transform;
             root.SetParent(parent, false);
+            root.localScale = Vector3.one * 1.5f;   // 쿼터뷰에서 보이게(2026-11-22)
             Part(PrimitiveType.Capsule, root, Vector3.zero, new Vector3(0.28f, 0.6f, 0.28f), HullGrey, new Vector3(90f, 0f, 0f), "Fuselage");
             Part(PrimitiveType.Cube, root, new Vector3(0f, 0.04f, 0.1f), new Vector3(2.1f, 0.04f, 0.32f), DeckGrey, null, "Wing");
             Part(PrimitiveType.Cube, root, new Vector3(0f, 0.04f, -0.55f), new Vector3(0.7f, 0.03f, 0.2f), DeckGrey, null, "Tailplane");
@@ -216,19 +217,60 @@ namespace Game.Modules.Runtime
             }
         }
 
+        /// <summary>
+        /// 포격 경고(2026-11-22 다듬음 — 넓은 화면에서 작게 보이던 것): 굵은 바깥 원이 1.6배에서 조여 들어와 자리 잡고,
+        /// 안이 반투명하게 차오르며(낙탄 시각) 가운데 십자선과 하늘로 솟은 빛기둥이 멀리서도 위치를 알린다.
+        /// </summary>
         private sealed class WarnRingFx : MonoBehaviour
         {
-            private LineRenderer _outer, _inner;
+            private LineRenderer _outer, _inner, _beam;
+            private readonly LineRenderer[] _ticks = new LineRenderer[4];
+            private Renderer _disc;
+            private MaterialPropertyBlock _mpb;
             private float _radius, _duration, _age;
             private Color _color;
 
             public void Begin(float radius, float duration, Color color)
             {
                 _radius = radius; _duration = Mathf.Max(0.1f, duration); _color = color;
-                _outer = Circle(transform, "Outer", 0.35f, color, 56);
-                _inner = Circle(transform, "Inner", 0.22f, color, 56);
-                _outer.transform.localScale = Vector3.one * radius;
+                _outer = Circle(transform, "Outer", 0.75f, color, 64);
+                _inner = Circle(transform, "Inner", 0.4f, color, 64);
+                _outer.transform.localScale = Vector3.one * radius * 1.6f;
                 _inner.transform.localScale = Vector3.one * 0.1f;
+
+                // 반투명 원판(가산)
+                var disc = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                disc.name = "Fill";
+                Object.Destroy(disc.GetComponent<Collider>());
+                disc.transform.SetParent(transform, false);
+                disc.transform.localScale = new Vector3(radius * 2f, 0.01f, radius * 2f);
+                _disc = disc.GetComponent<Renderer>();
+                _disc.sharedMaterial = SignatureFx.Additive;
+                _disc.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                _disc.receiveShadows = false;
+                _mpb = new MaterialPropertyBlock();
+
+                // 십자선 4개(원 안쪽 0.35~0.95)
+                for (int k = 0; k < 4; k++)
+                {
+                    var go = new GameObject("Tick");
+                    go.transform.SetParent(transform, false);
+                    var l = go.AddComponent<LineRenderer>();
+                    l.sharedMaterial = LineMaterial; l.useWorldSpace = false; l.positionCount = 2; l.widthMultiplier = 0.45f;
+                    l.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                    Vector3 d = Quaternion.Euler(0f, k * 90f + 45f, 0f) * Vector3.forward;
+                    l.SetPosition(0, d * radius * 0.35f); l.SetPosition(1, d * radius * 0.95f);
+                    _ticks[k] = l;
+                }
+
+                // 빛기둥(가운데에서 하늘로)
+                var bgo = new GameObject("Beam");
+                bgo.transform.SetParent(transform, false);
+                _beam = bgo.AddComponent<LineRenderer>();
+                _beam.sharedMaterial = LineMaterial; _beam.useWorldSpace = false; _beam.positionCount = 2;
+                _beam.SetPosition(0, Vector3.zero); _beam.SetPosition(1, Vector3.up * 28f);
+                _beam.startWidth = 1.2f; _beam.endWidth = 0.15f;
+                _beam.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             }
 
             private void Update()
@@ -237,11 +279,19 @@ namespace Game.Modules.Runtime
                 float t = _age / _duration;
                 if (t >= 1.15f) { Destroy(gameObject); return; }
                 float k = Mathf.Clamp01(t);
+                float lockIn = Mathf.Clamp01(_age / 0.35f);
+                _outer.transform.localScale = Vector3.one * _radius * Mathf.Lerp(1.6f, 1f, 1f - (1f - lockIn) * (1f - lockIn));
                 _inner.transform.localScale = Vector3.one * Mathf.Max(0.1f, _radius * k);
                 float blink = 0.55f + 0.45f * Mathf.Abs(Mathf.Sin(_age * Mathf.Lerp(6f, 16f, k)));
-                var c = _color; c.a *= blink * (t > 1f ? (1.15f - t) / 0.15f : 1f);
+                float fade = t > 1f ? (1.15f - t) / 0.15f : 1f;
+                var c = _color; c.a *= blink * fade;
                 _outer.startColor = _outer.endColor = c;
-                _inner.startColor = _inner.endColor = new Color(c.r, c.g, c.b, c.a * 0.7f);
+                _inner.startColor = _inner.endColor = new Color(c.r, c.g, c.b, c.a * 0.75f);
+                foreach (var l in _ticks) l.startColor = l.endColor = new Color(c.r, c.g, c.b, c.a * 0.85f);
+                _beam.startColor = new Color(c.r, c.g, c.b, 0.65f * fade * blink);
+                _beam.endColor = new Color(c.r, c.g, c.b, 0f);
+                _mpb.SetColor("_Color", new Color(_color.r, _color.g, _color.b, (0.08f + 0.22f * k) * fade * (0.7f + 0.3f * blink)));
+                _disc.SetPropertyBlock(_mpb);
             }
         }
     }

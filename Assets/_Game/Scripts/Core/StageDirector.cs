@@ -131,6 +131,8 @@ namespace Game.Core
                     // 같은 함정 재출격이 WWII 시험 전투 함정이면(RunRestart.Retry) 그 전투로 다시 시작한다
                     if (Ruleset.IsWw2) { BeginWw2Battle(hud); return; }
                     RunSave.Delete();   // 새 출항: 이어하기 기록은 버린다(시작 화면이 미리 알린다)
+                    Game.Combat.RunReport.BeginRun();     // 결과 분석 기록도 새로(2026-11-23 — 같은 실행의 지난 판 기록이 섞이던 것)
+                    Game.Combat.CombatStats.Reset();
                     RunSeed.Begin();    // 새 판의 시드(점검 O07)
                     RouteMap.Begin(RunSeed.Current, StageCount);   // 이 판의 항로 지도(2026-10-31)
                     if (PlayerProfile.DangerStart)

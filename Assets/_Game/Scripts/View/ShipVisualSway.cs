@@ -65,12 +65,29 @@ namespace Game.View
         {
             _baseLocalPos = transform.localPosition;
             _baseLocalRot = transform.localRotation;   // 모델 축 보정 회전이 있으면 그 위에 흔들림을 얹는다
+            _awoken = true;
             _seed = Random.value * 100f;
             _hull = GetComponentInParent<BoxCollider>();
         }
 
         /// <summary>모델 자리를 바꿨으면(수면선 맞춤 등) 기준 자리를 다시 잡는다.</summary>
         public void Rebase() => _baseLocalPos = transform.localPosition;
+
+        private bool _awoken;
+
+        /// <summary>
+        /// 흔들리지 않은 기본 자세의 월드 변환(2026-11-22 — 항해등처럼 모델에 붙일 것의 자리를 흔들림과 상관없이 정할 때).
+        /// </summary>
+        public Matrix4x4 RestLocalToWorld
+        {
+            get
+            {
+                Vector3 p = _awoken ? _baseLocalPos : transform.localPosition;
+                Quaternion r = _awoken ? _baseLocalRot : transform.localRotation;
+                var local = Matrix4x4.TRS(p, r, transform.localScale);
+                return transform.parent != null ? transform.parent.localToWorldMatrix * local : local;
+            }
+        }
 
         /// <summary>흔들림 없는 기준 자세로 되돌린다(풀에서 다시 나올 때 수면선을 맞추기 전).</summary>
         public void ResetPose()

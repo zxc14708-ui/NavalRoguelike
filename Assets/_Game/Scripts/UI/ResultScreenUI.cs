@@ -78,6 +78,7 @@ namespace Game.UI
         private static string Contribution()
         {
             var sb = new System.Text.StringBuilder("<color=#e0c05a><b>무장 기여</b></color>  <size=80%><color=#9fb3c0>적에게 실제로 깎은 체력</color></size>");
+            if (Game.Combat.RunReport.PartialSinceResume) sb.Append("  <size=80%><color=#e0956a>(이어한 시점부터 집계)</color></size>");
             var ranked = Game.Combat.RunReport.Ranked();
             float total = Mathf.Max(1f, Game.Combat.RunReport.TotalDamage);
             if (ranked.Count == 0) sb.Append("\n<color=#9fb3c0>기록 없음</color>");
@@ -100,6 +101,7 @@ namespace Game.UI
         {
             if (Ruleset.IsWw2) return Ww2Overview();
             var sb = new System.Text.StringBuilder("<color=#e0c05a><b>적 미사일</b></color>");
+            if (Game.Combat.RunReport.PartialSinceResume) sb.Append("  <size=80%><color=#e0956a>(이어한 시점부터 집계)</color></size>");
             int Count(Game.Combat.ThreatOutcome o) => Game.Combat.CombatStats.Threats.TryGetValue(o, out var t) ? t.Count : 0;
             int intercepted = Count(Game.Combat.ThreatOutcome.Intercepted), hit = Count(Game.Combat.ThreatOutcome.HitShip), lost = Count(Game.Combat.ThreatOutcome.Lost);
             int all = intercepted + hit + lost;

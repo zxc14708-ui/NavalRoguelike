@@ -15,11 +15,13 @@ namespace Game.Core
     /// 중단·재개 저장(2026-10-11 점검 O01). <b>스테이지 경계</b>에서만 저장한다 — 보스 보상·항로·교리를 다 고르고 다음 스테이지가
     /// 시작되는 순간(StageDirector.FinishStageTransition). 시작 화면 [이어하기]는 그 스테이지 처음부터 다시 연다.
     ///   - 담는 것: 시작 함정, 블록 배치(위치·회전·강화 단계·승강), 성장 카드, 편대(슬롯·역할·단계)·진형, 교리, 레벨·경험치,
-    ///     선체 비율, 위험 항로, 남은 다시 뽑기, 작전 시간·격침 수. 블록 내구는 저장하지 않는다(모두 수리된 상태로 시작).
-    ///     결과 분석 기록(무장 기여·미사일 통계)은 이어지지 않는다.
+    ///     선체 비율, 위험 항로, 남은 다시 뽑기, 작전 시간·격침 수, 결과 분석 기록(무장 기여 · 적 미사일 처리 — 2026-11-23 Codex 점검,
+    ///     예전 저장은 기록이 없어 결과 화면에 "이어한 시점부터 집계"로 알린다). 블록 내구는 저장하지 않는다(모두 수리된 상태로 시작).
     ///   - 파일: persistentDataPath/naval_run.json. 저장 때마다 직전 파일을 .bak으로 남기고(임시 파일에 쓴 뒤 바꿔 넣음),
-    ///     읽을 때 본 파일이 깨졌으면 .bak을, 둘 다 깨졌으면 지우고 LastProblem에 이유를 남긴다(시작 화면이 알린다).
-    ///   - 형식 버전 Version. 더 새 버전 파일은 읽지 않는다. 열거형은 이름(문자열)으로 저장해 순서가 바뀌어도 안전하다.
+    ///     읽을 때 본 파일이 깨졌으면 .bak을, 둘 다 <b>깨졌으면(형식 오류)</b>만 지우고 LastProblem에 이유를 남긴다(시작 화면이 알린다).
+    ///   - 형식 버전 Version. 더 새 버전 파일 · 이 빌드에 없는 함정의 파일은 읽지 않지만 <b>지우지 않는다</b>(2026-11-23 Codex 점검 —
+    ///     업데이트 뒤 구버전을 열기만 해도 진행 기록을 잃었다). 파일을 열지 못한 일시적 오류(잠김 · 권한)도 지우지 않는다.
+    ///     열거형은 이름(문자열)으로 저장해 순서가 바뀌어도 안전하다.
     ///   - 승패가 나면 지운다(훈련은 제외). 새로 출항하면(이어하기가 아닌) 지운다.
     /// </summary>
     public static class RunSave
@@ -30,6 +32,8 @@ namespace Game.Core
         [Serializable] public class ModuleData { public string id; public int x, z, rot, upgrade; public bool raised; }
         [Serializable] public class GrowthData { public string stat, tier; }
         [Serializable] public class EscortData { public int slot; public string role; public int tier; }
+        [Serializable] public class ReportData { public string key; public float damage; public int kills; }
+        [Serializable] public class ThreatData { public string outcome; public int count, seen; public float sum, min, max; }
 
         [Serializable]
         public class Data
@@ -53,10 +57,19 @@ namespace Game.Core
             public List<ModuleData> modules = new();
             public List<GrowthData> growth = new();
             public List<EscortData> escorts = new();
+            public bool hasStats;                          // 결과 분석 기록이 들어 있다(2026-11-23, 예전 파일은 false)
+            public List<ReportData> report = new();        // 무장별 실제 피해 · 격침
+            public List<ThreatData> threats = new();       // 적 미사일 처리(요격 · 피격 · 빗나감)
         }
 
         /// <summary>마지막으로 읽기에 실패한 이유(시작 화면이 한 번 보여 준다). 없으면 null.</summary>
         public static string LastProblem { get; private set; }
+
+        /// <summary>읽기 결과. Corrupt만 지울 수 있다 — 나머지는 다른 빌드 · 잠깐의 오류라 파일을 남긴다.</summary>
+        public enum ReadResult { Ok, Missing, Corrupt, Incompatible, IoError }
+
+        /// <summary>검증용: 지난 TryLoad가 파일을 남겼는가(버전 불일치 · 읽기 오류).</summary>
+        public static bool LastKept { get; private set; }
         /// <summary>검증용: 지난 불러오기에서 찾지 못해 건너뛴 블록 수.</summary>
         public static int LastSkippedModules { get; private set; }
 
@@ -101,6 +114,12 @@ namespace Game.Core
                     data.modules.Add(new ModuleData { id = m.Definition.Id, x = m.Origin.X, z = m.Origin.Z, rot = m.RotationSteps, upgrade = m.UpgradeLevel, raised = m.IsRaised });
             foreach (var (stat, tier) in RunUpgrades.Cards)
                 data.growth.Add(new GrowthData { stat = stat.ToString(), tier = tier.ToString() });
+            // 결과 분석 기록(이어한 판도 처음부터 집계되게)
+            data.hasStats = !Game.Combat.RunReport.PartialSinceResume;
+            foreach (var e in Game.Combat.RunReport.Snapshot()) data.report.Add(new ReportData { key = e.Key, damage = e.Damage, kills = e.Kills });
+            foreach (var kv in Game.Combat.CombatStats.Threats)
+                data.threats.Add(new ThreatData { outcome = kv.Key.ToString(), count = kv.Value.Count, seen = kv.Value.Seen, sum = kv.Value.SumSeconds,
+                                                  min = kv.Value.MinSeconds, max = kv.Value.MaxSeconds });
             if (fleet != null)
                 for (int i = 0; i < fleet.EscortCount; i++)
                 {
@@ -144,42 +163,79 @@ namespace Game.Core
         public static bool TryLoad(out Data data)
         {
             data = null;
+            LastKept = false;
             bool hadFile = File.Exists(FilePath) || File.Exists(BackupPath);
             if (!hadFile) return false;
-            if (TryRead(FilePath, out data, out string why1)) return true;
-            if (TryRead(BackupPath, out data, out string why2))
+            var r1 = TryRead(FilePath, out data, out string why1);
+            if (r1 == ReadResult.Ok) return true;
+            // 본 파일이 다른 빌드의 것이거나 지금 열 수 없으면: 백업(더 오래된 기록)으로 이어 하지도, 지우지도 않는다
+            if (r1 == ReadResult.Incompatible || r1 == ReadResult.IoError) return Keep(r1, why1);
+            var r2 = TryRead(BackupPath, out data, out string why2);
+            if (r2 == ReadResult.Ok)
             {
                 LastProblem = $"저장 파일이 손상되어 직전 백업으로 이어 합니다({why1}).";
                 return true;
             }
+            if (r2 == ReadResult.Incompatible || r2 == ReadResult.IoError) return Keep(r2, why2);
             LastProblem = $"저장 파일이 손상되어 지웠습니다({why1 ?? why2}).";
             Delete();
             return false;
         }
 
+        private static bool Keep(ReadResult r, string why)
+        {
+            LastKept = true;
+            LastProblem = r == ReadResult.Incompatible
+                ? $"다른 버전의 저장이라 이어할 수 없습니다({why}) — 파일은 그대로 둡니다. 새로 출항하면 덮어씁니다."
+                : $"저장 파일을 지금 읽지 못했습니다({why}) — 파일은 그대로 둡니다. 게임을 다시 열어 보세요.";
+            return false;
+        }
+
         public static void ClearProblem() => LastProblem = null;
 
-        private static bool TryRead(string path, out Data data, out string why)
+        private static ReadResult TryRead(string path, out Data data, out string why)
         {
             data = null;
             why = null;
-            if (!File.Exists(path)) { why = "파일 없음"; return false; }
+            if (!File.Exists(path)) { why = "파일 없음"; return ReadResult.Missing; }
+            string text;
+            try { text = File.ReadAllText(path); }
+            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
+            {
+                why = e is UnauthorizedAccessException ? "권한 없음" : "파일 잠김";   // 다른 프로그램(백신 · 동기화)이 잡고 있음 등
+                return ReadResult.IoError;
+            }
             try
             {
-                data = JsonUtility.FromJson<Data>(File.ReadAllText(path));
-                if (data == null) { why = "내용 없음"; return false; }
-                if (data.version <= 0 || data.version > Version) { why = $"버전 {data.version}"; return false; }
-                if (StartingShipCatalog.Find(data.concept) == null) { why = "함정 정보 없음"; return false; }
-                if (data.modules == null || data.modules.Count == 0) { why = "블록 정보 없음"; return false; }
-                if (data.stage < 0) { why = "스테이지 정보 오류"; return false; }
-                return true;
+                data = JsonUtility.FromJson<Data>(text);
+                if (data == null) { why = "내용 없음"; return ReadResult.Corrupt; }
+                if (data.version > Version) { why = $"더 새 버전 {data.version}(이 빌드 {Version})"; data = null; return ReadResult.Incompatible; }
+                if (data.version <= 0) { why = $"버전 {data.version}"; data = null; return ReadResult.Corrupt; }
+                if (StartingShipCatalog.Find(data.concept) == null) { why = $"이 빌드에 없는 함정 {data.concept}"; data = null; return ReadResult.Incompatible; }
+                if (data.modules == null || data.modules.Count == 0) { why = "블록 정보 없음"; data = null; return ReadResult.Corrupt; }
+                if (data.stage < 0) { why = "스테이지 정보 오류"; data = null; return ReadResult.Corrupt; }
+                return ReadResult.Ok;
             }
             catch (Exception e)
             {
                 why = e is ArgumentException ? "형식 오류" : e.GetType().Name;
                 data = null;
-                return false;
+                return ReadResult.Corrupt;
             }
+        }
+
+        /// <summary>결과 분석 기록을 되살린다. 기록이 없는 예전 저장이면 비우고 "이어한 시점부터"로 표시한다.</summary>
+        public static void RestoreStats(Data d)
+        {
+            Game.Combat.CombatStats.Reset();
+            if (d == null || !d.hasStats) { Game.Combat.RunReport.BeginRun(partial: true); return; }
+            var list = new List<Game.Combat.RunReport.Entry>();
+            if (d.report != null) foreach (var r in d.report) if (r != null) list.Add(new Game.Combat.RunReport.Entry { Key = r.key, Damage = r.damage, Kills = r.kills });
+            Game.Combat.RunReport.Restore(list);
+            if (d.threats != null)
+                foreach (var t in d.threats)
+                    if (t != null && Enum.TryParse(t.outcome, out Game.Combat.ThreatOutcome o))
+                        Game.Combat.CombatStats.RestoreThreat(o, t.count, t.seen, t.sum, t.min, t.max);
         }
 
         /// <summary>시작 화면에 보일 한 줄: "스테이지 2 · 지휘함 · Lv 6 · 10-11 21:40".</summary>
@@ -266,6 +322,7 @@ namespace Game.Core
             }
 
             gm.RestoreRun(d.elapsed, d.kills);
+            RestoreStats(d);
             RunSeed.Resume(d.seed, d.stage);
             RouteMap.Restore(d.seed, director.StageCount, d.routePath);
             director.DangerStartRun = d.dangerStart;

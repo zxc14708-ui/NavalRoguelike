@@ -149,7 +149,11 @@ namespace Game.Dev
                 yield return null; yield return null; yield return null;   // 선체 다시 만들기 → 다음 프레임 항해등
                 var set = ship.GetComponent<Game.View.NightLampSet>();
                 var heads = new System.Collections.Generic.List<Transform>();
-                foreach (Transform t in ship.transform) if (t.name == "Night lamp") heads.Add(t);
+                // 2026-11-22: 등은 흔들리는 모델(ShipVisualSway) 아래에 붙는다 — 머리만(막대는 머리의 자식)
+                foreach (var t in ship.GetComponentsInChildren<Transform>()) if (t.name == "Night lamp" && (t.parent == null || t.parent.name != "Night lamp")) heads.Add(t);
+                var swayT = ship.GetComponentInChildren<Game.View.ShipVisualSway>();
+                bool riding = heads.Count > 0 && swayT != null && heads.TrueForAll(h => h.IsChildOf(swayT.transform));
+                float headSize = heads.Count > 0 ? heads[0].lossyScale.x : 0f;
                 // 선체 폭(격자 칸 — 배 좌표) — 현측등이 뱃전 양 끝에 있어야 한다(헬기 날개 · 포신 밖 바다에 뜨면 안 됨)
                 float beam = 0f;
                 if (ship.Grid != null && ship.Grid.OccupiedCells.Count > 0)
@@ -162,8 +166,10 @@ namespace Game.Dev
                 float stbd = heads.Count >= 2 ? ship.transform.InverseTransformPoint(heads[1].position).x : 0f;
                 bool placed = heads.Count == Game.View.NavLights.PerShip && beam > 0.5f && stbd - port >= beam - 0.1f && stbd - port <= beam + 2.4f;   // 뱃전은 격자보다 조금 벌어진다(한쪽 최대 1.2m)
                 bool lit = set != null && set.Lit == Game.View.NavLights.PerShip;
-                sb.Append($"{concept.Title} 등 {heads.Count}개 · 켜짐 {(set != null ? set.Lit : 0)} · 현측 간격 {stbd - port:0.0}m/격자 폭 {beam:0.0}m · ");
+                sb.Append($"{concept.Title} 등 {heads.Count}개 · 켜짐 {(set != null ? set.Lit : 0)} · 현측 간격 {stbd - port:0.0}m/격자 폭 {beam:0.0}m · 모델에 붙음 {Yes(riding)} · 머리 {headSize * 100f:0}cm · ");
                 if (!placed || !lit) Fail($"플레이어블 군함 {concept.Title}: 항해등이 없거나 선체에 맞지 않음");
+                if (swayT != null && !riding) Fail($"플레이어블 군함 {concept.Title}: 항해등이 흔들리는 모델에 붙지 않음(파도에 등만 떠 보임)");
+                if (headSize > Game.View.NavLights.BulbSize * 0.6f) Fail($"플레이어블 군함 {concept.Title}: 항해등이 큼({headSize * 100f:0}cm)");
                 checkedShips++;
                 if (checkedShips <= 8) yield return CloseShot($"fx_navlight_{concept.Id}", ship.transform, 16f);
                 if (init.SelectionLocked) break;

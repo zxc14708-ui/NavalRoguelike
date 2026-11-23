@@ -37,6 +37,10 @@ namespace Game.View
 
         /// <summary>모양 · 광원 거리를 정해 등불 하나. Torch면 local이 빛나는 머리 가운데, 막대는 그 아래로.</summary>
         public void Add(Vector3 local, Color color, float size, Shape shape, float lightRange, float period = 0f, float onFraction = 0.5f, float phase = 0f)
+            => Add(local, color, size, shape, lightRange, null, period, onFraction, phase);
+
+        /// <summary>parent(없으면 이 물체) 기준 local 자리에 등불 하나 — 배는 흔들리는 모델에 붙여 함께 움직이게(2026-11-22).</summary>
+        public void Add(Vector3 local, Color color, float size, Shape shape, float lightRange, Transform parent, float period = 0f, float onFraction = 0.5f, float phase = 0f)
         {
             if (s_material == null)
             {
@@ -49,9 +53,10 @@ namespace Game.View
                 Destroy(tmp);
             }
             var go = new GameObject("Night lamp", typeof(MeshFilter), typeof(MeshRenderer));
-            go.transform.SetParent(transform, false);
+            var holder = parent != null ? parent : transform;
+            go.transform.SetParent(holder, false);
             go.transform.localPosition = local;
-            var lossy = transform.lossyScale;
+            var lossy = holder.lossyScale;
             Vector3 world = shape == Shape.Torch ? new Vector3(0.5f, 0.6f, 0.5f) * size : Vector3.one * size;
             go.transform.localScale = new Vector3(world.x / Mathf.Max(0.01f, lossy.x), world.y / Mathf.Max(0.01f, lossy.y), world.z / Mathf.Max(0.01f, lossy.z));
             go.GetComponent<MeshFilter>().sharedMesh = shape == Shape.Torch ? s_cube : s_sphere;
@@ -215,8 +220,17 @@ namespace Game.View
     public static class NavLights
     {
         public static readonly Color Port = new(1f, 0.12f, 0.08f), Starboard = new(0.15f, 1f, 0.3f), Mast = new(1f, 0.95f, 0.85f);
-        /// <summary>현측등 지름(m) — 항로 부표 · 등부표 등불과 같다. 돛대등은 0.9배, 선미등은 7.5%.</summary>
-        public const float BulbSize = 0.45f;
+        /// <summary>
+        /// 등 머리 크기 기준(m). 2026-11-22 사용자: 배에 비해 너무 크다(0.45 → 25% 수준) — 0.13(머리 약 7cm × 8cm, 막대 포함 높이 약 20cm).
+        /// 밤에는 빛나는 색과 실제 점광원으로 읽힌다. 돛대등 0.9배, 선미등 SternRatio.
+        /// </summary>
+        public const float BulbSize = 0.13f;
+
+        /// <summary>
+        /// 선미등 크기(현측등 대비). 2026-11-16 사용자 요청으로 7.5%(그때 현측등 0.45 → 선미등 머리 약 1.7cm)였는데,
+        /// 2026-11-22 전체를 0.13으로 줄이자 머리 약 0.5cm가 되어 보이지 않았다 — 0.5배(머리 약 3cm)로 다시 잡는다.
+        /// </summary>
+        public const float SternRatio = 0.5f;
 
         public static NightLampSet Ensure(GameObject ship, float scale = 1f)
         {
@@ -243,6 +257,7 @@ namespace Game.View
             // 블록 선체로 만든 배(기함)는 좌우 폭을 선체 조각(갑판 · 뱃전)만으로 — 헬기 날개 · 포신처럼 뱃전 밖으로 나온 것이
             // 현측등을 바다로 밀어냈다(2026-11-21 지휘함)
             var hull = ship.GetComponentInChildren<Game.Ship.ShipHullBuilder>();
+            float hullTop = float.NegativeInfinity;
             if (hull != null && hull.HullRoot != null)
             {
                 float hxMin = float.PositiveInfinity, hxMax = float.NegativeInfinity;
@@ -254,23 +269,50 @@ namespace Game.View
                     for (int i = 0; i < 8; i++)
                     {
                         var p = m.MultiplyPoint3x4(b.center + Vector3.Scale(b.extents, new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1)));
-                        hxMin = Mathf.Min(hxMin, p.x); hxMax = Mathf.Max(hxMax, p.x);
+                        hxMin = Mathf.Min(hxMin, p.x); hxMax = Mathf.Max(hxMax, p.x); hullTop = Mathf.Max(hullTop, p.y);
                     }
                 }
                 if (float.IsFinite(hxMin) && hxMax - hxMin > 0.5f) { min.x = hxMin; max.x = hxMax; }
             }
             var set = NightLampSet.On(ship);
-            float midZ = (min.z + max.z) * 0.5f, deckY = Mathf.Lerp(min.y, max.y, 0.45f);
+            float midZ = (min.z + max.z) * 0.5f, deckY = Mathf.Lerp(min.y, max.y, 0.35f);
+            if (hull != null && float.IsFinite(hullTop)) deckY = hullTop;   // 블록 선체: 갑판 · 뱃전 꼭대기
             // 등 크기는 부표 등불(0.45m)과 같게(2026-11-20) — 예전엔 배 길이에 따라 0.55~1.1m라 너무 컸다
             float size = BulbSize * scale;
             // 2026-11-21: 횃불 모양(네모 머리 + 막대) · 실제 광원(현측등 5m · 돛대등 6m · 선미등 2.5m). 머리를 막대 길이만큼 올려 막대가 갑판 위에 선다.
             float lift = size * 0.9f * 0.6f;
             var torch = NightLampSet.Shape.Torch;
             float reach = Mathf.Max(1f, scale);
-            set.Add(new Vector3(min.x, deckY + lift, midZ + (max.z - min.z) * 0.1f), Port, size, torch, 5f * reach);
-            set.Add(new Vector3(max.x, deckY + lift, midZ + (max.z - min.z) * 0.1f), Starboard, size, torch, 5f * reach);
-            set.Add(new Vector3((min.x + max.x) * 0.5f, max.y + 0.2f, Mathf.Lerp(midZ, max.z, 0.35f)), Mast, size * 0.9f, torch, 6f * reach);   // 돛대등은 머리 높이 그대로 — 막대가 아래로 내려와 덜 떠 보인다
-            set.Add(new Vector3((min.x + max.x) * 0.5f, Mathf.Lerp(min.y, max.y, 0.35f), min.z), Mast, size * 0.075f, torch, 2.5f);
+            // 돛대등: 가장 높은 부품(돛대 · 레이더) 꼭대기에 막대가 닿게 — 예전엔 배 전체 상자 위 0.2m 허공(가운데)이었다
+            Vector3 topPoint = new((min.x + max.x) * 0.5f, max.y, Mathf.Lerp(midZ, max.z, 0.35f));
+            float bestTop = float.NegativeInfinity;
+            foreach (var mf in mfs)
+            {
+                if (mf == null || mf.sharedMesh == null || mf.name == "Night lamp" || !mf.TryGetComponent<MeshRenderer>(out _)) continue;
+                var b = mf.sharedMesh.bounds;
+                var m = inv * mf.transform.localToWorldMatrix;
+                float top = float.NegativeInfinity;
+                for (int i = 0; i < 8; i++)
+                    top = Mathf.Max(top, m.MultiplyPoint3x4(b.center + Vector3.Scale(b.extents, new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1))).y);
+                if (top <= bestTop) continue;
+                bestTop = top;
+                var c = m.MultiplyPoint3x4(b.center);
+                topPoint = new Vector3(c.x, top, c.z);
+            }
+
+            // 흔들리는 모델(ShipVisualSway)에 붙여 배와 함께 오르내리고 기울게 — 예전엔 배 뿌리에 붙어 모델이 파도에 내려가면 등만 허공에 떴다.
+            // 자리는 흔들리지 않은 기본 자세 기준으로 바꾼다
+            var sway = ship.GetComponentInChildren<ShipVisualSway>(true);
+            Transform anchor = sway != null ? sway.transform : null;
+            Matrix4x4 toAnchor = sway != null ? sway.RestLocalToWorld.inverse * ship.transform.localToWorldMatrix : Matrix4x4.identity;
+            Vector3 A(Vector3 shipLocal) => anchor != null ? toAnchor.MultiplyPoint3x4(shipLocal) : shipLocal;
+
+            float inset = size * 0.25f;   // 막대가 뱃전 위에 서게(바깥 허공 말고)
+            float sideZ = midZ + (max.z - min.z) * 0.1f;
+            set.Add(A(new Vector3(min.x + inset, deckY + lift, sideZ)), Port, size, torch, 5f * reach, anchor);
+            set.Add(A(new Vector3(max.x - inset, deckY + lift, sideZ)), Starboard, size, torch, 5f * reach, anchor);
+            set.Add(A(new Vector3(topPoint.x, topPoint.y + lift * 0.9f, topPoint.z)), Mast, size * 0.9f, torch, 6f * reach, anchor);
+            set.Add(A(new Vector3((min.x + max.x) * 0.5f, deckY + lift * SternRatio, min.z + inset)), Mast, size * SternRatio, torch, 2.5f, anchor);
             return set;
         }
 

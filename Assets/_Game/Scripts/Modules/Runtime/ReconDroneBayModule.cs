@@ -159,6 +159,9 @@ namespace Game.Modules.Runtime
         private Phase _phase;
         private float _wait, _loiterLeft, _spotTimer, _angle, _homeTimer;
         private float _hold;
+        private LineRenderer _scanRing;
+        private bool _pulsed;
+        private static readonly Color ScanColor = new(0.62f, 0.95f, 0.45f, 0.55f);
         public Transform Follow { get; set; }
 
         public void Begin(ReconDroneBayModule bay, EnemyController target, float loiter, float delay)
@@ -193,7 +196,11 @@ namespace Game.Modules.Runtime
                     if (Follow == null) { Recall(); break; }
                     Vector3 to = Follow.position + Vector3.up * ReconDroneBayModule.Altitude;
                     Fly(to, dt);
-                    if (Flat(to - transform.position).magnitude < 8f) { _phase = Phase.Loiter; _spotTimer = 0f; }
+                    if (Flat(to - transform.position).magnitude < 8f)
+                    {
+                        _phase = Phase.Loiter; _spotTimer = 0f;
+                        if (!_pulsed) { _pulsed = true; SignatureFx.Ring(Follow.position, ReconDroneBayModule.RevealRadius, 0.9f, ScanColor, 0.5f); }
+                    }
                     break;
                 }
                 case Phase.Loiter:
@@ -209,12 +216,14 @@ namespace Game.Modules.Runtime
                         _spotTimer = 0.5f;
                         if (_bay != null) _bay.Spot(new Vector3(c.x, 0f, c.z), Mathf.Min(_hold, _loiterLeft + 0.6f), this);
                     }
+                    UpdateScanRing(c, true);
                     _loiterLeft -= dt;
                     if (_loiterLeft <= 0f) Recall();
                     break;
                 }
                 case Phase.Home:
                 {
+                    UpdateScanRing(transform.position, false);
                     _homeTimer += dt;
                     Vector3 to = HomePoint;
                     Fly(to, dt);
@@ -223,6 +232,22 @@ namespace Game.Modules.Runtime
                 }
             }
         }
+
+        /// <summary>맴도는 동안 표적 둘레 정찰 반경(24m)을 수면에 옅게 그린다. 복귀하면 사라진다.</summary>
+        private void UpdateScanRing(Vector3 center, bool show)
+        {
+            if (!show) { if (_scanRing != null) { Destroy(_scanRing.gameObject); _scanRing = null; } return; }
+            if (_scanRing == null)
+            {
+                _scanRing = SupportFx.Circle(null, "Drone scan ring", 0.3f, ScanColor, 64);
+                _scanRing.transform.localScale = Vector3.one * ReconDroneBayModule.RevealRadius;
+            }
+            _scanRing.transform.position = new Vector3(center.x, 0.25f, center.z);
+            float a = ScanColor.a * (0.6f + 0.4f * Mathf.Sin(Time.time * 4f));
+            _scanRing.startColor = _scanRing.endColor = new Color(ScanColor.r, ScanColor.g, ScanColor.b, a);
+        }
+
+        private void OnDestroy() { if (_scanRing != null) Destroy(_scanRing.gameObject); }
 
         private void Fly(Vector3 to, float dt)
         {

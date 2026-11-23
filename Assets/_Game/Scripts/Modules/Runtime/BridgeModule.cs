@@ -44,6 +44,9 @@ namespace Game.Modules.Runtime
         [SerializeField, Range(0f, 1f)] private float burstModuleRatio = 0.4f;
         [Tooltip("응급 수리를 연달아 쓰지 않게 두는 간격(초)")]
         [SerializeField] private float burstGap = 4f;
+        /// <summary>연달아 쓰지 않게 두는 간격의 상한(2026-11-22) — 횟수를 모아 두었으면 짧게 이어 쓸 수 있게.</summary>
+        public const float MaxBurstGap = 1f;
+        private float BurstGap => Mathf.Min(burstGap, MaxBurstGap);
         [Tooltip("응급 수리 1회가 다시 차는 시간(초). 횟수가 가득이면 멈춘다. 0이면 보스 격침 때만 찬다")]
         [SerializeField] private float chargeRecharge = 40f;
         [SerializeField] private GameObject burstEffect;
@@ -80,7 +83,9 @@ namespace Game.Modules.Runtime
         /// <summary>남은 횟수가 없으면 다음 1회가 차는 진행도, 있으면 연속 사용 간격의 진행도.</summary>
         public float BurstReadiness01 => _charges <= 0
             ? (chargeRecharge > 0f ? 1f - Mathf.Clamp01(_rechargeLeft / chargeRecharge) : 0f)
-            : burstGap > 0f ? 1f - Mathf.Clamp01(_burstGapLeft / burstGap) : 1f;
+            : BurstGap > 0f ? 1f - Mathf.Clamp01(_burstGapLeft / BurstGap) : 1f;
+        /// <summary>다음 1회가 차는 진행(가득이면 1).</summary>
+        public float NextCharge01 => _charges >= MaxCharges || chargeRecharge <= 0f ? 1f : 1f - Mathf.Clamp01(_rechargeLeft / chargeRecharge);
         /// <summary>응급 수리 1회가 다시 차는 시간(초)과 다음 1회까지 남은 시간(검증·HUD용).</summary>
         public float ChargeRechargeSeconds => chargeRecharge;
         /// <summary>전속 재사용 시간(초, 스킬 회복 카드 적용 전). 정비 카드 미리보기용.</summary>
@@ -95,7 +100,7 @@ namespace Game.Modules.Runtime
                 foreach (var m in Grid.Modules)
                     if (m != null) m.Repair(m.MaxHp * burstModuleRatio);   // 부서진 블록도(40% → 바로 다시 작동, 2026-11-21)
             _charges--;
-            _burstGapLeft = burstGap;
+            _burstGapLeft = BurstGap;
             if (_rechargeLeft <= 0f) _rechargeLeft = chargeRecharge;   // 이미 차고 있던 1회는 그대로 이어서
             PooledEffect.Spawn(burstEffect, Ship.transform.position);
             AudioManager.Play(Game.Data.SfxId.SonarPing, transform.position, 0.6f, 0.8f);

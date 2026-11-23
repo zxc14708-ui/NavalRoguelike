@@ -12,6 +12,7 @@ namespace Game.Modules.Runtime
     /// 포격 지원 요청(2026-11-22, 지원 블록). 일정 시간마다 기함 둘레(80m)에서 적 수상함이 가장 많이 모인 곳에 경고 원을 띄우고,
     /// 2.2초 뒤 화면 밖 순양함의 포탄이 쏟아진다. 단계별: 간격 30 · 27 · 24초, 포탄 6 · 9 · 12발, 낙탄 반경 7 · 8.5 · 10m.
     /// 포탄 한 발 = 반경 3.5m 안 적 수상함에 피해 18(성장 카드 "공격력" 적용). 아군 · 기함에는 피해가 없다. 표적이 없으면 기다린다.
+    /// 셋 중 한 발은 원 안에 있는 적 자리(±1.5m)로 떨어진다 — 나머지는 원 안에 흩뿌린다.
     /// </summary>
     public sealed class FireSupportModule : ModuleRuntime, ISupportTimer
     {
@@ -102,11 +103,26 @@ namespace Game.Modules.Runtime
             yield return new WaitForSeconds(WarnTime - 0.6f);
 
             // 낙하 줄기는 0.6초 먼저 하늘에서 내려온다
+            // 낙탄: 셋 중 하나는 지금 원 안에 있는 적 자리(±1.5m)로, 나머지는 원 안에 흩뿌린다(2026-11-23 — 고르게만 흩으면 6발이 모두 빗나가기도 했다)
+            var inside = new List<Vector3>();
+            foreach (var t in TargetRegistry.HostileTo(CombatFaction.Player, TargetKind.Surface))
+                if (t != null && t.IsAlive && t.Transform != null && Flat(t.Transform.position - center).sqrMagnitude <= radius * radius) inside.Add(t.Transform.position);
             var points = new List<Vector3>();
             for (int i = 0; i < shells; i++)
             {
-                Vector2 o = Random.insideUnitCircle * radius;
-                points.Add(new Vector3(center.x + o.x, 0f, center.z + o.y));
+                Vector3 p;
+                if (inside.Count > 0 && i % 3 == 0)
+                {
+                    Vector3 e = inside[(i / 3) % inside.Count];
+                    Vector2 j = Random.insideUnitCircle * 1.5f;
+                    p = new Vector3(e.x + j.x, 0f, e.z + j.y);
+                }
+                else
+                {
+                    Vector2 o = Random.insideUnitCircle * radius;
+                    p = new Vector3(center.x + o.x, 0f, center.z + o.y);
+                }
+                points.Add(p);
             }
             float step = BarrageSpan / Mathf.Max(1, shells - 1);
             for (int i = 0; i < shells; i++)
@@ -157,7 +173,7 @@ namespace Game.Modules.Runtime
             bool hitShip = false;
             foreach (var t in TargetRegistry.HostileTo(CombatFaction.Player, TargetKind.Surface))
                 if (t != null && t.Transform != null && Flat(t.Transform.position - at).sqrMagnitude <= ShellBlast * ShellBlast) { hitShip = true; break; }
-            Explosions.Spawn(at, hitShip ? 0.75f : 0.6f, hitShip ? Explosions.Kind.Impact : Explosions.Kind.Water);
+            Explosions.Spawn(at, hitShip ? 0.95f : 0.8f, hitShip ? Explosions.Kind.Impact : Explosions.Kind.Water);   // 순양함 포탄 — 함포보다 크게
             AudioManager.Play(Game.Data.SfxId.ShellImpact, at, 0.9f, Random.Range(0.85f, 1.05f));
         }
 

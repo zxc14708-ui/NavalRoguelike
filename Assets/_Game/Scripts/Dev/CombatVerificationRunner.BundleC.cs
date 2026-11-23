@@ -149,6 +149,11 @@ namespace Game.Dev
                 yield return null;
 
                 var want = Snapshot(ship);
+                // 결과 분석 기록도 이어지는지(2026-11-23 Codex 점검): 시험 기록을 넣어 두고 저장
+                RunReport.BeginRun();
+                CombatStats.Reset();
+                RunReport.RecordDamage("시험 무장", DamageSource.Gun, 123f, true);
+                CombatStats.RestoreThreat(ThreatOutcome.Intercepted, 3, 3, 1.5f, 0.3f, 0.7f);
                 bool saved1 = RunSave.Save(director);
                 bool saved2 = RunSave.Save(director);   // 두 번 — 앞 것이 백업으로 남는다
                 bool backup = File.Exists(RunSave.FilePath + ".bak");
@@ -168,6 +173,40 @@ namespace Game.Dev
                 _report.AppendLine($"- 저장 블록 순서 뒤집음: 첫 블록 {shuffled.modules[0].id} · 마지막 {shuffled.modules[shuffled.modules.Count - 1].id}");
                 _report.AppendLine($"- 본 파일 손상 → 백업으로 읽음 {Yes(fromBackup)} · 안내 \"{problem}\"");
                 if (!fromBackup || string.IsNullOrEmpty(problem)) Fail("손상된 저장을 백업으로 복구하지 못함(O01)");
+
+                // 다른 버전 · 잠긴 파일은 읽지 않아도 지우지 않는다(2026-11-23 Codex 점검 — 구버전으로 메뉴만 열어도 기록을 잃었다)
+                {
+                    string resumeFile = File.ReadAllText(RunSave.FilePath);
+                    string backFile = File.Exists(RunSave.FilePath + ".bak") ? File.ReadAllText(RunSave.FilePath + ".bak") : resumeFile;
+                    var newer = JsonUtility.FromJson<RunSave.Data>(resumeFile);
+                    newer.version = RunSave.Version + 1;
+                    File.WriteAllText(RunSave.FilePath, JsonUtility.ToJson(newer));
+                    File.WriteAllText(RunSave.FilePath + ".bak", JsonUtility.ToJson(newer));
+                    bool newerLoaded = RunSave.TryLoad(out _);
+                    bool newerKept = RunSave.LastKept && File.Exists(RunSave.FilePath) && File.Exists(RunSave.FilePath + ".bak");
+                    string newerMsg = RunSave.LastProblem;
+                    RunSave.ClearProblem();
+                    // "최신 버전으로 돌아오면" = 그 파일을 그대로 다시 읽을 수 있어야 한다(버전만 되돌려 확인)
+                    var back = JsonUtility.FromJson<RunSave.Data>(File.ReadAllText(RunSave.FilePath));
+                    bool intact = back != null && back.modules != null && back.modules.Count == newer.modules.Count && back.stage == newer.stage;
+                    File.WriteAllText(RunSave.FilePath, resumeFile);
+                    File.WriteAllText(RunSave.FilePath + ".bak", backFile);
+                    bool lockedLoaded, lockedKept;
+                    using (new FileStream(RunSave.FilePath, FileMode.Open, FileAccess.Read, FileShare.None))
+                    {
+                        lockedLoaded = RunSave.TryLoad(out _);
+                        lockedKept = RunSave.LastKept;
+                    }
+                    string lockedMsg = RunSave.LastProblem;
+                    RunSave.ClearProblem();
+                    bool stillThere = File.Exists(RunSave.FilePath) && File.ReadAllText(RunSave.FilePath) == resumeFile;
+                    bool againOk = RunSave.TryLoad(out var againData) && againData != null;
+                    RunSave.ClearProblem();
+                    _report.AppendLine($"- 더 새 버전 저장: 불러오기 {Yes(newerLoaded)}(아니오여야) · 본 파일 · 백업 남음 {Yes(newerKept)} · 내용 그대로 {Yes(intact)} · 안내 \"{newerMsg}\"");
+                    _report.AppendLine($"- 잠긴 저장 파일: 불러오기 {Yes(lockedLoaded)}(아니오여야) · 남김 {Yes(lockedKept)} · 안내 \"{lockedMsg}\" · 잠금 풀린 뒤 파일 그대로 {Yes(stillThere)} · 다시 읽기 {Yes(againOk)}");
+                    if (newerLoaded || !newerKept || !intact || string.IsNullOrEmpty(newerMsg)) Fail("더 새 버전의 저장을 지우거나 알리지 않음(Codex 2026-11-23)");
+                    if (lockedLoaded || !lockedKept || !stillThere || !againOk) Fail("잠깐 읽지 못한 저장을 지우거나 다시 읽지 못함(Codex 2026-11-23)");
+                }
 
                 // 항구로 돌아가 [이어하기]
                 var oldGm = gm;
@@ -189,6 +228,22 @@ namespace Game.Dev
                 if (got != want) Fail("이어하기한 함선·성장·편대·교리·레벨이 저장과 다름(O01)");
                 if (RunSave.LastSkippedModules != 0) Fail("저장 순서가 섞이면 이어하기에서 블록이 빠짐(Codex 지적 P1)");
                 if (gm.State != GameState.Playing || director.StageNumber != 2 || !director.DangerRoute) Fail("이어하기가 저장된 스테이지·항로로 시작하지 않음(O01)");
+                // 결과 분석 기록(2026-11-23 Codex 점검): 무장 기여 · 적 미사일 처리가 이어진다
+                {
+                    float testDmg = 0f; int testKills = 0;
+                    foreach (var e in RunReport.Ranked()) if (e.Key == "시험 무장") { testDmg = e.Damage; testKills = e.Kills; }
+                    int icpt = CombatStats.Threats.TryGetValue(ThreatOutcome.Intercepted, out var te) ? te.Count : 0;
+                    _report.AppendLine($"- 이어하기 결과 분석: 시험 무장 피해 {testDmg:0} · 격침 {testKills}(기대 123 · 1) · 요격 {icpt}(기대 3) · 처음부터 집계 {Yes(!RunReport.PartialSinceResume)}");
+                    if (testDmg < 123f || testKills < 1 || icpt < 3 || RunReport.PartialSinceResume) Fail("이어한 판의 무장 기여 · 미사일 처리 기록이 이어지지 않음(Codex 2026-11-23)");
+                    // 기록이 없는 예전 저장: "이어한 시점부터 집계"
+                    var oldSave = JsonUtility.FromJson<RunSave.Data>("{\"version\":1,\"concept\":\"x\",\"modules\":[{\"id\":\"mod_bridge\"}]}");
+                    RunSave.RestoreStats(oldSave);
+                    var resultUi = Object.FindFirstObjectByType<Game.UI.ResultScreenUI>(FindObjectsInactive.Include);
+                    bool partial = RunReport.PartialSinceResume;
+                    _report.AppendLine($"- 기록 없는 예전 저장으로 이어함: \"이어한 시점부터 집계\" 표시 {Yes(partial)}");
+                    if (!partial) Fail("기록 없는 예전 저장으로 이어 한 판을 표시하지 않음(Codex 2026-11-23)");
+                    RunReport.BeginRun();
+                }
                 yield return ScreenShot("bundlec_resumed");
 
                 // 둘 다 깨지면 지우고 알린다

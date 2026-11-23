@@ -33,8 +33,12 @@ namespace Game.Ship
         /// <summary>이 장비가 실제로 이 스킬을 갖는가(같은 클래스라도 없는 경우: 함교의 연막).</summary>
         protected virtual bool Provides(TSource source) => true;
 
-        /// <summary>true면 한 번 누를 때 준비된 장비를 모두, false면 하나만 쓴다(효과가 겹치지 않는 스킬).</summary>
-        protected virtual bool FireAllSources => true;
+        /// <summary>
+        /// true면 한 번 누를 때 준비된 장비를 모두, false면 하나만 쓴다.
+        /// 2026-11-22 사용자: 장비가 여럿이면 "사용 횟수"로 쌓였다가 한 번에 하나씩 써야 한다 — 기본을 하나씩으로 바꿨다
+        /// (예전엔 기만체 · 재밍이 한 번에 전부 쏴 쌓인 횟수가 모두 사라지고 처음부터 다시 찼다).
+        /// </summary>
+        protected virtual bool FireAllSources => false;
 
         /// <summary>한 번 누를 때 모든 장비 작동 전에 한 번 준비할 일(위협 방향 계산 등).</summary>
         protected virtual void BeforeFire() { }
@@ -88,12 +92,14 @@ namespace Game.Ship
             {
                 if (m == null || !m.IsOperational || m.Runtime is not TSource source || !Provides(source)) continue;
 
-                // 횟수가 있는 스킬(응급 수리)은 남은 횟수 / 최대 횟수로 보인다
+                // 횟수가 있는 스킬(응급 수리)은 남은 횟수 / 최대 횟수로 보인다.
+                // 2026-11-22: 연달아 쓰지 않게 두는 짧은 간격 동안에도 남은 횟수를 그대로 보이고(예전엔 0으로 보여
+                // "한 번 쓰면 처음부터 다시 참"처럼 보였다), 진행 막대는 다음 1회가 차는 정도를 보인다.
                 if (source is ISkillCharges charges)
                 {
                     total += charges.MaxCharges;
-                    if (IsReady(source)) ready += charges.Charges;
-                    else soonest = Mathf.Max(soonest, Readiness01(source));
+                    ready += charges.Charges;
+                    if (charges.Charges < charges.MaxCharges) soonest = Mathf.Max(soonest, charges.NextCharge01);
                     continue;
                 }
                 total++;
@@ -101,7 +107,8 @@ namespace Game.Ship
                 else soonest = Mathf.Max(soonest, Readiness01(source));
             }
 
-            RaiseStatus(ready, total, ready > 0 ? 1f : soonest);
+            // 다 찼으면 1, 아니면 다음으로 준비되는 몫의 진행(일부만 준비돼 있어도 — 막대가 다음 1회를 보인다)
+            RaiseStatus(ready, total, ready >= total ? 1f : soonest);
         }
     }
 
@@ -110,6 +117,8 @@ namespace Game.Ship
     {
         int Charges { get; }
         int MaxCharges { get; }
+        /// <summary>다음 1회가 차는 진행(0~1). 가득이면 1.</summary>
+        float NextCharge01 { get; }
     }
 
     /// <summary>기만체·재밍 장비의 공통 상태.</summary>

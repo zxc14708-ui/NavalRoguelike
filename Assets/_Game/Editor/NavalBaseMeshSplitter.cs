@@ -12,6 +12,8 @@ namespace Game.EditorTools
     ///   - 정점 Threshold(6만)를 넘는 메시를 수평(XZ) 격자로 나눈다: 조각 하나가 TargetVerts(4만) 안팎이 되게 칸 수를 정하고,
     ///     삼각형은 무게중심이 든 칸으로 보낸다. 그래도 6만을 넘는 칸은 다시 2×2로 나눈다. 정점 속성(위치 · 법선 · 접선 · 색 · UV 0~7)은 그대로 옮긴다.
     ///   - 조각은 원본 옆에 MESH_…_sNN.asset으로 저장하고 CPU 읽기 사본을 끈다(m_IsReadable 0 — 메모리 절반). 나무는 실행 중 정점을 읽는 곳이 없다.
+    ///     같은 경로의 조각이 이미 있으면 <b>그 에셋에 덮어쓴다</b>(GUID · 파일 ID 유지 — 2026-11-23 Codex 점검: 예전엔 지우고 새로 만들어
+    ///     다른 프리팹 · 씬의 조각 참조가 끊길 수 있었다). 이번에 조각 수가 줄어 남는 예전 조각은 지우지 않고 알린다.
     ///   - 원본 오브젝트 자리에 같은 이름 + _sNN 오브젝트를 만들고(같은 부모 · 변환 · 층 · 정적 플래그 · 렌더러 설정 복사) 원본은 지운다.
     /// 메뉴 Naval/Art/Split Harbor Menu Large Meshes: Resources/Environment/NavalBaseMenu.prefab에 적용하고, 더 쓰는 곳이 없는 원본 메시 파일은 지운다.
     /// 기지를 새로 지을 때(NavalBaseBuilder.CombineStatic)도 끝에서 같은 분할을 한다.
@@ -76,9 +78,24 @@ namespace Game.EditorTools
                     var piece = pieces[i];
                     piece.name = $"{mesh.name}_s{i:00}";
                     string path = $"{dir}/{stem}_s{i:00}.asset";
-                    AssetDatabase.DeleteAsset(path);
-                    AssetDatabase.CreateAsset(piece, path);
-                    var so = new SerializedObject(piece);
+                    var existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
+                    Mesh saved;
+                    if (existing != null)
+                    {
+                        // 덮어쓰기: 에셋 GUID와 메시 파일 ID를 그대로 두고 내용만 바꾼다
+                        EditorUtility.CopySerialized(piece, existing);
+                        existing.name = piece.name;
+                        existing.UploadMeshData(false);
+                        EditorUtility.SetDirty(existing);
+                        Object.DestroyImmediate(piece);
+                        saved = existing;
+                    }
+                    else
+                    {
+                        AssetDatabase.CreateAsset(piece, path);
+                        saved = piece;
+                    }
+                    var so = new SerializedObject(saved);
                     var readable = so.FindProperty("m_IsReadable");
                     if (readable != null) { readable.boolValue = false; so.ApplyModifiedPropertiesWithoutUndo(); }
                     var child = new GameObject($"{go.name}_s{i:00}", typeof(MeshFilter), typeof(MeshRenderer));
@@ -95,6 +112,13 @@ namespace Game.EditorTools
                     EditorUtility.CopySerialized(mr, cmr);
                     child.GetComponent<MeshFilter>().sharedMesh = AssetDatabase.LoadAssetAtPath<Mesh>(path);
                     parts++;
+                }
+                // 이번보다 많던 예전 조각(남는 것): 쓰는 곳이 있을 수 있어 지우지 않는다
+                for (int k = pieces.Count; k < pieces.Count + 64; k++)
+                {
+                    string stale = $"{dir}/{stem}_s{k:00}.asset";
+                    if (AssetDatabase.LoadAssetAtPath<Mesh>(stale) == null) break;
+                    Debug.LogWarning($"[MeshSplit] 예전 조각이 남음(조각 수가 줄었음 — 쓰는 곳이 없으면 지워도 됨): {stale}");
                 }
                 replaced?.Add(src);
                 Object.DestroyImmediate(go);

@@ -23,6 +23,40 @@ namespace Game.Combat
         public static float TotalDamage { get; private set; }
         public static int TotalKills { get; private set; }
 
+        /// <summary>
+        /// 이 판의 기록이 처음부터가 아니다(2026-11-23): 결과 분석 기록이 없는 예전 저장으로 이어 했다 — 결과 화면이 "이어한 시점부터 집계"라고 알린다.
+        /// </summary>
+        public static bool PartialSinceResume { get; private set; }
+
+        /// <summary>새 판(출항 · 이어하기)을 시작할 때 비운다(예전엔 비우는 곳이 없어 같은 실행의 지난 판 기록이 섞였다).</summary>
+        public static void BeginRun(bool partial = false)
+        {
+            Reset();
+            PartialSinceResume = partial;
+        }
+
+        /// <summary>이어하기 저장용: 무장별 피해 · 격침.</summary>
+        public static List<Entry> Snapshot()
+        {
+            var list = new List<Entry>();
+            foreach (var e in s_entries.Values) list.Add(new Entry { Key = e.Key, Damage = e.Damage, Kills = e.Kills });
+            return list;
+        }
+
+        /// <summary>이어하기: 저장해 둔 무장별 기록을 되살린다(합계도 다시 센다).</summary>
+        public static void Restore(IEnumerable<Entry> entries)
+        {
+            Reset();
+            if (entries == null) return;
+            foreach (var e in entries)
+            {
+                if (e == null || string.IsNullOrEmpty(e.Key)) continue;
+                s_entries[e.Key] = new Entry { Key = e.Key, Damage = Mathf.Max(0f, e.Damage), Kills = Mathf.Max(0, e.Kills) };
+                TotalDamage += Mathf.Max(0f, e.Damage);
+                TotalKills += Mathf.Max(0, e.Kills);
+            }
+        }
+
         /// <summary>적이 받은 피해(EnemyController가 부른다). dealt = 실제로 줄어든 체력.</summary>
         public static void RecordDamage(string key, DamageSource source, float dealt, bool kill)
         {
@@ -56,6 +90,7 @@ namespace Game.Combat
             s_entries.Clear();
             TotalDamage = 0f;
             TotalKills = 0;
+            PartialSinceResume = false;
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]

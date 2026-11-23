@@ -104,6 +104,9 @@ namespace Game.Dev
                 if (foe != null) foe.DevFrozen = true;
                 float hp0 = foe != null ? foe.CurrentHp : 0f;
 
+                // 섬(2026-11-22): 기함 바로 뒤 · 지원 함정이 오는 길목에 섬을 하나 둔다 — 비켜 와야 한다
+                var blocker = field != null ? field.PlaceArt(ship.transform.position - fwd * 30f - right * 7f, "ENV_PineIsland", 3) : null;
+                yield return null;
                 bool called = relayRt.DevCallNow();
                 var fleet = relayRt.Fleet;
                 int boats = fleet != null ? fleet.BoatCount : 0;
@@ -113,6 +116,7 @@ namespace Game.Dev
                 string panel0 = SupportTimersPanel.Text;
                 yield return new WaitForSeconds(1.5f);
                 yield return CloseShot("support_fleet", ship.transform, 34f);
+                yield return Shot("support_fleet_hud");
                 t0 = Time.time;
                 while (Time.time - t0 < 6f && fleet != null && fleet.BoatShots == 0) yield return null;
                 bool restored = broken == null || broken.IsOperational;
@@ -120,6 +124,9 @@ namespace Game.Dev
                 float flankLeft = bridge != null ? bridge.FlankCooldownLeft : -1f;
                 _report.AppendLine($"- 통신 중계 Lv{relay.Level}: 호출 {Yes(called)} · 보급선 Lv{fleet?.Level ?? 0} + 고속정 {boats}척 · 도착 {arrive:0.0}초 · 보급 {Yes(fleet != null && fleet.Supplied)}");
                 _report.AppendLine($"  - 보급: 탄약 {fleet?.LastRefilled ?? 0}기(비운 무장 다시 참 {Yes(refilled)}) · 수리 {fleet?.LastRepaired ?? 0}개(부순 {broken?.Definition.DisplayName ?? "-"} 되살아남 {Yes(restored)}) · 스킬 \"{fleet?.LastSkill}\"(전속 20초 → {flankLeft:0.0}초)");
+                _report.AppendLine($"  - 섬 회피: 길목 섬 {(blocker != null ? $"반경 {blocker.Radius:0}m" : "없음")} · 비켜 간 프레임 {fleet?.AvoidFrames ?? 0} · 섬 안에 들어간 프레임 {fleet?.IslandOverlapFrames ?? 0}(기대 0)");
+                if (blocker == null) Fail("섬 회피 시험용 섬을 놓지 못함(시험 무효)");
+                else if (fleet != null && fleet.IslandOverlapFrames > 0) Fail("지원 함정이 섬을 뚫고 지나감");
                 _report.AppendLine($"  - 고속정 사격 {fleet?.BoatShots ?? 0}발 · 피해 {fleet?.BoatDamage ?? 0f:0} (표적 체력 {hp0:0} → {(foe != null ? foe.CurrentHp : 0f):0}) · 지원 판 \"{panel0.Replace("\n", " / ")}\"");
                 if (!called || fleet == null || boats != 6 || fleet.Level != 3) Fail("Lv3 통신 중계가 보급선 Lv3 + 고속정 6척을 부르지 않음");
                 if (fleet != null && !fleet.Supplied) Fail("보급선이 기함 옆에 붙어 보급하지 않음");
@@ -132,6 +139,49 @@ namespace Game.Dev
                 yield return new WaitForSeconds(DepartWait());
                 if (fleet != null) Fail("지원 함정이 복귀 뒤 사라지지 않음");
                 CombatDevTools.ClearBattlefield();
+                if (field != null) field.ClearAll();
+
+                // 좁은 수로(2026-11-23 Codex 점검): 기함 한쪽 뱃전이 해안에 붙으면 보급선은 반대쪽으로 붙어 보급해야 한다.
+                // 나타날 자리도 함정마다 실제 자리를 본다(섬에 걸려 생기면 안 됨)
+                if (field != null)
+                {
+                    float hb = grid != null ? (grid.MaxHalfBeam + 0.5f) * grid.CellSize : 3f;
+                    foreach (int blocked in new[] { -1, 1 })
+                    {
+                        field.ClearAll();
+                        var probe = field.PlaceArt(ship.transform.position + right * blocked * 200f, "ENV_PineIsland", 4);
+                        float rad = probe != null ? probe.Radius : 15f;
+                        field.ClearAll();
+                        var shore = field.PlaceArt(ship.transform.position + right * blocked * (hb + rad + 1.2f), "ENV_PineIsland", 4);
+                        yield return null;
+                        IAmmoUser dr = null;
+                        foreach (var m in grid.Modules)
+                            if (m?.Runtime is IAmmoUser au && au.Ammo != null && !au.Ammo.Infinite) { dr = au; while (au.Ammo.Consume()) { } break; }
+                        bool shoreCalled = relayRt.DevCallNow();
+                        var fl = relayRt.Fleet;
+                        int sideAtStart = fl != null ? fl.SupplySide : 0;
+                        float st = Time.time;
+                        while (Time.time - st < 26f && fl != null && !fl.Supplied) yield return null;
+                        string SideName(int v) => v < 0 ? "왼현" : v > 0 ? "오른현" : "-";
+                        bool shoreSupplied = fl != null && fl.Supplied;
+                        bool shoreRefilled = dr == null || dr.Ammo.Current > 0;
+                        int shoreOverlap = fl != null ? fl.IslandOverlapFrames : -1;
+                        int shoreAdjusted = fl != null ? fl.SpawnAdjusted : 0;
+                        if (blocked == -1) yield return CloseShot("support_fleet_shore", ship.transform, 30f);
+                        _report.AppendLine($"  - {SideName(blocked)}이 해안(섬 반경 {rad:0}m, 뱃전에서 1.2m)에 붙음: 보급선 {SideName(sideAtStart)}에 붙음 · 보급 {Yes(shoreSupplied)} · 탄약 다시 참 {Yes(shoreRefilled)} · 나타날 자리 옮김 {shoreAdjusted}척 · 섬 안에 들어간 프레임 {shoreOverlap}");
+                        if (shore == null) Fail("해안 시험용 섬을 놓지 못함(시험 무효)");
+                        else
+                        {
+                            if (sideAtStart != -blocked) Fail($"{SideName(blocked)}이 해안에 붙었는데 보급선이 그쪽으로 붙음");
+                            if (!shoreCalled || !shoreSupplied || !shoreRefilled) Fail($"{SideName(blocked)}이 해안에 붙으면 보급선이 보급하지 못함");
+                            if (shoreOverlap > 0) Fail("해안 옆 지원 함정이 섬에 박힘");
+                        }
+                        fl?.Dismiss();
+                        yield return new WaitForSeconds(DepartWait());
+                    }
+                    field.ClearAll();
+                    CombatDevTools.ClearBattlefield();
+                }
             }
 
             // 3) 포격 지원 Lv1: 몰린 적 3척 → 경고 원 → 6발
@@ -142,7 +192,7 @@ namespace Game.Dev
             else
             {
                 var cluster = new List<EnemyController>();
-                Vector3 c = ship.transform.position + fwd * 40f;
+                Vector3 c = ship.transform.position + right * 26f + fwd * 6f;   // 전투 화면 안(경고 원이 보이게)
                 for (int i = 0; i < 3; i++)
                 {
                     var e = EnemySpawner.Instance.SpawnAt(CombatDevTools.FindEnemy("ene_pcc_corvette") ?? CombatDevTools.FindEnemy("ene_missileboat"), c + right * (i - 1) * 3f, Quaternion.LookRotation(-fwd));
@@ -151,9 +201,10 @@ namespace Game.Dev
                 yield return new WaitForSeconds(0.3f);
                 float hp0 = 0f; foreach (var e in cluster) hp0 += e.CurrentHp;
                 bool called = fsRt.DevCallNow();
-                yield return new WaitForSeconds(1.2f);
+                yield return new WaitForSeconds(1.0f);
                 yield return Shot("support_fire_warning");
-                yield return new WaitForSeconds(1.4f);
+                yield return CloseShot("support_fire_warning_close", cluster.Count > 0 ? cluster[0].transform : ship.transform, 34f);
+                yield return new WaitForSeconds(1.5f);
                 yield return Shot("support_fire_barrage");
                 float t0 = Time.time;
                 while (Time.time - t0 < 4f && fsRt.ShellsLanded < FireSupportModule.ShellsFor(1)) yield return null;
@@ -184,7 +235,8 @@ namespace Game.Dev
                 int drones = rdRt.ActiveDrones;
                 float t0 = Time.time;
                 while (Time.time - t0 < 8f && ((sub != null && !sub.IsRevealed) || (big != null && !big.IsMarked))) yield return null;
-                yield return CloseShot("support_recon_drone", big != null ? big.transform : ship.transform, 22f);
+                yield return new WaitForSeconds(0.6f);
+                yield return CloseShot("support_recon_drone", big != null ? big.transform : ship.transform, 30f);
                 bool subSeen = sub != null && sub.IsRevealed, marked = big != null && big.IsMarked;
                 _report.AppendLine($"- 정찰 드론 Lv{rd.Level}: 출격 {Yes(launched)} · 드론 {drones}기 · 잠항 잠수함(처음 숨음 {Yes(hidden0)}) 드러남 {Yes(subSeen)} · 큰 적 약점 표시 {Yes(marked)}({(big != null ? big.MarkedSecondsLeft : 0f):0.0}초)");
                 if (!launched || drones != 2) Fail("Lv2 정찰 드론이 2기 뜨지 않음");
@@ -215,6 +267,59 @@ namespace Game.Dev
                 if (upAfterSmall || !Mathf.Approximately(a, small)) Fail("작은 피해에 차폐 장갑이 켜짐");
                 if (!upAfterBig || !Mathf.Approximately(b, bigHit * 0.6f) || !Mathf.Approximately(c2, small * 0.6f)) Fail("큰 한 방에 차폐 장갑이 켜져 −40%를 주지 않음");
                 if (!down || !Mathf.Approximately(d, bigHit) || cd < 30f) Fail("차폐 장갑이 3초 뒤 꺼지고 재사용(40초)을 기다리지 않음");
+            }
+
+            // 6) 스킬 사용 횟수(2026-11-22 사용자: 횟수가 쌓여도 한 번 쓰면 처음부터 다시 참) — 기만체는 한 번에 하나씩, 응급 수리는 쓴 직후에도 남은 횟수가 보인다
+            {
+                var dm = CombatDevTools.InstallModuleNear("mod_decoy", new GridCoord(0, 0), 8);
+                if (dm != null) added.Add(dm);
+                var bay = CombatDevTools.InstallModuleNear("mod_repairbay", new GridCoord(0, 0), 8);
+                if (bay != null) added.Add(bay);
+                yield return null;
+                var cdField = typeof(DecoyLauncherModule).GetField("_cooldown", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                int ReadyDecoys()
+                {
+                    int n = 0;
+                    foreach (var m in grid.Modules)
+                        if (m != null && m.IsOperational && m.Runtime is IDecoySource d && (m.Runtime is not DecoyLauncherModule dl || dl.DecoyEnabled) && d.IsReady) n++;
+                    return n;
+                }
+                foreach (var m in grid.Modules) if (m?.Runtime is DecoyLauncherModule dl) cdField?.SetValue(dl, 0f);
+                int d0 = ReadyDecoys();
+                GameEvents.RaiseDecoyRequested();
+                int d1 = ReadyDecoys();
+                GameEvents.RaiseDecoyRequested();
+                int d2 = ReadyDecoys();
+                _report.AppendLine($"- 기만체 사용 횟수: 준비 {d0} → Q 한 번 {d1} → 한 번 더 {d2}(하나씩 줄어야 함)");
+                if (d0 < 2) Fail("기만체 횟수 시험 준비 실패(장비 2개 이상 필요)");
+                else if (d1 != d0 - 1 || d2 != d0 - 2) Fail("기만체가 한 번 누를 때 하나씩 쓰이지 않음(쌓인 횟수가 한꺼번에 사라짐)");
+
+                BridgeModule bridge = null;
+                foreach (var m in grid.Modules) if (m?.Runtime is BridgeModule b && m.IsOperational) bridge = b;
+                if (bridge != null)
+                {
+                    Put(bridge, "_charges", bridge.MaxCharges);
+                    Put(bridge, "_burstGapLeft", 0f);
+                    Put(bridge, "_rechargeLeft", 0f);
+                    int max = bridge.MaxCharges, shown = -1; float shownNext = -1f;
+                    System.Action<ActiveSkillId, int, int, float> onStatus = (id, r, t, n) => { if (id == ActiveSkillId.Repair) { shown = r; shownNext = n; } };
+                    GameEvents.SkillStatusChanged += onStatus;
+                    GameEvents.RaiseSkillRequested(ActiveSkillId.Repair);
+                    yield return new WaitForSecondsRealtime(0.25f);
+                    int afterOne = bridge.Charges, shownAfter = shown; float nextAfter = shownNext;
+                    yield return new WaitForSeconds(BridgeModule.MaxBurstGap + 0.1f);
+                    GameEvents.RaiseSkillRequested(ActiveSkillId.Repair);
+                    yield return new WaitForSecondsRealtime(0.25f);
+                    GameEvents.SkillStatusChanged -= onStatus;
+                    int afterTwo = bridge.Charges;
+                    _report.AppendLine($"- 응급 수리 횟수: {max}회 → 한 번 쓴 직후 {afterOne}회(HUD 표시 {shownAfter} · 다음 1회 진행 {nextAfter:0.00}) → {BridgeModule.MaxBurstGap:0.#}초 뒤 한 번 더 {afterTwo}회");
+                    if (max < 2) Fail("응급 수리 횟수 시험 준비 실패(손상 통제반으로 2회 이상 필요)");
+                    else
+                    {
+                        if (afterOne != max - 1 || shownAfter != max - 1) Fail("응급 수리를 쓴 직후 남은 횟수가 HUD에 그대로 보이지 않음");
+                        if (afterTwo != max - 2) Fail("모아 둔 응급 수리를 짧은 간격 뒤 이어 쓸 수 없음");
+                    }
+                }
             }
 
             // 정리
