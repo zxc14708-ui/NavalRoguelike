@@ -513,6 +513,27 @@ namespace Game.Dev
                 Finish();
                 yield break;
             }
+            if (CarrierLaunchOnly)
+            {
+                yield return CarrierLaunchCheck();
+                SaveLog("carrierlaunch");
+                Finish();
+                yield break;
+            }
+            if (BroadsideOnly)
+            {
+                yield return BroadsideCheck();
+                SaveLog("broadside");
+                Finish();
+                yield break;
+            }
+            if (IslandStuckOnly)
+            {
+                yield return IslandStuckCheck();
+                SaveLog("islandStuck");
+                Finish();
+                yield break;
+            }
             if (VariantOnly)
             {
                 yield return VariantCheck();

@@ -31,6 +31,92 @@ namespace Game.Enemies
             p.y = cruiseAltitude;
             transform.position = p;
             _velocity = transform.forward * (def != null ? def.MoveSpeed : 0f);
+            _host = null; _launching = false;   // 풀에서 다시 나오면 모함 정보를 비운다
+        }
+
+        // ------------------------------------------------------------ 모함 발진(2026-11-26)
+        // 항공전함 엘리베이터 드론이 함수(함교) 쪽으로 세워져 6m 고도로 곧장 플레이어에게 가면서 함교를 뚫고 지나갔다.
+        // 이제 활주로 방향으로 갑판을 달려 모함 끝을 벗어난 뒤 돌고, 그 뒤에도 모함 위를 지날 때는 함교 · 포탑보다 높게 난다.
+
+        /// <summary>검증용: 켜면 예전처럼(모함 무시) 난다.</summary>
+        public static bool DevLaunchOff;
+        /// <summary>모함 위를 지날 때 가장 높은 곳보다 이만큼 위로.</summary>
+        public const float HostClearMargin = 1.2f;
+        private const float HostSideMargin = 1f;
+
+        private HostClearance _host;
+        private bool _launching;
+        private Vector3 _launchDirLocal;
+        private float _launchStart, _launchUntil;
+
+        /// <summary>검증용: 활주 중인가.</summary>
+        public bool DevLaunching => _launching;
+        public HostClearance DevHost => _host;
+
+        /// <summary>
+        /// 모함 갑판에서 발진: worldDir(수평) 쪽으로 갑판을 달려 모함 끝을 벗어날 때까지 곧게 오른다(최대 maxRun초).
+        /// 그 뒤로도 모함이 살아 있는 동안은 모함 위를 지날 때 높이표보다 높게 난다.
+        /// </summary>
+        public void LaunchFrom(HostClearance host, Vector3 worldDir, float maxRun = 3f)
+        {
+            if (host == null || !host.Valid || DevLaunchOff) return;
+            _host = host;
+            worldDir.y = 0f;
+            if (worldDir.sqrMagnitude < 1e-4f) worldDir = -host.Host.forward;
+            _launchDirLocal = host.Host.InverseTransformDirection(worldDir.normalized);
+            _launchDirLocal.y = 0f; _launchDirLocal.Normalize();
+            _launching = true;
+            _launchStart = Time.time;
+            _launchUntil = Time.time + maxRun;
+            transform.rotation = Quaternion.LookRotation(worldDir.normalized, Vector3.up);
+            _velocity = transform.forward * (Definition != null ? Definition.MoveSpeed : 0f) * 0.5f;
+        }
+
+        /// <summary>활주 중이면 활주로를 따라 날고 참을 돌려준다(파생 기체는 이번 프레임 할 일을 건너뛴다).</summary>
+        protected bool FlyLaunchRun(float speed, float turnRate, float dt)
+        {
+            if (!_launching) return false;
+            if (_host == null || !_host.Valid || Time.time > _launchUntil || PastHost()) { _launching = false; return false; }
+            Vector3 d = _host.Host.TransformDirection(_launchDirLocal); d.y = 0f; d.Normalize();   // 모함이 돌면 활주로도 같이 돈다
+            Vector3 p = transform.position;
+            float need = _host.TopAlong(p + d * 2.5f, d, 6f, HostSideMargin) + HostClearMargin;   // 앞쪽만 본다(뒤의 함교는 이미 지나 있다)
+            float y = Mathf.Max(need, p.y + 0.6f);
+            float accel = Mathf.Lerp(0.5f, 1f, Mathf.Clamp01((Time.time - _launchStart) / 0.8f));   // 갑판에서 속도를 붙인다
+            Fly(new Vector3(p.x + d.x * 6f, y, p.z + d.z * 6f), speed * accel, turnRate, false, dt);
+            return true;
+        }
+
+        private bool PastHost()
+        {
+            var l = _host.Host.InverseTransformPoint(transform.position);
+            float cz = (_host.MinZ + _host.MaxZ) * 0.5f, cx = (_host.MinX + _host.MaxX) * 0.5f;
+            float along = (l.x - cx) * _launchDirLocal.x + (l.z - cz) * _launchDirLocal.z;
+            float extent = Mathf.Abs(_launchDirLocal.x) * (_host.MaxX - _host.MinX) * 0.5f + Mathf.Abs(_launchDirLocal.z) * (_host.MaxZ - _host.MinZ) * 0.5f;
+            return along > extent + 1.5f;
+        }
+
+        /// <summary>
+        /// target으로 가는 길(최대 lookAhead m, target 너머는 안 봄)이 모함 위를 지나면 그 높이보다 위로 가는 가까운 점을 돌려준다.
+        /// 모함이 없거나 길이 모함 위를 안 지나면 target 그대로.
+        /// </summary>
+        protected Vector3 ClearOfHost(Vector3 target, float lookAhead = 12f)
+        {
+            if (_host == null) return target;
+            if (!_host.Valid) { _host = null; return target; }
+            Vector3 p = transform.position;
+            Vector3 flat = target - p; flat.y = 0f;
+            float dist = flat.magnitude;
+            Vector3 dir = dist > 0.01f ? flat / dist : new Vector3(transform.forward.x, 0f, transform.forward.z).normalized;
+            Vector3 fwd = transform.forward; fwd.y = 0f;
+            fwd = fwd.sqrMagnitude > 1e-4f ? fwd.normalized : dir;
+            float reach = Mathf.Min(lookAhead, dist);
+            // 가려는 쪽과 지금 기수 쪽 둘 다 — 도는 동안 기수 앞에 함교가 있을 수 있다
+            float top = Mathf.Max(_host.TopAlong(p, dir, reach, HostSideMargin), _host.TopAlong(p, fwd, Mathf.Min(6f, reach + 3f), HostSideMargin));
+            if (top == float.MinValue) return target;
+            float need = top + HostClearMargin;
+            if (need <= target.y) return target;
+            float lead = Mathf.Min(6f, Mathf.Max(dist, 0.5f));
+            return new Vector3(p.x + dir.x * lead, need, p.z + dir.z * lead);
         }
 
         /// <summary>

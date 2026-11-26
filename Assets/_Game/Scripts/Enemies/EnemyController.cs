@@ -13,7 +13,7 @@ namespace Game.Enemies
     /// 가감속에 시간이 걸리며, 타는 속력이 있어야 듣는다. 후진하지 않는다.
     /// 거리를 유지하고 싶으면 멈추거나 물러나는 대신 목표 주위를 선회한다.
     /// </summary>
-    public abstract class EnemyController : MonoBehaviour, IPoolable, ITargetable, IDamageable, IHasHealth
+    public abstract partial class EnemyController : MonoBehaviour, IPoolable, ITargetable, IDamageable, IHasHealth
     {
         [SerializeField] protected EnemyDefinition definition;
 
@@ -113,6 +113,7 @@ namespace Game.Enemies
             _orbitSide = Random.value < 0.5f ? -1f : 1f;
             _orbitFlipAt = _unstickUntil = 0f;
             DevOrbitFlips = DevBoundaryHits = 0;
+            ResetDetour();   // 섬 우회(2026-11-26)
             if (def != null) _speed = def.MoveSpeed * 0.6f;
 
             // 물살: 수상함은 항상, 잠수함은 드러났을 때만(잠항 중 물살이 위치를 알려 주면 안 된다). 항공기는 없음.
@@ -305,6 +306,7 @@ namespace Game.Enemies
                 throttle = 1f;   // 멀리 있을 땐 전속으로 따라붙는다
             }
             else heading = OrbitHeading(radial, dist, radius, _orbitSide);
+            heading = ApplyDetour(heading, radius);   // 섬 뒤 · 두 섬 사이 · 오목한 해안: 열린 물길로 돌아 공격 자리를 다시 잡는다(2026-11-26)
 
             if (Kind != TargetKind.Aircraft && Game.World.SeaRegion.IsStrait) heading = KeepInWater(heading, radial, dist, radius, orbiting);
             Steer(heading, throttle, dt);
@@ -392,7 +394,9 @@ namespace Game.Enemies
         protected void Steer(Vector3 desiredHeading, float throttle, float dt)
         {
             float maxSpeed = definition.MoveSpeed * SpeedMultiplier;
-            float targetSpeed = Mathf.Clamp01(throttle) * maxSpeed;
+            // 후진(2026-11-26 섬 우회): 틈에 비스듬히 끼면 잠깐 물러난다 — 그동안 키는 쓰지 않는다
+            bool reversing = Time.time < _reverseUntil;
+            float targetSpeed = reversing ? -0.4f * maxSpeed : Mathf.Clamp01(throttle) * maxSpeed;
             _speed = Mathf.MoveTowards(_speed, targetSpeed, maxSpeed * accelerationRatio * dt);
 
             desiredHeading.y = 0f;
@@ -400,10 +404,12 @@ namespace Game.Enemies
             if (Time.time < _unstickUntil && desiredHeading.sqrMagnitude > 1e-6f)
                 desiredHeading = desiredHeading.normalized * 0.35f + _unstickNormal;
             desiredHeading = AvoidIslands(desiredHeading);
-            if (desiredHeading.sqrMagnitude > 0.0001f)
+            if (desiredHeading.sqrMagnitude > 0.0001f && !reversing)
             {
                 float rudder = maxSpeed > 0.01f ? Mathf.Clamp01(_speed / maxSpeed) : 0f;
                 rudder = Mathf.Max(rudder, minRudderEffect);
+                // 기슭에 막 닿았다(1초): 제자리 선회(키 75%) — 저속이라 키가 30%만 먹어 선수를 기슭에 박은 채 돌아서는 데 10초 넘게 걸렸다(2026-11-26)
+                if (Time.time < _unstickUntil && !DevDetourOff) rudder = Mathf.Max(rudder, 0.75f);
 
                 var want = Quaternion.LookRotation(desiredHeading.normalized, Vector3.up);
                 transform.rotation = Quaternion.RotateTowards(transform.rotation, want,
@@ -418,7 +424,8 @@ namespace Game.Enemies
             {
                 // 섬 쪽으로 파고들면 속력을 잃지만, 이미 벗어나는 쪽을 보고 있으면 최고 속력의 35%는 남긴다(속력 0이면 키가 안 먹어 못 빠져나온다)
                 bool leaving = throttle > 0.05f && Vector3.Dot(forward.normalized, shore) > -0.2f;
-                _speed = leaving ? Mathf.Max(_speed * 0.5f, maxSpeed * 0.35f * Mathf.Clamp01(throttle + 0.3f)) : _speed * 0.5f;
+                if (reversing) { }   // 물러나는 중: 속력 유지
+                else _speed = leaving ? Mathf.Max(_speed * 0.5f, maxSpeed * 0.35f * Mathf.Clamp01(throttle + 0.3f)) : _speed * 0.5f;
                 if (shore.sqrMagnitude > 1e-6f) { _unstickNormal = shore; _unstickUntil = Time.time + 1f; }
                 // 섬에 박혔다: 선회 방향을 바꿔 섬에서 돌아 나온다(같은 섬을 계속 파고들며 멈추지 않게, 3.5초에 한 번까지)
                 if (Time.time >= _orbitFlipAt) { _orbitSide = -_orbitSide; _orbitFlipAt = Time.time + 3.5f; DevOrbitFlips++; }

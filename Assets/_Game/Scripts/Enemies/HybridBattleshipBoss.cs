@@ -368,6 +368,23 @@ namespace Game.Enemies
             Vector3 wellPos = wellR != null ? wellR.bounds.center : _boatExit != null ? _boatExit.position : transform.position - transform.forward * 14f;
             var wl = transform.InverseTransformPoint(wellPos);
             _wellAnchor = Anchor("AimAnchor_Well", new Vector3(wl.x, Mathf.Max(0.6f, wl.y), wl.z));
+
+            // 함재기 비행 높이표(2026-11-26): 모델 메시만(엘리베이터에 실린 드론 사본 · 표시 · 효과는 뺀다)
+            var model = transform.Find("ModelPivot") ?? transform;
+            _clearance = HostClearance.Build(transform, model, t => t.name == "DroneOnElevator");
+        }
+
+        private HostClearance _clearance;
+        /// <summary>함재기 비행 높이표(검증용).</summary>
+        public HostClearance Clearance => _clearance;
+
+        /// <summary>
+        /// 활주로 방향(2026-11-26): 엘리베이터는 비행갑판 앞끝, 바로 앞이 함교라 함미 쪽으로 뜬다(활주로 중앙선이 엘리베이터에서 함미로 뻗는다).
+        /// </summary>
+        private Vector3 RunwayDir()
+        {
+            Vector3 d = -transform.forward; d.y = 0f;
+            return d.sqrMagnitude > 1e-4f ? d.normalized : Vector3.back;
         }
 
         /// <summary>선체 기준 방위 [minShip, maxShip] 안으로만 선회하는 사격각(포신의 쉬는 방향 기준으로 바꿔 넣는다).</summary>
@@ -646,7 +663,6 @@ namespace Game.Enemies
         private IEnumerator ElevatorCycle()
         {
             _elevatorBusy = true;
-            var spawner = EnemySpawner.Instance;
             EnsureDroneDummies();
             for (int lift = 0; lift < liftsPerWave; lift++)
             {
@@ -671,22 +687,31 @@ namespace Game.Enemies
                 }
                 SetElevator(0f);
                 yield return new WaitForSeconds(0.25f);   // 갑판에 올라온 모습을 잠깐 보여 주고
-                var origin = _elevatorMount != null ? _elevatorMount : _elevatorUpper;
-                Vector3 fwdFlat = transform.forward; fwdFlat.y = 0f; fwdFlat.Normalize();
-                if (spawner != null && Definition.LaunchedDrone != null && origin != null)
-                    for (int k = 0; k < dronesPerLift; k++)
-                    {
-                        // 실려 온 사본 자리에서 진짜 드론으로 바꿔 이륙
-                        var dummy = k < _droneDummies.Count ? _droneDummies[k] : null;
-                        Vector3 at = dummy != null && dummy.activeSelf ? dummy.transform.position : origin.position + transform.right * DroneSide(k) + fwdFlat * DroneStagger(k);
-                        if (spawner.SpawnAt(Definition.LaunchedDrone, at + Vector3.up * 0.15f, LaunchRotation()) != null)
-                            DevDronesLaunched++;
-                    }
-                ShowDroneDummies(false);
-                AudioManager.Play(Game.Data.SfxId.MissileLaunch, origin != null ? origin.position : transform.position, 0.35f, 1.4f);
+                LaunchDrones();
                 yield return new WaitForSeconds(0.4f);
             }
             _elevatorBusy = false;
+        }
+
+        /// <summary>실려 온 사본 자리에서 진짜 드론으로 바꿔 활주로(함미 쪽)로 띄운다.</summary>
+        private void LaunchDrones()
+        {
+            var spawner = EnemySpawner.Instance;
+            var origin = _elevatorMount != null ? _elevatorMount : _elevatorUpper;
+            Vector3 fwdFlat = transform.forward; fwdFlat.y = 0f; fwdFlat.Normalize();
+            Vector3 run = RunwayDir();
+            if (spawner != null && Definition != null && Definition.LaunchedDrone != null && origin != null)
+                for (int k = 0; k < dronesPerLift; k++)
+                {
+                    var dummy = k < _droneDummies.Count ? _droneDummies[k] : null;
+                    Vector3 at = dummy != null && dummy.activeSelf ? dummy.transform.position : origin.position + transform.right * DroneSide(k) + fwdFlat * DroneStagger(k);
+                    var drone = spawner.SpawnAt(Definition.LaunchedDrone, at + Vector3.up * 0.15f, LaunchRotation());
+                    if (drone == null) continue;
+                    DevDronesLaunched++;
+                    if (drone is AirEnemy air) air.LaunchFrom(_clearance, run, 3f);
+                }
+            ShowDroneDummies(false);
+            AudioManager.Play(Game.Data.SfxId.MissileLaunch, origin != null ? origin.position : transform.position, 0.35f, 1.4f);
         }
 
         private void StopElevator()
@@ -711,6 +736,7 @@ namespace Game.Enemies
             if (src == null) return;
             var origin = _elevatorMount != null ? _elevatorMount : _elevatorUpper;
             Vector3 fwd = transform.forward; fwd.y = 0f;
+            Vector3 nose = RunwayDir();   // 활주로(함미) 쪽으로 기수를 두고 싣는다
             float lift01 = _elevator01;
             SetElevator(0f);   // 위 자세에서 자리를 잡는다
             for (int k = _droneDummies.Count; k < dronesPerLift; k++)
@@ -723,7 +749,7 @@ namespace Game.Enemies
                 Game.View.EnemyPaint.Apply(go, true);
                 foreach (var t in go.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = gameObject.layer;
                 go.transform.SetPositionAndRotation(origin.position + transform.right * DroneSide(k) + fwd.normalized * DroneStagger(k) + Vector3.up * 0.05f,
-                                                    Quaternion.LookRotation(fwd.normalized, Vector3.up) * src.localRotation);
+                                                    Quaternion.LookRotation(nose, Vector3.up) * src.localRotation);
                 go.transform.SetParent(_elevatorPivot, true);
                 go.SetActive(false);
                 _droneDummies.Add(go);
@@ -776,12 +802,7 @@ namespace Game.Enemies
         }
 
         /// <summary>갑판 앞쪽으로, 살짝 들린 채 이륙한다.</summary>
-        private Quaternion LaunchRotation()
-        {
-            Vector3 f = transform.forward;
-            f.y = 0f;
-            return Quaternion.LookRotation((f.normalized + Vector3.up * 0.35f).normalized, Vector3.up);
-        }
+        private Quaternion LaunchRotation() => Quaternion.LookRotation(RunwayDir(), Vector3.up);
 
         // ------------------------------------------------------------ 겨냥점 · 피해
 

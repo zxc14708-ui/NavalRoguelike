@@ -12,14 +12,49 @@ namespace Game.Enemies
     /// 1스테이지 연안 경비정: 원거리 미사일, 근거리 함수/함미 함포.
     /// 부위 파괴(2026-11-01, <see cref="BossParts"/>): 함수·함미 함포(각 최대 체력 14%), 두 미사일 발사관 묶음(각 15%) —
     /// 부서진 포는 쏘지 않고, 부서진 쪽 발사관 묶음은 일제사격을 하지 않는다.
+    ///
+    /// 현측 일제사격(2026-11-26 Codex 제안 · "저쪽 발사관을 부수고 그쪽에 붙어서 이겼다"):
+    ///   1 돌려 세우기  사격 3초 전, 살아 있는 발사관 현측을 기함 쪽으로 돌린다(최대 6초). 한쪽이 부서졌으면 반대 현측을 들이밀려 크게 돈다 —
+    ///                  기함이 부서진 쪽에 붙어 따라가면 끝내 못 돌려 이번 사격을 거른다(DevBlockedSalvos).
+    ///   2 예고 1.5초   그 현측 발사관에 붉은 불 + 수면에 붉은 부채꼴. 이때부터 그 발사관은 노출(우선 피격 · 부위 피해 1.5배) — 먼저 부수면 사격 취소.
+    ///   3 일제사격     예고한 현측에서만 4발.
+    ///   4 재장전 3초   달아오른 발사관 + 수면에 금색 부채꼴: 여기서 쏘면 우리 무장이 그 발사관을 겨눈다(IAimPointProvider), 부위 피해 1.5배.
+    ///   발사관 둘 다 부서지면 함포만 남아 가까이 붙는다(돌격).
+    /// 가까이(25m) 붙으면 지금처럼 함포로 바꾼다 — 파고들면 미사일은 막지만 함포를 맞는다.
     /// </summary>
-    public class BossShip : EnemyController, IBossTelegraph, IBossParts
+    public class BossShip : EnemyController, IBossTelegraph, IBossParts, IAimPointProvider
     {
         // ---- 보스 학습(점검 K05): 원거리면 미사일 일제사격, 가까우면 함포. 손상 단계는 연출(75·50·25%).
-        public string PhaseName => _closeCombat ? "근거리 — 함포 2문" : "원거리 — 미사일 일제사격";
+        public string PhaseName => _gunsOnly ? "발사관 전멸 — 함포 돌격" : _closeCombat ? "근거리 — 함포 2문" : "원거리 — 현측 일제사격";
         public float[] PhaseThresholds => s_thresholds;
         private static readonly float[] s_thresholds = { 0.75f, 0.5f, 0.25f };
-        public (string name, float seconds) NextAttack => _closeCombat ? ("함포", Mathf.Max(0f, _gunTimer)) : ("미사일 일제사격", Mathf.Max(0f, _salvoTimer));
+        public (string name, float seconds) NextAttack => _closeCombat || _gunsOnly ? ("함포", Mathf.Max(0f, _gunTimer))
+            : _bs == Broadside.Telegraph ? ($"{BankSideName(_bsSide)} 일제사격", Mathf.Max(0f, TelegraphTime - _bsT))
+            : ("미사일 일제사격", Mathf.Max(0f, _salvoTimer));
+
+        // ---- 현측 일제사격(2026-11-26)
+        public const float PresentLead = 3f, PresentGiveUp = 6f, TelegraphTime = 1.5f, ReloadWindow = 3f, ExposedPartBonus = 1.5f, AlignHalfAngle = 35f;
+        public enum Broadside { None, Present, Telegraph, Firing, Window }
+        private Broadside _bs;
+        private float _bsT;
+        private int _bsSide;              // 0 또는 4(발사관 소켓 묶음)
+        private bool _bank0Starboard;
+        private bool _gunsOnly;
+        private int _announcedKills;
+        private BossBroadsideFx _fx;
+        /// <summary>검증용: 지금 단계 · 예고 횟수 · 쏜 일제사격 · 못 돌려 거른 사격 · 노출된 발사관에 들어간 피격 · 마지막 예고 길이(초) · 마지막 사격 현측.</summary>
+        public Broadside DevBroadside => _bs;
+        public int DevTelegraphs { get; private set; }
+        public int DevSalvos { get; private set; }
+        public int DevBlockedSalvos { get; private set; }
+        public int DevExposedHits { get; private set; }
+        public float DevLastTelegraph { get; private set; }
+        public int DevSalvoSide { get; private set; }   // +1 우현 · −1 좌현
+        public bool GunsOnly => _gunsOnly;
+        /// <summary>지금 노출된(예고 · 사격 · 재장전 중) 발사관 부위. 없으면 null.</summary>
+        public BossParts.Part ExposedBank => (_bs == Broadside.Telegraph || _bs == Broadside.Firing || _bs == Broadside.Window) ? BankPart(_bsSide) : null;
+        /// <summary>현측(+1 우현 · −1 좌현)의 발사관 부위.</summary>
+        public BossParts.Part BankOnSide(int sign) => (sign > 0) == _bank0Starboard ? _bank0Part : _bank4Part;
 
         [Header("Missiles")]
         [SerializeField] private Transform[] launchPoints;
@@ -101,10 +136,17 @@ namespace Game.Enemies
             if (launchPoints != null && launchPoints.Length >= 8)
             {
                 bool bank0Starboard = transform.InverseTransformPoint(launchPoints[0].position).x >= 0f;
+                _bank0Starboard = bank0Starboard;
                 _bank0Part = _parts.Add(bank0Starboard ? "우현 미사일 발사관" : "좌현 미사일 발사관", "그쪽 일제사격 중지", launchPoints[0], 2.4f, maxHp * 0.15f, launchPoints[0].parent);
                 _bank4Part = _parts.Add(bank0Starboard ? "좌현 미사일 발사관" : "우현 미사일 발사관", "그쪽 일제사격 중지", launchPoints[4], 2.4f, maxHp * 0.15f, launchPoints[4].parent);
             }
-            GameEvents.RaiseBossPhaseChanged("연안 경비정 출현 — 원거리 미사일 / 근거리 함포");
+            _bs = Broadside.None; _bsT = 0f; _bsSide = 0; _gunsOnly = false; _announcedKills = 0;
+            _loggedParts = 0; _loggedNames.Clear();
+            DevTelegraphs = DevSalvos = DevBlockedSalvos = DevExposedHits = 0; DevLastTelegraph = 0f; DevSalvoSide = 0;
+            _fx = BossBroadsideFx.Ensure(transform);
+            _fx.Hide();
+            if (Factions.GrantsReward(this)) BossDuelLog.Begin(def != null ? def.DisplayName : "연안 경비정");
+            GameEvents.RaiseBossPhaseChanged("연안 경비정 출현 — 현측을 돌려 세우면 일제사격, 쏜 직후 그 발사관이 열린다");
         }
 
         /// <summary>보스는 기함과의 결투로 설계됐다 — 호위함으로 표적을 돌리지 않는다.</summary>
@@ -113,30 +155,192 @@ namespace Game.Enemies
         protected override void UpdateBehaviour(float dt)
         {
             float distance = Vector3.Distance(transform.position, Player.position);
+            bool hasBanks = launchPoints != null && launchPoints.Length >= 8;
+            bool banksLeft = hasBanks && Definition.MissilePrefab != null &&
+                             (!_parts.IsDestroyed(_bank0Part) || !_parts.IsDestroyed(_bank4Part));
+            if (!banksLeft && !_gunsOnly && hasBanks)
+            {
+                _gunsOnly = true;
+                EndBroadside();
+                GameEvents.RaiseBossPhaseChanged("연안 경비정 발사관 전멸 — 함포로 붙어 온다");
+            }
             if (_closeCombat ? distance >= gunExitRange : distance <= gunEnterRange)
                 _closeCombat = !_closeCombat;
+            // 돌려 세우거나 예고하는 중에 기함이 파고들면 사격을 접고 함포로(파고든 보람 — 대신 함포를 맞는다)
+            if (_closeCombat && (_bs == Broadside.Present || _bs == Broadside.Telegraph)) { EndBroadside(); _salvoTimer = Mathf.Max(_salvoTimer, 2f); }
 
-            OrbitPlayer(Definition.PreferredRange, _closeCombat ? 0.8f : 0.65f, dt);
+            bool holdBroadside = _bs == Broadside.Present || _bs == Broadside.Telegraph || _bs == Broadside.Firing;
+            if (holdBroadside) SteerBroadside(_bsSide, dt);
+            else OrbitPlayer(_gunsOnly ? gunEnterRange * 0.7f : Definition.PreferredRange, _closeCombat || _gunsOnly ? 0.85f : 0.65f, dt);
             EmitDamageFx(dt);
             _parts.Tick(dt);
+            // 보스전 요약: 발사관 하나만 부서졌을 때 기함이 그 부서진 쪽에 있던 시간
+            if (hasBanks && _parts.IsDestroyed(_bank0Part) != _parts.IsDestroyed(_bank4Part))
+            {
+                bool deadStar = _parts.IsDestroyed(_bank0Part) ? IsStarboard(0) : IsStarboard(4);
+                if (deadStar == PlayerOnStarboard) BossDuelLog.DeadSideSeconds += dt;
+            }
 
             float tick = dt * (ReconAircraft.ActiveCount > 0 ? ReconAircraft.SpottedAttackRate : 1f);
-            if (_closeCombat)
+            if (_closeCombat || _gunsOnly)
             {
                 _bowGun.Tick(dt);
                 _aftGun.Tick(dt);
                 UpdateGuns(tick, dt);
             }
-            else
+            if (!_closeCombat && !_gunsOnly) UpdateBroadside(tick, dt, distance);
+            else if (_bs == Broadside.Window) TickWindow(dt);
+        }
+
+        // ------------------------------------------------------------ 현측 일제사격
+
+        private bool IsStarboard(int side) => side == 0 ? _bank0Starboard : !_bank0Starboard;
+        private BossParts.Part BankPart(int side) => side == 0 ? _bank0Part : _bank4Part;
+        private string BankSideName(int side) => IsStarboard(side) ? "우현" : "좌현";
+
+        /// <summary>기함이 그 현측 정횡(±AlignHalfAngle) 안에 있는가.</summary>
+        private bool PlayerAbeam(int side)
+        {
+            Vector3 local = transform.InverseTransformPoint(Player.position);
+            float bearing = Mathf.Atan2(local.x, local.z) * Mathf.Rad2Deg;
+            return Mathf.Abs(Mathf.DeltaAngle(bearing, IsStarboard(side) ? 90f : -90f)) <= AlignHalfAngle;
+        }
+
+        private bool PlayerOnStarboard => transform.InverseTransformPoint(Player.position).x >= 0f;
+
+        private void UpdateBroadside(float tick, float dt, float distance)
+        {
+            bool canShoot = distance <= missileMaxRange && !PlayerConcealed && !PlayerBehindIsland;
+            switch (_bs)
             {
-                _salvoTimer -= tick;
-                if (_salvo == null && _salvoTimer <= 0f && distance <= missileMaxRange &&
-                    !PlayerConcealed && !PlayerBehindIsland && Definition.MissilePrefab != null)
+                case Broadside.None:
                 {
-                    _salvoTimer = salvoInterval;
-                    _salvo = StartCoroutine(FireSalvo());
+                    _salvoTimer -= tick;
+                    if (_salvoTimer > PresentLead || !canShoot || _gunsOnly) break;
+                    // 살아 있는 발사관 중 지금 기함 쪽을 향한 현측(둘 다 살아 있으면 덜 돌아도 되는 쪽)
+                    bool a0 = !_parts.IsDestroyed(_bank0Part), a4 = !_parts.IsDestroyed(_bank4Part);
+                    int side = a0 && a4 ? (IsStarboard(0) == PlayerOnStarboard ? 0 : 4) : a0 ? 0 : 4;
+                    _bsSide = side; _bs = Broadside.Present; _bsT = 0f;
+                    // 한쪽을 잃었고 기함이 그 부서진 쪽에 있다: 크게 돌아 살아 있는 현측을 들이민다(한 번 알림)
+                    int kills = (a0 ? 0 : 1) + (a4 ? 0 : 1);
+                    if (kills == 1 && IsStarboard(side) != PlayerOnStarboard && _announcedKills < 1)
+                    {
+                        _announcedKills = 1;
+                        GameEvents.RaiseBossPhaseChanged($"연안 경비정 — 살아 있는 {BankSideName(side)}을 들이밀려 크게 선회. 부서진 쪽에 붙어 따라가십시오");
+                    }
+                    break;
                 }
+                case Broadside.Present:
+                    _bsT += dt;
+                    if (_parts.IsDestroyed(BankPart(_bsSide))) { EndBroadside(); break; }
+                    if (!canShoot) { EndBroadside(); _salvoTimer = 1.5f; break; }
+                    if (PlayerAbeam(_bsSide))
+                    {
+                        _bs = Broadside.Telegraph; _bsT = 0f;
+                        DevTelegraphs++;
+                        var lit = BankPart(_bsSide);
+                        if (lit != null) lit.Priority = true;   // 불 들어온 발사관은 노출(먼저 부수면 사격 취소)
+                        _fx.Show(BossBroadsideFx.Mode.Warn, IsStarboard(_bsSide) ? 1f : -1f, TelegraphTime, BankSockets(_bsSide));
+                        AudioManager.Play(SfxId.SonarPing, transform.position, 0.6f, 0.7f);
+                        break;
+                    }
+                    if (_bsT >= PresentGiveUp)
+                    {
+                        // 끝내 못 돌렸다(기함이 부서진 쪽 · 뒤쪽에 붙어 따라왔다): 이번 사격은 거른다
+                        DevBlockedSalvos++;
+                        BossDuelLog.Blocked++;
+                        EndBroadside();
+                        _salvoTimer = PresentLead + 2f;
+                    }
+                    break;
+                case Broadside.Telegraph:
+                    _bsT += dt;
+                    if (_parts.IsDestroyed(BankPart(_bsSide)))
+                    {
+                        string name = BankSideName(_bsSide);
+                        BossDuelLog.Cancelled++;
+                        EndBroadside();
+                        GameEvents.RaiseBossPhaseChanged($"예고 중인 {name} 발사관 파괴 — 일제사격 저지");
+                        _salvoTimer = salvoInterval * 0.5f;
+                        break;
+                    }
+                    if (!canShoot) { EndBroadside(); _salvoTimer = 1.5f; break; }
+                    if (_bsT >= TelegraphTime)
+                    {
+                        DevLastTelegraph = _bsT;
+                        _bs = Broadside.Firing;
+                        _salvoTimer = salvoInterval;
+                        if (_salvo != null) StopCoroutine(_salvo);
+                        _salvo = StartCoroutine(FireSalvo(_bsSide));
+                    }
+                    break;
+                case Broadside.Firing:
+                    break;   // FireSalvo가 끝나면 재장전 창으로
+                case Broadside.Window:
+                    _salvoTimer -= tick;
+                    TickWindow(dt);
+                    break;
             }
+        }
+
+        private int _loggedParts;
+        private void LogPartKills()
+        {
+            int n = 0;
+            foreach (var p in _parts.Parts) if (p.Destroyed) n++;
+            if (n <= _loggedParts) return;
+            foreach (var p in _parts.Parts)
+                if (p.Destroyed && !_loggedNames.Contains(p.Name)) { _loggedNames.Add(p.Name); BossDuelLog.PartKilled(p.Name); }
+            _loggedParts = n;
+        }
+        private readonly System.Collections.Generic.HashSet<string> _loggedNames = new();
+
+        private void TickWindow(float dt)
+        {
+            _bsT += dt;
+            var bank = BankPart(_bsSide);
+            if (_bsT >= ReloadWindow || bank == null || bank.Destroyed) EndBroadside();
+        }
+
+        private void EndBroadside()
+        {
+            var bank = BankPart(_bsSide);
+            if (bank != null) bank.Priority = false;
+            _bs = Broadside.None; _bsT = 0f;
+            if (_fx != null) _fx.Hide();
+        }
+
+        private Transform[] BankSockets(int side)
+        {
+            if (launchPoints == null || launchPoints.Length < side + 4) return new Transform[0];
+            return new[] { launchPoints[side], launchPoints[side + 1], launchPoints[side + 2], launchPoints[side + 3] };
+        }
+
+        /// <summary>그 현측을 기함 쪽으로 돌려 세운다: 기함 방향에 수직(현측이 기함을 봄) + 거리 유지 성분.</summary>
+        private void SteerBroadside(int side, float dt)
+        {
+            Vector3 d = Player.position - transform.position; d.y = 0f;
+            float dist = d.magnitude;
+            if (dist < 0.01f) { Steer(transform.forward, 0.6f, dt); return; }
+            d /= dist;
+            Vector3 h = IsStarboard(side) ? Vector3.Cross(d, Vector3.up) : Vector3.Cross(Vector3.up, d);
+            float radius = EngageRadius(Definition.PreferredRange);
+            float corr = Mathf.Clamp((dist - radius) / radius * 2f, -1f, 1f);
+            Steer((h + d * corr * 0.6f).normalized, _bs == Broadside.Present ? 0.75f : 0.55f, dt);
+        }
+
+        /// <summary>
+        /// 우리 무장이 겨눌 점: 노출된 발사관(예고 · 사격 · 재장전 중)이 쏘는 쪽 현측(정횡 ±70°)에 있거나 위에서 꽂히는 유도탄이면 그 발사관,
+        /// 아니면 배 중심(예전과 같음).
+        /// </summary>
+        public Vector3 AimPointFor(Vector3 shooter, bool topAttack)
+        {
+            var bank = ExposedBank;
+            if (!IsAlive || bank == null || bank.Destroyed || bank.Anchor == null) return transform.position;
+            Vector3 local = transform.InverseTransformPoint(shooter);
+            float bearing = Mathf.Atan2(local.x, local.z) * Mathf.Rad2Deg;
+            bool sameSide = Mathf.Abs(Mathf.DeltaAngle(bearing, IsStarboard(_bsSide) ? 90f : -90f)) <= 70f;
+            return topAttack || sameSide ? bank.Anchor.position : transform.position;
         }
 
         private void UpdateGuns(float tick, float dt)
@@ -164,21 +368,18 @@ namespace Game.Enemies
             AudioManager.Play(SfxId.EnemyGunShot, muzzle.position, 0.7f, 1.05f);
         }
 
-        private IEnumerator FireSalvo()
+        /// <summary>예고한 현측(side = 0 · 4 소켓 묶음)에서 일제사격. 끝나면 그 발사관이 재장전 창으로 열린다.</summary>
+        private IEnumerator FireSalvo(int side)
         {
-            // FBX 축 보정에 따라 좌우가 뒤집힐 수 있으므로 소켓의 실제 월드 위치로 현측을 고른다.
-            float targetX = transform.InverseTransformPoint(Player.position).x;
-            int side = targetX >= 0f ? 4 : 0;
-            if (launchPoints != null && launchPoints.Length >= 8)
-            {
-                float bank0X = transform.InverseTransformPoint(launchPoints[0].position).x;
-                float bank4X = transform.InverseTransformPoint(launchPoints[4].position).x;
-                side = Mathf.Abs(targetX - bank0X) <= Mathf.Abs(targetX - bank4X) ? 0 : 4;
-            }
-            if (_parts.IsDestroyed(side == 0 ? _bank0Part : _bank4Part)) { _salvo = null; yield break; }   // 그쪽 발사관 묶음이 부서졌다
+            var bankPart = BankPart(side);
+            if (_parts.IsDestroyed(bankPart)) { _salvo = null; EndBroadside(); yield break; }   // 그쪽 발사관 묶음이 부서졌다
+            DevSalvos++;
+            BossDuelLog.Salvos++;
+            DevSalvoSide = IsStarboard(side) ? 1 : -1;
+            if (bankPart != null) bankPart.Priority = true;   // 예고부터 쏘는 동안 · 재장전 창: 노출
             for (int i = 0; i < salvoCount; i++)
             {
-                if (!IsAlive || Player == null || _closeCombat || PlayerConcealed || PlayerBehindIsland) break;
+                if (!IsAlive || Player == null || PlayerConcealed || PlayerBehindIsland || _parts.IsDestroyed(bankPart)) break;
                 Vector3 position;
                 Quaternion rotation;
                 if (launchPoints != null && launchPoints.Length >= 8)
@@ -199,13 +400,36 @@ namespace Game.Enemies
                 if (i < salvoCount - 1) yield return new WaitForSeconds(salvoSpacing);
             }
             _salvo = null;
+            // 재장전 창: 달아오른 발사관 + 금색 부채꼴(여기서 쏘면 그 발사관을 노린다)
+            if (IsAlive && bankPart != null && !bankPart.Destroyed && _bs == Broadside.Firing)
+            {
+                _bs = Broadside.Window; _bsT = 0f;
+                bankPart.Priority = true;
+                _fx.Show(BossBroadsideFx.Mode.Open, IsStarboard(side) ? 1f : -1f, ReloadWindow, BankSockets(side), 22f, 70f);   // 22m: 무장 사거리 원(노랑)과 겹치지 않게
+            }
+            else if (_bs == Broadside.Firing) EndBroadside();
         }
 
         public override void TakeDamage(in DamageInfo info)
         {
             base.TakeDamage(info);
             if (!IsAlive) return;
-            _parts.Hit(info, this);
+            // 노출된 발사관(예고 · 사격 · 재장전 중): 그 자리 피해는 부위에 1.5배(선체 피해는 그대로)
+            var exposed = ExposedBank;
+            bool bonus = false;
+            if (exposed != null && !exposed.Destroyed && exposed.Anchor != null && info.HitPoint != Vector3.zero)
+            {
+                Vector3 d = info.HitPoint - exposed.Anchor.position; d.y = 0f;
+                bonus = d.sqrMagnitude <= exposed.Radius * exposed.Radius;
+            }
+            if (bonus)
+            {
+                DevExposedHits++;
+                BossDuelLog.ExposedHits++;
+                _parts.Hit(new DamageInfo(info.Amount * ExposedPartBonus, info.HitPoint, info.Direction, info.Source, info.Tag), this);
+            }
+            else _parts.Hit(info, this);
+            LogPartKills();
             int stage = HpFraction <= 0.25f ? 3 : HpFraction <= 0.5f ? 2 : HpFraction <= 0.75f ? 1 : 0;
             if (stage <= _damageStage) return;
             _damageStage = stage;
@@ -254,6 +478,7 @@ namespace Game.Enemies
 
         public override void OnDespawned()
         {
+            EndBroadside();
             _parts.Clear();
             if (_salvo != null) StopCoroutine(_salvo);
             _salvo = null;

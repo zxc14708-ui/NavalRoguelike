@@ -21,6 +21,7 @@ namespace Game.Modules.Runtime
 
         private float _until = -1f, _cooldownLeft;
         private ShipController _registered;
+        private ArmorPanelFx _fx;   // 연출: 장갑판 전개(2026-11-23 시안 C)
 
         private int Level => Instance != null ? Instance.Level : 1;
         public bool ShieldUp => Time.time < _until;
@@ -44,19 +45,16 @@ namespace Game.Modules.Runtime
         public float Filter(ShipController ship, in DamageInfo info, float amount)
         {
             if (Instance == null || !Instance.IsOperational || !isActiveAndEnabled || amount <= 0f) return amount;
-            if (ShieldUp) return Absorb(amount);
+            if (ShieldUp) { if (_fx != null) _fx.Hit(info.HitPoint); return Absorb(amount); }
             if (_cooldownLeft > 0f || OtherShieldUp(ship)) return amount;
             if (amount < ship.HullMaxHp * TriggerFraction) return amount;
 
             _until = Time.time + Duration;
             _cooldownLeft = Duration + CooldownFor(Level);   // 보호막이 끝난 뒤부터 재사용 시간
             Triggers++;
-            var grid = ship.Grid;
-            float cell = grid != null ? grid.CellSize : 2f;
-            var bounds = new Bounds(Vector3.zero, grid != null
-                ? new Vector3((grid.MaxHalfBeam * 2 + 1) * cell, 3f, (grid.MaxHalfLength * 2 + 1) * cell)
-                : new Vector3(6f, 3f, 16f));
-            SignatureFx.Shell(ship.transform, bounds, Duration, ShieldColor);
+            // 연출(2026-11-23 사용자 시안 C): 선체 둘레에 투명 장갑판이 선수부터 솟는다 — 예전 반투명 구 하나는 너무 단순했다
+            _fx = ArmorPanelFx.Deploy(ship, Duration, ShieldColor);
+            if (_fx != null) _fx.Hit(info.HitPoint);
             AudioManager.Play(Game.Data.SfxId.SonarPing, ship.transform.position, 0.9f, 1.6f);
             GameEvents.RaiseBanner($"응급 차폐 장갑 — {Duration:0}초 동안 받는 피해 −{Reduction * 100f:0}%");
             CombatLog.Add(LogName, $"큰 피해 {amount:0}(선체 {amount / ship.HullMaxHp * 100f:0}%) → 차폐 {Duration:0}초");

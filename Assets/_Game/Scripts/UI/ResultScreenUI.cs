@@ -108,6 +108,10 @@ namespace Game.UI
             sb.Append(all == 0 ? "\n<color=#9fb3c0>없음</color>"
                 : $"\n{all}발 — 요격 {intercepted} · <color=#FF9A7A>피격 {hit}</color> · 빗나감 {lost}  <color=#9fb3c0>(막은 비율 {(intercepted + lost) * 100f / all:0}%)</color>");
 
+            // 보스전 요약(2026-11-26): 무엇을 부수고 어디에 붙어 이겼나
+            string duel = Game.Combat.BossDuelLog.Line();
+            if (duel.Length > 0) sb.Append($"\n\n<color=#e0c05a><b>보스전</b></color>\n{duel}");
+
             var ship = GameManager.Instance != null ? GameManager.Instance.Player : null;
             var grid = ship != null ? ship.Grid : null;
             int blocks = 0;

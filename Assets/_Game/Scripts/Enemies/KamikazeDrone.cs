@@ -69,6 +69,13 @@ namespace Game.Enemies
 
         protected override void UpdateBehaviour(float dt)
         {
+            // 모함에서 막 떴으면 활주로를 따라 모함 끝을 벗어날 때까지(2026-11-26)
+            if (FlyLaunchRun(Definition.MoveSpeed, Definition.TurnRateDegPerSec, dt))
+            {
+                if (propeller != null) propeller.Rotate(transform.forward, propellerRpm * 6f * dt, Space.World);
+                return;
+            }
+
             Vector3 aim = AimPoint();
             Vector3 flat = aim - transform.position;
             flat.y = 0f;
@@ -80,10 +87,14 @@ namespace Game.Enemies
                 AudioManager.Play(Game.Data.SfxId.DroneBuzz, transform.position);   // 돌입 엔진음(2026-11-16)
             }
 
+            // 모함 위를 지나는 길이면 함교 · 포탑보다 높게(모함이 없으면 그대로)
             if (_diving)
-                Fly(aim, Definition.MoveSpeed * diveSpeedMultiplier, Definition.TurnRateDegPerSec, true, dt);
+            {
+                Vector3 go = ClearOfHost(aim);
+                Fly(go, Definition.MoveSpeed * diveSpeedMultiplier, Definition.TurnRateDegPerSec, go == aim, dt);
+            }
             else
-                Fly(new Vector3(aim.x, cruiseAltitude, aim.z), Definition.MoveSpeed, Definition.TurnRateDegPerSec, false, dt);
+                Fly(ClearOfHost(new Vector3(aim.x, cruiseAltitude, aim.z)), Definition.MoveSpeed, Definition.TurnRateDegPerSec, false, dt);
 
             // 모델 노드는 Blender 축이라 로컬 축으로 돌리면 틀어진다. 월드 기준 진행 방향 축으로 돌린다.
             if (propeller != null) propeller.Rotate(transform.forward, propellerRpm * 6f * dt, Space.World);

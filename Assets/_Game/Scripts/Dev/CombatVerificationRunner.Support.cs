@@ -259,7 +259,60 @@ namespace Game.Dev
                 float b = ship.FilterIncoming(info, bigHit);
                 bool upAfterBig = esRt.ShieldUp;
                 float c2 = ship.FilterIncoming(info, small);
-                yield return new WaitForSeconds(EmergencyShieldModule.Duration + 0.3f);
+                // 연출(2026-11-23 사용자 시안 C · 장갑판 전개): 선체 둘레에 판이 솟고, 맞으면 그 판이 번쩍이고, 끝나면 사라진다
+                float fxT0 = Time.time;
+                var fx = ArmorPanelFx.Last;
+                bool fxOnShip = fx != null && fx.transform.IsChildOf(ship.transform);
+                // 차례로 솟나: 처음 판이 반쯤 솟은 프레임에 아직 안 솟은 판이 있어야 한다
+                float riseEarly = 0f, restEarly = 1f;
+                while (fx != null && Time.time - fxT0 < 0.6f)
+                {
+                    yield return null;
+                    if (fx != null && fx.MaxRise >= 0.5f) { riseEarly = fx.MaxRise; restEarly = fx.MinRise; break; }
+                }
+                yield return CloseShot("shield_panels_rising", ship.transform, 26f);
+                while (Time.time - fxT0 < 0.9f) yield return null;
+                float riseFull = fx != null ? fx.MinRise : 0f;
+                int hits0 = fx != null ? fx.Hits : 0;
+                var sideHit = new DamageInfo(1f, ship.transform.position + ship.transform.right * 6f + Vector3.up, -ship.transform.right, DamageSource.Missile, "test");
+                ship.FilterIncoming(sideHit, small);
+                int hits1 = fx != null ? fx.Hits : 0;
+                yield return null;
+                yield return CloseShot("shield_panels_hit", ship.transform, 26f); yield return CloseShot("shield_panels_anchor", ship.transform, 13f);
+                // 외곽이 실제 선체(선체 조각 상자, 배 기준)를 감싸나 — 격자 최대 칸이 아니라 지금 지은 선체
+                var hullB = new Bounds(Vector3.zero, Vector3.zero); bool hullAny = false;
+                var hb2 = ship.GetComponentInChildren<ShipHullBuilder>();
+                if (hb2 != null && hb2.HullRoot != null)
+                    foreach (var mf in hb2.HullRoot.GetComponentsInChildren<MeshFilter>())
+                    {
+                        if (mf.sharedMesh == null) continue;
+                        var meshB = mf.sharedMesh.bounds;
+                        var m = ship.transform.worldToLocalMatrix * mf.transform.localToWorldMatrix;
+                        for (int k = 0; k < 8; k++)
+                        {
+                            var pt = m.MultiplyPoint3x4(meshB.center + Vector3.Scale(meshB.extents, new Vector3((k & 1) == 0 ? -1 : 1, (k & 2) == 0 ? -1 : 1, (k & 4) == 0 ? -1 : 1)));
+                            if (!hullAny) { hullB = new Bounds(pt, Vector3.zero); hullAny = true; } else hullB.Encapsulate(pt);
+                        }
+                    }
+                float hl = hullB.extents.z, hbm = hullB.extents.x;
+                var ol = fx != null ? fx.OutlineLocal : default;
+                bool wraps = fx != null && hullAny && ol.size.z >= hl * 2f && ol.size.x >= hbm * 2f * 0.9f;
+                _report.AppendLine($"  - 연출 장갑판: 배에 붙음 {Yes(fxOnShip)} · 판 {(fx != null ? fx.PanelCount : 0)}장 · 선수 판 {riseEarly:0.00} 솟을 때 가장 늦은 판 {restEarly:0.00} · 0.9초 모두 솟음 {riseFull:0.00} · 외곽 {ol.size.x:0.0}×{ol.size.z:0.0}m(선체 {hbm * 2f:0.0}×{hl * 2f:0.0}) · 맞은 판 번쩍 {hits1 - hits0}회 · 닻 문양 {(fx != null ? fx.EmblemCount : 0)}장 · 기울기 {(fx != null ? fx.Tilt : 0f):0.00}m");
+                if (fx == null || !fxOnShip) Fail("차폐 장갑이 켜졌는데 장갑판 연출이 배에 생기지 않음");
+                else
+                {
+                    if (fx.PanelCount < 10) Fail($"장갑판이 너무 적음({fx.PanelCount}장)");
+                    if (fx.EmblemCount < fx.PanelCount / 2) Fail($"닻 문양이 들어간 판이 너무 적음({fx.EmblemCount}/{fx.PanelCount})");
+                    if (fx.Tilt > 0.001f) Fail("장갑판이 수직이 아니라 기울어 있음");
+                    if (riseEarly < 0.5f || restEarly >= 0.5f) Fail("장갑판이 차례로 솟지 않고 한 번에 다 솟음");
+                    if (riseFull < 0.95f) Fail("장갑판이 다 솟지 않음");
+                    if (!wraps) Fail("장갑판 외곽이 선체를 감싸지 않음");
+                    if (hits1 - hits0 != 1) Fail("켜진 동안 맞아도 장갑판이 번쩍이지 않음");
+                }
+                while (Time.time - fxT0 < EmergencyShieldModule.Duration + 0.3f) yield return null;
+                bool fxGone = fx == null;
+                _report.AppendLine($"  - 3초 뒤 장갑판 사라짐 {Yes(fxGone)}");
+                if (!fxGone) Fail("차폐가 끝났는데 장갑판 연출이 남음");
                 bool down = !esRt.ShieldUp;
                 float d = ship.FilterIncoming(info, bigHit);
                 float cd = esRt.CooldownLeft;

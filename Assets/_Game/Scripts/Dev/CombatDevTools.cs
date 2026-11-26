@@ -88,6 +88,9 @@ namespace Game.Dev
                 runner.EnvOnly = System.Array.IndexOf(args, "-envOnly") >= 0;
                 runner.VariantOnly = System.Array.IndexOf(args, "-variantOnly") >= 0;
                 runner.SupportOnly = System.Array.IndexOf(args, "-supportOnly") >= 0;
+                runner.IslandStuckOnly = System.Array.IndexOf(args, "-islandStuckOnly") >= 0;
+                runner.BroadsideOnly = System.Array.IndexOf(args, "-broadsideOnly") >= 0;
+                runner.CarrierLaunchOnly = System.Array.IndexOf(args, "-carrierLaunchOnly") >= 0;
                 runner.TubeOnly = System.Array.IndexOf(args, "-tubeOnly") >= 0;
                 runner.HowitzerOnly = System.Array.IndexOf(args, "-howitzerOnly") >= 0;
                 runner.RamMineOnly = System.Array.IndexOf(args, "-ramMineOnly") >= 0;

@@ -387,7 +387,10 @@ namespace Game.Dev
                                    || a.MagazineCapacity != b.MagazineCapacity || !Mathf.Approximately(a.AmmoReloadTime, b.AmmoReloadTime)
                                    || !Mathf.Approximately(a.DetectionRange, b.DetectionRange) || !Mathf.Approximately(a.TurretTurnRate, b.TurretTurnRate)
                                    || !Mathf.Approximately(a.SortieCooldown, b.SortieCooldown) || !Mathf.Approximately(a.ReloadBonus, b.ReloadBonus)
-                                   || prof.Module.Type == ModuleType.Howitzer || prof.Module.Type == ModuleType.RamBow;
+                                   || !Mathf.Approximately(a.SpeedBonus, b.SpeedBonus)
+                                   || prof.Module.Type == ModuleType.Howitzer || prof.Module.Type == ModuleType.RamBow
+                                   // 지원 블록(2026-11-22): 강화 단계가 수치가 아니라 Lv 규칙(실행 중 행동)을 바꾼다 — 단계가 2개 이상이면 된다
+                                   || (ModuleUpgrades.IsSupport(prof.Module.Type) && prof.Module.Type != ModuleType.Magazine && ModuleUpgrades.MaxLevel(prof.Module) >= 2);
                     count++;
                     sb.Append($"{prof.Module.DisplayName}{(changed ? "" : "(변화 없음)")} · ");
                     if (!changed) Fail($"{prof.name}: 강화 II가 수치를 바꾸지 않음");

@@ -91,6 +91,7 @@ namespace Game.Combat
             TotalDamage = 0f;
             TotalKills = 0;
             PartialSinceResume = false;
+            BossDuelLog.Reset();   // 보스전 요약(2026-11-26)
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
